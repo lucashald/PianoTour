@@ -228,6 +228,44 @@ function getStaffLineYPosition(noteName, clef) {
     return stave.getYForLine(lineNumber);
 }
 
+function getCurrentVexFlowKeySignature() {
+    const pitchClass = pianoState.keySignature.replace(/\d+$/, ''); // Remove octave
+    const isMinor = pianoState.isMinorChordMode;
+
+    // Map minor keys to their relative majors for VexFlow
+    const minorToRelativeMajor = {
+        'A': 'C',    // A minor → C major (0 sharps/flats)
+        'E': 'G',    // E minor → G major (1 sharp)
+        'B': 'D',    // B minor → D major (2 sharps)
+        'F#': 'A',   // F# minor → A major (3 sharps)
+        'C#': 'E',   // C# minor → E major (4 sharps)
+        'G#': 'B',   // G# minor → B major (5 sharps)
+        'D#': 'F#',  // D# minor → F# major (6 sharps)
+        'A#': 'C#',  // A# minor → C# major (7 sharps)
+
+        'D': 'F',    // D minor → F major (1 flat)
+        'G': 'Bb',   // G minor → Bb major (2 flats)
+        'C': 'Eb',   // C minor → Eb major (3 flats)
+        'F': 'Ab',   // F minor → Ab major (4 flats)
+        'Bb': 'Db',  // Bb minor → Db major (5 flats)
+        'Eb': 'Gb',  // Eb minor → Gb major (6 flats)
+        'Ab': 'Cb'   // Ab minor → Cb major (7 flats)
+    };
+
+    if (isMinor && minorToRelativeMajor[pitchClass]) {
+        return minorToRelativeMajor[pitchClass];
+    }
+
+    // Handle enharmonic equivalents for major keys
+    const enharmonicMap = {
+        'A#': 'Bb',
+        'D#': 'Eb', 
+        'G#': 'Ab'
+    };
+
+    return enharmonicMap[pitchClass] || pitchClass;
+}
+
 export function drawAll(measures) {
 console.log("drawAll: START");
 const out = document.getElementById('score');
@@ -297,6 +335,9 @@ staveTreble.addClef('treble').addTimeSignature('4/4');
 staveBass.addClef('bass').addTimeSignature('4/4');
 system.addConnector('brace');
 system.addConnector('singleLeft');
+    const keySignature = getCurrentVexFlowKeySignature();
+    staveTreble.addKeySignature(keySignature);
+    staveBass.addKeySignature(keySignature);
 }
 if (i === measureCount - 1) {
 system.addConnector('boldDoubleRight');
@@ -976,6 +1017,20 @@ export function setPaletteDragState(isDragging, type, duration) {
     }
 }
 
+export function handleKeySignatureClick(e) {
+    // Cycle through common key signatures for now
+    const keys = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'F', 'Bb', 'Eb', 'Ab', 'Db'];
+    const currentIndex = keys.indexOf(pianoState.keySignature);
+    const nextIndex = (currentIndex + 1) % keys.length;
+    pianoState.keySignature = keys[nextIndex];
+
+    // Update the button text to show current key signature
+    e.target.textContent = `Key: ${pianoState.keySignature}`;
+
+    // Rerender the score with new key signature
+    const scoreData = getMeasures();
+    drawAll(scoreData);
+}
 
 // --- Getters for external modules ---
 // These functions provide read-only access to internal rendering data structures.

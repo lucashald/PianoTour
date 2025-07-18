@@ -10,6 +10,7 @@ export const pianoState = {
     chordButtonMode: 0, // 0: Hidden, 1: Bass, 2: Treble
 
     // Musical State (Instrument-specific)
+    keySignature: 'C',
     chordCenterNote: 'E4', // Default chord center for chord mode
     scaleTonic: 'C4',      // Default scale tonic for diatonic chords
     baseIdx: 0,            // Starting index for the playable piano view

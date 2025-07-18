@@ -689,3 +689,95 @@ export const DURATIONS = [
     //{ key: '32.', name: 'Dotted Thirty-second', beatValue: 0.1875 },
     //{ key: '32', name: 'Thirty-second', beatValue: 0.125 },
 ];
+
+// ===================================================================
+// Key Signature Definitions
+// ===================================================================
+
+// Order of sharps and flats as they appear in key signatures
+export const SHARP_ORDER = ['F', 'C', 'G', 'D', 'A', 'E', 'B'];
+export const FLAT_ORDER = ['B', 'E', 'A', 'D', 'G', 'C', 'F'];
+
+// Key signature definitions: number of accidentals and which notes are affected
+export const KEY_SIGNATURES = {
+    // Major keys with sharps
+    'C': { accidentals: [], type: 'natural' },
+    'G': { accidentals: ['F#'], type: 'sharp' },
+    'D': { accidentals: ['F#', 'C#'], type: 'sharp' },
+    'A': { accidentals: ['F#', 'C#', 'G#'], type: 'sharp' },
+    'E': { accidentals: ['F#', 'C#', 'G#', 'D#'], type: 'sharp' },
+    'B': { accidentals: ['F#', 'C#', 'G#', 'D#', 'A#'], type: 'sharp' },
+    'F#': { accidentals: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#'], type: 'sharp' },
+    'C#': { accidentals: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'], type: 'sharp' },
+
+    // Major keys with flats
+    'F': { accidentals: ['Bb'], type: 'flat' },
+    'Bb': { accidentals: ['Bb', 'Eb'], type: 'flat' },
+    'Eb': { accidentals: ['Bb', 'Eb', 'Ab'], type: 'flat' },
+    'Ab': { accidentals: ['Bb', 'Eb', 'Ab', 'Db'], type: 'flat' },
+    'Db': { accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb'], type: 'flat' },
+    'Gb': { accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'], type: 'flat' },
+    'Cb': { accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb'], type: 'flat' }
+};
+
+// Minor key signatures (same accidentals as their relative majors)
+export const MINOR_KEY_SIGNATURES = {
+    'A': { accidentals: [], type: 'natural', relativeMajor: 'C' },
+    'E': { accidentals: ['F#'], type: 'sharp', relativeMajor: 'G' },
+    'B': { accidentals: ['F#', 'C#'], type: 'sharp', relativeMajor: 'D' },
+    'F#': { accidentals: ['F#', 'C#', 'G#'], type: 'sharp', relativeMajor: 'A' },
+    'C#': { accidentals: ['F#', 'C#', 'G#', 'D#'], type: 'sharp', relativeMajor: 'E' },
+    'G#': { accidentals: ['F#', 'C#', 'G#', 'D#', 'A#'], type: 'sharp', relativeMajor: 'B' },
+    'D#': { accidentals: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#'], type: 'sharp', relativeMajor: 'F#' },
+    'A#': { accidentals: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'], type: 'sharp', relativeMajor: 'C#' },
+
+    'D': { accidentals: ['Bb'], type: 'flat', relativeMajor: 'F' },
+    'G': { accidentals: ['Bb', 'Eb'], type: 'flat', relativeMajor: 'Bb' },
+    'C': { accidentals: ['Bb', 'Eb', 'Ab'], type: 'flat', relativeMajor: 'Eb' },
+    'F': { accidentals: ['Bb', 'Eb', 'Ab', 'Db'], type: 'flat', relativeMajor: 'Ab' },
+    'Bb': { accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb'], type: 'flat', relativeMajor: 'Db' },
+    'Eb': { accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'], type: 'flat', relativeMajor: 'Gb' },
+    'Ab': { accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb'], type: 'flat', relativeMajor: 'Cb' }
+};
+
+// Helper to get key signature for any key and mode
+export const getKeySignature = (tonic, mode = 'major') => {
+    const pitchClass = tonic.replace(/\d+$/, ''); // Remove octave number
+    if (mode === 'major') {
+        return KEY_SIGNATURES[pitchClass] || KEY_SIGNATURES['C'];
+    } else {
+        return MINOR_KEY_SIGNATURES[pitchClass] || MINOR_KEY_SIGNATURES['A'];
+    }
+};
+
+// Convert key signature to VexFlow format
+export const getVexFlowKeySignature = (tonic, mode = 'major') => {
+    const keySignature = getKeySignature(tonic, mode);
+    if (keySignature.accidentals.length === 0) {
+        return 'C'; // No accidentals
+    }
+
+    if (keySignature.type === 'sharp') {
+        return `${keySignature.accidentals.length}#`;
+    } else {
+        return `${keySignature.accidentals.length}b`;
+    }
+};
+
+// Get proper note spelling based on key signature context
+export const getProperSpelling = (noteName, keySignature) => {
+    const pitchClass = noteName.replace(/\d+$/, '');
+    const octave = noteName.match(/\d+$/)?.[0] || '';
+
+    // If this pitch class is in the key signature, use the key signature spelling
+    for (const accidental of keySignature.accidentals) {
+        const accidentalPitchClass = accidental.replace(/[#b]/g, '');
+        if (pitchClass === accidentalPitchClass || 
+            (pitchClass.includes('#') && accidentalPitchClass === pitchClass.replace('#', '')) ||
+            (pitchClass.includes('b') && accidentalPitchClass === pitchClass.replace('b', ''))) {
+            return accidental + octave;
+        }
+    }
+
+    return noteName; // Use original spelling if not affected by key signature
+};

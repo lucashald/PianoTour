@@ -44,6 +44,7 @@
                 
                 <!-- Standard button for cycling modes -->
                 <button id="mode-cycle-btn" class="btn">Single Note</button>
+                <button id="key-signature-btn" class="btn">Key Signature</button>
                 
                 {% block filehandler %}
                 {% include '_filehandler.html' %}
@@ -85,7 +86,7 @@
     import { initializeInstrumentUI, handleToggleLabelsChange, handleModeCycleClick } from '{{ url_for("static", filename="instrumentHelpers.js") }}';
     import { startAudio, handleMidiNoteOn, handleMidiNoteOff } from '{{ url_for("static", filename="playbackHelpers.js") }}';
     import { getMeasures, resetScore, processAndSyncScore, undoLastWrite } from '{{ url_for("static", filename="scoreWriter.js") }}';
-    import { drawAll } from '{{ url_for("static", filename="scoreRenderer.js") }}';
+    import { drawAll, handleKeySignatureClick } from '{{ url_for("static", filename="scoreRenderer.js") }}';
     import { initializeFileHandlers } from '{{ url_for("static", filename="ioHelpers.js") }}';
     import { handleChordDisplayToggle } from '{{ url_for("static", filename="uiHelpers.js") }}';
     import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
@@ -143,6 +144,7 @@
         document.getElementById('toggleLabelsCheckbox')?.addEventListener('change', handleToggleLabelsChange);
         document.getElementById('mode-cycle-btn')?.addEventListener('click', handleModeCycleClick);
         document.getElementById('chord-display-toggle')?.addEventListener('click', handleChordDisplayToggle);
+        document.getElementById('key-signature-btn')?.addEventListener('click', handleKeySignatureClick);
     });
 
     window.addEventListener('resize', () => {
