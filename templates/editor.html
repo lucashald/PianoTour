@@ -33,7 +33,6 @@
             </div>
         </div>
 
-        <!-- Docked editing panel container -->
         <div id="dockedEditingContainer" class="panel-section" style="display: none;">
             <h3>Edit Note</h3>
         </div>
@@ -107,7 +106,6 @@
     </div>
 </div>
 
-<!-- Floating Editing Panel (when not docked) -->
 <div class="editing-panel" id="editingPanel">
     <div class="panel-header">
         <span class="panel-title">Edit Note</span>
@@ -128,7 +126,7 @@
             <button class="control-btn active" data-duration="quarter" aria-label="Quarter Note"><span class="control-btn-icon">♩</span></button>
             <button class="control-btn" data-duration="eighth" aria-label="Eighth Note"><span class="control-btn-icon">♪</span></button>
             <button class="control-btn" data-duration="half" aria-label="Half Note"><span class="control-btn-icon">♫</span></button>
-            <button class="control-btn" data-duration="whole" aria-label="Whole Note">𝅗𝅥</button>
+            <button class="control-btn" data-duration="whole" aria-label="Whole Note">𝅗</button>
             <button class="control-btn" data-duration="rest" aria-label="Rest"><span class="control-btn-icon">𝄽</span></button>
             <button class="control-btn" data-dotted="true" aria-label="Add Dot">●</button>
         </div>
@@ -173,17 +171,32 @@
 <script type="module">
     // NEW: Editor-specific JavaScript initialization
     import { initializeMusicEditor } from '{{ url_for("static", filename="musicEditorUI.js") }}';
+    import { setPaletteDragState } from '{{ url_for("static", filename="scoreRenderer.js") }}';
 
     // It's important to ensure the DOM elements are loaded before initializing the editor.
-    // The base template's DOMContentLoaded might fire before this script is parsed,
-    // so we can directly call initializeMusicEditor if this script is placed at the end of body.
-    // However, for robustness, wrapping in DOMContentLoaded is still a good practice.
     document.addEventListener('DOMContentLoaded', () => {
         initializeMusicEditor(); // Initialize the new editing UI
         
         // Setup floating panel interactions that are specific to the editor page
         setupFloatingPanelInteractions();
+        
+        // NEW: Setup palette drag listeners
+        setupPaletteDrag();
     });
+
+    function setupPaletteDrag() {
+        const paletteNotes = document.querySelectorAll('.palette-note');
+        paletteNotes.forEach(note => {
+            note.addEventListener('dragstart', (event) => {
+                const type = event.target.dataset.type;
+                // FIX: Get the duration directly from the dragged item's data-duration attribute.
+                const duration = event.currentTarget.dataset.duration;
+
+                setPaletteDragState(true, type, duration);
+                event.dataTransfer.setData('text/plain', type); // Necessary for drop event to fire
+            });
+        });
+    }
 
     function setupFloatingPanelInteractions() {
         const editingPanel = document.getElementById('editingPanel');
