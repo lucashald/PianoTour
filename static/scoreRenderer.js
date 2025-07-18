@@ -296,6 +296,9 @@ vfContext = vexFlowFactory.getContext();
 const score = vexFlowFactory.EasyScore();
 let currentX = 20;
 
+// ADD THIS: Collect all voices for applyAccidentals
+const allVoices = [];
+
 for (let i = 0; i < measureCount; i++) {
 measureXPositions.push(currentX);
 const measure = measures[i] || [];
@@ -326,8 +329,14 @@ vexflowIndexByNoteId[noteData.id] = vexflowIndex;
 });
 
 const system = vexFlowFactory.System({ x: currentX, width: measureWidth, spaceBetweenStaves: 10 });
-const staveTreble = system.addStave({ voices: [score.voice(trebleVexNotes).setStrict(false)] });
-const staveBass = system.addStave({ voices: [score.voice(bassVexNotes).setStrict(false)] });
+
+// ADD THIS: Store the voices so we can apply accidentals
+const trebleVoice = score.voice(trebleVexNotes).setStrict(false);
+const bassVoice = score.voice(bassVexNotes).setStrict(false);
+allVoices.push(trebleVoice, bassVoice);
+
+const staveTreble = system.addStave({ voices: [trebleVoice] });
+const staveBass = system.addStave({ voices: [bassVoice] });
 vexflowStaveMap[i] = { treble: staveTreble, bass: staveBass };
 
 if (i === 0) {
@@ -344,6 +353,10 @@ system.addConnector('boldDoubleRight');
 }
 currentX += measureWidth;
 }
+
+// ADD THIS: Apply accidentals based on key signature BEFORE rendering
+const keySignature = getCurrentVexFlowKeySignature();
+Vex.Flow.Accidental.applyAccidentals(allVoices, keySignature);
 
 vexFlowFactory.draw();
 console.log("drawAll: VexFlow drawing complete.");
