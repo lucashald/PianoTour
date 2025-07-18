@@ -38,7 +38,7 @@ let chordButtonsGenerated = false;
  */
 export function generateChordButtons() {
     if (typeof chordGroups === 'undefined' || !document.getElementById('chordGroupsContainer')) return;
-    
+
     const chordGroupsContainer = document.getElementById('chordGroupsContainer');
     chordGroupsContainer.innerHTML = ''; // Clear previous buttons
 
@@ -48,46 +48,49 @@ export function generateChordButtons() {
         const heading = document.createElement('h4');
         heading.textContent = group.label;
         section.appendChild(heading);
-        
+
         const grid = document.createElement('div');
         grid.className = 'chord-grid';
-        
+
         group.chords.forEach(chordName => {
             const btn = document.createElement('button');
-            btn.className = `chord-btn`;
-            
+            // REFACTORED: Use the new BEM classes for compact buttons.
+            btn.className = 'btn btn--compact'; 
+
             const chordDefinition = chordDefinitions[chordName];
             if (!chordDefinition) return;
             btn.chordData = chordDefinition;
             btn.textContent = chordDefinition.displayName;
             btn.setAttribute('data-chord', chordName); 
-            
+
             grid.appendChild(btn);
         });
         section.appendChild(grid);
         chordGroupsContainer.appendChild(section);
     });
 
-    document.querySelectorAll('.chord-btn').forEach(button => {
+    // REFACTORED: Select the newly styled buttons within their container.
+    document.querySelectorAll('#chordGroupsContainer .btn').forEach(button => {
         button.addEventListener('pointerdown', function (e) {
             e.preventDefault(); 
             const chordDefinition = this.chordData;
             if (!chordDefinition) return;
-            
-            document.querySelectorAll('.chord-btn').forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
+
+            // REFACTORED: Use .is-active for the toggled state.
+            document.querySelectorAll('#chordGroupsContainer .btn').forEach(btn => btn.classList.remove('is-active'));
+            this.classList.add('is-active');
 
             updateNowPlayingDisplay(chordDefinition.displayName);
 
             let notesToPlay = [];
             let clef = '';
-            
+
             if (chordButtonMode === 1) { notesToPlay = chordDefinition.bass || []; clef = 'bass'; } 
             else if (chordButtonMode === 2) { notesToPlay = chordDefinition.treble || []; clef = 'treble'; }
 
-            if (notesToPlay.length > 0) { // Check if there are notes to play (sampler readiness is checked by trigger)
+            if (notesToPlay.length > 0) { // Check if there are notes to play
                 trigger(notesToPlay, true);
-                this.classList.add('pressed');
+                this.classList.add('pressed'); // 'pressed' can be a temporary visual state
                 const startTime = performance.now();
 
                 this.setPointerCapture(e.pointerId);
@@ -107,8 +110,7 @@ export function generateChordButtons() {
                         const chordDisplayName = chordDefinition.displayName;
                         updateNowPlayingDisplay(chordDisplayName); 
                         writeNote({ clef, duration, notes: notesToPlay, chordName: chordDisplayName });
-                        // drawAll will be called by writeNote
-                        
+
                         this.releasePointerCapture(eUp.pointerId);
                         this.removeEventListener('pointerup', endChordPlay);
                         this.removeEventListener('pointercancel', endChordPlay);
@@ -121,7 +123,6 @@ export function generateChordButtons() {
                 updateNowPlayingDisplay(chordDisplayName);
                 // If no notes, treat as a rest to advance the score
                 writeNote({ clef, duration: 'q', notes: [], chordName: chordDisplayName, isRest: true });
-                // drawAll will be called by writeNote
             }
         }); 
     });
@@ -132,25 +133,28 @@ export function handleChordDisplayToggle(e) {
     e.preventDefault();
     const chordButtonsContainer = document.getElementById('chordButtons');
     const toggleButtonSpan = e.currentTarget.querySelector('span');
-    
+
     chordButtonMode = (chordButtonMode + 1) % 3; // Cycle 0, 1, 2
 
     switch (chordButtonMode) {
         case 0:
             toggleButtonSpan.textContent = 'Show Chords';
             chordButtonsContainer.classList.add('hidden');
-            e.currentTarget.classList.remove('active');
+            // REFACTORED: Use .is-active for state management
+            e.currentTarget.classList.remove('is-active');
             break;
         case 1:
             toggleButtonSpan.textContent = 'Bass Chords';
             chordButtonsContainer.classList.remove('hidden');
-            e.currentTarget.classList.add('active');
+            // REFACTORED: Use .is-active for state management
+            e.currentTarget.classList.add('is-active');
             if (!chordButtonsGenerated) { generateChordButtons(); }
             break;
         case 2:
             toggleButtonSpan.textContent = 'Treble Chords';
             chordButtonsContainer.classList.remove('hidden');
-            e.currentTarget.classList.add('active');
+            // REFACTORED: Use .is-active for state management
+            e.currentTarget.classList.add('is-active');
             if (!chordButtonsGenerated) { generateChordButtons(); }
             break;
     }

@@ -616,10 +616,17 @@ function handleSpacebarUnlock(e) {
 // Exported Functions
 // ===================================================================
 
-/** Handles the label toggle checkbox. */
 export function handleToggleLabelsChange(e) {
     pianoState.toggleLabels = e.target.checked;
     updateLabels();
+    const buttonElement = e.target.parentElement; 
+
+    // Add or remove the .is-active class based on the checkbox state
+    if (e.target.checked) {
+        buttonElement.classList.add('is-active');
+    } else {
+        buttonElement.classList.remove('is-active');
+    }
 }
 
 /** Handles cycling through the different playing modes. */

@@ -38,26 +38,36 @@
 
         <div class="controls">
             <div class="button-row">
-                <button id="clearScoreBtn" class="btn">Clear Score</button>
-                <button id="undo-btn" class="btn">Undo</button>
+                <!-- Destructive actions use the 'danger' modifier -->
+                <button id="clearScoreBtn" class="btn btn--danger">Clear Score</button>
+                <button id="undo-btn" class="btn btn--danger">Undo</button>
+                
+                <!-- Standard button for cycling modes -->
                 <button id="mode-cycle-btn" class="btn">Single Note</button>
+                
                 {% block filehandler %}
                 {% include '_filehandler.html' %}
                 {% endblock %} 
             </div>
 
             <div class="checkbox-row">
-                <label class="checkbox-as-button">
-                    <input type="checkbox" id="toggleLabelsCheckbox">
+                <!-- A label styled as a toggle button -->
+                <label class="btn btn--toggle">
+                    <input type="checkbox" id="toggleLabelsCheckbox" class="hidden">
                     <span>Label Keys</span>
                 </label>
-                <button id="chord-display-toggle" class="checkbox-as-button">
+
+                <!-- A button that acts as a toggle -->
+                <button id="chord-display-toggle" class="btn btn--toggle">
                     <span>Show Chords</span>
                 </button>
+
+                <!-- A link styled as a button for navigation -->
                 <a href="/editor">
-                <button class="checkbox-as-button">
-                    <span>Edit</span>
-                </button></a>
+                    <button class="btn btn--info">
+                        <span>Edit</span>
+                    </button>
+                </a>
             </div>
 
             <div id="chordButtons" class="hidden">
@@ -125,7 +135,8 @@
             drawAll(getMeasures());
         } catch (e) {
             console.error("An error occurred during initial score rendering:", e);
-            alert("An error occurred while drawing the score. It might be corrupted.");
+            // Using a custom modal or a less intrusive notification is better than alert()
+            // For now, keeping the console error is sufficient.
         }
         document.getElementById('clearScoreBtn')?.addEventListener('click', (e) => { e.preventDefault(); resetScore(); });
         document.getElementById('undo-btn')?.addEventListener('click', (e) => { e.preventDefault(); undoLastWrite(); });

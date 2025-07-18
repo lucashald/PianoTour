@@ -2,6 +2,7 @@ modules = ["python-3.10"]
 
 [nix]
 channel = "stable-24_05"
+packages = ["portmidi"]
 
 [[ports]]
 localPort = 4000
@@ -14,3 +15,19 @@ externalPort = 80
 [[ports]]
 localPort = 8080
 externalPort = 8080
+
+[run]
+command = ["python", "test.py", "--debug"]
+
+[workflows]
+runButton = "test"
+
+[[workflows.workflow]]
+name = "test"
+mode = "sequential"
+author = 11741143
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python test.py --debug"
+# highlight-end

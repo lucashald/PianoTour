@@ -31,144 +31,6 @@
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-
-/* ==========================================================================
-   UNIFIED BUTTON SYSTEM (BEM METHODOLOGY)
-   ========================================================================== */
-
-/* --------------------------------------------------------------------------
-   1. The Base Button Block (.btn)
-   - This is the core class for ALL buttons.
-   - It defines common properties like padding, font, border-radius, etc.
--------------------------------------------------------------------------- */
-.btn {
-    /* Box Model & Sizing */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem 1.5rem; /* Default padding */
-    min-height: 44px; /* Ensures a good touch target size */
-
-    /* Typography */
-    font-family: 'Inter', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    text-transform: uppercase;
-    text-decoration: none; /* For cases where an <a> tag gets the .btn class */
-    letter-spacing: 0.5px;
-    white-space: nowrap; /* Prevents text wrapping */
-
-    /* Appearance */
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--border-radius);
-    cursor: pointer;
-
-    /* Animation & Interaction */
-    transition: var(--transition);
-    user-select: none; /* Prevent text selection on click */
-}
-
-/* --- Base Button States --- */
-
-.btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-.btn:focus-visible {
-    outline: 2px solid var(--primary-green);
-    outline-offset: 2px;
-}
-
-.btn:disabled,
-.btn[disabled] {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    transform: none;
-    box-shadow: none;
-}
-
-/* --------------------------------------------------------------------------
-   2. Button Modifiers (.btn--modifier)
-   - These classes change the appearance or size of the base .btn.
-   - They are used IN ADDITION to the .btn class (e.g., <button class="btn btn--primary">)
--------------------------------------------------------------------------- */
-
-/* --- Purpose & Color Modifiers --- */
-
-.btn--primary {
-    background: var(--primary-green);
-    color: var(--dark-bg);
-    border-color: transparent;
-}
-.btn--primary:hover {
-    background: var(--primary-green-light);
-    border-color: transparent;
-}
-
-.btn--danger {
-    background: rgba(239, 68, 68, 0.2); /* --error with transparency */
-    color: #f87171; /* Lighter red for text */
-    border-color: rgba(239, 68, 68, 0.4);
-}
-.btn--danger:hover {
-    background: rgba(239, 68, 68, 0.3);
-    color: #ef4444;
-    border-color: #ef4444; /* Solid red on hover */
-}
-
-.btn--info {
-    background: rgba(59, 130, 246, 0.2);
-    color: #93c5fd;
-    border-color: rgba(59, 130, 246, 0.4);
-}
-.btn--info:hover {
-    background: rgba(59, 130, 246, 0.3);
-    color: #60a5fa;
-    border-color: #3b82f6;
-}
-
-
-/* --- Style & Type Modifiers --- */
-
-.btn--toggle.is-active {
-    background: var(--primary-green);
-    color: white;
-    border-color: transparent;
-    box-shadow: 0 0 15px rgba(29, 185, 84, 0.5);
-}
-
-/* --- Size Modifiers --- */
-
-.btn--compact {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    min-height: 36px;
-    border-radius: var(--border-radius-sm);
-    text-transform: capitalize;
-}
-
-/* --------------------------------------------------------------------------
-   3. State Class (.is-active)
-   - Use this class with JavaScript to programmatically set a button's
-     active/toggled state.
-   - Works primarily with .btn--toggle.
--------------------------------------------------------------------------- */
-.is-active {
-    /* This class is a hook. The actual styling is defined
-       in the modifier (e.g., .btn--toggle.is-active) */
-}
-
-
-
-
-
 /* ==========================================================================
    GLOBAL STYLES (Adapted from styles.css)
    ========================================================================== */
@@ -241,6 +103,35 @@ body {
     overflow-x: auto;
     scroll-behavior: smooth;
     text-align: center;
+}
+
+.now-playing-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    margin-top: 0; /* Adjusted for flow within main-area */
+    margin-bottom: 20px; /* Add bottom margin for separation */
+    flex-shrink: 0;
+    width: 100%; /* Ensure it takes full width within main-area */
+    max-width: 1100px; /* Match other content elements */
+}
+
+.instrument-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-lg);
+    padding: 1rem;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    margin-top: 0; /* Remove top margin since now-playing has bottom margin */
+    flex-shrink: 0;
+    width: 100%; /* Ensure it takes full width within main-area */
+    max-width: 1100px; /* Match other content elements */
 }
 
 .controls {
@@ -335,6 +226,30 @@ body {
     color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.side-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.side-btn {
+    padding: 10px 12px;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    text-align: left;
+}
+
+.side-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #3b82f6;
 }
 
 /* ==========================================================================
@@ -548,7 +463,10 @@ body {
     justify-content: center;
     margin-bottom: 30px;
 }
-
+#play-score-btn {
+    background: #4ade80;
+    color: #1f2937;
+}
 .measure-nav, .editor-measure-nav { /* From with sidebar, as these are editor-specific */
     display: flex;
     align-items: center;
@@ -594,6 +512,172 @@ body {
 .nav-btn:disabled { /* From with sidebar */
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* ==========================================================================
+   INTERACTIVE ELEMENTS (PRIORITIZING 'WITHOUT SIDEBAR' STYLES for main buttons)
+   ========================================================================== */
+button,
+select {
+    font-family: 'Inter', sans-serif;
+    padding: 1rem 2rem;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.btn, .control-button { /* Added from with sidebar to cover other button types */
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+    font-size: 14px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button:hover,
+select:hover,
+.btn:hover,
+.control-button:hover { /* Combined hover for all button types */
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn:hover, .control-button:hover { /* Specific hover from with sidebar for btn/control-button */
+    background: rgba(255, 255, 255, 0.2);
+}
+
+button:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+}
+
+.btn.primary { /* From with sidebar */
+    background: #4ade80;
+    color: #1f2937;
+}
+
+/* Button Color Classes (from with sidebar) */
+.bg-green-500 { background: #22c55e !important; }
+.bg-green-500:hover, .hover\:bg-green-600:hover { background: #16a34a !important; }
+.bg-red-500 { background: #ef4444 !important; }
+.bg-red-500:hover, .hover\:bg-red-600:hover { background: #dc2626 !important; }
+.bg-gray-500 { background: #6b7280 !important; }
+.bg-gray-500:hover, .hover\:bg-gray-600:hover { background: #4b5563 !important; }
+.bg-purple-500 { background: #a855f7 !important; }
+.bg-purple-500:hover, .hover\:bg-purple-600:hover { background: #9333ea !important; }
+.bg-blue-500 { background: #3b82f6 !important; }
+.bg-blue-500:hover, .hover\:bg-blue-600:hover { background: #2563eb !important; }
+
+
+/* Special button styles */
+#clearScoreBtn, #undo-btn {
+    background-color: rgba(255, 107, 107, 0.1);
+    border-color: rgba(255, 107, 107, 0.3);
+    color: var(--error);
+}
+
+#clearScoreBtn:hover, #undo-btn:hover {
+    background-color: rgba(255, 107, 107, 0.2);
+    border-color: rgba(255, 107, 107, 0.5);
+}
+
+select#switchMeasuresDropdown {
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+}
+
+/* ==========================================================================
+   CUSTOM CHECKBOX BUTTON (Mixed from both, favoring 'with sidebar' specifics)
+   ========================================================================== */
+label.checkbox-as-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+    position: relative;
+    text-transform: uppercase;
+}
+
+.checkbox-as-button { /* From with sidebar */
+    padding: 10px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(10px);
+}
+
+label.checkbox-as-button:hover,
+.checkbox-as-button:hover { /* Combined hover effects */
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.checkbox-as-button:hover { /* Specific hover from with sidebar */
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+
+label.checkbox-as-button:has(input:checked) {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    color: white;
+    border-color: transparent;
+}
+
+button.checkbox-as-button.active {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
+}
+
+.checkbox-as-button input[type="checkbox"] { /* From with sidebar */
+    display: none;
+}
+
+.checkbox-as-button input[type="checkbox"]:checked + span::before { /* From with sidebar */
+    content: "✓ ";
+    color: #4ade80;
 }
 
 /* ==========================================================================
@@ -729,6 +813,21 @@ body {
 /* ==========================================================================
    EDITOR SPECIFIC STYLES (from with sidebar, as these relate to the floating/docked panel)
    ========================================================================== */
+.editor-section {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.editor-section h3 {
+    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
 .note-editor-expanded {
     background: rgba(255, 255, 255, 0.08);
@@ -762,6 +861,14 @@ body {
 .move-controls .control-button {
     flex: 1;
     min-width: 120px;
+}
+
+.editor-panel {
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
 }
 
 .control-group {
@@ -976,6 +1083,17 @@ body {
     align-items: center;
 }
 
+/* Note List Headings - From without sidebar */
+#editorEditBox h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+    text-align: center;
+    width: 100%;
+}
+
 /* Flex items for note buttons and add/remove - From without sidebar */
 .flex-items-center-gap-1 {
     display: flex;
@@ -1065,6 +1183,15 @@ body {
 
 #editorExpandedEditor.hidden {
     display: none;
+}
+
+/* "Editing: Note Name" display - From without sidebar */
+#editorExpandedEditor h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    text-align: center;
 }
 
 #editorSelectedNoteDisplay {

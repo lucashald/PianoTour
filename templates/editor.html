@@ -12,9 +12,10 @@
             <h3>Measure</h3>
             <div class="editor-measure-nav">
                 <h2 id="editorControlsHeader">
-                    <button id="editorPrevBtn" class="nav-btn">◀</button>
+                    <!-- REFACTORED: Using compact button class -->
+                    <button id="editorPrevBtn" class="btn btn--compact">◀</button>
                     <input type="number" id="editorNumberInput" value="1" min="1" class="measure-input">
-                    <button id="editorNextBtn" class="nav-btn">▶</button>
+                    <button id="editorNextBtn" class="btn btn--compact">▶</button>
                 </h2>
             </div>
         </div>
@@ -74,7 +75,8 @@
                         <div id="chordNotesContainer">
                             {# Chord note inputs will be dynamically populated here #}
                         </div>
-                        <button id="addNoteToChordBtn" class="control-button bg-green-500 hover:bg-green-600">Add Note to Chord</button>
+                        <!-- REFACTORED: Replaced utility color classes with BEM modifier -->
+                        <button id="addNoteToChordBtn" class="btn btn--compact btn--primary">Add Note to Chord</button>
                     </div>
 
                     <div class="control-group">
@@ -87,17 +89,19 @@
                     <div class="control-group">
                         <label>Actions:</label>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button id="editorRemoveNote" class="control-button bg-red-500 hover:bg-red-600">Remove</button>
-                            <button id="editorToggleClef" class="control-button bg-gray-500 hover:bg-gray-600">Treble</button>
-                            <button id="editorToggleRest" class="control-button bg-gray-500 hover:bg-gray-600">Toggle Rest</button>
+                            <!-- REFACTORED: Using BEM modifiers for purpose -->
+                            <button id="editorRemoveNote" class="btn btn--compact btn--danger">Remove</button>
+                            <button id="editorToggleClef" class="btn btn--compact">Treble</button>
+                            <button id="editorToggleRest" class="btn btn--compact">Toggle Rest</button>
                         </div>
                     </div>
 
                     <div class="control-group">
                         <label>Move Note:</label>
                         <div class="move-controls">
-                            <button id="editorMoveToPrevMeasure" class="control-button bg-purple-500 hover:bg-purple-600">← Previous Measure</button>
-                            <button id="editorMoveToNextMeasure" class="control-button bg-purple-500 hover:bg-purple-600">Next Measure →</button>
+                             <!-- REFACTORED: Using info modifier for non-primary actions -->
+                            <button id="editorMoveToPrevMeasure" class="btn btn--compact btn--info">← Previous Measure</button>
+                            <button id="editorMoveToNextMeasure" class="btn btn--compact btn--info">Next Measure →</button>
                         </div>
                     </div>
                 </div>
@@ -110,35 +114,37 @@
     <div class="panel-header">
         <span class="panel-title">Edit Note</span>
         <div class="panel-header-buttons">
-            <button class="panel-dock" aria-label="Dock to sidebar">◀</button>
-            <button class="panel-close" aria-label="Close panel">✕</button>
+            <!-- REFACTORED: These small panel buttons also get the compact style -->
+            <button class="panel-dock btn btn--compact" aria-label="Dock to sidebar">◀</button>
+            <button class="panel-close btn btn--compact" aria-label="Close panel">✕</button>
         </div>
     </div>
     <div class="panel-controls">
+        <!-- REFACTORED: All buttons in this panel now use the unified .btn class system -->
         <div class="control-group">
             <span class="control-label">Pitch:</span>
-            <button class="control-btn" aria-label="Pitch Up">⬆️</button>
-            <button class="control-btn" aria-label="Pitch Down">⬇️</button>
+            <button class="btn btn--compact" aria-label="Pitch Up">⬆️</button>
+            <button class="btn btn--compact" aria-label="Pitch Down">⬇️</button>
             <input type="text" id="currentPitch" value="C4" maxlength="4">
         </div>
         <div class="control-group">
             <span class="control-label">Duration:</span>
-            <button class="control-btn active" data-duration="quarter" aria-label="Quarter Note"><span class="control-btn-icon">♩</span></button>
-            <button class="control-btn" data-duration="eighth" aria-label="Eighth Note"><span class="control-btn-icon">♪</span></button>
-            <button class="control-btn" data-duration="half" aria-label="Half Note"><span class="control-btn-icon">♫</span></button>
-            <button class="control-btn" data-duration="whole" aria-label="Whole Note">𝅗</button>
-            <button class="control-btn" data-duration="rest" aria-label="Rest"><span class="control-btn-icon">𝄽</span></button>
-            <button class="control-btn" data-dotted="true" aria-label="Add Dot">●</button>
+            <button class="btn btn--compact is-active" data-duration="quarter" aria-label="Quarter Note"><span class="control-btn-icon">♩</span></button>
+            <button class="btn btn--compact" data-duration="eighth" aria-label="Eighth Note"><span class="control-btn-icon">♪</span></button>
+            <button class="btn btn--compact" data-duration="half" aria-label="Half Note"><span class="control-btn-icon">♫</span></button>
+            <button class="btn btn--compact" data-duration="whole" aria-label="Whole Note">𝅗</button>
+            <button class="btn btn--compact" data-duration="rest" aria-label="Rest"><span class="control-btn-icon">𝄽</span></button>
+            <button class="btn btn--compact" data-dotted="true" aria-label="Add Dot">●</button>
         </div>
         <div class="control-group">
             <span class="control-label">Type:</span>
-            <button class="control-btn active" data-type="note" aria-label="Note Type">Note</button>
-            <button class="control-btn" data-type="chord" aria-label="Chord Type">Chord</button>
-            <button class="control-btn" data-type="rest" aria-label="Rest Type">Rest</button>
+            <button class="btn btn--compact is-active" data-type="note" aria-label="Note Type">Note</button>
+            <button class="btn btn--compact" data-type="chord" aria-label="Chord Type">Chord</button>
+            <button class="btn btn--compact" data-type="rest" aria-label="Rest Type">Rest</button>
         </div>
         <div class="control-group">
             <span class="control-label">Clef:</span>
-            <button class="control-btn" aria-label="Toggle Clef">Toggle Treble/Bass</button>
+            <button class="btn btn--compact" aria-label="Toggle Clef">Toggle Treble/Bass</button>
         </div>
         <div class="control-group">
             <span class="control-label">Octave:</span>
@@ -158,9 +164,9 @@
         </div>
         <div class="control-group">
             <span class="control-label">Actions:</span>
-            <button class="control-btn" aria-label="Move Note to Previous Measure">Move Left</button>
-            <button class="control-btn" aria-label="Move Note to Next Measure">Move Right</button>
-            <button class="control-btn" aria-label="Remove Note">Remove</button>
+            <button class="btn btn--compact" aria-label="Move Note to Previous Measure">Move Left</button>
+            <button class="btn btn--compact" aria-label="Move Note to Next Measure">Move Right</button>
+            <button class="btn btn--compact btn--danger" aria-label="Remove Note">Remove</button>
         </div>
     </div>
 </div>
@@ -230,19 +236,20 @@
             }
         });
 
+        // REFACTORED: Use .is-active for state toggling
         // Simulate active duration button toggle
-        editingPanel.querySelectorAll('.control-group:nth-child(2) .control-btn').forEach(btn => {
+        editingPanel.querySelectorAll('.control-group:nth-child(2) .btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                editingPanel.querySelectorAll('.control-group:nth-child(2) .control-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
+                editingPanel.querySelectorAll('.control-group:nth-child(2) .btn').forEach(b => b.classList.remove('is-active'));
+                this.classList.add('is-active');
             });
         });
 
         // Simulate active type button toggle (Note, Chord, Rest)
-        editingPanel.querySelectorAll('.control-group:nth-child(3) .control-btn').forEach(btn => {
+        editingPanel.querySelectorAll('.control-group:nth-child(3) .btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                editingPanel.querySelectorAll('.control-group:nth-child(3) .control-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
+                editingPanel.querySelectorAll('.control-group:nth-child(3) .btn').forEach(b => b.classList.remove('is-active'));
+                this.classList.add('is-active');
             });
         });
     }
