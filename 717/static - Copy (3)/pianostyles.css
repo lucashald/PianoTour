@@ -1,0 +1,745 @@
+/* ==========================================================================
+   NEW DESIGN TOKENS & CSS VARIABLES (Adapted from styles.css)
+   ========================================================================== */
+:root {
+    /* Primary Colors from new theme */
+    --primary-green: #1db954;
+    --primary-green-dark: #169c46;
+    --primary-green-light: #1ed760;
+
+    /* Backgrounds & Surfaces from new theme */
+    --dark-bg: #282828; /* Brightened dark background */
+    --glass-bg: rgba(255, 255, 255, 0.08); /* Brightened glass effect */
+    --glass-border: rgba(255, 255, 255, 0.15); /* Slightly brightened border */
+
+    /* Text Colors from new theme */
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --text-muted: #777777;
+
+    /* System Colors from new theme */
+    --error: #ff6b6b;
+    --success: #51cf66;
+    --warning: #ffd43b;
+    --info: #74c0fc;
+
+    /* Shadows & Borders from new theme */
+    --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    --border-radius: 16px;
+    --border-radius-lg: 24px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================================================
+   GLOBAL STYLES (Adapted from styles.css)
+   ========================================================================== */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* Brightened gradient background */
+    background: linear-gradient(135deg, #25254d 0%, #262f59 50%, #1a4b8b 100%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem; /* Increased gap for modern look */
+    min-height: 100vh;
+}
+
+.page-title {
+    font-size: 3rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--primary-green) 0%, #ffffff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 30px rgba(29, 185, 84, 0.3);
+}
+
+/* ==========================================================================
+   LAYOUT CONTAINERS (Rewritten with new theme)
+   ========================================================================== */
+#scoreWrap {
+    width: 100%;
+    max-width: 1100px;
+    /* Darkened background to a light gray */
+    background: rgba(229, 231, 235, 0.95);
+    color: var(--dark-bg); /* Dark text for contrast on light background */
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-lg);
+    padding: 1rem;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    overflow-x: auto; /* Restored horizontal scrolling */
+    scroll-behavior: smooth; /* Restored smooth scrolling */
+    text-align: center; /* Restored centering for the score block */
+}
+
+.controls {
+    width: 100%;
+    max-width: 1100px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    /* Added padding-bottom to separate rows visually */
+    padding-bottom: 1.5rem;
+}
+
+/* Added margin-bottom to the first button-row for separation */
+.controls .button-row:first-child {
+    margin-bottom: 1.5rem; /* Increased space between button rows */
+}
+
+
+#scoreWrap:hover,
+.controls:hover {
+    border-color: rgba(29, 185, 84, 0.3);
+    box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.9);
+}
+
+#score {
+    display: inline-block; /* Allows centering via text-align on parent */
+    min-width: fit-content;
+    text-align: left; /* Aligns the content within the score element */
+    padding-bottom: 1rem; /* Padding for scrollbar visibility */
+}
+
+#nowPlayingDisplay {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--primary-green-light);
+    min-height: 42px;
+    line-height: 42px;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+#instrument {
+    position: relative;
+    width: 100%;
+    max-width: 1040px;
+    margin: 0 auto;
+}
+
+#instrument svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.button-row,
+.checkbox-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* NEW CHORD BUTTONS CONTAINER STYLES */
+#chordButtons {
+    width: 100%;
+    max-width: 1100px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    margin-top: 2rem; /* Space from the controls above */
+}
+
+#chordButtons.hidden {
+    display: none;
+}
+
+.chord-section {
+    margin-bottom: 2rem; /* Space between chord groups */
+}
+
+.chord-section h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Subtle separator */
+}
+
+.chord-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem; /* Space between individual chord buttons */
+}
+
+.chord-btn {
+    /* Inherit base button styles but override specific properties */
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    text-transform: capitalize; /* Make chord names look nicer */
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05); /* Lighter background for these buttons */
+}
+
+.chord-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.chord-btn.active {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.5); /* A subtle glow */
+}
+
+/* ==========================================================================
+   INTERACTIVE ELEMENTS (Rewritten with new theme)
+   ========================================================================== */
+button,
+select {
+    font-family: 'Inter', sans-serif;
+    padding: 1rem 2rem;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition); /* Keep global transition for non-editor elements */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.08); /* Matched to --glass-bg */
+    color: var(--text-primary);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+button:hover,
+select:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+button:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+}
+
+/* Special button styles */
+#clearScoreBtn, #undo-btn {
+    background-color: rgba(255, 107, 107, 0.1);
+    border-color: rgba(255, 107, 107, 0.3);
+    color: var(--error);
+}
+
+#clearScoreBtn:hover, #undo-btn:hover {
+    background-color: rgba(255, 107, 107, 0.2);
+    border-color: rgba(255, 107, 107, 0.5);
+}
+
+select#switchMeasuresDropdown {
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+}
+
+/* ==========================================================================
+   CUSTOM CHECKBOX BUTTON (Rewritten with new theme)
+   ========================================================================== */
+label.checkbox-as-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    background: rgba(255, 255, 255, 0.08); /* Matched to --glass-bg */
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+    position: relative;
+    text-transform: uppercase;
+}
+
+label.checkbox-as-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+label.checkbox-as-button:has(input:checked) {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    color: white;
+    border-color: transparent;
+}
+
+button.checkbox-as-button.active {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.5); /* A subtle glow */
+}
+/* ==========================================================================
+   PIANO & OVERLAYS (Rewritten with new theme)
+   ========================================================================== */
+#gate {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(30, 30, 30, 0.8); /* Brightened overlay */
+    backdrop-filter: blur(5px);
+    cursor: pointer;
+    z-index: 10;
+    border-radius: var(--border-radius-lg);
+}
+
+#gate p {
+    padding: 1rem 1.5rem;
+    border: 2px solid var(--primary-green);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+    background: rgba(29, 185, 84, 0.1);
+}
+
+/* Piano Key Styling */
+#instrument .white { fill: #FFFFFF; stroke: #444; }
+#instrument .black { fill: #333333; stroke: #000; } /* Brightened black keys */
+#instrument .white.pressed { fill: #D1D5DB; }
+#instrument .black.pressed { fill: #555555; }
+
+/* Hand Position / Note Function Highlighting */
+#instrument .left-white  { fill: #3b82f6 !important; /* Blue 500 */ }
+#instrument .left-black  { fill: #1d4ed8 !important; /* Blue 700 */ }
+#instrument .middle      { fill: #8b5cf6 !important; /* Violet 500 */ }
+#instrument .right-white { fill: #ec4899 !important; /* Pink 500 */ }
+#instrument .right-black { fill: #be185d !important; /* Pink 700 */ }
+
+/* Chord Highlighting */
+#instrument .chord-root { fill: var(--primary-green-light) !important; }
+#instrument .chord-third { fill: var(--warning) !important; }
+#instrument .chord-fifth { fill: var(--info) !important; }
+
+#handOverlay {
+    position: absolute;
+    height: 16px;
+    background: rgba(29, 185, 84, 0.2);
+    border: 1px solid var(--primary-green);
+    border-radius: 8px;
+    top: -20px;
+    cursor: grab;
+    touch-action: none;
+    backdrop-filter: blur(2px);
+}
+
+#handOverlay.chord-mode {
+    background: rgba(116, 192, 252, 0.2);
+    border-color: var(--info);
+}
+
+/* ==========================================================================
+   SCROLLBAR STYLES (Adapted from styles.css)
+   ========================================================================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-green);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-green-light);
+}
+
+/* ==========================================================================
+   MUSIC EDITOR UI (Editor IDs) - Styled for consistency with theme
+   ========================================================================== */
+
+/* Main Editor Container */
+#editorEditBox {
+    width: 100%;
+    max-width: 1100px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-lg);
+    transition: var(--transition);
+    margin-top: 2rem; /* Space from elements above */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center content horizontally */
+    color: var(--text-primary); /* Ensure text is readable on dark glass background */
+}
+
+/* Measure Controls Header */
+#editorControlsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem; /* Increased gap for better spacing */
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+}
+
+#editorControlsHeader span {
+    color: var(--text-primary);
+}
+
+/* Measure Number Input */
+#editorNumberInput {
+    width: 80px;
+    text-align: center;
+    padding: 0.75rem 0.5rem;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    font-size: 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    -webkit-appearance: textfield;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Hide number input arrows */
+#editorNumberInput::-webkit-outer-spin-button,
+#editorNumberInput::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#editorNumberInput:focus,
+#editorNumberInput:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+    border-color: var(--primary-green-light);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Prev/Next Measure Buttons */
+#editorPrevBtn,
+#editorNextBtn {
+    padding: 0.5rem 1rem;
+    font-size: 1.5rem;
+    line-height: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    /* Removed transition for these specific buttons */
+}
+
+#editorPrevBtn:disabled,
+#editorNextBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+
+/* Treble/Bass Notes Containers */
+#editorTrebleNotesContainer,
+#editorBassNotesContainer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    background: rgba(255, 255, 255, 0.03);
+    min-height: 60px;
+    align-items: center;
+}
+
+/* Note List Headings */
+#editorEditBox h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+    text-align: center;
+    width: 100%;
+}
+
+/* Flex items for note buttons and add/remove */
+.flex-items-center-gap-1 { /* Corrected class name */
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Note Selection Buttons (e.g., C4, D4) */
+.note-select {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    transition: var(--transition); /* Keep transition for these buttons */
+    min-width: 60px;
+    text-align: center;
+}
+
+.note-select:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.note-select.active-note-select {
+    background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-light) 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
+}
+
+/* Add/Remove Note Buttons (initial view) */
+.add-note-initial,
+.remove-note-initial { 
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: var(--border-radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    transition: var(--transition); /* Keep transition for these buttons */
+}
+
+.add-note-initial:hover,
+.remove-note-initial:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Specific colors for add/remove buttons */
+.add-note-initial {
+    background-color: rgba(66, 153, 225, 0.1);
+    border-color: rgba(66, 153, 225, 0.3);
+    color: var(--info);
+}
+.add-note-initial:hover {
+    background-color: rgba(66, 153, 225, 0.2);
+    border-color: rgba(66, 153, 225, 0.5);
+}
+
+.remove-note-initial {
+    background-color: rgba(255, 107, 107, 0.1);
+    border-color: rgba(255, 107, 107, 0.3);
+    color: var(--error);
+}
+.remove-note-initial:hover {
+    background-color: rgba(255, 107, 107, 0.2);
+    border-color: rgba(255, 107, 107, 0.5);
+}
+
+
+/* Expanded Editor Section */
+#editorExpandedEditor {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    border-top: 1px solid var(--glass-border);
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    gap: 1.5rem;
+}
+
+#editorExpandedEditor.hidden {
+    display: none;
+}
+
+/* "Editing: Note Name" display */
+#editorExpandedEditor h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+#editorSelectedNoteDisplay {
+    color: var(--info);
+    font-weight: 700;
+}
+
+/* Control Groups (Note, Clef, Letter, etc.) */
+#editorExpandedEditor > div:first-of-type,
+#editorExpandedEditor > div:last-of-type {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.control-group label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Text Input for Note (e.g., C4q) */
+.text-input-note {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 1rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    text-align: center;
+    /* Removed transition for this specific input */
+    min-width: 100px;
+}
+
+.text-input-note:focus,
+.text-input-note:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+    border-color: var(--primary-green-light);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Dropdowns (Select elements) */
+#editorExpandedEditor select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 1rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    -webkit-appearance: none;
+    appearance: none;
+    /* Removed background-image (caret) for editor selects */
+    background-image: none; /* Explicitly remove the caret */
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 0.8em;
+    min-width: 120px;
+    /* Removed transition for these specific selects */
+}
+
+/* Fix for white text on white background in dropdown options */
+#editorExpandedEditor select option {
+    background-color: var(--dark-bg);
+    color: var(--text-primary);
+}
+
+#editorExpandedEditor select:hover {
+    /* Removed hover background/border changes for these specific selects */
+    background: rgba(255, 255, 255, 0.05); /* Keep same as normal state */
+    border-color: var(--glass-border); /* Keep same as normal state */
+}
+
+#editorExpandedEditor select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+
+/* Control Buttons (Apply, Toggle Clef, Rests, Add/Remove) */
+#editorExpandedEditor .control-button {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+}
+
+#editorExpandedEditor .control-button:hover {
+    /* Removed hover background/border changes for these specific buttons */
+    background: rgba(255, 255, 255, 0.08); /* Keep same as normal state */
+    border-color: var(--glass-border); /* Keep same as normal state */
+}
+
+#editorExpandedEditor .control-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Specific colors for action buttons (matching theme) */
+/* These specific colors will override the general .control-button styles */
+#editorApplyNoteText { background-color: var(--primary-green); border-color: var(--primary-green-dark); transition: var(--transition); }
+#editorApplyNoteText:hover { background-color: var(--primary-green-light); border-color: var(--primary-green); }
+
+#editorToggleClef { background-color: var(--info); border-color: var(--info); transition: var(--transition); }
+#editorToggleClef:hover { background-color: var(--info); border-color: var(--info); }
+
+#editorTrebleRestButton, #editorBassRestButton { background-color: var(--success); border-color: var(--success); transition: var(--transition); }
+#editorTrebleRestButton:hover, #editorBassRestButton:hover { background-color: var(--success); border-color: var(--success); }
+
+#editorRemoveNote { background-color: var(--error); border-color: var(--error); transition: var(--transition); }
+#editorRemoveNote:hover { background-color: var(--error); border-color: var(--error); }
+
+#editorAddNoteBefore, #editorAddNoteAfter { background-color: var(--info); border-color: var(--info); transition: var(--transition); }
+#editorAddNoteBefore:hover, #editorAddNoteAfter:hover { background-color: var(--info); border-color: var(--info); }
+
+
+/* Duration Color Classes for Note Buttons and Duration Dropdown */
+.note-duration-32 { background-color: #ADD8E6; }
+.note-duration-32dot { background-color: #9ACFE0; }
+.note-duration-16 { background-color: #87CEEB; }
+.note-duration-16dot { background-color: #75C2E0; }
+.note-duration-8 { background-color: #6495ED; }
+.note-duration-8dot { background-color: #5283E0; }
+.note-duration-q { background-color: #4169E1; }
+.note-duration-qdot { background-color: #3159C1; }
+.note-duration-h { background-color: #483D8B; }
+.note-duration-hdot { background-color: #8A2BE2; }
+.note-duration-w { background-color: #4B0082; }
+.note-duration-wdot { background-color: #3A0060; }
+
+/* Active/Selected style for duration buttons in piano roll */
+/* This rule is kept for future use or if similar active styling is needed elsewhere */
+.control-button.active-duration {
+    border: 2px solid var(--text-primary); /* Add a distinct border for active duration */
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.5); /* A subtle glow */
+}

@@ -1,0 +1,58 @@
+{% extends "index.html" %} {# Extends the base template #}
+
+{% block title %}Piano Tour - Player{% endblock %} {# Sets a specific title for this page #}
+
+{% block player %}
+
+<div id="playback-controls" style="padding: 20px; border: 1px solid #ccc; margin: 20px;">
+    <h3>Playback Controls</h3>
+    <button id="play-score-btn">Play Score</button>
+    <button id="stop-score-btn">Stop Playback</button>
+    <button id="connect-midi-btn">Connect Midi Controller</button>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="module">
+    // --- Playback-Specific Imports & Initialization ---
+
+    import { startAudio } from '{{ url_for("static", filename="playbackHelpers.js") }}';
+    import { playScore, stopPlayback } from '{{ url_for("static", filename="scorePlayback.js") }}';
+    import { getMeasures } from '{{ url_for("static", filename="scoreWriter.js") }}';
+    import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- Event Listener for the "Play Score" button ---
+        document.getElementById('play-score-btn')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            // Call the main startAudio function. It handles the gate and all audio setup.
+            const audioReady = await startAudio();
+            
+            // If audio is successfully initialized, play the score.
+            if (audioReady) {
+                playScore(getMeasures());
+                Tone.Transport.start();
+            }
+        });
+
+        // --- Event Listener for the "Stop Playback" button ---
+        document.getElementById('stop-score-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            stopPlayback();
+        });
+
+        // --- Event Listener for the "Connect Midi" button ---
+        // This uses the pianoState.unlock function defined in index.html, 
+        // which correctly handles both audio and MIDI initialization.
+        document.getElementById('connect-midi-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            pianoState.unlock();
+        });
+
+    });
+</script>
+{% endblock %}

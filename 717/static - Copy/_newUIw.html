@@ -1,0 +1,190 @@
+<div id="editorContainer">
+<div class="container">
+    <div class="side-panel">
+        <div class="panel-section">
+            <h3>Navigation</h3>
+            <div class="measure-nav">
+                <button class="nav-btn" disabled id="editorPrevBtn">◀</button>
+                <input type="number" class="measure-input" value="1" min="1" id="editorNumberInput">
+                <button class="nav-btn" id="editorNextBtn">▶</button>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <h3>Add Notes</h3>
+            <div class="side-controls">
+                <button class="side-btn add-note-initial" data-clef="treble" data-original-index="-1">♩ Treble</button>
+                <button class="side-btn add-note-initial" data-clef="bass" data-original-index="-1">♩ Bass</button>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <h3>Add Chords</h3>
+            <div class="side-controls">
+                <button class="side-btn add-note-initial" data-clef="treble" data-type="chord" data-original-index="-1">♩♩♩ Treble</button>
+                <button class="side-btn add-note-initial" data-clef="bass" data-type="chord" data-original-index="-1">♩♩♩ Bass</button>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <h3>Rests</h3>
+            <div class="side-controls">
+                <button class="side-btn add-note-initial" data-clef="treble" data-type="rest" data-original-index="-1">𝄽 Add Rest</button>
+                <button class="side-btn">Fill Measure</button>
+            </div>
+        </div>
+
+        <div id="dockedEditingContainer" class="panel-section" style="display: none;">
+            <h3>Edit Note (Docked)</h3>
+        </div>
+
+        <div class="panel-section">
+            <h3>Treble Clef Notes:</h3>
+            <div id="editorTrebleNotesContainer" class="notes-container">
+                {# Treble clef notes will be populated by JavaScript (musicEditorUI.js) #}
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <h3>Bass Clef Notes:</h3>
+            <div id="editorBassNotesContainer" class="notes-container">
+                {# Bass clef notes will be populated by JavaScript (musicEditorUI.js) #}
+            </div>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="header">
+            <h1>Piano Tour</h1>
+        </div>
+
+        <div class="playback-controls">
+            <button class="btn primary">▶ Play Score</button>
+            <button class="btn">⏹ Stop</button>
+            <button class="btn">🎹 Connect MIDI</button>
+        </div>
+
+        <div class="score-container">
+            <div class="note-palette-container">
+                <div class="palette-header">Drag notes to score, right-click staff lines, or click notes to edit</div>
+                <div class="note-palette">
+                    <div class="palette-note" draggable="true" data-type="quarter">
+                        ♩
+                        <div class="note-duration">Quarter</div>
+                    </div>
+                    <div class="palette-note" draggable="true" data-type="eighth">
+                        ♪
+                        <div class="note-duration">Eighth</div>
+                    </div>
+                    <div class="palette-note" draggable="true" data-type="half">
+                        ♫
+                        <div class="note-duration">Half</div>
+                    </div>
+                    <div class="palette-note" draggable="true" data-type="whole">
+                        𝅗𝅥
+                        <div class="note-duration">Whole</div>
+                    </div>
+                    <div class="palette-note" draggable="true" data-type="rest">
+                        𝄽
+                        <div class="note-duration">Rest</div>
+                    </div>
+                    <div class="palette-separator"></div>
+                    <div class="palette-note chord-major" draggable="true" data-type="major">
+                        ♩♩♩
+                        <div class="note-duration">Major</div>
+                    </div>
+                    <div class="palette-note chord-minor" draggable="true" data-type="minor">
+                        ♩♩♩
+                        <div class="note-duration">Minor</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="context-menu" id="contextMenu">
+    <div class="context-menu-item" data-type="quarter">♩ Quarter Note</div>
+    <div class="context-menu-item" data-type="eighth">♪ Eighth Note</div>
+    <div class="context-menu-item" data-type="half">♫ Half Note</div>
+    <div class="context-menu-item" data-type="whole">𝅗𝅥 Whole Note</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-type="rest">𝄽 Rest</div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-type="major">♩♩♩ Major Chord</div>
+    <div class="context-menu-item" data-type="minor">♩♩♩ Minor Chord</div>
+</div>
+
+<div class="editing-panel" id="editingPanel">
+    <div class="panel-header">
+        <span class="panel-title">Editing: <span id="editorSelectedNoteDisplay"></span></span>
+        <div class="panel-header-buttons">
+            <button class="panel-dock" aria-label="Dock to sidebar">◀</button>
+            <button class="panel-close" aria-label="Close panel">✕</button>
+        </div>
+    </div>
+    <div class="panel-controls">
+        <div id="editorExpandedEditor"> {# This div was missing and caused the error #}
+            <div id="singleNoteControls">
+                <div class="control-group">
+                    <label for="editorNoteLetter">Letter:</label>
+                    <select id="editorNoteLetter">
+                        <option value="C">C</option><option value="D">D</option><option value="E">E</option>
+                        <option value="F">F</option><option value="G">G</option><option value="A">A</option>
+                        <option value="B">B</option><option value="R">R (Rest)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="editorAccidentalDropdown">Accidental:</label>
+                    <select id="editorAccidentalDropdown">
+                        <option value="">None</option><option value="#">#</option><option value="b">b</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="editorOctaveDropdown">Octave:</label>
+                    <select id="editorOctaveDropdown">
+                        <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="chordNotesEditor" class="hidden">
+                <h4>Chord Notes:</h4>
+                <div id="chordNotesContainer">
+                    {# Chord note inputs will be dynamically populated here #}
+                </div>
+                <button id="addNoteToChordBtn" class="control-button">Add Note to Chord</button>
+            </div>
+
+            <div class="control-group">
+                <label>Remove Selected:</label>
+                <button id="editorRemoveNote" class="control-button bg-red-500 hover:bg-red-600">Remove</button>
+            </div>
+
+            <div class="control-group">
+                <label>Change Clef:</label>
+                <button id="editorToggleClef" class="control-button bg-gray-500 hover:bg-gray-600">Treble</button>
+            </div>
+
+            <div class="control-group">
+                <label>Toggle Rest:</label>
+                <button id="editorToggleRest" class="control-button bg-gray-500 hover:bg-gray-600">Toggle</button>
+            </div>
+
+            <div class="control-group">
+                <label for="editorDurationDropdown">Duration:</label>
+                <select id="editorDurationDropdown">
+                    {# Duration options will be populated by JavaScript #}
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Move Note:</label>
+                <button id="editorMoveToPrevMeasure" class="control-button bg-purple-500 hover:bg-purple-600">Move to Previous Measure</button>
+                <button id="editorMoveToNextMeasure" class="control-button bg-purple-500 hover:bg-purple-600">Move to Next Measure</button>
+            </div>
+        </div> {# End of editorExpandedEditor #}
+    </div>
+</div>
+
+</div>
