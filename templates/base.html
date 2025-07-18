@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Interactive Piano Studio{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='pianostyles.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
+    {% block head_extra %}{% endblock %}
+</head>
+<body id="page-instrument">
+
+<div class="container">
+    {% block editor %}{% endblock %}
+
+    <div class="main-area">
+        <div class="header">
+            <h1 class="page-title">Piano Tour</h1>
+        </div>
+
+        {% block player %}
+            {% include '_player.html' %}
+        {% endblock %}
+
+        {# This block is now an empty placeholder. #}
+        {% block palette %}{% endblock %}
+
+        <div class="score-container">
+            <div id="scoreWrap">
+                <div id="score"></div>
+            </div> 
+            <div id="nowPlayingDisplay"></div>
+        </div>
+            <div id="instrument"></div>
+
+        <div class="controls">
+            <div class="button-row">
+                <button id="clearScoreBtn" class="btn">Clear Score</button>
+                <button id="undo-btn" class="btn">Undo</button>
+                <button id="mode-cycle-btn" class="btn">Single Note</button>
+                {% block filehandler %}
+                {% include '_filehandler.html' %}
+                {% endblock %} 
+            </div>
+
+            <div class="checkbox-row">
+                <label class="checkbox-as-button">
+                    <input type="checkbox" id="toggleLabelsCheckbox">
+                    <span>Label Keys</span>
+                </label>
+                <button id="chord-display-toggle" class="checkbox-as-button">
+                    <span>Show Chords</span>
+                </button>
+            </div>
+
+            <div id="chordButtons" class="hidden">
+                <div id="chordGroupsContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    // --- All your common JavaScript from the original file goes here ---
+    console.log("Main script execution started.");
+
+    // --- COMMON IMPORTS (for base template) ---
+    import { initializeInstrumentUI, handleToggleLabelsChange, handleModeCycleClick } from '{{ url_for("static", filename="instrumentHelpers.js") }}';
+    import { startAudio, handleMidiNoteOn, handleMidiNoteOff } from '{{ url_for("static", filename="playbackHelpers.js") }}';
+    import { getMeasures, resetScore, processAndSyncScore, undoLastWrite } from '{{ url_for("static", filename="scoreWriter.js") }}';
+    import { drawAll } from '{{ url_for("static", filename="scoreRenderer.js") }}';
+    import { initializeFileHandlers } from '{{ url_for("static", filename="ioHelpers.js") }}';
+    import { handleChordDisplayToggle } from '{{ url_for("static", filename="uiHelpers.js") }}';
+    import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
+    import { initializePlayer } from '{{ url_for("static", filename="scorePlayback.js") }}';
+    import { initMidi, setMidiCallbacks } from '{{ url_for("static", filename="midi-controller.js") }}';
+
+    // --- COMMON DOM READY & EVENT LISTENERS (for base template) ---
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeInstrumentUI();
+        initializePlayer();
+        initializeFileHandlers();
+    // New version of pianoState.unlock in index.html
+    pianoState.unlock = async () => {
+        if (pianoState.midiInitialized) return;
+
+        // First, ensure the audio system is initialized and the gate is down.
+        const audioStarted = await startAudio();
+
+        // If audio is ready, proceed with MIDI-specific initialization.
+        if (audioStarted && !pianoState.midiInitialized) {
+            setMidiCallbacks({
+                onNoteOn: handleMidiNoteOn,
+                onNoteOff: handleMidiNoteOff
+            });
+            initMidi();
+            pianoState.midiInitialized = true;
+            console.log("Audio and MIDI systems are now live.");
+        }
+    };
+
+        const savedScoreJSON = localStorage.getItem('autosavedScore');
+        if (savedScoreJSON) {
+            try {
+                const savedMeasures = JSON.parse(savedScoreJSON);
+                if (processAndSyncScore(savedMeasures)) {
+                    console.log("Score successfully synchronized from localStorage.");
+                } else {
+                    localStorage.removeItem('autosavedScore');
+                }
+            } catch (e) {
+                console.error("Failed to parse autosaved score. Clearing data.", e);
+                localStorage.removeItem('autosavedScore');
+            }
+        }
+
+        try {
+            drawAll(getMeasures());
+        } catch (e) {
+            console.error("An error occurred during initial score rendering:", e);
+            alert("An error occurred while drawing the score. It might be corrupted.");
+        }
+        document.getElementById('clearScoreBtn')?.addEventListener('click', (e) => { e.preventDefault(); resetScore(); });
+        document.getElementById('undo-btn')?.addEventListener('click', (e) => { e.preventDefault(); undoLastWrite(); });
+        document.getElementById('toggleLabelsCheckbox')?.addEventListener('change', handleToggleLabelsChange);
+        document.getElementById('mode-cycle-btn')?.addEventListener('click', handleModeCycleClick);
+        document.getElementById('chord-display-toggle')?.addEventListener('click', handleChordDisplayToggle);
+    });
+
+    window.addEventListener('resize', () => {
+        drawAll(getMeasures());
+    });
+</script>
+
+{# This block is for page-specific scripts that need to run after the main body content #}
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

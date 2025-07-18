@@ -32,16 +32,198 @@ let hasMouseMovedSinceMousedown = false; // Tracks if mouse has moved beyond thr
 
 // Dynamic Y-calibration variables
 const STAFF_LINE_SPACING = 10; // This remains a constant for the physical spacing of staff lines
-let TREBLE_CLEF_G4_Y = 100; // Default approximate Y for G4, will be calibrated dynamically
-let BASS_CLEF_F3_Y = 227;   // Default approximate Y for F3, will be calibrated dynamically
+
+// NEW:
+let TREBLE_CLEF_G4_Y = null; // Will be calibrated
+let BASS_CLEF_F3_Y = null;   // Will be calibrated
+let STAFF_LINE_SPACING_ACTUAL = null; // Actual measured spacing
+let TREBLE_STAFF_TOP_Y = null;
+let TREBLE_STAFF_BOTTOM_Y = null;
+let BASS_STAFF_TOP_Y = null;
+let BASS_STAFF_BOTTOM_Y = null;
 
 // Drag threshold to differentiate between click and drag
 const DRAG_THRESHOLD = 5; // pixels
 
+// Staff position to note mappings
+// Positions are numbered from top (0) to bottom, including ledger lines
+const TREBLE_STAFF_POSITIONS = [
+    { position: -3, note: 'C6', type: 'ledger' },
+    { position: -2.5, note: 'B5', type: 'ledger-space' },
+    { position: -2, note: 'A5', type: 'ledger' },
+    { position: -1.5, note: 'G5', type: 'space' },
+    { position: -1, note: 'F5', type: 'ledger' },
+    { position: -0.5, note: 'E5', type: 'space' },
+    { position: 0, note: 'F5', type: 'line' },      // Top line
+    { position: 0.5, note: 'E5', type: 'space' },
+    { position: 1, note: 'D5', type: 'line' },
+    { position: 1.5, note: 'C5', type: 'space' },
+    { position: 2, note: 'B4', type: 'line' },
+    { position: 2.5, note: 'A4', type: 'space' },
+    { position: 3, note: 'G4', type: 'line' },
+    { position: 3.5, note: 'F4', type: 'space' },
+    { position: 4, note: 'E4', type: 'line' },      // Bottom line
+    { position: 4.5, note: 'D4', type: 'space' },
+    { position: 5, note: 'C4', type: 'ledger' },
+    { position: 5.5, note: 'B3', type: 'ledger-space' },
+    { position: 6, note: 'A3', type: 'ledger' }
+];
+
+const BASS_STAFF_POSITIONS = [
+    { position: -3, note: 'E4', type: 'ledger' },
+    { position: -2.5, note: 'D4', type: 'ledger-space' },
+    { position: -2, note: 'C4', type: 'ledger' },
+    { position: -1.5, note: 'B3', type: 'space' },
+    { position: -1, note: 'A3', type: 'ledger' },
+    { position: -0.5, note: 'G3', type: 'space' },
+    { position: 0, note: 'A3', type: 'line' },      // Top line
+    { position: 0.5, note: 'G3', type: 'space' },
+    { position: 1, note: 'F3', type: 'line' },
+    { position: 1.5, note: 'E3', type: 'space' },
+    { position: 2, note: 'D3', type: 'line' },
+    { position: 2.5, note: 'C3', type: 'space' },
+    { position: 3, note: 'B2', type: 'line' },
+    { position: 3.5, note: 'A2', type: 'space' },
+    { position: 4, note: 'G2', type: 'line' },      // Bottom line
+    { position: 4.5, note: 'F2', type: 'space' },
+    { position: 5, note: 'E2', type: 'ledger' },
+    { position: 5.5, note: 'D2', type: 'ledger-space' },
+    { position: 6, note: 'C2', type: 'ledger' }
+];
+
+function logNotePositions() {
+    const testNotes = ['C4', 'E5', 'G4', 'B4', 'D5', 'F5'];
+    console.log('=== Actual rendered note positions ===');
+
+    for (let measureIndex = 0; measureIndex < vexflowNoteMap.length; measureIndex++) {
+        const measure = getMeasures()[measureIndex];
+        if (!measure) continue;
+
+        measure.forEach((note, i) => {
+            if (testNotes.includes(note.name) && !note.isRest) {
+                const vexflowIndex = vexflowIndexByNoteId[note.id];
+                const vexNote = vexflowNoteMap[measureIndex]?.[note.clef]?.[vexflowIndex];
+                if (vexNote) {
+                    const bbox = vexNote.getBoundingBox();
+                    const centerY = bbox.y + (bbox.h / 2);
+                    console.log(`${note.name}: Y=${centerY} (bbox.y=${bbox.y}, height=${bbox.h})`);
+                }
+            }
+        });
+    }
+}
 // ===================================================================
 // Core Rendering & Interaction
 // ===================================================================
+function calibrateStaffPositions() {
+    console.log('Calibrating staff positions...');
 
+    // Get first measure's staves
+    const trebleStave = vexflowStaveMap[0]?.treble;
+    const bassStave = vexflowStaveMap[0]?.bass;
+
+    if (trebleStave) {
+        TREBLE_STAFF_TOP_Y = trebleStave.getYForLine(0);
+        TREBLE_STAFF_BOTTOM_Y = trebleStave.getYForLine(4);
+        const staffHeight = TREBLE_STAFF_BOTTOM_Y - TREBLE_STAFF_TOP_Y;
+        STAFF_LINE_SPACING_ACTUAL = staffHeight / 4;
+        console.log(`Treble staff: top=${TREBLE_STAFF_TOP_Y}, bottom=${TREBLE_STAFF_BOTTOM_Y}, spacing=${STAFF_LINE_SPACING_ACTUAL}`);
+    }
+
+    if (bassStave) {
+        BASS_STAFF_TOP_Y = bassStave.getYForLine(0);
+        BASS_STAFF_BOTTOM_Y = bassStave.getYForLine(4);
+        console.log(`Bass staff: top=${BASS_STAFF_TOP_Y}, bottom=${BASS_STAFF_BOTTOM_Y}`);
+    }
+}
+
+/**
+ * Finds the nearest staff position (line or space) for a given Y coordinate
+ * @param {number} y - Y coordinate
+ * @param {string} clef - 'treble' or 'bass'
+ * @returns {{position: number, note: string, y: number}} The nearest position info
+ */
+function findNearestStaffPosition(y, clef) {
+    const stave = vexflowStaveMap[0]?.[clef];
+    if (!stave) {
+        console.warn('No stave found for clef:', clef);
+        return null;
+    }
+
+    const positions = clef === 'treble' ? TREBLE_STAFF_POSITIONS : BASS_STAFF_POSITIONS;
+    let nearest = null;
+    let minDistance = Infinity;
+
+    // Check each possible position
+    for (const pos of positions) {
+        // Calculate the Y coordinate for this position
+        const posY = stave.getYForLine(pos.position);
+        const distance = Math.abs(y - posY);
+
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearest = {
+                ...pos,
+                y: posY
+            };
+        }
+    }
+
+    return nearest;
+}
+
+function calibrateTrebleStaff(stave) {
+    try {
+        // In VexFlow, lines are numbered 0-4 from top to bottom
+        // Treble clef: E5(0), C5(1), A4(2), F4(3), D4(4)
+        // G4 sits between lines 2 and 3
+
+        const topLineY = stave.getYForLine(0);
+        const bottomLineY = stave.getYForLine(4);
+
+        TREBLE_STAFF_TOP_Y = topLineY;
+        TREBLE_STAFF_BOTTOM_Y = bottomLineY;
+
+        // G4 is on the second line from bottom (line 3.5 in VexFlow terms)
+        TREBLE_CLEF_G4_Y = stave.getYForLine(3);
+
+        // Calculate actual line spacing
+        const staffHeight = bottomLineY - topLineY;
+        STAFF_LINE_SPACING_ACTUAL = staffHeight / 4; // 5 lines = 4 spaces
+        console.log(`Treble staff calibration: top=${topLineY}, bottom=${bottomLineY}, height=${staffHeight}, calculated spacing=${STAFF_LINE_SPACING_ACTUAL}, G4 position=${TREBLE_CLEF_G4_Y}`);
+
+    } catch (error) {
+        console.error('Error calibrating treble staff:', error);
+    }
+}
+
+function calibrateBassStaff(stave) {
+    try {
+        // Bass clef: G3(0), E3(1), C3(2), A2(3), F2(4)
+        // F3 is between lines 0 and 1
+
+        const topLineY = stave.getYForLine(0);
+        const bottomLineY = stave.getYForLine(4);
+
+        BASS_STAFF_TOP_Y = topLineY;
+        BASS_STAFF_BOTTOM_Y = bottomLineY;
+        BASS_CLEF_F3_Y = stave.getYForLine(1);
+
+    } catch (error) {
+        console.error('Error calibrating bass staff:', error);
+    }
+}
+
+function getStaffLineYPosition(noteName, clef) {
+    const stave = vexflowStaveMap[0]?.[clef];
+    if (!stave) return null;
+
+    // Convert note name to line number
+    const lineNumber = noteToLineNumber(noteName, clef);
+    if (lineNumber === null) return null;
+
+    return stave.getYForLine(lineNumber);
+}
 
 export function drawAll(measures) {
 console.log("drawAll: START");
@@ -141,7 +323,8 @@ if (scoreWrap) scoreWrap.scrollLeft = scoreWrap.scrollWidth;
 } catch (e) {
 console.error("drawAll: VexFlow rendering error:", e);
 }
-console.log("drawAll: END");
+calibrateStaffPositions();
+console.log("drawAll: END");    
 }
 
 /**
@@ -154,128 +337,216 @@ const scoreData = getMeasures();
 drawAll(scoreData);
 console.log("safeRedraw: ✓ Completed with highlights preserved");
 }
+
+
 export function enableScoreInteraction(onMeasureClick, onNoteClick) {
-console.log("enableScoreInteraction: Attaching unified event listeners.");
-const scoreElement = document.getElementById('score');
-if (!scoreElement) {
-console.error("enableScoreInteraction: Score element not found.");
-return;
+    console.log("enableScoreInteraction: Attaching unified event listeners.");
+    const scoreElement = document.getElementById('score');
+    if (!scoreElement) {
+        console.error("enableScoreInteraction: Score element not found.");
+        return;
+    }
+
+    let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for drag/click differentiation
+    let mouseDownNoteTarget = null; // Stores noteInfo if mousedown occurred on a note
+    let hasMouseMovedSinceMousedown = false; // Tracks if mouse has moved beyond threshold since mousedown
+    let isDraggingInitiated = false; // Internal flag to track if drag has begun for this sequence
+
+    // Mouse Down Listener
+    scoreElement.addEventListener('mousedown', (event) => {
+        if (event.button !== 0) return; // Only left-click
+
+        const rect = scoreElement.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        console.log(`enableScoreInteraction: Mouse down at (${x}, ${y})`);
+
+        // Reset state for a new interaction sequence
+        mouseDownInitialPos = { x, y };
+        mouseDownNoteTarget = detectNoteClick(x, y); // Check if a note was under the initial click
+        hasMouseMovedSinceMousedown = false;
+        isDragging = false; // Reset global dragging flag
+        isDraggingInitiated = false; // Reset internal flag for this interaction sequence
+
+        if (mouseDownNoteTarget) {
+            console.log(`enableScoreInteraction: Mouse down on target:`, mouseDownNoteTarget);
+        }
+    });
+
+    // Mouse Move Listener
+    scoreElement.addEventListener('mousemove', (event) => {
+        if (!mouseDownInitialPos) return; // No mousedown event initiated interaction
+
+        const rect = scoreElement.getBoundingClientRect();
+        const currentX = event.clientX - rect.left;
+        const currentY = event.clientY - rect.top;
+
+        const distance = Math.sqrt(
+            Math.pow(currentX - mouseDownInitialPos.x, 2) + Math.pow(currentY - mouseDownInitialPos.y, 2)
+        );
+
+        // If movement exceeds threshold and a drag hasn't been confirmed yet
+        if (distance > DRAG_THRESHOLD && !isDraggingInitiated) {
+            hasMouseMovedSinceMousedown = true; // Indicate movement occurred
+
+            // Only initiate drag if an *existing* note was clicked (noteId is not null)
+            if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) { 
+                isDraggingInitiated = true; // Set internal flag
+                isDragging = true; // Confirm global dragging state
+                startDrag(mouseDownNoteTarget, mouseDownInitialPos);
+                scoreElement.style.cursor = 'none';
+                event.preventDefault(); // Prevent default browser actions that interfere with dragging.
+                console.log("enableScoreInteraction: Drag initiated on existing note, preventing default.");
+            }
+        }
+
+        // Continue drag feedback only if a drag has been initiated (isDragging is true)
+        if (isDraggingInitiated && draggedNote) { 
+            // Check which measure we're over
+            const targetMeasureIndex = detectMeasureClick(currentX, currentY);
+
+            // Update measure highlight
+            if (targetMeasureIndex !== -1 && targetMeasureIndex !== pianoState.currentSelectedMeasure) {
+                highlightSelectedMeasure(targetMeasureIndex);
+            } else if (targetMeasureIndex === -1 && pianoState.currentSelectedMeasure !== -1) {
+                clearMeasureHighlight(); 
+            }
+
+            // NEW: Show snap-to-position preview
+            if (targetMeasureIndex !== -1) {
+                const clef = detectClefRegion(currentY);
+                const nearest = findNearestStaffPosition(currentY, clef);
+
+                if (nearest) {
+                    // Log where the note will snap
+                    console.log(`Drag preview: note will snap to ${nearest.note} at position ${nearest.position}`);
+
+                    // Update visual preview (if you have a preview element)
+                    updateDragPreview(currentX, nearest.y, nearest.note);
+                }
+            }
+        }
+    });
+
+    // Mouse Up Listener
+    scoreElement.addEventListener('mouseup', (event) => {
+        if (!mouseDownInitialPos) return; // No mousedown event initiated interaction
+
+        const rect = scoreElement.getBoundingClientRect();
+        const endX = event.clientX - rect.left;
+        const endY = event.clientY - rect.top;
+
+        console.log(`enableScoreInteraction: Mouse up at (${endX}, ${endY})`);
+
+        if (isDraggingInitiated) { 
+            // A drag operation was confirmed and completed
+            console.log("enableScoreInteraction: Drag operation confirmed and completed.");
+
+            // Clear any visual preview
+            clearDragPreview();
+
+            completeDrag(endX, endY);
+            scoreElement.style.cursor = 'default'; // Restore default cursor
+
+        } else { 
+            // It was a click (no significant movement or drag initiated)
+            if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null && !hasMouseMovedSinceMousedown) {
+                // A pure click on an *existing* note (noteId is not null)
+                console.log("enableScoreInteraction: Pure click on EXISTING note detected, triggering onNoteClick.");
+                onNoteClick(mouseDownNoteTarget.measureIndex, mouseDownNoteTarget.clef, mouseDownNoteTarget.noteId);
+
+            } else if (mouseDownNoteTarget && mouseDownNoteTarget.noteId === null && !hasMouseMovedSinceMousedown) {
+                // A pure click on an *empty space* (VexFlow element without linear data match)
+                // This scenario should now select the measure, as per user request.
+                console.log("enableScoreInteraction: Pure click on EMPTY SPACE detected (VexFlow element without linear data match). Triggering onMeasureClick.");
+                const measureIndex = mouseDownNoteTarget.measureIndex; // The measure was already identified by detectNoteClick
+                if (measureIndex !== -1) {
+                    onMeasureClick(measureIndex, false); // Select the measure containing the empty space
+                } else {
+                    // This case should ideally not be reached if mouseDownNoteTarget exists with measureIndex.
+                    console.warn("enableScoreInteraction: Empty space click with no valid measureIndex. Deselecting all.");
+                    resetAllNoteStyles();
+                }
+
+            } else if (!mouseDownNoteTarget && !hasMouseMovedSinceMousedown) {
+                // A pure click on the *measure background* (not on a note or VexFlow element)
+                console.log("enableScoreInteraction: Pure click on MEASURE BACKGROUND detected, triggering onMeasureClick.");
+                const measureIndex = detectMeasureClick(mouseDownInitialPos.x, mouseDownInitialPos.y);
+                if (measureIndex !== -1) {
+                    onMeasureClick(measureIndex, false); // Select the measure
+                } else {
+                    console.log("enableScoreInteraction: Clicked outside any measure or note. Deselecting all.");
+                    resetAllNoteStyles(); 
+                }
+
+            } else {
+                // Mouseup detected, but not a clear click or confirmed drag (moved slightly but below threshold, or no note target).
+                console.log("enableScoreInteraction: Mouseup detected, not a clear click or confirmed drag. Resetting state.");
+            }
+        }
+
+        // Reset all interaction state variables regardless of outcome
+        console.log("enableScoreInteraction: Resetting all interaction state variables.");
+        mouseDownInitialPos = null;
+        mouseDownNoteTarget = null;
+        hasMouseMovedSinceMousedown = false;
+        isDragging = false; 
+        isDraggingInitiated = false; 
+        draggedNote = null;
+        dragStartPosition = null;
+        originalNoteData = null;
+        originalVexFlowNoteBBox = null;
+    });
 }
 
-let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for drag/click differentiation
-let mouseDownNoteTarget = null; // Stores noteInfo if mousedown occurred on a note
-let hasMouseMovedSinceMousedown = false; // Tracks if mouse has moved beyond threshold since mousedown
-let isDraggingInitiated = false; // Internal flag to track if drag has begun for this sequence
+/**
+ * Updates the visual preview during drag to show where note will snap
+ * @param {number} x - Current X position
+ * @param {number} snapY - Y position where note will snap
+ * @param {string} noteName - Name of the note it will snap to
+ */
+function updateDragPreview(x, snapY, noteName) {
+    let preview = document.getElementById('drag-snap-preview');
 
-// Mouse Down Listener
-scoreElement.addEventListener('mousedown', (event) => {
-if (event.button !== 0) return; // Only left-click
+    if (!preview) {
+        // Create preview element if it doesn't exist
+        preview = document.createElement('div');
+        preview.id = 'drag-snap-preview';
+        preview.style.cssText = `
+            position: absolute;
+            background: rgba(59, 130, 246, 0.3);
+            border: 2px solid #3b82f6;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 12px;
+            color: #3b82f6;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 1000;
+            transition: top 0.1s ease-out;
+        `;
+        document.getElementById('score').appendChild(preview);
+    }
 
-const rect = scoreElement.getBoundingClientRect();
-const x = event.clientX - rect.left;
-const y = event.clientY - rect.top;
+    // Position the preview
+    preview.style.left = `${x - 20}px`;
+    preview.style.top = `${snapY - 10}px`;
+    preview.textContent = noteName;
+    preview.style.display = 'block';
 
-// Reset state for a new interaction sequence
-mouseDownInitialPos = { x, y };
-mouseDownNoteTarget = detectNoteClick(x, y); // Check if a note was under the initial click
-hasMouseMovedSinceMousedown = false;
-isDragging = false; // Reset global dragging flag
-isDraggingInitiated = false; // Reset internal flag for this interaction sequence
-});
-
-// Mouse Move Listener
-scoreElement.addEventListener('mousemove', (event) => {
-if (!mouseDownInitialPos) return; // No mousedown event initiated interaction
-
-const rect = scoreElement.getBoundingClientRect();
-const currentX = event.clientX - rect.left;
-const currentY = event.clientY - rect.top;
-
-const distance = Math.sqrt(
-Math.pow(currentX - mouseDownInitialPos.x, 2) + Math.pow(currentY - mouseDownInitialPos.y, 2)
-);
-
-// If movement exceeds threshold and a drag hasn't been confirmed yet
-if (distance > DRAG_THRESHOLD && !isDraggingInitiated) {
-hasMouseMovedSinceMousedown = true; // Indicate movement occurred
-// Only initiate drag if an *existing* note was clicked (noteId is not null)
-if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) { 
-isDraggingInitiated = true; // Set internal flag
-isDragging = true; // Confirm global dragging state
-startDrag(mouseDownNoteTarget, mouseDownInitialPos);
-scoreElement.style.cursor = 'grabbing';
-event.preventDefault(); // Prevent default browser actions that interfere with dragging.
-console.log("enableScoreInteraction: Drag initiated on existing note, preventing default.");
-}
+    console.log(`updateDragPreview: Showing preview for ${noteName} at Y=${snapY}`);
 }
 
-// Continue drag feedback only if a drag has been initiated (isDragging is true)
-if (isDraggingInitiated && draggedNote) { 
-const targetMeasureIndex = detectMeasureClick(currentX, currentY);
-if (targetMeasureIndex !== -1 && targetMeasureIndex !== pianoState.currentSelectedMeasure) {
-highlightSelectedMeasure(targetMeasureIndex);
-} else if (targetMeasureIndex === -1 && pianoState.currentSelectedMeasure !== -1) {
-clearMeasureHighlight(); 
-}
-}
-});
-
-// Mouse Up Listener
-scoreElement.addEventListener('mouseup', (event) => {
-if (!mouseDownInitialPos) return; // No mousedown event initiated interaction
-
-const rect = scoreElement.getBoundingClientRect();
-const endX = event.clientX - rect.left;
-const endY = event.clientY - rect.top;
-
-if (isDraggingInitiated) { // A drag operation was confirmed and completed
-console.log("enableScoreInteraction: Drag operation confirmed and completed.");
-completeDrag(endX, endY);
-scoreElement.style.cursor = 'default'; // Restore default cursor
-} else { // It was a click (no significant movement or drag initiated)
-if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null && !hasMouseMovedSinceMousedown) {
-// A pure click on an *existing* note (noteId is not null)
-console.log("enableScoreInteraction: Pure click on EXISTING note detected, triggering onNoteClick.");
-onNoteClick(mouseDownNoteTarget.measureIndex, mouseDownNoteTarget.clef, mouseDownNoteTarget.noteId);
-} else if (mouseDownNoteTarget && mouseDownNoteTarget.noteId === null && !hasMouseMovedSinceMousedown) {
-// A pure click on an *empty space* (VexFlow element without linear data match)
-// This scenario should now select the measure, as per user request.
-console.log("enableScoreInteraction: Pure click on EMPTY SPACE detected (VexFlow element without linear data match). Triggering onMeasureClick.");
-const measureIndex = mouseDownNoteTarget.measureIndex; // The measure was already identified by detectNoteClick
-if (measureIndex !== -1) {
-onMeasureClick(measureIndex, false); // Select the measure containing the empty space
-} else {
-// This case should ideally not be reached if mouseDownNoteTarget exists with measureIndex.
-console.warn("enableScoreInteraction: Empty space click with no valid measureIndex. Deselecting all.");
-resetAllNoteStyles();
-}
-} else if (!mouseDownNoteTarget && !hasMouseMovedSinceMousedown) {
-// A pure click on the *measure background* (not on a note or VexFlow element)
-console.log("enableScoreInteraction: Pure click on MEASURE BACKGROUND detected, triggering onMeasureClick.");
-const measureIndex = detectMeasureClick(mouseDownInitialPos.x, mouseDownInitialPos.y);
-if (measureIndex !== -1) {
-onMeasureClick(measureIndex, false); // Select the measure
-} else {
-console.log("enableScoreInteraction: Clicked outside any measure or note. Deselecting all.");
-resetAllNoteStyles(); 
-}
-} else {
-// Mouseup detected, but not a clear click or confirmed drag (moved slightly but below threshold, or no note target).
-console.log("enableScoreInteraction: Mouseup detected, not a clear click or confirmed drag. Resetting state.");
-}
-}
-
-// Reset all interaction state variables regardless of outcome
-mouseDownInitialPos = null;
-mouseDownNoteTarget = null;
-hasMouseMovedSinceMousedown = false;
-isDragging = false; 
-isDraggingInitiated = false; 
-draggedNote = null;
-dragStartPosition = null;
-originalNoteData = null;
-originalVexFlowNoteBBox = null;
-});
+/**
+ * Clears the drag preview element
+ */
+function clearDragPreview() {
+    const preview = document.getElementById('drag-snap-preview');
+    if (preview) {
+        preview.style.display = 'none';
+        console.log('clearDragPreview: Preview cleared');
+    }
 }
 
 
@@ -404,42 +675,30 @@ function completeDrag(currentX, currentY) {
         newPitch: newPitchName
     });
 }
-
 /**
-* Calculates the absolute MIDI pitch value based on Y coordinate and clef, using dynamic calibration.
-* @param {number} y - The Y coordinate on the score (pixel value).
-* @param {string} clef - The clef ('treble' or 'bass').
-* @returns {number} The MIDI pitch value (clamped between 21 and 108).
-*/
+ * Calculates the MIDI pitch value based on Y coordinate and clef using snap-to-position
+ * @param {number} y - The Y coordinate on the score (pixel value)
+ * @param {string} clef - The clef ('treble' or 'bass')
+ * @returns {number} The MIDI pitch value
+ */
 function calculateAbsolutePitchFromY(y, clef) {
-let referenceY;
-let referenceMidi;
+    const nearest = findNearestStaffPosition(y, clef);
 
-if (clef === 'treble') {
-referenceY = TREBLE_CLEF_G4_Y;
-referenceMidi = 67; // G4 MIDI note number
-} else if (clef === 'bass') {
-referenceY = BASS_CLEF_F3_Y;
-referenceMidi = 53; // F3 MIDI note number
-} else {
-console.warn('calculateAbsolutePitchFromY: Unknown clef:', clef, 'Defaulting to C4 (MIDI 60) for pitch calculation.');
-return 60; // Fallback if clef is unrecognized
-}
+    if (!nearest) {
+        console.warn('Could not find nearest staff position, using fallback');
+        return 60; // Middle C fallback
+    }
 
-// Calculate semitone difference based on Y position.
-// In VexFlow, a change of STAFF_LINE_SPACING (10px) typically represents a musical interval of a step (2 semitones).
-const pixelsPerSemitone = STAFF_LINE_SPACING / 2; // 5 pixels per semitone
-const deltaY = referenceY - y; // Positive deltaY means `y` is higher on the screen (lower pixel value), which corresponds to a higher pitch.
-const semitoneChange = Math.round(deltaY / pixelsPerSemitone);
+    console.log(`Snapped Y=${y} to position ${nearest.position} (${nearest.note}) at Y=${nearest.y}`);
 
-const absolutePitchMIDI = referenceMidi + semitoneChange;
+    // Convert note name to MIDI
+    const midi = NOTES_BY_NAME[nearest.note];
+    if (midi === undefined) {
+        console.error('Unknown note name:', nearest.note);
+        return 60;
+    }
 
-// Clamp the resulting MIDI pitch to the standard piano range (A0 to C8)
-const clampedPitchMIDI = Math.max(21, Math.min(108, absolutePitchMIDI));
-
-console.log(`calculateAbsolutePitchFromY: Y=${y}, clef=${clef}, RefY=${referenceY}, RefMIDI=${referenceMidi}, deltaY=${deltaY}, semitones=${semitoneChange}, ResultMIDI=${absolutePitchMIDI} (clamped: ${clampedPitchMIDI})`);
-
-return clampedPitchMIDI;
+    return midi;
 }
 
 /**
@@ -478,20 +737,18 @@ clefChange: originalClef !== targetClef // Boolean indicating if the clef change
 * @returns {string} 'treble' or 'bass'.
 */
 function detectClefRegion(y) {
-// A dynamically determined midpoint between the two staves is used for accurate clef detection.
-// This midpoint is calculated using the calibrated Y positions of G4 and F3.
-// This assumes G4 and F3 are rendered somewhere in the first measure for calibration.
-const MID_STAFFS_Y_THRESHOLD = (TREBLE_CLEF_G4_Y + BASS_CLEF_F3_Y) / 2;
+        if (!TREBLE_STAFF_BOTTOM_Y || !BASS_STAFF_TOP_Y) {
+            // Fallback to old logic if not calibrated
+            const midpointY = (TREBLE_CLEF_G4_Y || 100) + ((BASS_CLEF_F3_Y || 227) - (TREBLE_CLEF_G4_Y || 100)) / 2;
+            return y < midpointY ? 'treble' : 'bass';
+        }
 
-// If the Y coordinate is above or at the midpoint, it's considered part of the treble clef region.
-if (y <= MID_STAFFS_Y_THRESHOLD) {
-return 'treble';
-} 
-// Otherwise, it's considered part of the bass clef region.
-else {
-return 'bass';
-}
-}
+        // Use actual staff boundaries
+        const gapMidpoint = TREBLE_STAFF_BOTTOM_Y + ((BASS_STAFF_TOP_Y - TREBLE_STAFF_BOTTOM_Y) / 2);
+        return y < gapMidpoint ? 'treble' : 'bass';
+    }
+
+
 function convertVexFlowIndexToLinearIndex(measureIndex, clef, vexflowIndex) {
 const measuresData = getMeasures(); // Get the most up-to-date measures data
 const measureData = measuresData[measureIndex];
@@ -609,14 +866,15 @@ return null; 
 * @returns {number} The measure index (0-indexed) if a measure is detected, or -1 if the coordinates are outside any measure's bounds.
 */
 function detectMeasureClick(x, y) {
-const measureWidth = 340; // Assumed fixed width for a single measure in your layout.
-const scoreTopY = 20;    // Approximate top Y coordinate of the overall score area (where staves begin).
-const scoreBottomY = 280; // Approximate bottom Y coordinate of the overall score area (where staves end).
+    const measureWidth = 340;
 
-// First, perform a quick check to see if the click is within the vertical bounds of the score area.
-if (y < scoreTopY || y > scoreBottomY) {
-return -1; // The Y coordinate is outside the vertical range where measures exist, so return -1 immediately.
-}
+    // Use calibrated bounds if available
+    const scoreTopY = TREBLE_STAFF_TOP_Y || 20;
+    const scoreBottomY = BASS_STAFF_BOTTOM_Y || 280;
+
+    if (y < scoreTopY || y > scoreBottomY) {
+        return -1;
+    }
 
 // Iterate through the stored X positions of each measure.
 // `measureXPositions` holds the starting X coordinate for each measure.
