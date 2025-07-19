@@ -63,12 +63,19 @@
                     <span>Show Chords</span>
                 </button>
 
-                <!-- A link styled as a button for navigation -->
-                <a href="/editor">
-                    <button class="btn btn--info">
-                        <span>Edit</span>
-                    </button>
-                </a>
+                {% if request.path == '/editor' %}
+                    <a href="/">
+                        <button class="btn btn--info">
+                            <span>Close Editor</span>
+                        </button>
+                    </a>
+                {% else %}
+                    <a href="/editor">
+                        <button class="btn btn--info">
+                            <span>Open Editor</span>
+                        </button>
+                    </a>
+                {% endif %}
             </div>
 
             <div id="chordButtons" class="hidden">

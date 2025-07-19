@@ -16,7 +16,7 @@ export const pianoState = {
     scaleTonic: 'C4',      // Default scale tonic for diatonic chords
     baseIdx: 0,            // Starting index for the playable piano view
     keyMap: {},            // Maps keyboard characters to MIDI notes
-    held: new Set(),       // Tracks currently held computer keyboard keys
+    held: new Map(),       // Tracks currently held computer keyboard keys
 
     // Active Note/Chord Tracking (Instrument-specific)
     activeDiatonicChords: {}, // Tracks currently held diatonic chords (from number keys)

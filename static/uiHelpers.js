@@ -186,6 +186,32 @@ export function handleChordDisplayToggle(e) {
             break;
     }
 }
+/**
+ * General UI feedback function for providing user feedback on various operations
+ * @param {string} message - The message to display to the user
+ * @param {Object} options - Optional configuration for additional UI updates
+ * @param {boolean} options.updateKeySignature - Whether to update the key signature button (default: false)
+ * @param {boolean} options.regenerateChords - Whether to regenerate chord buttons (default: false)
+ */
+export function updateUI(message, options = {}) {
+    // Always update the now playing display with the message
+    updateNowPlayingDisplay(message);
+
+    // Handle key signature button update if requested
+    if (options.updateKeySignature) {
+        const keySignatureButton = document.getElementById('key-signature-btn');
+        if (keySignatureButton) {
+            keySignatureButton.textContent = `Key: ${pianoState.keySignature}`;
+        } else {
+            console.warn('Key signature button (#key-signature-btn) not found for UI update');
+        }
+    }
+
+    // Regenerate chord buttons if requested
+    if (options.regenerateChords) {
+        generateChordButtons();
+    }
+}
 
 export function handleKeySignatureClick(e) {
     // Define the cycling order for display names (circle of fifths)
@@ -197,11 +223,9 @@ export function handleKeySignatureClick(e) {
 
     // Use the new setKeySignature function (but it won't update the button)
     if (setKeySignature(nextKey)) {
-        // Update the button text since setKeySignature doesn't do this anymore
-        e.target.textContent = `Key: ${pianoState.keySignature}`;
-
-        // Update the now playing display to show the key signature change
-        updateNowPlayingDisplay(`Key: ${pianoState.keySignature}`);
+        updateUI(`Key: ${pianoState.keySignature}`, {
+            updateKeySignature: true,
+            regenerateChords: true
+        });
     }
-    generateChordButtons();
 }
