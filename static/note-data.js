@@ -1,73 +1,95 @@
 // THIS FILE IS TOO LONG TO OUTPUT IN CANVAS OR CHAT. IF YOU NEED TO CHANGE IT, TELL THE USER
 
+import { pianoState } from './appState.js';
+
+const allNoteInfo = [
+    { midi: 36, name: "C2", pitchClass: "C", isBlack: false },
+    { midi: 37, name: "C#2", flatName: "Db2", pitchClass: "C#", isBlack: true },
+    { midi: 38, name: "D2", pitchClass: "D", isBlack: false },
+    { midi: 39, name: "D#2", flatName: "Eb2", pitchClass: "D#", isBlack: true },
+    { midi: 40, name: "E2", pitchClass: "E", isBlack: false },
+    { midi: 41, name: "F2", pitchClass: "F", isBlack: false },
+    { midi: 42, name: "F#2", flatName: "Gb2", pitchClass: "F#", isBlack: true },
+    { midi: 43, name: "G2", pitchClass: "G", isBlack: false },
+    { midi: 44, name: "G#2", flatName: "Ab2", pitchClass: "G#", isBlack: true },
+    { midi: 45, name: "A2", pitchClass: "A", isBlack: false },
+    { midi: 46, name: "A#2", flatName: "Bb2", pitchClass: "A#", isBlack: true },
+    { midi: 47, name: "B2", pitchClass: "B", isBlack: false },
+    { midi: 48, name: "C3", pitchClass: "C", isBlack: false },
+    { midi: 49, name: "C#3", flatName: "Db3", pitchClass: "C#", isBlack: true },
+    { midi: 50, name: "D3", pitchClass: "D", isBlack: false },
+    { midi: 51, name: "D#3", flatName: "Eb3", pitchClass: "D#", isBlack: true },
+    { midi: 52, name: "E3", pitchClass: "E", isBlack: false },
+    { midi: 53, name: "F3", pitchClass: "F", isBlack: false },
+    { midi: 54, name: "F#3", flatName: "Gb3", pitchClass: "F#", isBlack: true },
+    { midi: 55, name: "G3", pitchClass: "G", isBlack: false },
+    { midi: 56, name: "G#3", flatName: "Ab3", pitchClass: "G#", isBlack: true },
+    { midi: 57, name: "A3", pitchClass: "A", isBlack: false },
+    { midi: 58, name: "A#3", flatName: "Bb3", pitchClass: "A#", isBlack: true },
+    { midi: 59, name: "B3", pitchClass: "B", isBlack: false },
+    { midi: 60, name: "C4", pitchClass: "C", isBlack: false },
+    { midi: 61, name: "C#4", flatName: "Db4", pitchClass: "C#", isBlack: true },
+    { midi: 62, name: "D4", pitchClass: "D", isBlack: false },
+    { midi: 63, name: "D#4", flatName: "Eb4", pitchClass: "D#", isBlack: true },
+    { midi: 64, name: "E4", pitchClass: "E", isBlack: false },
+    { midi: 65, name: "F4", pitchClass: "F", isBlack: false },
+    { midi: 66, name: "F#4", flatName: "Gb4", pitchClass: "F#", isBlack: true },
+    { midi: 67, name: "G4", pitchClass: "G", isBlack: false },
+    { midi: 68, name: "G#4", flatName: "Ab4", pitchClass: "G#", isBlack: true },
+    { midi: 69, name: "A4", pitchClass: "A", isBlack: false },
+    { midi: 70, name: "A#4", flatName: "Bb4", pitchClass: "A#", isBlack: true },
+    { midi: 71, name: "B4", pitchClass: "B", isBlack: false },
+    { midi: 72, name: "C5", pitchClass: "C", isBlack: false },
+    { midi: 73, name: "C#5", flatName: "Db5", pitchClass: "C#", isBlack: true },
+    { midi: 74, name: "D5", pitchClass: "D", isBlack: false },
+    { midi: 75, name: "D#5", flatName: "Eb5", pitchClass: "D#", isBlack: true },
+    { midi: 76, name: "E5", pitchClass: "E", isBlack: false },
+    { midi: 77, name: "F5", pitchClass: "F", isBlack: false },
+    { midi: 78, name: "F#5", flatName: "Gb5", pitchClass: "F#", isBlack: true },
+    { midi: 79, name: "G5", pitchClass: "G", isBlack: false },
+    { midi: 80, name: "G#5", flatName: "Ab5", pitchClass: "G#", isBlack: true },
+    { midi: 81, name: "A5", pitchClass: "A", isBlack: false },
+    { midi: 82, name: "A#5", flatName: "Bb5", pitchClass: "A#", isBlack: true },
+    { midi: 83, name: "B5", pitchClass: "B", isBlack: false },
+    { midi: 84, name: "C6", pitchClass: "C", isBlack: false },
+    { midi: 85, name: "C#6", flatName: "Db6", pitchClass: "C#", isBlack: true },
+    { midi: 86, name: "D6", pitchClass: "D", isBlack: false },
+    { midi: 87, name: "D#6", flatName: "Eb6", pitchClass: "D#", isBlack: true },
+    { midi: 88, name: "E6", pitchClass: "E", isBlack: false },
+    { midi: 89, name: "F6", pitchClass: "F", isBlack: false },
+    { midi: 90, name: "F#6", flatName: "Gb6", pitchClass: "F#", isBlack: true },
+    { midi: 91, name: "G6", pitchClass: "G", isBlack: false },
+    { midi: 92, name: "G#6", flatName: "Ab6", pitchClass: "G#", isBlack: true },
+    { midi: 93, name: "A6", pitchClass: "A", isBlack: false },
+    { midi: 94, name: "A#6", flatName: "Bb6", pitchClass: "A#", isBlack: true },
+    { midi: 95, name: "B6", pitchClass: "B", isBlack: false },
+    { midi: 96, name: "C7", pitchClass: "C", isBlack: false }
+];
+
+export function notesByMidiKeyAware(midi) {
+    const midiNumber = parseInt(midi, 10); // Convert to number
+    const noteInfo = allNoteInfo.find(note => note.midi === midiNumber);
+    if (!noteInfo) return null;
+
+    // Get the key signature aware name
+    let resolvedName = noteInfo.name; // default to sharp name
+
+    if (pianoState.keySignatureType === 'b' && noteInfo.flatName) {
+        resolvedName = noteInfo.flatName;
+    } else if (pianoState.keySignatureType === '#') {
+        resolvedName = noteInfo.name; // already the sharp name
+    }
+
+    // Return the full note object with the resolved name
+    return {
+        ...noteInfo,
+        name: resolvedName
+    };
+}
+
 const buildNoteData = () => {
     const notesByMidi = {};
     const notesByName = {};
-
-    const allNoteInfo = [
-        { midi: 36, name: "C2", pitchClass: "C", isBlack: false },
-        { midi: 37, name: "C#2", flatName: "Db2", pitchClass: "C#", isBlack: true },
-        { midi: 38, name: "D2", pitchClass: "D", isBlack: false },
-        { midi: 39, name: "Eb2", sharpName: "D#2", pitchClass: "Eb", isBlack: true },
-        { midi: 40, name: "E2", pitchClass: "E", isBlack: false },
-        { midi: 41, name: "F2", pitchClass: "F", isBlack: false },
-        { midi: 42, name: "F#2", flatName: "Gb2", pitchClass: "F#", isBlack: true },
-        { midi: 43, name: "G2", pitchClass: "G", isBlack: false },
-        { midi: 44, name: "Ab2", sharpName: "G#2", pitchClass: "G#", isBlack: true },
-        { midi: 45, name: "A2", pitchClass: "A", isBlack: false },
-        { midi: 46, name: "Bb2", sharpName: "A#2", pitchClass: "Bb", isBlack: true },
-        { midi: 47, name: "B2", pitchClass: "B", isBlack: false },
-        { midi: 48, name: "C3", pitchClass: "C", isBlack: false },
-        { midi: 49, name: "C#3", flatName: "Db3", pitchClass: "C#", isBlack: true },
-        { midi: 50, name: "D3", pitchClass: "D", isBlack: false },
-        { midi: 51, name: "Eb3", sharpName: "D#3", pitchClass: "Eb", isBlack: true },
-        { midi: 52, name: "E3", pitchClass: "E", isBlack: false },
-        { midi: 53, name: "F3", pitchClass: "F", isBlack: false },
-        { midi: 54, name: "F#3", flatName: "Gb3", pitchClass: "F#", isBlack: true },
-        { midi: 55, name: "G3", pitchClass: "G", isBlack: false },
-        { midi: 56, name: "Ab3", sharpName: "G#3", pitchClass: "G#", isBlack: true },
-        { midi: 57, name: "A3", pitchClass: "A", isBlack: false },
-        { midi: 58, name: "Bb3", sharpName: "A#3", pitchClass: "Bb", isBlack: true },
-        { midi: 59, name: "B3", pitchClass: "B", isBlack: false },
-        { midi: 60, name: "C4", pitchClass: "C", isBlack: false },
-        { midi: 61, name: "C#4", flatName: "Db4", pitchClass: "C#", isBlack: true },
-        { midi: 62, name: "D4", pitchClass: "D", isBlack: false },
-        { midi: 63, name: "Eb4", sharpName: "D#4", pitchClass: "Eb", isBlack: true },
-        { midi: 64, name: "E4", pitchClass: "E", isBlack: false },
-        { midi: 65, name: "F4", pitchClass: "F", isBlack: false },
-        { midi: 66, name: "F#4", flatName: "Gb4", pitchClass: "F#", isBlack: true },
-        { midi: 67, name: "G4", pitchClass: "G", isBlack: false },
-        { midi: 68, name: "Ab4", sharpName: "G#4", pitchClass: "G#", isBlack: true },
-        { midi: 69, name: "A4", pitchClass: "A", isBlack: false },
-        { midi: 70, name: "Bb4", sharpName: "A#4", pitchClass: "Bb", isBlack: true },
-        { midi: 71, name: "B4", pitchClass: "B", isBlack: false },
-        { midi: 72, name: "C5", pitchClass: "C", isBlack: false },
-        { midi: 73, name: "C#5", flatName: "Db5", pitchClass: "C#", isBlack: true },
-        { midi: 74, name: "D5", pitchClass: "D", isBlack: false },
-        { midi: 75, name: "Eb5", sharpName: "D#5", pitchClass: "Eb", isBlack: true },
-        { midi: 76, name: "E5", pitchClass: "E", isBlack: false },
-        { midi: 77, name: "F5", pitchClass: "F", isBlack: false },
-        { midi: 78, name: "F#5", flatName: "Gb5", pitchClass: "F#", isBlack: true },
-        { midi: 79, name: "G5", pitchClass: "G", isBlack: false },
-        { midi: 80, name: "Ab5", sharpName: "G#5", pitchClass: "G#", isBlack: true },
-        { midi: 81, name: "A5", pitchClass: "A", isBlack: false },
-        { midi: 82, name: "Bb5", sharpName: "A#5", pitchClass: "Bb", isBlack: true },
-        { midi: 83, name: "B5", pitchClass: "B", isBlack: false },
-        { midi: 84, name: "C6", pitchClass: "C", isBlack: false },
-        { midi: 85, name: "C#6", flatName: "Db6", pitchClass: "C#", isBlack: true },
-        { midi: 86, name: "D6", pitchClass: "D", isBlack: false },
-        { midi: 87, name: "Eb6", sharpName: "D#6", pitchClass: "Eb", isBlack: true },
-        { midi: 88, name: "E6", pitchClass: "E", isBlack: false },
-        { midi: 89, name: "F6", pitchClass: "F", isBlack: false },
-        { midi: 90, name: "F#6", flatName: "Gb6", pitchClass: "F#", isBlack: true },
-        { midi: 91, name: "G6", pitchClass: "G", isBlack: false },
-        { midi: 92, name: "Ab6", sharpName: "G#6", pitchClass: "G#", isBlack: true },
-        { midi: 93, name: "A6", pitchClass: "A", isBlack: false },
-        { midi: 94, name: "Bb6", sharpName: "A#6", pitchClass: "Bb", isBlack: true },
-        { midi: 95, name: "B6", pitchClass: "B", isBlack: false },
-        { midi: 96, name: "C7", pitchClass: "C", isBlack: false }
-    ];
-
     const WW = 23; // White key width
     const BW = 13; // Black key width
     let whiteKeyX = 0;
@@ -100,7 +122,6 @@ const { NOTES_BY_MIDI, NOTES_BY_NAME, WW: WHITE_KEY_WIDTH, BW: BLACK_KEY_WIDTH, 
 
 // Export the core note data and key dimensions
 export { NOTES_BY_MIDI, NOTES_BY_NAME, WHITE_KEY_WIDTH, BLACK_KEY_WIDTH, ALL_NOTE_INFO };
-
 
 // --- Chord Definitions ---
 const chordDefinitions = {

@@ -11,7 +11,7 @@ import { pianoState } from './appState.js';
 // Import musical data and constants
 import {
     NOTES_BY_MIDI, NOTES_BY_NAME, UNIFIED_CHORD_DEFINITIONS,
-    diatonicChordQualities, chordDefinitions, DURATION_THRESHOLDS
+    diatonicChordQualities, chordDefinitions, DURATION_THRESHOLDS, notesByMidiKeyAware
 } from './note-data.js';
 
 // Import UI painting functions
@@ -75,21 +75,26 @@ export function trigger(note, on, velocity = 100) {
 /**
  * Starts a single piano key's sound and visual feedback.
  * @param {HTMLElement} el - The SVG element of the key.
- * @param {string} [spelling='sharp'] - 'sharp' or 'flat' for note naming preference.
  * @param {number} [velocity=100] - MIDI velocity.
  */
-export function startKey(el, spelling = 'sharp', velocity = 100) {
+export function startKey(el, velocity = 100) {
     const midi = el.dataset.midi;
+    console.log('startKey: midi =', midi);
     if (!midi || el.dataset.playing) return;
 
-    const noteInfo = NOTES_BY_MIDI[midi];
+    const noteInfo = notesByMidiKeyAware(midi);
+    console.log('startKey: noteInfo =', noteInfo);
     if (!noteInfo) return;
-    const noteName = (spelling === 'flat' && noteInfo.flatName) ? noteInfo.flatName : noteInfo.name;
+
+    const noteName = noteInfo.name;
+    console.log('startKey: noteName =', noteName);
+    console.log('startKey: calling trigger with', noteName);
 
     el.dataset.playing = 'note';
     el.classList.add('pressed');
     trigger(noteName, true, velocity);
-    // Store active note with its element and spelling for release
+
+    const spelling = pianoState.keySignatureType === 'b' ? 'flat' : 'sharp';
     pianoState.activeNotes[midi] = { el, spelling, startTime: performance.now() };
 }
 
@@ -100,21 +105,15 @@ export function startKey(el, spelling = 'sharp', velocity = 100) {
 export function stopKey(el) {
     const midi = el.dataset.midi;
     if (!midi || !el.dataset.playing) return;
-
     const activeNote = pianoState.activeNotes[midi];
     if (!activeNote) return;
 
-    const noteInfo = NOTES_BY_MIDI[midi];
-    const noteNameToTrigger = (activeNote.spelling === 'flat' && noteInfo.flatName) ? noteInfo.flatName : noteInfo.name;
+    const noteInfo = notesByMidiKeyAware(midi);
+    const noteNameToTrigger = noteInfo.name; // Use key-signature-aware name
 
     trigger(noteNameToTrigger, false);
-
     delete el.dataset.playing;
     el.classList.remove('pressed');
-
-    // Score writing logic is now handled in handleMidiNoteOff or other specific event handlers
-    // to keep this function focused on playback and UI.
-
     delete pianoState.activeNotes[midi];
 }
 

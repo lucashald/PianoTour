@@ -9,7 +9,7 @@ import { pianoState } from './appState.js';
 import { startAudio, trigger, startKey, stopKey, playDiatonicChord, stopDiatonicChord } from './playbackHelpers.js';
 import { NOTES_BY_MIDI, NOTES_BY_NAME, WHITE_KEY_WIDTH, BLACK_KEY_WIDTH, ALL_NOTE_INFO,
     majorDiatonicLabels, minorDiatonicLabels, CHORD_STRUCTURES, DURATION_THRESHOLDS,
-    chordDefinitions
+    chordDefinitions, notesByMidiKeyAware
 } from './note-data.js';
 import { writeNote } from './scoreWriter.js';
 import { updateNowPlayingDisplay } from './uiHelpers.js';
@@ -94,23 +94,24 @@ export function getChord(centerNoteName, quality) {
  * @returns {string|null} The note name of the nearest valid center.
  */
 function findNearestValidCenterNote(startMidi, quality) {
-    const startNote = NOTES_BY_MIDI[startMidi];
+    const startNote = notesByMidiKeyAware(startMidi);
     if (startNote && getChord(startNote.name, quality)) {
         return startNote.name;
     }
     for (let i = 1; i <= 12; i++) {
         const downMidi = startMidi - i;
-        if (downMidi >= MIN_MIDI && NOTES_BY_MIDI[downMidi] && getChord(NOTES_BY_MIDI[downMidi].name, quality)) {
-            return NOTES_BY_MIDI[downMidi].name;
+        const downNote = notesByMidiKeyAware(downMidi);
+        if (downMidi >= MIN_MIDI && downNote && getChord(downNote.name, quality)) {
+            return downNote.name;
         }
         const upMidi = startMidi + i;
-        if (upMidi <= MAX_MIDI && NOTES_BY_MIDI[upMidi] && getChord(NOTES_BY_MIDI[upMidi].name, quality)) {
-            return NOTES_BY_MIDI[upMidi].name;
+        const upNote = notesByMidiKeyAware(upMidi);
+        if (upMidi <= MAX_MIDI && upNote && getChord(upNote.name, quality)) {
+            return upNote.name;
         }
     }
     return null;
 }
-
 
 // ===================================================================
 // UI & DOM Manipulation Helpers (Instrument-specific)
@@ -408,64 +409,56 @@ function handleChordModeChange() {
 function handleKeyPointerDown(e) {
     const keyEl = e.target.closest('.key');
     if (!keyEl) return;
-
     let targetMidi = parseInt(keyEl.dataset.midi, 10);
     // Determine if shift-clicking a white key to get its sharp black key
     if (e.shiftKey) {
         const potentialSharpMidi = targetMidi + 1;
-        if (NOTES_BY_MIDI[potentialSharpMidi]?.isBlack) {
+        const potentialSharpNote = notesByMidiKeyAware(potentialSharpMidi);
+        if (potentialSharpNote?.isBlack) {
             targetMidi = potentialSharpMidi;
         }
     }
     const finalKeyEl = pianoState.noteEls[targetMidi];
     if (!finalKeyEl) return;
-
     const isChordMode = pianoState.isMajorChordMode || pianoState.isMinorChordMode;
     if (isChordMode) {
         const quality = pianoState.isMajorChordMode ? 'major' : 'minor';
-        const noteName = NOTES_BY_MIDI[finalKeyEl.dataset.midi]?.name;
+        const noteInfo = notesByMidiKeyAware(finalKeyEl.dataset.midi);
+        const noteName = noteInfo?.name;
         if (!noteName) return; // Ensure a valid noteName
         const thirdInterval = quality === 'major' ? 4 : 3;
         const newCenterMidi = NOTES_BY_NAME[noteName] + thirdInterval;
-        const newCenterNote = NOTES_BY_MIDI[newCenterMidi];
+        const newCenterNote = notesByMidiKeyAware(newCenterMidi);
         if (!newCenterNote) return;
-
         const chord = getChord(newCenterNote.name, quality);
         if (!chord) return;
-
         pianoState.chordCenterNote = newCenterNote.name;
         pianoState.scaleTonic = noteName;
         positionSlider();
         clearChordHi();
         paintChord();
         updateLabels();
-
         // Store start time for chord held duration
         const startTime = performance.now();
         // Store the full chord object including its clef, notes, name for later use in writeNote
         pianoState.activeNotes[finalKeyEl.dataset.midi] = { el: finalKeyEl, startTime: startTime, chordData: chord };
-
         trigger(chord.notes, true);
         finalKeyEl.classList.add('pressed');
         finalKeyEl.setPointerCapture(e.pointerId);
-
         const handleKeyPointerUp = () => {
             const heldTime = performance.now() - startTime;
             let duration = 'q';
             if (heldTime >= DURATION_THRESHOLDS.w) duration = 'w';
             else if (heldTime >= DURATION_THRESHOLDS.h) duration = 'h';
-
             trigger(chord.notes, false);
             finalKeyEl.classList.remove('pressed');
             finalKeyEl.releasePointerCapture(e.pointerId);
             delete pianoState.activeNotes[finalKeyEl.dataset.midi];
-
             // Pass the chordData (which includes clef and notes) directly to writeNote
             writeNote({ clef: chord.clef, duration, notes: chord.notes, chordName: chord.name });
         };
         finalKeyEl.addEventListener('pointerup', handleKeyPointerUp, { once: true });
         finalKeyEl.addEventListener('pointercancel', handleKeyPointerUp, { once: true });
-
     } else { // Single note mode
         startKey(finalKeyEl);
         finalKeyEl.setPointerCapture(e.pointerId);
@@ -477,8 +470,8 @@ function handleKeyPointerDown(e) {
             let duration = 'q';
             if (heldTime >= DURATION_THRESHOLDS.w) duration = 'w';
             else if (heldTime >= DURATION_THRESHOLDS.h) duration = 'h';
-            const noteInfo = NOTES_BY_MIDI[targetMidi];
-            const noteNameForScore = (finalKeyEl.dataset.spelling === 'flat' && noteInfo?.flatName) ? noteInfo.flatName : noteInfo?.name;
+            const noteInfo = notesByMidiKeyAware(targetMidi);
+            const noteNameForScore = noteInfo.name;
             const clef = noteInfo.midi < 60 ? 'bass' : 'treble';
             writeNote({ clef, duration, notes: [noteNameForScore], chordName: noteNameForScore });
         };
@@ -487,13 +480,11 @@ function handleKeyPointerDown(e) {
     }
 }
 
-
 /** Handles keydown events for computer keyboard input. */
 function handleKeyDown(e) {
     if (e.repeat) return;
     const k = e.key.toLowerCase();
     if (pianoState.held.has(k)) return;
-
     if (['1','2','3','4','5','6','7'].includes(e.key)) {
         e.preventDefault(); // Prevent default browser behavior for number keys
         pianoState.held.add(k);
@@ -513,17 +504,15 @@ function handleKeyDown(e) {
         e.preventDefault(); // Prevent default browser behavior for all mapped keys
         const baseMidi = pianoState.keyMap[k];
         let targetMidi = baseMidi;
-        let spelling = flattenerKeys.has(k) ? 'flat' : 'sharp';
-        if (e.shiftKey && NOTES_BY_MIDI[baseMidi + 1]?.isBlack) {
+        const nextNote = notesByMidiKeyAware(baseMidi + 1);
+        if (e.shiftKey && nextNote?.isBlack) {
             targetMidi = baseMidi + 1;
-            spelling = 'sharp';
         }
         const keyEl = pianoState.noteEls[targetMidi];
         if (keyEl) {
             pianoState.held.add(k);
             keyEl.dataset.startTime = performance.now(); // Store start time for duration calculation
-            keyEl.dataset.spelling = spelling; // Store spelling for stopKey to use
-            startKey(keyEl, spelling);
+            startKey(keyEl);
         }
     }
 }
@@ -533,10 +522,8 @@ function handleKeyDown(e) {
 function handleKeyUp(e) {
     clearChordHi();
     clearHi(); // Clear temporary highlights
-
     const k = e.key.toLowerCase();
     if (!pianoState.held.has(k)) return; // Only process if key was actually held down
-
     // --- DIATONIC CHORD (KEYS 1-7) ---
     if (['1', '2', '3', '4', '5', '6', '7'].includes(e.key)) {
         stopDiatonicChord(k);
@@ -547,7 +534,6 @@ function handleKeyUp(e) {
             let duration = 'q';
             if (heldTime >= DURATION_THRESHOLDS.w) duration = 'w';
             else if (heldTime >= DURATION_THRESHOLDS.h) duration = 'h';
-
             const restPositionNote = restData.clef === 'bass' ? 'D3' : 'B4';
             writeNote({ clef: restData.clef, duration, notes: [restPositionNote], chordName: 'Rest', isRest: true });
             delete pianoState.activeRests[k];
@@ -560,11 +546,9 @@ function handleKeyUp(e) {
             let duration = 'q';
             if (heldTime >= DURATION_THRESHOLDS.w) duration = 'w';
             else if (heldTime >= DURATION_THRESHOLDS.h) duration = 'h';
-
-            const noteInfo = NOTES_BY_MIDI[midi];
-            const noteNameForScore = (keyEl.dataset.spelling === 'flat' && noteInfo?.flatName) ? noteInfo.flatName : noteInfo?.name;
+            const noteInfo = notesByMidiKeyAware(midi);
+            const noteNameForScore = noteInfo?.name;
             const clef = noteInfo.midi < 60 ? 'bass' : 'treble';
-
             stopKey(keyEl); // Stop audio and remove 'pressed' class
             writeNote({ clef, duration, notes: [noteNameForScore], chordName: noteNameForScore });
         }
@@ -572,7 +556,6 @@ function handleKeyUp(e) {
     pianoState.held.delete(k);
     pianoState.held.delete(e.key); // Ensure both cases are covered for delete (lowercase and original)
 }
-
 
 /** Activates all event listeners for the instrument. */
 function activateInstrumentListeners() {

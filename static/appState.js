@@ -11,7 +11,7 @@ export const pianoState = {
 
     // Musical State (Instrument-specific)
     keySignature: 'C',
-    keySignatureType: 'sharp',
+    keySignatureType: '#',
     chordCenterNote: 'E4', // Default chord center for chord mode
     scaleTonic: 'C4',      // Default scale tonic for diatonic chords
     baseIdx: 0,            // Starting index for the playable piano view
