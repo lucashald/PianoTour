@@ -8,7 +8,7 @@
 import { chordDefinitions, chordGroups, DURATION_THRESHOLDS } from './note-data.js';
 import { writeNote } from './scoreWriter.js';
 import { trigger } from './playbackHelpers.js';
-
+import { pianoState } from './appState.js';
 // ===================================================================
 // UI Update Functions
 // ===================================================================
@@ -33,9 +33,36 @@ export function updateNowPlayingDisplay(name) {
 let chordButtonMode = 0; // 0: Hidden, 1: Bass, 2: Treble
 let chordButtonsGenerated = false;
 
-/**
- * Generates the chord buttons dynamically based on chordDefinitions.
- */
+// Helper function to resolve chord name based on key signature
+function resolveChordName(chordName) {
+    // Extract the root note and quality
+    const match = chordName.match(/^([A-G][#b]?)(.*)$/);
+    if (!match) return chordName;
+
+    const [, root, quality] = match;
+
+    // Check for enharmonic equivalents
+    const enharmonicPairs = [
+        ['A#', 'Bb'], ['C#', 'Db'], ['D#', 'Eb'], 
+        ['F#', 'Gb'], ['G#', 'Ab']
+    ];
+
+    for (const [sharp, flat] of enharmonicPairs) {
+        if (root === sharp || root === flat) {
+            // Choose based on key signature type
+            const preferredRoot = pianoState.keySignatureType === 'b' ? flat : sharp;
+            const preferredChordName = preferredRoot + quality;
+
+            // Return the preferred version if it exists in chordDefinitions
+            if (chordDefinitions[preferredChordName]) {
+                return preferredChordName;
+            }
+        }
+    }
+
+    return chordName; // Return original if no enharmonic equivalent found
+}
+
 export function generateChordButtons() {
     if (typeof chordGroups === 'undefined' || !document.getElementById('chordGroupsContainer')) return;
 
@@ -54,14 +81,16 @@ export function generateChordButtons() {
 
         group.chords.forEach(chordName => {
             const btn = document.createElement('button');
-            // REFACTORED: Use the new BEM classes for compact buttons.
-            btn.className = 'btn btn--compact'; 
+            btn.className = 'btn btn--compact';
 
-            const chordDefinition = chordDefinitions[chordName];
+            // Resolve chord name based on current key signature
+            const resolvedChordName = resolveChordName(chordName);
+            const chordDefinition = chordDefinitions[resolvedChordName];
             if (!chordDefinition) return;
+
             btn.chordData = chordDefinition;
             btn.textContent = chordDefinition.displayName;
-            btn.setAttribute('data-chord', chordName); 
+            btn.setAttribute('data-chord', resolvedChordName); 
 
             grid.appendChild(btn);
         });
@@ -69,14 +98,12 @@ export function generateChordButtons() {
         chordGroupsContainer.appendChild(section);
     });
 
-    // REFACTORED: Select the newly styled buttons within their container.
     document.querySelectorAll('#chordGroupsContainer .btn').forEach(button => {
         button.addEventListener('pointerdown', function (e) {
             e.preventDefault(); 
             const chordDefinition = this.chordData;
             if (!chordDefinition) return;
 
-            // REFACTORED: Use .is-active for the toggled state.
             document.querySelectorAll('#chordGroupsContainer .btn').forEach(btn => btn.classList.remove('is-active'));
             this.classList.add('is-active');
 
@@ -88,9 +115,9 @@ export function generateChordButtons() {
             if (chordButtonMode === 1) { notesToPlay = chordDefinition.bass || []; clef = 'bass'; } 
             else if (chordButtonMode === 2) { notesToPlay = chordDefinition.treble || []; clef = 'treble'; }
 
-            if (notesToPlay.length > 0) { // Check if there are notes to play
+            if (notesToPlay.length > 0) {
                 trigger(notesToPlay, true);
-                this.classList.add('pressed'); // 'pressed' can be a temporary visual state
+                this.classList.add('pressed');
                 const startTime = performance.now();
 
                 this.setPointerCapture(e.pointerId);
@@ -121,7 +148,6 @@ export function generateChordButtons() {
             } else {
                 const chordDisplayName = chordDefinition.displayName;
                 updateNowPlayingDisplay(chordDisplayName);
-                // If no notes, treat as a rest to advance the score
                 writeNote({ clef, duration: 'q', notes: [], chordName: chordDisplayName, isRest: true });
             }
         }); 

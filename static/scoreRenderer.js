@@ -3,9 +3,10 @@
 // Simplified: Direct styling for selected note/measure/playback, no stored original styles.
 
 import { getMeasures, addNoteToMeasure } from './scoreWriter.js'; // Updated import
-import { NOTES_BY_MIDI, NOTES_BY_NAME, ALL_NOTE_INFO } from './note-data.js';
+import { NOTES_BY_MIDI, NOTES_BY_NAME, ALL_NOTE_INFO, KEY_SIGNATURES } from './note-data.js';
 import { pianoState } from './appState.js'; // ADD THIS LINE
 import { addPlaybackHighlight, clearPlaybackHighlight, clearAllHighlights, highlightSelectedMeasure, clearMeasureHighlight, resetAllNoteStyles, highlightSelectedNote, clearSelectedNoteHighlight } from './scoreHighlighter.js';
+import { generateChordButtons } from './uiHelpers.js';
 // ===================================================================
 // Global Variables
 // ===================================================================
@@ -1031,18 +1032,24 @@ export function setPaletteDragState(isDragging, type, duration) {
 }
 
 export function handleKeySignatureClick(e) {
-    // Cycle through common key signatures for now
-    const keys = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'F', 'Bb', 'Eb', 'Ab', 'Db'];
+    // Use the KEY_SIGNATURES object to get all available keys
+    const keys = Object.keys(KEY_SIGNATURES);
     const currentIndex = keys.indexOf(pianoState.keySignature);
     const nextIndex = (currentIndex + 1) % keys.length;
-    pianoState.keySignature = keys[nextIndex];
 
-    // Update the button text to show current key signature
+    // Set both the key signature and its type
+    pianoState.keySignature = keys[nextIndex];
+    pianoState.keySignatureType = KEY_SIGNATURES[keys[nextIndex]].type;
+
+    console.log(`Key signature changed to: ${pianoState.keySignature} (${pianoState.keySignatureType})`);
+
+    // Redraw the score to show the new key signature
+    safeRedraw();
     e.target.textContent = `Key: ${pianoState.keySignature}`;
 
-    // Rerender the score with new key signature
-    const scoreData = getMeasures();
-    drawAll(scoreData);
+    // Regenerate chord buttons with new key signature (if they exist)
+    // You'll need to import generateChordButtons from uiHelpers.js
+        generateChordButtons();
 }
 
 // --- Getters for external modules ---
