@@ -477,7 +477,7 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
                 isDraggingInitiated = true;
                 isDragging = true;
                 startDrag(mouseDownNoteTarget, mouseDownInitialPos);
-                scoreElement.style.cursor = 'grabbing';
+                scoreElement.style.cursor = 'none';
                 console.log("enableScoreInteraction: Drag initiated on existing note.");
             }
         }

@@ -130,12 +130,20 @@ function loadScoreFromJson(file) {
     reader.readAsText(file);
 }
 
+
 /**
  * Saves the current score data to a .json file.
  */
 function saveScoreToFile() {
     console.log("Saving score to JSON file...");
-    const data = JSON.stringify(getMeasures(), null, 2);
+
+    // Create the data object in the format expected by loadScoreFromJson
+    const scoreData = {
+        keySignature: pianoState.keySignature,
+        measures: getMeasures()
+    };
+
+    const data = JSON.stringify(scoreData, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -145,7 +153,7 @@ function saveScoreToFile() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    console.log("Score saved successfully.");
+    console.log(`Score saved successfully with key signature: ${pianoState.keySignature}`);
 }
 
 /**

@@ -199,6 +199,9 @@ export function handleKeySignatureClick(e) {
     if (setKeySignature(nextKey)) {
         // Update the button text since setKeySignature doesn't do this anymore
         e.target.textContent = `Key: ${pianoState.keySignature}`;
+
+        // Update the now playing display to show the key signature change
+        updateNowPlayingDisplay(`Key: ${pianoState.keySignature}`);
     }
     generateChordButtons();
 }
