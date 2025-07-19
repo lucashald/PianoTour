@@ -711,29 +711,105 @@ export const DURATIONS = [
     //{ key: '32', name: 'Thirty-second', beatValue: 0.125 },
 ];
 
-// ===================================================================
-// Key Signature Definitions
-// ===================================================================
-// ===================================================================
-// Key Signature Definitions
-// ===================================================================
-export const KEY_SIGNATURES = {
+const keySignatures = [
     // Major keys with #s
-    'C': { accidentals: [], type: '#' },
-    'G': { accidentals: ['F#'], type: '#' },
-    'D': { accidentals: ['F#', 'C#'], type: '#' },
-    'A': { accidentals: ['F#', 'C#', 'G#'], type: '#' },
-    'E': { accidentals: ['F#', 'C#', 'G#', 'D#'], type: '#' },
-    'B': { accidentals: ['F#', 'C#', 'G#', 'D#', 'A#'], type: '#' },
-    'F#': { accidentals: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#'], type: '#' },
-    'C#': { accidentals: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'], type: '#' },
-
+    {
+        displayName: 'C',
+        accidentals: [],
+        type: '#',
+        aliases: ['C', 'C Major', 'C major', 'Am', 'A minor', 'A Minor']
+    },
+    {
+        displayName: 'G',
+        accidentals: ['F#'],
+        type: '#',
+        aliases: ['G', 'G Major', 'G major', 'Em', 'E minor', 'E Minor']
+    },
+    {
+        displayName: 'D',
+        accidentals: ['F#', 'C#'],
+        type: '#',
+        aliases: ['D', 'D Major', 'D major', 'Bm', 'B minor', 'B Minor']
+    },
+    {
+        displayName: 'A',
+        accidentals: ['F#', 'C#', 'G#'],
+        type: '#',
+        aliases: ['A', 'A Major', 'A major', 'F#m', 'F# minor', 'F# Minor', 'F sharp minor', 'F sharp Minor']
+    },
+    {
+        displayName: 'E',
+        accidentals: ['F#', 'C#', 'G#', 'D#'],
+        type: '#',
+        aliases: ['E', 'E Major', 'E major', 'C#m', 'C# minor', 'C# Minor', 'C sharp minor', 'C sharp Minor']
+    },
+    {
+        displayName: 'B',
+        accidentals: ['F#', 'C#', 'G#', 'D#', 'A#'],
+        type: '#',
+        aliases: ['B', 'B Major', 'B major', 'G#m', 'G# minor', 'G# Minor', 'G sharp minor', 'G sharp Minor']
+    },
+    {
+        displayName: 'F#',
+        accidentals: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#'],
+        type: '#',
+        aliases: ['F#', 'F# Major', 'F# major', 'D#m', 'D# minor', 'D# Minor', 'F sharp', 'F sharp Major', 'F sharp major', 'D sharp minor', 'D sharp Minor']
+    },
+    {
+        displayName: 'C#',
+        accidentals: ['F#', 'C#', 'G#', 'D#', 'A#', 'E#', 'B#'],
+        type: '#',
+        aliases: ['C#', 'C# Major', 'C# major', 'A#m', 'A# minor', 'A# Minor', 'C sharp', 'C sharp Major', 'C sharp major', 'A sharp minor', 'A sharp Minor']
+    },
     // Major keys with bs
-    'F': { accidentals: ['Bb'], type: 'b' },
-    'Bb': { accidentals: ['Bb', 'Eb'], type: 'b' },
-    'Eb': { accidentals: ['Bb', 'Eb', 'Ab'], type: 'b' },
-    'Ab': { accidentals: ['Bb', 'Eb', 'Ab', 'Db'], type: 'b' },
-    'Db': { accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb'], type: 'b' },
-    'Gb': { accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'], type: 'b' },
-    'Cb': { accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb'], type: 'b' }
-};
+    {
+        displayName: 'F',
+        accidentals: ['Bb'],
+        type: 'b',
+        aliases: ['F', 'F Major', 'F major', 'Dm', 'D minor', 'D Minor']
+    },
+    {
+        displayName: 'Bb',
+        accidentals: ['Bb', 'Eb'],
+        type: 'b',
+        aliases: ['Bb', 'Bb Major', 'Bb major', 'Gm', 'G minor', 'G Minor', 'B flat', 'B flat Major', 'B flat major']
+    },
+    {
+        displayName: 'Eb',
+        accidentals: ['Bb', 'Eb', 'Ab'],
+        type: 'b',
+        aliases: ['Eb', 'Eb Major', 'Eb major', 'Cm', 'C minor', 'C Minor', 'E flat', 'E flat Major', 'E flat major']
+    },
+    {
+        displayName: 'Ab',
+        accidentals: ['Bb', 'Eb', 'Ab', 'Db'],
+        type: 'b',
+        aliases: ['Ab', 'Ab Major', 'Ab major', 'Fm', 'F minor', 'F Minor', 'A flat', 'A flat Major', 'A flat major']
+    },
+    {
+        displayName: 'Db',
+        accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb'],
+        type: 'b',
+        aliases: ['Db', 'Db Major', 'Db major', 'Bbm', 'Bb minor', 'Bb Minor', 'D flat', 'D flat Major', 'D flat major', 'B flat minor', 'B flat Minor']
+    },
+    {
+        displayName: 'Gb',
+        accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'],
+        type: 'b',
+        aliases: ['Gb', 'Gb Major', 'Gb major', 'Ebm', 'Eb minor', 'Eb Minor', 'G flat', 'G flat Major', 'G flat major', 'E flat minor', 'E flat Minor']
+    },
+    {
+        displayName: 'Cb',
+        accidentals: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb', 'Fb'],
+        type: 'b',
+        aliases: ['Cb', 'Cb Major', 'Cb major', 'Abm', 'Ab minor', 'Ab Minor', 'C flat', 'C flat Major', 'C flat major', 'A flat minor', 'A flat Minor']
+    }
+];
+// Generate the lookup table
+export const KEY_SIGNATURES = {};
+keySignatures.forEach(({ accidentals, type, displayName, aliases }) => {
+  const keyData = { accidentals, type, displayName };
+  aliases.forEach(alias => {
+    KEY_SIGNATURES[alias] = keyData;
+  });
+});

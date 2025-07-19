@@ -9,6 +9,7 @@ import { chordDefinitions, chordGroups, DURATION_THRESHOLDS } from './note-data.
 import { writeNote } from './scoreWriter.js';
 import { trigger } from './playbackHelpers.js';
 import { pianoState } from './appState.js';
+import { setKeySignature } from './scoreRenderer.js';
 // ===================================================================
 // UI Update Functions
 // ===================================================================
@@ -184,4 +185,20 @@ export function handleChordDisplayToggle(e) {
             if (!chordButtonsGenerated) { generateChordButtons(); }
             break;
     }
+}
+
+export function handleKeySignatureClick(e) {
+    // Define the cycling order for display names (circle of fifths)
+    const keyOrder = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'];
+
+    const currentIndex = keyOrder.indexOf(pianoState.keySignature);
+    const nextIndex = (currentIndex + 1) % keyOrder.length;
+    const nextKey = keyOrder[nextIndex];
+
+    // Use the new setKeySignature function (but it won't update the button)
+    if (setKeySignature(nextKey)) {
+        // Update the button text since setKeySignature doesn't do this anymore
+        e.target.textContent = `Key: ${pianoState.keySignature}`;
+    }
+    generateChordButtons();
 }

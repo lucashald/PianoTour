@@ -1,10 +1,10 @@
 // ioHelpers.js
 // This module handles saving, loading, and MIDI I/O for the score.
 // It is designed to be initialized once by the main application script.
-
+import { pianoState } from './appState.js';
 import { getMeasures, processAndSyncScore } from './scoreWriter.js';
-import { NOTES_BY_MIDI, NOTES_BY_NAME } from './note-data.js';
-import { drawAll } from './scoreRenderer.js';
+import { NOTES_BY_MIDI, NOTES_BY_NAME, KEY_SIGNATURES } from './note-data.js';
+import { drawAll, setKeySignature } from './scoreRenderer.js';
 
 // --- Core Logic Functions (not exported) ---
 
@@ -92,7 +92,6 @@ async function loadScoreFromMidi(file) {
         console.error("MIDI loading error:", err);
     }
 }
-
 /**
  * Reads a JSON file and processes it to update the score.
  * @param {File} file The JSON file to load.
@@ -102,9 +101,24 @@ function loadScoreFromJson(file) {
     reader.onload = (e) => {
         try {
             const loadedData = JSON.parse(e.target.result);
-            if (processAndSyncScore(loadedData)) {
-                drawAll(getMeasures());
-                console.log("Score successfully loaded from JSON file.");
+
+            // Get the measures data (either from new format or old format)
+            const measuresData = loadedData.measures || loadedData;
+
+            // Load the score data first
+            if (processAndSyncScore(measuresData)) {
+                // Handle key signature loading (default to 'C' if not present)
+                const keySignatureToLoad = loadedData.keySignature || 'C';
+
+                // Set the key signature (this validates and redraws automatically)
+                if (setKeySignature(keySignatureToLoad)) {
+                    console.log(`Score successfully loaded from JSON file. Key signature: ${pianoState.keySignature} (${pianoState.keySignatureType})`);
+                } else {
+                    // If invalid key signature, default to C and still redraw
+                    console.warn(`Invalid key signature "${keySignatureToLoad}" found in file, defaulting to C major`);
+                    setKeySignature('C');
+                    console.log(`Score successfully loaded from JSON file. Key signature defaulted to: C (#)`);
+                }
             } else {
                 alert("Error: Could not process loaded score data.");
             }

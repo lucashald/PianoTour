@@ -6,7 +6,6 @@ import { getMeasures, addNoteToMeasure } from './scoreWriter.js'; // Updated imp
 import { NOTES_BY_MIDI, NOTES_BY_NAME, ALL_NOTE_INFO, KEY_SIGNATURES } from './note-data.js';
 import { pianoState } from './appState.js'; // ADD THIS LINE
 import { addPlaybackHighlight, clearPlaybackHighlight, clearAllHighlights, highlightSelectedMeasure, clearMeasureHighlight, resetAllNoteStyles, highlightSelectedNote, clearSelectedNoteHighlight } from './scoreHighlighter.js';
-import { generateChordButtons } from './uiHelpers.js';
 // ===================================================================
 // Global Variables
 // ===================================================================
@@ -265,6 +264,37 @@ function getCurrentVexFlowKeySignature() {
     };
 
     return enharmonicMap[pitchClass] || pitchClass;
+}
+
+/**
+ * Sets the key signature and updates all related UI elements.
+ * @param {string} keySignature - The key signature (e.g., 'F', 'F Major', 'Dm', 'D minor')
+ * @returns {boolean} True if successful, false if invalid key signature
+ */
+export function setKeySignature(keySignature) {
+    if (!keySignature || typeof keySignature !== 'string') {
+        console.warn('setKeySignature: Invalid key signature provided');
+        return false;
+    }
+
+    // Look up the key signature data
+    const keyData = KEY_SIGNATURES[keySignature];
+    if (!keyData) {
+        console.warn(`setKeySignature: Unknown key signature "${keySignature}"`);
+        return false;
+    }
+
+    // Update the piano state
+    pianoState.keySignature = keyData.displayName;
+    pianoState.keySignatureType = keyData.type;
+
+    // Redraw the score with new key signature
+    safeRedraw();
+
+    // Log the change
+    console.log(`Key signature set to: ${keyData.displayName} (type: ${keyData.type})`);
+
+    return true;
 }
 
 export function drawAll(measures) {
@@ -1029,27 +1059,6 @@ export function setPaletteDragState(isDragging, type, duration) {
     if (duration) {
         selectedDuration = duration;
     }
-}
-
-export function handleKeySignatureClick(e) {
-    // Use the KEY_SIGNATURES object to get all available keys
-    const keys = Object.keys(KEY_SIGNATURES);
-    const currentIndex = keys.indexOf(pianoState.keySignature);
-    const nextIndex = (currentIndex + 1) % keys.length;
-
-    // Set both the key signature and its type
-    pianoState.keySignature = keys[nextIndex];
-    pianoState.keySignatureType = KEY_SIGNATURES[keys[nextIndex]].type;
-
-    console.log(`Key signature changed to: ${pianoState.keySignature} (${pianoState.keySignatureType})`);
-
-    // Redraw the score to show the new key signature
-    safeRedraw();
-    e.target.textContent = `Key: ${pianoState.keySignature}`;
-
-    // Regenerate chord buttons with new key signature (if they exist)
-    // You'll need to import generateChordButtons from uiHelpers.js
-        generateChordButtons();
 }
 
 // --- Getters for external modules ---
