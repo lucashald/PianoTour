@@ -450,15 +450,9 @@ def get_velocity(note_info):
 def index():
     return render_template('index.html')
 
-
 @app.route('/editor')
 def editor():
     return render_template('editor.html')
-
-
-@app.route('/player')
-def player():
-    return render_template('player.html')
 
 @app.route('/guitar')
 def guitar():

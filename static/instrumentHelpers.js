@@ -205,25 +205,6 @@ function drawLabelOnKey(midi, labelText) {
 }
 
 /**
- * Determines which piano key is at a given mouse X-coordinate.
- * @param {number} mouseX - The mouse's X position relative to the SVG element.
- * @param {number} scale - The scaling factor of the SVG.
- * @returns {object|null} The note object for the found key.
- */
-function findKeyAtPosition(mouseX, scale) {
-  const clampedMouseX = Math.max(0, Math.min(TOTAL_SVG_WIDTH, mouseX / scale));
-  const searchKeys = allNotes.slice().sort((a, b) => b.isBlack - a.isBlack);
-
-  for (const keyData of searchKeys) {
-    const keyWidth = keyData.isBlack ? BLACK_KEY_WIDTH : WHITE_KEY_WIDTH;
-    if (clampedMouseX >= keyData.x && clampedMouseX <= keyData.x + keyWidth) {
-      return keyData;
-    }
-  }
-  return null;
-}
-
-/**
  * Positions the hand overlay (slider) based on current piano mode.
  */
 function positionSlider() {
@@ -392,12 +373,140 @@ export function paintChordOnTheFly(chord) {
 }
 
 // ===================================================================
-// Event Handlers
+// Event Handlers (Enhanced with Click-and-Drag)
 // ===================================================================
 
 /** Handles window resize event. */
 function handleWindowResize() {
   positionSlider();
+}
+
+/** Handles changes between single note and chord modes. */
+function handleChordModeChange() {
+  clearHi();
+  clearChordHi();
+  const isChordMode =
+    pianoState.isMajorChordMode || pianoState.isMinorChordMode;
+  pianoState.overlay.classList.toggle("chord-mode", isChordMode);
+
+  if (isChordMode) {
+    const tonicMidi = NOTES_BY_NAME[pianoState.scaleTonic];
+    if (tonicMidi !== undefined) {
+      const thirdInterval = pianoState.isMajorChordMode ? 4 : 3;
+      const centerMidi = tonicMidi + thirdInterval;
+      if (NOTES_BY_MIDI[centerMidi]) {
+        pianoState.chordCenterNote = NOTES_BY_MIDI[centerMidi].name;
+      }
+    }
+    paintChord();
+  } else {
+    pianoState.keyMap = buildMap(pianoState.baseIdx);
+    paint();
+  }
+  positionSlider();
+  updateLabels();
+}
+
+/**
+ * Determines which piano key is at a given mouse X-coordinate for SLIDER control.
+ * Uses coordinate mapping and allows imprecise movements outside the keyboard area.
+ * @param {number} mouseX - The mouse's X position relative to the SVG element.
+ * @param {number} scale - The scaling factor of the SVG.
+ * @returns {object|null} The note object for the found key.
+ */
+function findKeyForSlider(mouseX, scale) {
+  const clampedMouseX = Math.max(0, Math.min(TOTAL_SVG_WIDTH, mouseX / scale));
+  const searchKeys = allNotes.slice().sort((a, b) => b.isBlack - a.isBlack);
+
+  for (const keyData of searchKeys) {
+    const keyWidth = keyData.isBlack ? BLACK_KEY_WIDTH : WHITE_KEY_WIDTH;
+    if (clampedMouseX >= keyData.x && clampedMouseX <= keyData.x + keyWidth) {
+      return keyData;
+    }
+  }
+  return null;
+}
+
+/**
+ * Determines which piano key is at a given pointer position for PLAYING NOTES.
+ * Uses precise DOM hit detection that respects SVG layering.
+ * @param {number} clientX - The pointer's X position relative to the viewport.
+ * @param {number} clientY - The pointer's Y position relative to the viewport.
+ * @returns {object|null} The note object for the found key.
+ */
+function findKeyForPlayer(clientX, clientY) {
+  // Use the browser's built-in hit detection which respects SVG layering
+  const element = document.elementFromPoint(clientX, clientY);
+  
+  if (element && element.classList.contains('key')) {
+    const midi = parseInt(element.dataset.midi, 10);
+    return NOTES_BY_MIDI[midi] || null;
+  }
+  
+  return null;
+}
+
+/** 
+ * Handles pointer move for click-and-drag functionality
+ */
+function handlePointerMove(e) {
+  if (!pianoState.isDragging) return;
+  
+  e.preventDefault();
+  const foundKey = findKeyForPlayer(e.clientX, e.clientY);
+  
+  const isChordMode = pianoState.isMajorChordMode || pianoState.isMinorChordMode;
+  
+  if (isChordMode) {
+    // Chord mode - disable drag functionality for now
+    return;
+    
+  } else {
+    // Single note mode - this is the key part for smooth glissando
+    const currentlyTouchedKeys = new Set();
+    
+    // Add the current key under the pointer (if any)
+    if (foundKey) {
+      currentlyTouchedKeys.add(foundKey.midi);
+    }
+    
+    // Start any new keys that aren't already playing
+    currentlyTouchedKeys.forEach(midi => {
+      if (!pianoState.currentlyPlayingKeys.has(midi)) {
+        // Start new note
+        const keyEl = pianoState.noteEls[midi];
+        if (keyEl) {
+          keyEl.classList.add("pressed", "drag-playing");
+          keyEl.dataset.playing = "drag";
+          
+          // Play the note
+          const noteInfo = notesByMidiKeyAware(midi);
+          if (noteInfo) {
+            trigger([noteInfo.name], true);
+          }
+        }
+      }
+    });
+    
+    // Stop any previously playing keys that are no longer being touched
+    pianoState.currentlyPlayingKeys.forEach(midi => {
+      if (!currentlyTouchedKeys.has(midi)) {
+        // Stop this key
+        const keyEl = pianoState.noteEls[midi];
+        if (keyEl) {
+          keyEl.classList.remove("pressed", "drag-playing");
+          const noteInfo = notesByMidiKeyAware(midi);
+          if (noteInfo && keyEl.dataset.playing === "drag") {
+            trigger([noteInfo.name], false);
+          }
+          keyEl.dataset.playing = "";
+        }
+      }
+    });
+    
+    // Update the currently playing keys set
+    pianoState.currentlyPlayingKeys = currentlyTouchedKeys;
+  }
 }
 
 /** Handles the start of a drag event on the hand overlay (slider). */
@@ -414,7 +523,7 @@ function startSliderDrag(e) {
       const svgRect = pianoState.svg.getBoundingClientRect();
       const mouseX = ev.clientX - svgRect.left;
       const scale = svgRect.width / TOTAL_SVG_WIDTH;
-      const foundKey = findKeyAtPosition(mouseX, scale);
+      const foundKey = findKeyForSlider(mouseX, scale);
       if (!foundKey) {
         rafId = null;
         return;
@@ -465,7 +574,7 @@ function startSliderDrag(e) {
   const endSliderDrag = () => {
     if (rafId) cancelAnimationFrame(rafId);
     if (isChordMode) updateLabels();
-    clearHi();
+    clearHi(); // comment this function call out if you want to leave the highlight after the user releases the slider.
     pianoState.overlay.releasePointerCapture(e.pointerId);
     document.removeEventListener("pointermove", handleSliderMove);
   };
@@ -474,52 +583,68 @@ function startSliderDrag(e) {
   document.addEventListener("pointerup", endSliderDrag, { once: true });
 }
 
-/** Handles changes between single note and chord modes. */
-function handleChordModeChange() {
-  clearHi();
-  clearChordHi();
-  const isChordMode =
-    pianoState.isMajorChordMode || pianoState.isMinorChordMode;
-  pianoState.overlay.classList.toggle("chord-mode", isChordMode);
-
-  if (isChordMode) {
-    const tonicMidi = NOTES_BY_NAME[pianoState.scaleTonic];
-    if (tonicMidi !== undefined) {
-      const thirdInterval = pianoState.isMajorChordMode ? 4 : 3;
-      const centerMidi = tonicMidi + thirdInterval;
-      if (NOTES_BY_MIDI[centerMidi]) {
-        pianoState.chordCenterNote = NOTES_BY_MIDI[centerMidi].name;
+/**
+ * NEW: Stop all drag-playing notes
+ */
+function stopAllDragNotes() {
+  pianoState.currentlyPlayingKeys.forEach((midi) => {
+    const keyEl = pianoState.noteEls[midi];
+    if (keyEl) {
+      keyEl.classList.remove("pressed", "drag-playing");
+      const noteInfo = notesByMidiKeyAware(midi);
+      if (noteInfo && keyEl.dataset.playing === "drag") {
+        trigger([noteInfo.name], false);
       }
+      keyEl.dataset.playing = "";
     }
-    paintChord();
-  } else {
-    pianoState.keyMap = buildMap(pianoState.baseIdx);
-    paint();
-  }
-  positionSlider();
-  updateLabels();
+  });
+  pianoState.currentlyPlayingKeys.clear();
 }
 
-/** Handles pointerdown events on SVG piano keys. */
+/**
+ * NEW: Stop all drag-playing chords
+ */
+function stopAllDragChords() {
+  pianoState.currentlyPlayingKeys.forEach((midi) => {
+    const keyEl = pianoState.noteEls[midi];
+    if (keyEl) {
+      keyEl.classList.remove("pressed", "drag-playing");
+      // For chords, we need to stop the current chord audio
+      // This is handled by the chord mode logic
+      keyEl.dataset.playing = "";
+    }
+  });
+  pianoState.currentlyPlayingKeys.clear();
+  clearChordHi(); // Clear chord highlights
+}
+
+/**
+ * ENHANCED: Handles pointerdown events on SVG piano keys with drag support
+ */
 function handleKeyPointerDown(e) {
   e.preventDefault();
   const keyEl = e.target.closest(".key");
   if (!keyEl) return;
+
+  // Initialize drag state
+  pianoState.isDragging = true;
+  pianoState.lastDraggedKey = null;
+
   let targetMidi = parseInt(keyEl.dataset.midi, 10);
   // Determine if shift-clicking a white key to get its sharp black key
   if (e.shiftKey) {
     const potentialSharpMidi = targetMidi + 1;
     const potentialSharpNote = notesByMidiKeyAware(potentialSharpMidi);
-    console.log("potentialSharpMidi:", potentialSharpMidi);
-    console.log("potentialSharpNote:", potentialSharpNote);
     if (potentialSharpNote?.isBlack) {
       targetMidi = potentialSharpMidi;
     }
   }
   const finalKeyEl = pianoState.noteEls[targetMidi];
   if (!finalKeyEl) return;
+
   const isChordMode =
     pianoState.isMajorChordMode || pianoState.isMinorChordMode;
+
   if (isChordMode) {
     const quality = pianoState.isMajorChordMode ? "major" : "minor";
     const noteInfo = notesByMidiKeyAware(finalKeyEl.dataset.midi);
@@ -548,7 +673,12 @@ function handleKeyPointerDown(e) {
     trigger(chord.notes, true);
     finalKeyEl.classList.add("pressed");
     finalKeyEl.setPointerCapture(e.pointerId);
+
     const handleKeyPointerUp = () => {
+      // Stop drag mode and clean up
+      pianoState.isDragging = false;
+      stopAllDragChords();
+
       const heldTime = performance.now() - startTime;
       let duration = "q";
       if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
@@ -576,7 +706,12 @@ function handleKeyPointerDown(e) {
     startKey(finalKeyEl);
     finalKeyEl.setPointerCapture(e.pointerId);
     const startTime = performance.now(); // Track start time for duration
+
     const handleKeyPointerUp = () => {
+      // Stop drag mode and clean up
+      pianoState.isDragging = false;
+      stopAllDragNotes();
+
       stopKey(finalKeyEl);
       finalKeyEl.releasePointerCapture(e.pointerId);
       const heldTime = performance.now() - startTime;
@@ -600,6 +735,9 @@ function handleKeyPointerDown(e) {
       once: true,
     });
   }
+
+  // Trigger initial move to handle the current position
+  handlePointerMove(e);
 }
 
 function handleKeyDown(e) {
@@ -692,17 +830,37 @@ function handleKeyUp(e) {
   pianoState.held.delete(e.key);
 }
 
+/**
+ * ENHANCED: Activates instrument listeners with drag support
+ */
 function activateInstrumentListeners() {
   pianoState.svg.addEventListener("pointerdown", handleKeyPointerDown);
+  pianoState.svg.addEventListener("pointermove", handlePointerMove); // NEW: Add drag support
   pianoState.svg.addEventListener("selectstart", (e) => e.preventDefault()); // Prevent text selection
   pianoState.svg.addEventListener("contextmenu", (e) => e.preventDefault()); // Prevent context menu
   pianoState.overlay.addEventListener("pointerdown", startSliderDrag);
   document.addEventListener("keydown", handleKeyDown);
   document.addEventListener("keyup", handleKeyUp);
+
+  // NEW: Global pointer up to ensure drag state is cleared
+  document.addEventListener("pointerup", () => {
+    if (pianoState.isDragging) {
+      pianoState.isDragging = false;
+      stopAllDragNotes();
+      stopAllDragChords();
+    }
+  });
+
+  // NEW: Handle pointer leaving the piano area
+  pianoState.svg.addEventListener("pointerleave", () => {
+    if (pianoState.isDragging) {
+      stopAllDragNotes();
+      stopAllDragChords();
+    }
+  });
 }
 
 async function unlock(e) {
-
   // Call the single authoritative function to start audio.
   const audioStarted = await startAudio();
 
@@ -712,7 +870,7 @@ async function unlock(e) {
       pianoState.gate.remove();
     }
     document.getElementById("instrument")?.focus();
-    paint();
+    // paint(); // this function triggers the highlights on the single note keys. Uncomment to have them on by default.
     activateInstrumentListeners();
   }
 }
@@ -755,11 +913,11 @@ export function handleToggleLabelsChange(e) {
 export function handleModeCycleClick(e) {
   if (!pianoState.isMajorChordMode && !pianoState.isMinorChordMode) {
     pianoState.isMajorChordMode = true;
-    e.target.textContent = "Major Key";
+    e.target.textContent = "Major Chords";
   } else if (pianoState.isMajorChordMode) {
     pianoState.isMajorChordMode = false;
     pianoState.isMinorChordMode = true;
-    e.target.textContent = "Minor Key";
+    e.target.textContent = "Minor Chords";
   } else {
     pianoState.isMinorChordMode = false;
     e.target.textContent = "Single Note";
