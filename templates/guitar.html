@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}PianoTour - Interactive Guitar Studio{% endblock %}
+
+{% block scripts %}
+<script>
+    window.CURRENT_INSTRUMENT = '{{ instrument }}';
+    console.log("Set instrument to:", '{{ instrument }}');
+    console.log("window.CURRENT_INSTRUMENT:", window.CURRENT_INSTRUMENT);
+</script>
+{% endblock %}

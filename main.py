@@ -393,9 +393,22 @@ def index():
 def editor():
     return render_template('editor.html')
     
-@app.route('/player')
-def player():
-    return render_template('player.html')
+@app.route('/guitar')
+def guitar():
+    """Guitar instrument route"""
+    return render_template('guitar.html', instrument='guitar')
+
+
+@app.route('/cello')
+def cello():
+    """Guitar instrument route"""
+    return render_template('cello.html', instrument='cello')
+
+@app.route('/sax')
+def sax():
+    """Guitar instrument route"""
+    return render_template('sax.html', instrument='sax')
+
 
 @app.route('/convert-to-midi', methods=['POST'])
 def convert_to_midi():

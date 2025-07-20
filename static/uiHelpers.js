@@ -150,6 +150,7 @@ export function generateChordButtons() {
                 const chordDisplayName = chordDefinition.displayName;
                 updateNowPlayingDisplay(chordDisplayName);
                 writeNote({ clef, duration: 'q', notes: [], chordName: chordDisplayName, isRest: true });
+                document.getElementById('instrument')?.focus();
             }
         }); 
     });

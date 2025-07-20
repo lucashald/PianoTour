@@ -236,26 +236,28 @@ function exportMidi() {
  * Call this function once from your main application script.
  */
 export function initializeFileHandlers() {
-    const loadBtn = document.getElementById('load-score-btn');
-    const saveBtn = document.getElementById('save-score-btn');
-    const exportBtn = document.getElementById('export-midi-btn');
-    const fileInput = document.getElementById('file-loader-input');
+    // When "Load Score" is clicked, it programmatically clicks the hidden file input.
+    document.getElementById('load-score-btn')?.addEventListener('click', (e) => {
+        document.getElementById('file-loader-input')?.click();
+        document.getElementById('instrument')?.focus();
+    });
 
-    if (loadBtn && saveBtn && exportBtn && fileInput) {
-        // When "Load Score" is clicked, it programmatically clicks the hidden file input.
-        loadBtn.addEventListener('click', () => {
-            fileInput.click();
-        });
+    // When a file is selected in the input, the main handler runs.
+    document.getElementById('file-loader-input')?.addEventListener('change', (e) => {
+        handleFileLoad(e);
+        document.getElementById('instrument')?.focus();
+    });
 
-        // When a file is selected in the input, the main handler runs.
-        fileInput.addEventListener('change', handleFileLoad);
-
-        // Attach listeners to the other buttons.
-        saveBtn.addEventListener('click', saveScoreToFile);
-        exportBtn.addEventListener('click', exportMidi);
-        
-        console.log("File handlers initialized.");
-    } else {
-        console.warn("Could not find all file handler elements. Ensure the _filehandler.html partial is included in your page.");
-    }
+    // Attach listeners to the other buttons.
+    document.getElementById('save-score-btn')?.addEventListener('click', (e) => {
+        saveScoreToFile(e);
+        document.getElementById('instrument')?.focus();
+    });
+    
+    document.getElementById('export-midi-btn')?.addEventListener('click', (e) => {
+        exportMidi(e);
+        document.getElementById('instrument')?.focus();
+    });
+    
+    console.log("File handlers initialized.");
 }

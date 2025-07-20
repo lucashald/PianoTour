@@ -31,6 +31,12 @@
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+#instrument, #instrument * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
 
 /* ==========================================================================
    UNIFIED BUTTON SYSTEM (BEM METHODOLOGY)
