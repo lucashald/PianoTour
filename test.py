@@ -470,9 +470,15 @@ def cello():
 def sax():
     """Guitar instrument route"""
     return render_template('sax.html', instrument='sax')
+
 @app.route('/player')
 def player():
     return render_template('player.html')
+
+@app.route('/testplayer')
+def testplayer():
+    return render_template('testplayer.html')
+
 
 # SpessaSynth expects these routes:
 

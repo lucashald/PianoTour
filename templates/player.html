@@ -17,361 +17,74 @@
     
     <!-- Custom styles -->
     <style>
-/* Full Height Piano Tour Layout */
-
-/* Reset and base setup */
-* {
-    box-sizing: border-box;
-}
-
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden; /* Prevent horizontal scroll */
-}
-
-body {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* Custom header - fixed height */
-.custom-header {
-    text-align: center;
-    color: white;
-    padding: 20px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    flex-shrink: 0; /* Don't shrink */
-}
-
-/* Main container - fill remaining space */
-.spessasynth_main {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 120px); /* Account for header height */
-    margin: 0 20px 20px 20px;
-    border-radius: 10px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
-}
-
-/* Top section - flexible but constrained */
-.top_part {
-display: none !important;
-}
-
-/* Middle section - piano keyboard area (takes most space) */
-#keyboard_canvas_wrapper {
-    flex: 1; /* Take remaining space */
-    display: flex;
-    flex-direction: column;
-    min-height: 200px; /* Minimum height for usability */
-    position: relative;
-    background: #000;
-}
-
-/* Canvas for falling notes */
-#note_canvas {
-    flex: 1;
-    width: 100%;
-}
-
-/* Piano keyboard - fixed height at bottom */
-#keyboard {
-    flex: 0 0 80px; /* Fixed height */
-    background: #333;
-}
-
-/* Player info section */
-#player_info {
-    flex: 0 0 auto;
-    padding: 10px 20px;
-    background: #f8f9fa;
-    border-top: 1px solid #dee2e6;
-    max-height: 60px;
-    overflow: hidden;
-}
-
-/* Bottom controls */
-.bottom_part {
-display: none !important;
-}
-
-/* Controls styling */
-#synthetizer_controls, #sequencer_controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-/* Title wrapper styling */
-#title_wrapper {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-#title {
-    margin: 0 0 15px 0;
-    color: #333;
-    font-size: 1.5rem;
-}
-
-/* Progress bar */
-#progress_bar {
-    width: 100%;
-    height: 4px;
-    background: #dee2e6;
-    border-radius: 2px;
-    margin-bottom: 15px;
-    overflow: hidden;
-}
-
-#progress_bar::after {
-    content: '';
-    display: block;
-    height: 100%;
-    background: #007bff;
-    width: 0%;
-    transition: width 0.3s ease;
-}
-
-/* MIDI and SF controller */
-.midi_and_sf_controller {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-/* Button styling */
-.btn, label, button {
-    display: inline-block;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    text-decoration: none;
-    font-size: 14px;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.btn-primary, #file_upload {
-    background: #007bff;
-    color: white;
-}
-
-.btn-primary:hover, #file_upload:hover {
-    background: #0056b3;
-    transform: translateY(-1px);
-}
-
-.btn-success {
-    background: #28a745;
-    color: white;
-}
-
-.btn-success:hover {
-    background: #1e7e34;
-}
-
-.btn-danger {
-    background: #dc3545;
-    color: white;
-}
-
-.btn-danger:hover {
-    background: #c82333;
-}
-
-.btn-warning {
-    background: #ffc107;
-    color: #212529;
-}
-
-.btn-warning:hover {
-    background: #e0a800;
-}
-
-/* Hide elements for Piano Tour */
-#export_button, #extra_bank_button {
-    display: none !important;
-}
-
-/* Settings panel */
-#settings_div {
-    margin-top: 15px;
-    padding: 15px;
-    background: #e9ecef;
-    border-radius: 8px;
-}
-
-/* Notification and renderer fields */
-.notification_field, .ass_renderer_field {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    max-width: 300px;
-}
-
-/* Loading screen adjustments */
-.loading {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    color: white;
-}
-
-/* Drop prompt */
-.drop_prompt {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 123, 255, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    color: white;
-    font-size: 2rem;
-    backdrop-filter: blur(5px);
-}
-
-.drop_prompt.hidden {
-    display: none;
-}
-
-/* Custom player controls from the optimized script */
-#playback_controls {
-    margin: 20px;
-    text-align: center;
-}
-
-#progress_bar_container {
-    width: 100%;
-    max-width: 400px;
-    height: 6px;
-    background: #ddd;
-    border-radius: 3px;
-    margin: 10px auto;
-    position: relative;
-    overflow: hidden;
-}
-
-#progress_bar_fill {
-    height: 100%;
-    background: #007bff;
-    border-radius: 3px;
-    width: 0%;
-    transition: width 0.3s ease;
-}
-
-#progress_display {
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    color: #666;
-    margin: 5px 0;
-}
-
-#status_display {
-    margin: 15px 0;
-    font-style: italic;
-    color: #666;
-    min-height: 20px;
-}
-
-/* Responsive adjustments */
-@media (max-height: 600px) {
-    .custom-header {
-        padding: 10px;
-    }
-    
-    .spessasynth_main {
-        height: calc(100vh - 80px);
-    }
-    
-    #keyboard {
-        flex: 0 0 60px; /* Smaller keyboard on short screens */
-    }
-    
-    .top_part, .bottom_part {
-        padding: 10px 15px;
-    }
-}
-
-@media (max-width: 768px) {
-    .spessasynth_main {
-        margin: 0 10px 10px 10px;
-        height: calc(100vh - 100px);
-    }
-    
-    .midi_and_sf_controller {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .btn, label, button {
-        width: 100%;
-        max-width: 200px;
-    }
-}
-
-/* Show/hide top button */
-.show_top_button {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 50px;
-    height: 50px;
-    background: #007bff;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    color: white;
-    font-size: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 100;
-    transition: all 0.3s ease;
-}
-
-.show_top_button:hover {
-    background: #0056b3;
-    transform: scale(1.1);
-}
-
-/* Smooth scrolling for better UX */
-html {
-    scroll-behavior: smooth;
-}
-
-/* Focus styles for accessibility */
-button:focus, input:focus, label:focus {
-    outline: 2px solid #007bff;
-    outline-offset: 2px;
-}
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .custom-header {
+            text-align: center;
+            color: white;
+            padding: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .spessasynth_main {
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Hide elements we don't want for Piano Tour */
+        #extra_bank_button {
+            display: none !important;
+        }
+        
+        #export_button {
+            display: none !important;
+        }
+        
+        /* Style the upload button */
+        #file_upload {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+        }
+        
+        #file_upload:hover {
+            background: #0056b3;
+        }
     </style>
     
 </head>
 
 <body>
+    <!-- Add this right after your custom header -->
+<div class="custom-header">
+    <h1>🎹 Piano Tour SpessaSynth Player</h1>
+    <p>Professional MIDI playback with SoundFont synthesis</p>
+    
+    <!-- NEW: Custom note playing button -->
+    <div style="margin: 20px;">
+        <button id="play-note-btn" class="btn btn-primary" onclick="window.playPianoNote()">
+            🎵 Play Middle C
+        </button>
+        <button id="play-chord-btn" class="btn btn-success" onclick="window.playChord()">
+            🎶 Play C Major Chord
+        </button>
+    </div>
+</div>
+    <!-- Custom Piano Tour header -->
+    <div class="custom-header">
+        <h1>🎹 Piano Tour SpessaSynth Player</h1>
+        <p>Professional MIDI playback with SoundFont synthesis</p>
+    </div>
+
     <!-- EXACT SPESSASYNTH STRUCTURE -->
     <div class='drop_prompt hidden'>
         <h1 translate-path='locale.dropPrompt'>Drop files here...</h1>
@@ -484,7 +197,9 @@ button:focus, input:focus, label:focus {
                 }
             }
         });
+
+
+
     </script>
-</script>
 </body>
 </html>
