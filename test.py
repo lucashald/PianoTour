@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, jsonify
+from flask import Flask, render_template, request, send_file, jsonify, send_from_directory
 import mido
 from mido import MidiFile, MidiTrack, Message
 import os
@@ -6,6 +6,7 @@ import tempfile
 import logging
 from collections import defaultdict
 import math
+import json
 
 # --- Basic Configuration ---
 logging.basicConfig(level=logging.INFO)
@@ -469,7 +470,89 @@ def cello():
 def sax():
     """Guitar instrument route"""
     return render_template('sax.html', instrument='sax')
+@app.route('/player')
+def player():
+    return render_template('player.html')
 
+# SpessaSynth expects these routes:
+
+@app.route('/getversion')
+def get_version():
+    """Return version info - SpessaSynth checks this"""
+    return jsonify({
+        "version": "3.27.12",  # or whatever version you want
+        "name": "Piano Tour SpessaSynth"
+    })
+
+@app.route('/getsettings')
+def get_settings():
+    return jsonify({
+        "renderer": {
+            "renderingMode": "2",                # ✅ "2" = spectrumSingleMode  
+            "renderWaveforms": True,             # ✅ Must be True to enable rendering
+        },
+        
+        "keyboard": {
+            "keyRange": {"min": 36, "max": 96}, # 5 octaves (C2 to C7)
+            "mode": "light",                     # Light keyboard mode
+            "show": True,                        # Show keyboard
+            "selectedChannel": 0,
+            "autoRange": False                   # Use fixed range
+        },
+        
+        "interface": {
+            "mode": "dark",
+            "language": "en",  
+            "layout": "downwards"
+        },
+        
+        "midi": {
+            "input": None,
+            "output": None
+        }
+    })
+
+@app.route('/savesettings', methods=['POST'])
+def save_settings():
+    """Save user settings - SpessaSynth saves preferences"""
+    settings_file = 'spessasynth_settings.json'
+    try:
+        settings = request.get_json()
+        with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Error saving settings: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/soundfonts')
+def soundfont():
+    return jsonify([{'name': '/static/soundfonts/default.sf3'}])
+
+@app.route('/setlastsf2')
+def set_last_sf2():
+    """Remember last selected SoundFont"""
+    sfname = request.args.get('sfname', '')
+    print(f"Last SoundFont set to: {sfname}")
+    return jsonify({'success': True})
+
+@app.route('/package.json')
+def package_json():
+    """SpessaSynth checks for version info in package.json"""
+    return jsonify({
+        "name": "Piano Tour SpessaSynth",
+        "version": "3.27.12",
+        "description": "Piano Tour MIDI Player using SpessaSynth"
+    })
+
+# Error handlers to return JSON instead of HTML for API routes
+@app.errorhandler(404)
+def not_found(error):
+    # Check if this is an API request (expecting JSON)
+    if request.path.startswith('/api/') or request.path in ['/getsettings', '/soundfonts', '/getversion']:
+        return jsonify({'error': 'Not found'}), 404
+    # For regular pages, return normal 404
+    return "Page not found", 404
 
 @app.route('/convert-to-midi', methods=['POST'])
 def convert_to_midi():

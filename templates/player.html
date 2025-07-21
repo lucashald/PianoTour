@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<!--suppress HtmlFormInputWithoutLabel -->
+<!--suppress HtmlUnknownTarget -->
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta content='IE=edge' http-equiv='X-UA-Compatible'>
+    <meta content='width=device-width, initial-scale=1.0' name='viewport'>
+
+    <!-- Custom Piano Tour branding -->
+    <meta content='Piano Tour SpessaSynth Player' property='og:title' />
+    <meta content='Piano Tour' property='og:site_name' />
+    <meta content='Professional MIDI player with SoundFont synthesis for Piano Tour' property='og:description' />
+
+    <title>Piano Tour - SpessaSynth Player</title>
+    <link href="{{ url_for('static', filename='style.min.css') }}" rel='stylesheet'>
+    
+    <!-- Custom styles -->
+    <style>
+/* Full Height Piano Tour Layout */
+
+/* Reset and base setup */
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Custom header - fixed height */
+.custom-header {
+    text-align: center;
+    color: white;
+    padding: 20px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    flex-shrink: 0; /* Don't shrink */
+}
+
+/* Main container - fill remaining space */
+.spessasynth_main {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 120px); /* Account for header height */
+    margin: 0 20px 20px 20px;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+/* Top section - flexible but constrained */
+.top_part {
+display: none !important;
+}
+
+/* Middle section - piano keyboard area (takes most space) */
+#keyboard_canvas_wrapper {
+    flex: 1; /* Take remaining space */
+    display: flex;
+    flex-direction: column;
+    min-height: 200px; /* Minimum height for usability */
+    position: relative;
+    background: #000;
+}
+
+/* Canvas for falling notes */
+#note_canvas {
+    flex: 1;
+    width: 100%;
+}
+
+/* Piano keyboard - fixed height at bottom */
+#keyboard {
+    flex: 0 0 80px; /* Fixed height */
+    background: #333;
+}
+
+/* Player info section */
+#player_info {
+    flex: 0 0 auto;
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    max-height: 60px;
+    overflow: hidden;
+}
+
+/* Bottom controls */
+.bottom_part {
+display: none !important;
+}
+
+/* Controls styling */
+#synthetizer_controls, #sequencer_controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Title wrapper styling */
+#title_wrapper {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#title {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+/* Progress bar */
+#progress_bar {
+    width: 100%;
+    height: 4px;
+    background: #dee2e6;
+    border-radius: 2px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+#progress_bar::after {
+    content: '';
+    display: block;
+    height: 100%;
+    background: #007bff;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* MIDI and SF controller */
+.midi_and_sf_controller {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Button styling */
+.btn, label, button {
+    display: inline-block;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-primary, #file_upload {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover, #file_upload:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #1e7e34;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+}
+
+/* Hide elements for Piano Tour */
+#export_button, #extra_bank_button {
+    display: none !important;
+}
+
+/* Settings panel */
+#settings_div {
+    margin-top: 15px;
+    padding: 15px;
+    background: #e9ecef;
+    border-radius: 8px;
+}
+
+/* Notification and renderer fields */
+.notification_field, .ass_renderer_field {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    max-width: 300px;
+}
+
+/* Loading screen adjustments */
+.loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    color: white;
+}
+
+/* Drop prompt */
+.drop_prompt {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 123, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    color: white;
+    font-size: 2rem;
+    backdrop-filter: blur(5px);
+}
+
+.drop_prompt.hidden {
+    display: none;
+}
+
+/* Custom player controls from the optimized script */
+#playback_controls {
+    margin: 20px;
+    text-align: center;
+}
+
+#progress_bar_container {
+    width: 100%;
+    max-width: 400px;
+    height: 6px;
+    background: #ddd;
+    border-radius: 3px;
+    margin: 10px auto;
+    position: relative;
+    overflow: hidden;
+}
+
+#progress_bar_fill {
+    height: 100%;
+    background: #007bff;
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+#progress_display {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #666;
+    margin: 5px 0;
+}
+
+#status_display {
+    margin: 15px 0;
+    font-style: italic;
+    color: #666;
+    min-height: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-height: 600px) {
+    .custom-header {
+        padding: 10px;
+    }
+    
+    .spessasynth_main {
+        height: calc(100vh - 80px);
+    }
+    
+    #keyboard {
+        flex: 0 0 60px; /* Smaller keyboard on short screens */
+    }
+    
+    .top_part, .bottom_part {
+        padding: 10px 15px;
+    }
+}
+
+@media (max-width: 768px) {
+    .spessasynth_main {
+        margin: 0 10px 10px 10px;
+        height: calc(100vh - 100px);
+    }
+    
+    .midi_and_sf_controller {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn, label, button {
+        width: 100%;
+        max-width: 200px;
+    }
+}
+
+/* Show/hide top button */
+.show_top_button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: #007bff;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: white;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    transition: all 0.3s ease;
+}
+
+.show_top_button:hover {
+    background: #0056b3;
+    transform: scale(1.1);
+}
+
+/* Smooth scrolling for better UX */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+button:focus, input:focus, label:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+    </style>
+    
+</head>
+
+<body>
+    <!-- EXACT SPESSASYNTH STRUCTURE -->
+    <div class='drop_prompt hidden'>
+        <h1 translate-path='locale.dropPrompt'>Drop files here...</h1>
+    </div>
+
+    <div class='spessasynth_main'>
+        <div class='top_part'>
+            <div id='synthetizer_controls'></div>
+
+            <div id='title_wrapper'>
+                <div id='progress_bar'></div>
+                <h1 id='title' translate-path='locale.titleMessage'>Piano Tour MIDI Player</h1>
+                <noscript><h1>SpessaSynth requires JavaScript to work.</h1></noscript>
+                <div class='midi_and_sf_controller'>
+                    <label for='midi_file_input' id='file_upload' translate-path='locale.midiUploadButton'>Upload your MIDI files</label>
+                    <input accept='.mid, .rmi, audio/midi, .kar, .xmf, .mxmf' id='midi_file_input' multiple type='file'><br />
+
+                    <label id='extra_bank_button'>
+                        <svg fill='currentColor' height='24' viewBox='0 0 83.174 81.103' width='24' xml:space='preserve'
+                             xmlns='http://www.w3.org/2000/svg'>
+                            <defs>
+                            <clipPath id='clipPath7'>
+                            <rect fill='currentColor' height='81.546' stroke-width='.26458' transform='rotate(44.958)'
+                                  width='83.745' x='65.485'
+                                  y='103.08' />
+                            </clipPath>
+                                <clipPath id='clipPath9'
+                                ><rect fill='currentColor' fill-opacity='.09612' height='79.511' stroke-width='.26476' transform='matrix(.67799 -.73507 .73806 .67473 0 0)' width='86.006' x='67.253' y='100.5'/>
+                            </clipPath>
+                                <clipPath id='clipPath10'><rect fill='#0ff' height='81.546' stroke-width='.26458' width='83.745' x='65.485' y='103.08'/>
+                            </clipPath>
+                                <clipPath id='clipPath11'><rect fill='currentColor' height='81.546' stroke-width='.26458' width='83.745' x='65.485' y='103.08'/>
+                            </clipPath>
+                            </defs>
+                            <g transform='translate(-65.485 -103.23)'>
+                            <path
+                                clip-path='url(#clipPath11)'
+                                d='m65.262 139.48c1.3624-6.7496 1.6548-14.043 5.7345-19.888 5.7864-8.3588 14.537-15.846 25.154-16.3 1.7234-0.0776 5.5034-0.28571 1.9074 0.65373-7.4866 2.6362-13.723 7.7642-19.543 12.986-6.2291 6.337-9.3022 14.78-13.252 22.549z'
+                                stroke-width='.26458' />
+                                <path
+                                    clip-path='url(#clipPath10)'
+                                    d='m83.381 144.84c0.987-5.348 1.5703-11.153 5.4341-15.36 4.1817-5.3006 10.757-8.715 17.552-8.6209-6.116 1.9994-11.467 6.0247-15.711 10.776-3.242 3.9158-4.9545 8.7506-7.2747 13.206z'
+                                    stroke-width='.17519' />
+                                <path clip-path='url(#clipPath9)'
+                                      d='m176.97-34.49a50.988 16.042 90 0 0-10.353 47.674 50.988 16.042 90 0 0 16.042 50.988 50.988 16.042 90 0 0 15.091-33.843c0.03523-0.004687 0.08911-0.032268 0.12752-0.040899l-0.30503 0.026749-1.2845-35.938 1.2651-0.11118a50.988 16.042 90 0 0-14.894-32.069 50.988 16.042 90 0 0-5.6883 3.3134zm-2.8904 43.129c0.95278-1.0096 1.7992-1.5659 0.54206 0.59765-1.2633 3.6709-1.2266 8.239 1.5374 11.026-3.874-1.5224-5.9894-6.4334-3.2573-10.178 0.28939-0.43335 0.74478-0.98606 1.1779-1.445zm23.969-14.417 0.03731-0.0032873c-0.01217 1.409e-4 -0.02503 0.0027689-0.03731 0.0032873zm0.3756 0.055028 1.2362 34.585c1.8993-1.8327 3.683-3.8858 5.5702-5.7411l-0.5343-23.05c-0.9706-1.4279-2.6664-2.5006-3.9092-3.7953-0.84642-0.47048-1.4531-1.7381-2.3628-1.9983z'
+                                      stroke-width='.28839' transform='matrix(.657 .75389 -.71867 .69536 0 0)' />
+                                <rect clip-path='url(#clipPath7)' height='6.8056' stroke-width='.26458'
+                                      transform='rotate(-44.958)' width='23.377'
+                                      x='-37.937' y='206.86' /></g></svg>
+                    </label>
+
+                    <label id='export_button' translate-path-title='locale.exportAudio.button'>Export audio</label>
+
+                    <select id='sf_selector'></select>
+                </div>
+            </div>
+
+            <div id='settings_div'></div>
+        </div>
+        <div class='show_top_button'></div>
+
+        <div id='keyboard_canvas_wrapper'>
+            <canvas id='note_canvas'></canvas>
+            <div id='keyboard'></div>
+        </div>
+        <div id='player_info'></div>
+
+        <div class='bottom_part'>
+            <div id='sequencer_controls'></div>
+        </div>
+        <div class='notification_field'></div>
+        <div class='ass_renderer_field'></div>
+    </div>
+
+    <!-- Load SpessaSynth -->
+    <script src="{{ url_for('static', filename='local_main.js') }}" type='module'></script>
+    
+    <!-- Piano Tour customizations -->
+    <script>
+        // Wait for SpessaSynth to load, then customize
+        setTimeout(() => {
+            // Update the title
+            const titleEl = document.getElementById('title');
+            if (titleEl) {
+                titleEl.textContent = 'Piano Tour MIDI Player';
+            }
+            
+            // Add custom behavior when MIDI files are loaded
+            if (window.manager && window.manager.seq) {
+                console.log('🎹 Piano Tour SpessaSynth is ready!');
+                
+                // Optional: Add event listeners for song changes
+                window.manager.seq.addOnSongChangeEvent((midiData) => {
+                    console.log('🎵 Now playing:', midiData.midiName);
+                }, 'piano-tour');
+            }
+        }, 3000);
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                // Toggle play/pause
+                if (window.manager && window.manager.seq) {
+                    if (window.manager.seq.paused) {
+                        window.manager.seq.play();
+                    } else {
+                        window.manager.seq.pause();
+                    }
+                }
+            }
+        });
+    </script>
+</script>
+</body>
+</html>
