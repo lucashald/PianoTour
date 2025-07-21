@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "PianoTour"
+version = "0.1.0"
+description = ""
+authors = ["Lucas Hald"]
+
+[tool.poetry.dependencies]
+# Set a Python version compatible with your replit.nix
+python = "^3.11"
+# Add Flask and any other Python packages you need
+flask = "^3.0.0"
+# For example:
+# requests = "^2.31.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
