@@ -8,6 +8,7 @@ import {
   NOTES_BY_NAME,
   ALL_NOTE_INFO,
   KEY_SIGNATURES,
+  getCurrentVexFlowKeySignature,
 } from "./note-data.js";
 import { pianoState } from "./appState.js"; // ADD THIS LINE
 import {
@@ -20,6 +21,7 @@ import {
   highlightSelectedNote,
   clearSelectedNoteHighlight,
 } from "./scoreHighlighter.js";
+import { saveToLocalStorage } from './ioHelpers.js';
 // ===================================================================
 // Global Variables
 // ===================================================================
@@ -254,44 +256,6 @@ function getStaffLineYPosition(noteName, clef) {
   return stave.getYForLine(lineNumber);
 }
 
-function getCurrentVexFlowKeySignature() {
-  const pitchClass = pianoState.keySignature.replace(/\d+$/, ""); // Remove octave
-  const isMinor = pianoState.isMinorChordMode;
-
-  // Map minor keys to their relative majors for VexFlow
-  const minorToRelativeMajor = {
-    A: "C", // A minor → C major (0 sharps/flats)
-    E: "G", // E minor → G major (1 sharp)
-    B: "D", // B minor → D major (2 sharps)
-    "F#": "A", // F# minor → A major (3 sharps)
-    "C#": "E", // C# minor → E major (4 sharps)
-    "G#": "B", // G# minor → B major (5 sharps)
-    "D#": "F#", // D# minor → F# major (6 sharps)
-    "A#": "C#", // A# minor → C# major (7 sharps)
-
-    D: "F", // D minor → F major (1 flat)
-    G: "Bb", // G minor → Bb major (2 flats)
-    C: "Eb", // C minor → Eb major (3 flats)
-    F: "Ab", // F minor → Ab major (4 flats)
-    Bb: "Db", // Bb minor → Db major (5 flats)
-    Eb: "Gb", // Eb minor → Gb major (6 flats)
-    Ab: "Cb", // Ab minor → Cb major (7 flats)
-  };
-
-  if (isMinor && minorToRelativeMajor[pitchClass]) {
-    return minorToRelativeMajor[pitchClass];
-  }
-
-  // Handle enharmonic equivalents for major keys
-  const enharmonicMap = {
-    "A#": "Bb",
-    "D#": "Eb",
-    "G#": "Ab",
-  };
-
-  return enharmonicMap[pitchClass] || pitchClass;
-}
-
 /**
  * Sets the key signature and updates all related UI elements.
  * @param {string} keySignature - The key signature (e.g., 'F', 'F Major', 'Dm', 'D minor')
@@ -316,6 +280,7 @@ export function setKeySignature(keySignature) {
 
   // Redraw the score with new key signature
   safeRedraw();
+  saveToLocalStorage();
 
   // Log the change
   console.log(

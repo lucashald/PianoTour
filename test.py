@@ -451,9 +451,16 @@ def get_velocity(note_info):
 def index():
     return render_template('index.html')
 
+
 @app.route('/editor')
 def editor():
     return render_template('editor.html')
+
+
+@app.route('/print')
+def print():
+    return render_template('print.html')
+
 
 @app.route('/guitar')
 def guitar():
@@ -466,14 +473,17 @@ def cello():
     """Guitar instrument route"""
     return render_template('cello.html', instrument='cello')
 
+
 @app.route('/sax')
 def sax():
     """Guitar instrument route"""
     return render_template('sax.html', instrument='sax')
 
+
 @app.route('/player')
 def player():
     return render_template('player.html')
+
 
 @app.route('/testplayer')
 def testplayer():
@@ -481,6 +491,7 @@ def testplayer():
 
 
 # SpessaSynth expects these routes:
+
 
 @app.route('/getversion')
 def get_version():
@@ -490,33 +501,35 @@ def get_version():
         "name": "Piano Tour SpessaSynth"
     })
 
+
 @app.route('/getsettings')
 def get_settings():
     return jsonify({
         "renderer": {
-            "renderingMode": "2",                # ✅ "2" = spectrumSingleMode  
-            "renderWaveforms": True,             # ✅ Must be True to enable rendering
+            "renderingMode": "2",  # ✅ "2" = spectrumSingleMode  
+            "renderWaveforms": True,  # ✅ Must be True to enable rendering
         },
-        
         "keyboard": {
-            "keyRange": {"min": 36, "max": 96}, # 5 octaves (C2 to C7)
-            "mode": "light",                     # Light keyboard mode
-            "show": True,                        # Show keyboard
+            "keyRange": {
+                "min": 36,
+                "max": 96
+            },  # 5 octaves (C2 to C7)
+            "mode": "light",  # Light keyboard mode
+            "show": True,  # Show keyboard
             "selectedChannel": 0,
-            "autoRange": False                   # Use fixed range
+            "autoRange": False  # Use fixed range
         },
-        
         "interface": {
             "mode": "dark",
-            "language": "en",  
+            "language": "en",
             "layout": "downwards"
         },
-        
         "midi": {
             "input": None,
             "output": None
         }
     })
+
 
 @app.route('/savesettings', methods=['POST'])
 def save_settings():
@@ -531,9 +544,11 @@ def save_settings():
         print(f"Error saving settings: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+
 @app.route('/soundfonts')
 def soundfont():
     return jsonify([{'name': '/static/soundfonts/default.sf3'}])
+
 
 @app.route('/setlastsf2')
 def set_last_sf2():
@@ -541,6 +556,7 @@ def set_last_sf2():
     sfname = request.args.get('sfname', '')
     print(f"Last SoundFont set to: {sfname}")
     return jsonify({'success': True})
+
 
 @app.route('/package.json')
 def package_json():
@@ -551,14 +567,18 @@ def package_json():
         "description": "Piano Tour MIDI Player using SpessaSynth"
     })
 
+
 # Error handlers to return JSON instead of HTML for API routes
 @app.errorhandler(404)
 def not_found(error):
     # Check if this is an API request (expecting JSON)
-    if request.path.startswith('/api/') or request.path in ['/getsettings', '/soundfonts', '/getversion']:
+    if request.path.startswith('/api/') or request.path in [
+            '/getsettings', '/soundfonts', '/getversion'
+    ]:
         return jsonify({'error': 'Not found'}), 404
     # For regular pages, return normal 404
     return "Page not found", 404
+
 
 @app.route('/convert-to-midi', methods=['POST'])
 def convert_to_midi():

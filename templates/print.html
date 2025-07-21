@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Tour - Print Score</title>
+    
+    <!-- VexFlow and external dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
+    
+    <style>
+        body {
+            margin: 10;
+            font-family: Arial, sans-serif;
+        }
+        
+        #score {
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+        }
+    </style>
+</head>
+<body>
+    <div id="score"></div>
+
+  <script type="module">
+      // Import all necessary modules
+      import { 
+          getMeasures, 
+          processAndSyncScore 
+      } from '/static/scoreWriter.js';
+
+      import { renderPrintScore } from '/static/print.js';
+      import { pianoState } from '/static/appState.js';
+
+      import '/static/note-data.js';
+
+      // Load score from localStorage and render
+      document.addEventListener("DOMContentLoaded", () => {
+          console.log("Print page loaded, attempting to load score from localStorage...");
+
+          const savedScoreJSON = localStorage.getItem("autosavedScore");
+          if (savedScoreJSON) {
+              try {
+                  const savedData = JSON.parse(savedScoreJSON);
+
+                  // Handle both old format (just measures array) and new format (object with measures + metadata)
+                  const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+
+                  if (processAndSyncScore(measures)) {
+                      // Apply key signature and minor mode if saved data is in new format (object, not array)
+                      if (!Array.isArray(savedData)) {
+                          const keySignature = savedData.keySignature || 'C';
+                          const isMinorChordMode = savedData.isMinorChordMode || false;
+                          const title = savedData.title || null;
+
+                          pianoState.keySignature = keySignature;
+                          pianoState.isMinorChordMode = isMinorChordMode;
+                          console.log(`Key signature loaded: ${keySignature}, Minor mode: ${isMinorChordMode}`);
+
+                          // Future: use title if it exists
+                          if (title) {
+                              console.log(`Score title loaded: ${title}`);
+                              // Future: Set document title or display title
+                              // document.title = `Piano Tour - Print Score - ${title}`;
+                          }
+                      }
+
+                      console.log("Score successfully synchronized from localStorage.");
+                      renderPrintScore(getMeasures());
+                      console.log("Score rendered for printing.");
+                  } else {
+                      console.error("Failed to process score data.");
+                      document.body.innerHTML = "<div style='text-align: center; margin-top: 50px;'>Error: Could not load score data.<br><button onclick=\"window.location.href='/'\" style=\"margin-top: 20px; padding: 10px 20px; background: #1db954; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;\">← Back to Piano Tour</button></div>";
+                  }
+              } catch (e) {
+                  console.error("Failed to parse autosaved score:", e);
+                  document.body.innerHTML = "<div style='text-align: center; margin-top: 50px;'>Error: Invalid score data in localStorage.<br><button onclick=\"window.location.href='/'\" style=\"margin-top: 20px; padding: 10px 20px; background: #1db954; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;\">← Back to Piano Tour</button></div>";
+              }
+          } else {
+              console.log("No saved score found in localStorage.");
+            document.body.innerHTML = "<div style='text-align: center; margin-top: 50px;'>No score to print<br><small>Please create a score in the main application first.</small><br><button onclick=\"window.location.href='/'\" style=\"margin-top: 20px; padding: 10px 20px; background: #1db954; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;\">← Back to Piano Tour</button></div>";
+          }
+      });
+  </script>
+  
+</body>
+</html>

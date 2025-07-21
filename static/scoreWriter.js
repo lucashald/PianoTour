@@ -8,6 +8,7 @@
 import { NOTES_BY_NAME } from './note-data.js'; // Needed for note name to MIDI mapping for sorting and internal consistency
 import { drawAll } from './scoreRenderer.js';
 import { updateNowPlayingDisplay } from './uiHelpers.js';
+import { saveToLocalStorage } from './ioHelpers.js';
 
 // ===================================================================
 // Constants
@@ -216,7 +217,7 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
 
 function handleSideEffects() {
     drawAll(measuresData);
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(measuresData));
+    saveToLocalStorage();
 }
 
 // ===================================================================
@@ -234,8 +235,7 @@ export function undoLastWrite() {
         currentIndex = prevState.index;
         currentTrebleBeats = prevState.trebleBeats;
         currentBassBeats = prevState.bassBeats;
-        drawAll(measuresData);
-        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(measuresData));
+        handleSideEffects();
 
         // Provide visual feedback that undo was successful
         updateNowPlayingDisplay('Undid last action');
@@ -322,8 +322,7 @@ export function writeNote(obj) {
     saveStateToHistory();
 
     updateNowPlayingDisplay(chordName);
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(measuresData));
-    drawAll(measuresData);
+    handleSideEffects();
     console.log(`writeNote output: Note written. Beats status - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}. measuresData:`, measuresData);
 }
 

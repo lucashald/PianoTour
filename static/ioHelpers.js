@@ -261,3 +261,13 @@ export function initializeFileHandlers() {
     
     console.log("File handlers initialized.");
 }
+
+export function saveToLocalStorage() {
+    const scoreData = {
+        measures: getMeasures(), // Use public API instead of internal measuresData
+        keySignature: pianoState.keySignature,
+        isMinorChordMode: pianoState.isMinorChordMode
+    };
+    localStorage.setItem('autosavedScore', JSON.stringify(scoreData)); // You'll also need the AUTOSAVE_KEY constant
+    console.log('saveToLocalStorage: Saved complete score state to localStorage');
+}

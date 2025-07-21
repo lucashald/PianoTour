@@ -81,6 +81,11 @@
               </button>
             </a>
             {% endif %} {% if request.path == '/' %}
+            <a href="/print">
+              <button class="btn btn--info">
+                <span>Print</span>
+              </button>
+            </a>
             <a href="/cello">
               <button class="btn btn--info">
                 <span>Cello</span>
@@ -173,8 +178,29 @@
         const savedScoreJSON = localStorage.getItem("autosavedScore");
         if (savedScoreJSON) {
           try {
-            const savedMeasures = JSON.parse(savedScoreJSON);
-            if (processAndSyncScore(savedMeasures)) {
+            const savedData = JSON.parse(savedScoreJSON);
+
+            // Handle both old format (just measures array) and new format (object with measures + metadata)
+            const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+
+            if (processAndSyncScore(measures)) {
+              // Apply key signature and minor mode if saved data is in new format (object, not array)
+              if (!Array.isArray(savedData)) {
+                const keySignature = savedData.keySignature || 'C';
+                const isMinorChordMode = savedData.isMinorChordMode || false;
+                const title = savedData.title || null;
+
+                pianoState.keySignature = keySignature;
+                pianoState.isMinorChordMode = isMinorChordMode;
+                console.log(`Key signature loaded: ${keySignature}, Minor mode: ${isMinorChordMode}`);
+
+                // Future: use title if it exists
+                if (title) {
+                  console.log(`Score title loaded: ${title}`);
+                  // Future: Set document title or display title
+                  // document.title = `Piano Tour - ${title}`;
+                }
+              }
               console.log("Score successfully synchronized from localStorage.");
             } else {
               localStorage.removeItem("autosavedScore");
