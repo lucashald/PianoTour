@@ -1,8 +1,22 @@
-{% extends "base.html" %} {% block title %}PianoTour - Interactive Saxaphone
-Studio{% endblock %} {% block scripts %}
-<script>
-  window.CURRENT_INSTRUMENT = "{{ instrument }}";
-  console.log("Set instrument to:", "{{ instrument }}");
-  console.log("window.CURRENT_INSTRUMENT:", window.CURRENT_INSTRUMENT);
+{% extends "base.html" %}
+
+{% block title %}PianoTour - Interactive Saxaphone Studio{% endblock %}
+
+{% block scripts %}
+<script type="module">
+    import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
+
+    // Set instrument from template variable, default to 'sax' if not provided
+    const templateInstrument = '{{ instrument }}' || 'sax';
+
+    // Update pianoState
+    pianoState.instrument = templateInstrument;
+
+    // Keep backwards compatibility by attaching to window
+    window.CURRENT_INSTRUMENT = templateInstrument;
+
+    console.log("Set instrument to:", templateInstrument);
+    console.log("pianoState.instrument:", pianoState.instrument);
+    console.log("window.CURRENT_INSTRUMENT:", window.CURRENT_INSTRUMENT);
 </script>
 {% endblock %}

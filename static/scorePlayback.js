@@ -305,7 +305,7 @@ export function initializePlayer() {
     .getElementById("play-score-btn")
     ?.addEventListener("click", async (e) => {
       e.preventDefault();
-      document.getElementById("instrument")?.focus(); // Move this up immediately
+      document.getElementById("instrument")?.focus();
       const audioReady = await startAudio();
       if (audioReady) {
         playScore(getMeasures());
@@ -316,7 +316,7 @@ export function initializePlayer() {
   // Stop Playback Button
   document.getElementById("stop-score-btn")?.addEventListener("click", (e) => {
     e.preventDefault();
-    document.getElementById("instrument")?.focus(); // Move up
+    document.getElementById("instrument")?.focus();
     stopPlayback();
   });
 
@@ -325,7 +325,7 @@ export function initializePlayer() {
     .getElementById("connect-midi-btn")
     ?.addEventListener("click", (e) => {
       e.preventDefault();
-      document.getElementById("instrument")?.focus(); // Move up
+      document.getElementById("instrument")?.focus();
       pianoState.unlock();
     });
 }
