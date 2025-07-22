@@ -25,14 +25,14 @@ class KeyboardAlignedSpectrum {
       smoothingTimeConstant: 0.8,
       canvasHeight: 120,
       backgroundColor: "#000000",
-      colorScheme: "rainbow",
+      colorScheme: "blue fire",
       showGrid: false,
       showLabels: false,
-      minDb: -70,
-      maxDb: -10,
+      minDb: -90,
+      maxDb: -5,
       enableFrequencyGain: true,
       debugMode: false,
-      drawingThreshold: 0.05,
+      drawingThreshold: 0.1,
       ...options,
     };
 
@@ -235,6 +235,26 @@ class KeyboardAlignedSpectrum {
         const hue = 240 + intensity * 120; // Blue to green/yellow range
         return `hsl(${hue}, 100%, ${50 + intensity * 30}%)`;
 
+      /**
+       * NEW: This case uses colors inspired by your new palette.
+       * It creates a smooth "cool-to-hot" gradient from a medium blue to a warm peach.
+       */
+      case "palette": {
+        // We interpolate between the HSL values of two colors from the palette.
+        // Start Color: --color-blue-medium (#295570) -> HSL(207, 45%, 30%)
+        // End Color:   --color-peach-light (#D88368) -> HSL(15, 61%, 63%)
+
+        const startHue = 207;
+        const endHue = 15;
+
+        // Interpolate each HSL component based on the intensity
+        const hue = startHue - (intensity * (startHue - endHue));
+        const saturation = 45 + (intensity * 16); // From 45% to 61%
+        const lightness = 30 + (intensity * 33);  // From 30% to 63%
+
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+      }
+
       case "blue":
         return `hsl(220, 100%, ${20 + intensity * 60}%)`;
 
@@ -250,10 +270,20 @@ class KeyboardAlignedSpectrum {
           return `hsl(60, 100%, ${50 + intensity * 40}%)`; // Yellow
         }
 
+        case "blue fire":
+        if (intensity < 0.25) {
+          return `hsl(207, 23%, ${20 + intensity * 100}%)`; // green
+        } else if (intensity < 0.5) {
+          return `hsl(207, 45%, ${30 + intensity * 50}%)`; // greener
+        } else {
+          return `hsl(207, 84%, ${50 + intensity * 40}%)`; // greenest
+        }
+
       default:
         return `hsl(220, 80%, ${20 + intensity * 60}%)`;
     }
   }
+
 
   /**
    * Draws grid lines on the canvas
@@ -378,10 +408,10 @@ class KeyboardAlignedSpectrum {
           // Apply threshold and smoothing to reduce noise
           if (normalizedMagnitude > this.config.drawingThreshold) {
             // Add smoothing to reduce "floor" effect - curve the response
-            const smoothedMagnitude = Math.pow(normalizedMagnitude, 1.5);
+            const smoothedMagnitude = Math.pow(normalizedMagnitude, 1.2);
 
             // Calculate bar height
-            const barHeight = smoothedMagnitude * canvasHeight * 0.9;
+            const barHeight = smoothedMagnitude * canvasHeight * 0.99;
 
             // Get color for this magnitude
             const color = this._getColorForMagnitude(
