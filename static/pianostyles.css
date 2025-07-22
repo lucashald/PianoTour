@@ -102,11 +102,11 @@ body {
     font-weight: 800;
     text-align: center;
     margin-bottom: 1rem;
-    background: linear-gradient(135deg, var(--color-green-medium) 0%, var(--color-green-light) 50%, var(--color-green-lightest) 100%);
+    background: linear-gradient(135deg, var(--color-green-medium) 0%, var(--color-green-lightest) 50%, #FFFFFF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0 0 60px var(--color-green-lightest);
+    text-shadow: 0 0 90px var(--color-green-lightest);
 }
 
 h4 {
