@@ -34,12 +34,11 @@
 
       <header class="piano-app__header">
         <h1 class="piano-app__header-title">Piano Tour</h1>
-        <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
       </header>
 
       {% block player %} {% include '_player.html' %} {% endblock %}
       {% block palette %}{% endblock %}
-
+      <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
       <section class="score-viewer">
         <div class="score-viewer__container" id="scoreWrap">
           <div class="score-viewer__content" id="score"></div>
@@ -57,8 +56,8 @@
         <div class="main-controls__button-row">
           <button id="clearScoreBtn" class="btn btn--danger">Clear Score</button>
           <button id="undo-btn" class="btn btn--danger">Undo</button>
-          <button id="mode-cycle-btn" class="btn">Single Note</button>
-          <button id="key-signature-btn" class="btn">Key Signature</button>
+          <button id="mode-cycle-btn" class="btn btn--info">Single Note</button>
+          <button id="key-signature-btn" class="btn btn--info">Key Signature</button>
           {% block filehandler %} {% include '_filehandler.html' %} {% endblock %}
         </div>
 

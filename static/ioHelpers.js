@@ -138,6 +138,13 @@ function saveScoreToFile() {
     // Create the data object in the format expected by loadScoreFromJson
     const scoreData = {
         keySignature: pianoState.keySignature,
+        tempo: pianoState.tempo,
+        timeSignature: {
+            numerator: pianoState.timeSignature.numerator,
+            denominator: pianoState.timeSignature.denominator
+        },
+        instrument: pianoState.instrument,
+        midiChannel: pianoState.midiChannel,
         measures: getMeasures()
     };
 
@@ -151,7 +158,8 @@ function saveScoreToFile() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    console.log(`Score saved successfully with key signature: ${pianoState.keySignature}`);
+
+    console.log(`Score saved successfully with key signature: ${pianoState.keySignature}, tempo: ${pianoState.tempo}, time signature: ${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`);
 }
 
 /**

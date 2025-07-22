@@ -211,11 +211,11 @@ function initializeSpectrumVisualizer() {
       smoothingTimeConstant: 0.8,
       canvasHeight: 120,
       backgroundColor: "#000000",
-      colorScheme: "rainbow",
+      colorScheme: "blue fire",
       showGrid: false,
       showLabels: false,
-      minDb: -100, // More sensitive to weak signals
-      maxDb: -10, // Higher ceiling for strong signals
+      minDb: -90, // More sensitive to weak signals
+      maxDb: -5, // Higher ceiling for strong signals
       enableFrequencyGain: true, // Boost higher frequencies
       debugMode: false, // Set to true to see frequency analysis in console
     };

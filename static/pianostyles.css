@@ -5,16 +5,43 @@
    ========================================================================== */
 :root {
   /* Color Palette */
-  --color-primary: #87B37A; /* Green for main actions */
-  --color-danger: #B24C63;  /* Red for destructive actions */
-  --color-info: #724E91;   /* Blue for informational elements */
-  --color-background: #1a202c;
-  --color-surface: #2d3748;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #a0aec0;
-  --color-border: #4a5568;
-  --color-warning: #ffd43b; /* For chord-third highlights */
+  --color-primary: #297B51; /* Green for main actions */
+  --color-secondary: #295570;
+  --color-danger: #AF563A;  /* Red for destructive actions */
+  --color-info: #295570;   /* Blue for informational elements */
+  --color-surface: #04273C;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #6F91A5;
+  --color-border: #6F91A5;
+  --color-warning: #AF7A3A;
 
+      /* Primary Color (Greens) */
+      --color-green-lightest: #76B595;
+      --color-green-light: #499770;
+      --color-green-medium: #297B51;
+      --color-green-dark: #116038;
+      --color-green-darkest: #014221;
+
+      /* Secondary Color #1 (Blues) */
+      --color-blue-lightest: #6F91A5;
+      --color-blue-light: #467089;
+      --color-blue-medium: #295570;
+      --color-blue-dark: #143E58;
+      --color-blue-darkest: #04273C;
+
+      /* Secondary Color #2 (Golds) */
+      --color-gold-lightest: #FFD7A7;
+      --color-gold-light: #D8A668;
+      --color-gold-medium: #AF7A3A;
+      --color-gold-dark: #895718;
+      --color-gold-darkest: #5E3401;
+
+      /* Complement Color (Peaches/Reds) */
+      --color-peach-lightest: #FFBCA7;
+      --color-peach-light: #D88368;
+      --color-peach-medium: #AF563A;
+      --color-peach-dark: #893418;
+      --color-peach-darkest: #5E1701;
 
   /* Sizing & Spacing */
   --max-width-main: 1100px;
@@ -36,7 +63,7 @@
 
 body {
   font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #284B63 0%, #3C6E71 50%, #87B37A 100%);
+  background: linear-gradient(135deg, var(--color-blue-darkest) 0%, var(--color-blue-medium) 50%, var(--color-blue-lightest) 100%);
   color: var(--color-text-primary);
   min-height: 100vh;
 }
@@ -75,11 +102,11 @@ body {
     font-weight: 800;
     text-align: center;
     margin-bottom: 1rem;
-    background: linear-gradient(135deg, #87B37A 0%, #FFFFFF 100%);
+    background: linear-gradient(135deg, var(--color-green-medium) 0%, var(--color-green-lightest) 50%, #FFFFFF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0 0 30px rgba(29, 185, 84, 0.3);
+    text-shadow: 0 0 90px var(--color-green-lightest);
 }
 
 h4 {
@@ -110,8 +137,8 @@ h4 {
   width: 100%;
   max-width: var(--max-width-main);
   min-height: var(--min-height-score);
-  background-color: #ffffff;
-  color: #1a202c;
+  background-color: #FFFFFF;
+  color: var(--color-blue-darkest)
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
   padding: var(--spacing-unit);
@@ -147,7 +174,7 @@ h4 {
 
 .instrument-panel__spectrum {
   min-height: var(--min-height-spectrum);
-  background-color: #000;
+  background-color: #04273C;
   border-radius: var(--border-radius);
 }
 
@@ -210,7 +237,6 @@ h4 {
    - Defines the appearance of buttons and other small elements.
    ========================================================================== */
 
-/* Base Button Style */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -218,9 +244,9 @@ h4 {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   font-weight: bold;
-  border-radius: var(--border-radius);
-  border: 1px solid var(--color-border);
-  background-color: transparent;
+  border: none; /* Removes the default border */
+  border-radius: 8px; /* This is the line to add */
+  background-color: var(--color-secondary);
   color: var(--color-text-primary);
   cursor: pointer;
   text-decoration: none;
@@ -228,41 +254,64 @@ h4 {
 }
 
 .btn:hover {
-  background-color: var(--color-border);
+  background-color: var(--color-blue-light);
 }
 
 /* Button Color Modifiers */
 .btn--primary {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #000;
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest); /* Dark text for contrast */
 }
 .btn--primary:hover {
-  background-color: #22c55e;
+  background-color: var(--color-green-light);
 }
 
 .btn--danger {
-  background-color: var(--color-danger);
-  border-color: var(--color-danger);
-  color: var(--color-text-primary);
+  background-color: var(--color-peach-light);
+  color: var(--color-peach-darkest); /* Dark text for contrast */
 }
 .btn--danger:hover {
-  background-color: #f56565;
+  background-color: var(--color-peach-medium);
 }
 
 .btn--info {
-  background-color: var(--color-info);
-  border-color: var(--color-info);
-  color: var(--color-text-primary);
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest); /* Dark text for contrast */
 }
 .btn--info:hover {
-  background-color: #63b3ed;
+  background-color: var(--color-blue-light);
 }
 
 .btn--compact {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   margin: 0.25rem;
+      background-color: var(--color-blue-lightest);
+      color: var(--color-blue-darkest); /* Dark text for contrast */
+}
+
+.btn--compact:hover {
+  background-color: var(--color-blue-light);
+}
+
+/* Toggle Button - Inactive State (Blue) */
+.btn--toggle {
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest); /* Dark text for contrast */
+}
+
+.btn--toggle:hover {
+  background-color: var(--color-blue-light);
+}
+
+/* Toggle Button - Active State (Green) */
+.btn--toggle.is-active {
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest); /* Dark text for contrast */
+}
+
+.btn--toggle.is-active:hover {
+  background-color: var(--color-green-light);
 }
 
 /* Hidden Input Utility */
@@ -282,16 +331,17 @@ h4 {
 .instrument-panel__keyboard .black.pressed { fill: #555555; }
 
 /* Hand Position / Note Function Highlighting */
-.instrument-panel__keyboard .left-white  { fill: #3b82f6 !important; }
-.instrument-panel__keyboard .left-black  { fill: #1d4ed8 !important; }
-.instrument-panel__keyboard .middle      { fill: #8b5cf6 !important; }
-.instrument-panel__keyboard .right-white { fill: #ec4899 !important; }
-.instrument-panel__keyboard .right-black { fill: #be185d !important; }
+/* Idea 3: Contrasting Flow (Blue to Peach) */
+.instrument-panel__keyboard .left-white  { fill: var(--color-blue-light) !important; }
+.instrument-panel__keyboard .left-black  { fill: var(--color-blue-dark) !important; }
+.instrument-panel__keyboard .middle      { fill: var(--color-green-light) !important; }
+.instrument-panel__keyboard .right-white { fill: var(--color-peach-light) !important; }
+.instrument-panel__keyboard .right-black { fill: var(--color-peach-dark) !important; }
 
 /* Chord Highlighting */
-.instrument-panel__keyboard .chord-root { fill: var(--color-primary) !important; }
-.instrument-panel__keyboard .chord-third { fill: var(--color-warning) !important; }
-.instrument-panel__keyboard .chord-fifth { fill: var(--color-info) !important; }
+.instrument-panel__keyboard .chord-root { fill: var(--color-blue-light) !important; }
+.instrument-panel__keyboard .chord-third { fill: var(--color-green-light) !important; }
+.instrument-panel__keyboard .chord-fifth { fill: var(--color-peach-light) !important; }
 
 /* Unlock Gate Overlay */
 #gate {
@@ -313,15 +363,14 @@ h4 {
     color: var(--color-text-primary);
     font-size: 1.2rem;
     font-weight: 600;
-    background: rgba(29, 185, 84, 0.1);
+    background: rgba(118, 181, 149, 0.1);
 }
 
 /* Hand Position Slider Overlay */
 #handOverlay {
     position: absolute;
     height: 16px;
-    background: #724E91;
-    border: 1px solid var(--color-primary);
+    background: var(--color-primary);
     border-radius: 8px;
     top: -20px;
     cursor: grab;
@@ -331,7 +380,7 @@ h4 {
 }
 
 #handOverlay.chord-mode {
-    background: rgba(59, 130, 246, 0.2);
+    background: var(--color-primary);
     border-color: var(--color-info);
 }
 
@@ -869,4 +918,22 @@ h4 {
 
 .palette-note[draggable="true"]:active {
     animation: palette-drag-start 0.1s ease-out;
+}
+
+/* Mobile optimization */
+
+.instrument-panel__keyboard, .instrument-panel__keyboard * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* But allow normal touch behavior on the gate */
+#gate {
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    user-select: auto !important;
+    -webkit-touch-callout: default !important;
+    touch-action: auto !important;
 }

@@ -1,0 +1,72 @@
+{
+  "keySignature": "G",
+  "tempo": 120,
+  "timeSignature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "instrument": "guitar",
+  "midiChannel": "0",
+  "measures": [
+    [
+      {
+        "id": "1753216641270-1",
+        "name": "G3",
+        "clef": "bass",
+        "duration": "q",
+        "measure": 0,
+        "isRest": false
+      },
+      {
+        "id": "1753216854578-1",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 0,
+        "isRest": false
+      },
+      {
+        "id": "1753216857007-2",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "h",
+        "measure": 0,
+        "isRest": false
+      },
+      {
+        "id": "1753218407429-1",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 0,
+        "isRest": false
+      }
+    ],
+    [
+      {
+        "id": "1753218407838-2",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 1,
+        "isRest": false
+      },
+      {
+        "id": "1753218408088-3",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 1,
+        "isRest": false
+      },
+      {
+        "id": "1753218408402-4",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 1,
+        "isRest": false
+      }
+    ]
+  ]
+}
