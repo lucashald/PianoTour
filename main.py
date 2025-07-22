@@ -392,12 +392,15 @@ def index():
 @app.route('/editor')
 def editor():
     return render_template('editor.html')
-    
+
+@app.route('/print')
+def print():
+    return render_template('print.html')
+
 @app.route('/guitar')
 def guitar():
     """Guitar instrument route"""
     return render_template('guitar.html', instrument='guitar')
-
 
 @app.route('/cello')
 def cello():
