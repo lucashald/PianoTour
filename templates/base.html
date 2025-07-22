@@ -34,12 +34,11 @@
 
       <header class="piano-app__header">
         <h1 class="piano-app__header-title">Piano Tour</h1>
-        <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
       </header>
 
       {% block player %} {% include '_player.html' %} {% endblock %}
       {% block palette %}{% endblock %}
-
+      <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
       <section class="score-viewer">
         <div class="score-viewer__container" id="scoreWrap">
           <div class="score-viewer__content" id="score"></div>
