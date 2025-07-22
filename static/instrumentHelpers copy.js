@@ -40,13 +40,7 @@ const allNotes = ALL_NOTE_INFO;
 const whiteNoteMidis = ALL_NOTE_INFO.filter((n) => !n.isBlack).map(
   (n) => n.midi
 );
-
-// --- FIX: Correct SVG width calculation ---
-// This new calculation ensures the SVG width matches the spectrum canvas width exactly.
-const rightmostNote = ALL_NOTE_INFO.reduce((max, note) => (note.x > max.x ? note : max), ALL_NOTE_INFO[0]);
-const rightmostKeyWidth = rightmostNote.isBlack ? BLACK_KEY_WIDTH : WHITE_KEY_WIDTH;
-const TOTAL_SVG_WIDTH = rightmostNote.x + rightmostKeyWidth;
-
+const TOTAL_SVG_WIDTH = whiteNoteMidis.length * WHITE_KEY_WIDTH;
 const MIN_MIDI = 21; // A0
 const MAX_MIDI = 108; // C8
 const flattenerKeys = new Set([
@@ -452,7 +446,8 @@ function findKeyForPlayer(clientX, clientY) {
   return null;
 }
 
-/** * Handles pointer move for click-and-drag functionality
+/** 
+ * Handles pointer move for click-and-drag functionality
  */
 function handlePointerMove(e) {
   if (!pianoState.isDragging) return;

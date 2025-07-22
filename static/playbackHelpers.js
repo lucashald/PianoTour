@@ -27,6 +27,27 @@ import {
 } from "./instrumentHelpers.js";
 import { writeNote } from "./scoreWriter.js";
 
+// Import spectrum visualization functions
+import {
+  initializeSpectrum,
+  connectSpectrumToAudio,
+  startSpectrumVisualization,
+  stopSpectrumVisualization,
+  destroySpectrum,
+} from "./spectrum.js";
+
+// ===================================================================
+// Module Variables
+// ===================================================================
+
+// Spectrum state tracking
+let spectrumInitialized = false;
+let spectrumActive = false;
+
+// ===================================================================
+// Core Audio Functions
+// ===================================================================
+
 /**
  * Initializes the Tone.js audio context, loads the sampler, removes the UI gate,
  * and sets the application state to "unlocked". This is the single, authoritative
@@ -39,18 +60,19 @@ export async function startAudio() {
 
   try {
     // First play the native audio to unlock iOS
-    await document.getElementById("unlock-audio").play();
+    await document.getElementById("unlock-audio").play(); // 1. Start Tone.js audio context
 
-    // 1. Start Tone.js audio context
     await Tone.start();
     pianoState.ctxStarted = true;
-    console.log("Tone.js audio context started.");
-    // 2. Determine which samples to use based on instrument
+    console.log("Tone.js audio context started."); // 2. Determine which samples to use based on instrument
     let sampleUrls;
     if (window.CURRENT_INSTRUMENT === "guitar") {
+      // The guitar samples are already reasonably sparse.
+      // We'll just remove G2 since it's only one semitone from F#2.
+      // The remaining samples are all 5-6 semitones apart.
       sampleUrls = {
         "F#2": "nylonf42.wav",
-        G2: "nylonf43.wav",
+        // G2: "nylonf43.wav", // Redundant: Only 1 semitone from F#2
         C3: "nylonf48.wav",
         F3: "nylonf53.wav",
         "A#3": "nylonf58.wav",
@@ -60,86 +82,92 @@ export async function startAudio() {
         G5: "nylonf79.wav",
       };
     } else if (window.CURRENT_INSTRUMENT === "cello") {
+      // The original cello samples were very dense (every 3 semitones).
+      // We can keep roughly half of them, spaced about 6 semitones apart,
+      // which provides good coverage while significantly reducing load time.
       sampleUrls = {
         "A#3": "Cello_A#3.wav",
         "A#4": "Cello_A#4.wav",
         "A#5": "Cello_A#5.wav",
         "A#6": "Cello_A#6.wav",
-        "C#3": "Cello_C#3.wav",
-        "C#4": "Cello_C#4.wav",
-        "C#5": "Cello_C#5.wav",
-        "C#6": "Cello_C#6.wav",
-        "C#7": "Cello_C#7.wav",
+        // "C#3": "Cello_C#3.wav",
+        // "C#4": "Cello_C#4.wav",
+        // "C#5": "Cello_C#5.wav",
+        // "C#6": "Cello_C#6.wav",
+        // "C#7": "Cello_C#7.wav",
         E3: "Cello_E3.wav",
         E4: "Cello_E4.wav",
         E5: "Cello_E5.wav",
         E6: "Cello_E6.wav",
-        E7: "Cello_E7.wav",
-        G3: "Cello_G3.wav",
-        G4: "Cello_G4.wav",
-        G5: "Cello_G5.wav",
-        G6: "Cello_G6.wav",
+        // E7: "Cello_E7.wav", // Top range can be covered by E6
+        // "G3": "Cello_G3.wav",
+        // "G4": "Cello_G4.wav",
+        // "G5": "Cello_G5.wav",
+        // "G6": "Cello_G6.wav",
       };
     } else if (window.CURRENT_INSTRUMENT === "sax") {
+      // The sax samples were extremely dense, sometimes only 1 semitone apart.
+      // We'll keep one sample every 4-5 semitones (a major third / perfect fourth).
       sampleUrls = {
         A2: "TSAX45-2.wav",
-        "A#2": "TSAX46.wav",
-        B2: "TSAX47.wav",
+        // "A#2": "TSAX46.wav",
+        // B2: "TSAX47.wav",
         "C#3": "TSAX49.wav",
-        "D#3": "TSAX51.wav",
-        E3: "TSAX52-2.wav",
+        // "D#3": "TSAX51.wav",
+        // E3: "TSAX52-2.wav",
         F3: "TSAX53-3.wav",
-        "F#3": "TSAX54.wav",
-        G3: "TSAX55-2.wav",
+        // "F#3": "TSAX54.wav",
+        // G3: "TSAX55-2.wav",
         A3: "TSAX57.wav",
-        "A#3": "TSAX58-2.wav",
-        B3: "TSAX59.wav",
+        // "A#3": "TSAX58-2.wav",
+        // B3: "TSAX59.wav",
         C4: "TSAX60-3.wav",
-        "C#4": "TSAX61.wav",
+        // "C#4": "TSAX61.wav",
         D4: "TSAX62-2.wav",
-        "D#4": "TSAX63.wav",
+        // "D#4": "TSAX63.wav",
         F4: "TSAX65-2.wav",
-        "F#4": "TSAX66.wav",
-        G4: "TSAX67-3.wav",
+        // "F#4": "TSAX66.wav",
+        // G4: "TSAX67-3.wav",
         "G#4": "TSAX68.wav",
         A4: "TSAX69-3.wav",
-        B4: "TSAX71-2.wav",
+        // B4: "TSAX71-2.wav",
         C5: "TSAX72.wav",
-        "D#5": "TSAX75.wav",
+        // "D#5": "TSAX75.wav",
         "F#5": "TSAX78-2.wav",
-        G5: "TSAX79.wav",
-        "G#5": "TSAX80-2.wav",
+        // G5: "TSAX79.wav",
+        // "G#5": "TSAX80-2.wav",
         "A#5": "TSAX82-2.wav",
-        B5: "TSAX83.wav",
+        // B5: "TSAX83.wav",
         C6: "TSAX84-2.wav",
       };
     } else {
+      // The default piano samples were sampled every 2 semitones in the bass/mids.
+      // We can optimize this by keeping samples every 3-4 semitones.
       sampleUrls = {
         C2: "SteinwayD_m_C2_L.wav",
-        D2: "SteinwayD_m_D2_L.wav",
+        // D2: "SteinwayD_m_D2_L.wav",
         E2: "SteinwayD_m_E2_L.wav",
-        "F#2": "SteinwayD_m_F#2_L.wav",
+        // "F#2": "SteinwayD_m_F#2_L.wav",
         "G#2": "SteinwayD_m_G#2_L.wav",
-        "A#2": "SteinwayD_m_A#2_L.wav",
+        // "A#2": "SteinwayD_m_A#2_L.wav",
         C3: "SteinwayD_m_C3_L.wav",
-        D3: "SteinwayD_m_D3_L.wav",
+        // D3: "SteinwayD_m_D3_L.wav",
         E3: "SteinwayD_m_E3_L.wav",
-        "F#3": "SteinwayD_m_F#3_L.wav",
+        // "F#3": "SteinwayD_m_F#3_L.wav",
         "G#3": "SteinwayD_m_G#3_L.wav",
-        "A#3": "SteinwayD_m_A#3_L.wav",
+        // "A#3": "SteinwayD_m_A#3_L.wav",
         C4: "SteinwayD_m_C4_L.wav",
-        D4: "SteinwayD_m_D4_L.wav",
+        // D4: "SteinwayD_m_D4_L.wav",
         E4: "SteinwayD_m_E4_L.wav",
-        "F#4": "SteinwayD_m_F#4_L.wav",
-        "G#4": "SteinwayD_m_G#4_L.wav",
+        "F#4": "SteinwayD_m_F#4_L.wav", // Keep this one for the upper-mid range
+        // "G#4": "SteinwayD_m_G#4_L.wav",
         "A#4": "SteinwayD_m_A#4_L.wav",
         C5: "SteinwayD_m_C5_L.wav",
-        "F#5": "SteinwayD_m_F#5_L.wav",
+        "F#5": "SteinwayD_m_F#5_L.wav", // Larger jump is ok in high register
         C6: "SteinwayD_m_C6_L.wav",
       };
-    }
+    } // 3. Create and load the audio sampler
 
-    // 3. Create and load the audio sampler
     pianoState.sampler = new Tone.Sampler({
       urls: sampleUrls,
       release: 1,
@@ -148,9 +176,10 @@ export async function startAudio() {
 
     await Tone.loaded();
     pianoState.samplerReady = true;
-    console.log("Sampler is ready!");
+    console.log("Sampler is ready!"); // 4. NEW: Initialize spectrum visualizer
 
-    // 4. Update the global state to indicate the app is unlocked
+    initializeSpectrumVisualizer(); // 5. Update the global state to indicate the app is unlocked
+
     pianoState.isUnlocked = true;
 
     return true; // Signal success
@@ -158,6 +187,69 @@ export async function startAudio() {
     console.error("Error during audio initialization:", error);
     pianoState.isUnlocked = false; // Ensure state is correct on failure
     return false; // Signal failure
+  }
+}
+
+// ===================================================================
+// NEW SPECTRUM HELPER FUNCTIONS
+// ===================================================================
+
+/**
+ * Initializes the spectrum visualizer
+ */
+function initializeSpectrumVisualizer() {
+  try {
+    // Check if spectrum container exists in the DOM
+    const spectrumContainer = document.getElementById("spectrum");
+    if (!spectrumContainer) {
+      console.log("Spectrum container not found - spectrum disabled");
+      return;
+    } // Initialize spectrum with improved options for better upper frequency detection
+
+    const spectrumOptions = {
+      fftSize: 4096, // Higher resolution for better frequency precision
+      smoothingTimeConstant: 0.8,
+      canvasHeight: 120,
+      backgroundColor: "#000000",
+      colorScheme: "rainbow",
+      showGrid: false,
+      showLabels: false,
+      minDb: -100, // More sensitive to weak signals
+      maxDb: -10, // Higher ceiling for strong signals
+      enableFrequencyGain: true, // Boost higher frequencies
+      debugMode: false, // Set to true to see frequency analysis in console
+    };
+
+    initializeSpectrum(spectrumOptions);
+    spectrumInitialized = true; // Connect to the sampler if it exists
+
+    if (pianoState.sampler) {
+      connectSpectrumToAudio(pianoState.sampler);
+      console.log("Spectrum connected to piano sampler");
+    }
+  } catch (error) {
+    console.error("Error initializing spectrum:", error);
+    spectrumInitialized = false;
+  }
+}
+
+/**
+ * Starts spectrum visualization when audio begins
+ */
+export function startSpectrumIfReady() {
+  if (spectrumInitialized && !spectrumActive) {
+    startSpectrumVisualization();
+    spectrumActive = true;
+  }
+}
+
+/**
+ * Stops spectrum visualization when audio ends
+ */
+export function stopSpectrumIfActive() {
+  if (spectrumActive) {
+    stopSpectrumVisualization();
+    spectrumActive = false;
   }
 }
 
@@ -169,10 +261,28 @@ export async function startAudio() {
  */
 export function trigger(note, on, velocity = 100) {
   if (!pianoState.samplerReady) return;
+
   if (on) {
-    pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127);
+    pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127); // NEW: Start spectrum visualization when notes are played
+
+    startSpectrumIfReady();
   } else {
-    pianoState.sampler.triggerRelease(note);
+    pianoState.sampler.triggerRelease(note); // Check if any notes are still active
+
+    const hasActiveNotes =
+      Object.keys(pianoState.activeNotes).length > 0 ||
+      Object.keys(pianoState.activeDiatonicChords).length > 0; // NEW: Stop spectrum if no notes are active (with small delay)
+
+    if (!hasActiveNotes) {
+      setTimeout(() => {
+        const stillHasActiveNotes =
+          Object.keys(pianoState.activeNotes).length > 0 ||
+          Object.keys(pianoState.activeDiatonicChords).length > 0;
+        if (!stillHasActiveNotes) {
+          stopSpectrumIfActive();
+        }
+      }, 100); // Small delay to handle rapid note changes
+    }
   }
 }
 
@@ -323,13 +433,15 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
   if (notesForPlayback.length === 0) {
     console.warn(`No notes determined for playback for ${specificChordKey}.`);
     return;
-  }
+  } // Play the chord
 
-  // Play the chord
   trigger(notesForPlayback, true);
-  paintChordOnTheFly({ notes: notesForPlayback });
+  paintChordOnTheFly({ notes: notesForPlayback }); // NEW: Start spectrum when chord begins
 
-  // Store chord data consistently for both input methods
+  if (spectrumInitialized) {
+    startSpectrumIfReady();
+  } // Store chord data consistently for both input methods
+
   pianoState.activeDiatonicChords[key] = {
     key: specificChordKey,
     clef: clefForPlayback,
@@ -344,15 +456,10 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
  * Unified function to stop a diatonic chord and handle score writing.
  * @param {string|number} key - The unique identifier used when the chord was played.
  */
-/**
- * Unified function to stop a diatonic chord and handle score writing.
- * @param {string|number} key - The unique identifier used when the chord was played.
- */
 export function stopDiatonicChord(key) {
   const chordData = pianoState.activeDiatonicChords[key];
-  if (!chordData) return;
+  if (!chordData) return; // Stop the audio
 
-  // Stop the audio
   if (chordData.notes?.length) {
     trigger(chordData.notes, false);
   } else {
@@ -372,22 +479,26 @@ export function stopDiatonicChord(key) {
         trigger(notesForRelease, false);
       }
     }
-  }
-  // Handle score writing if enabled
+  } // NEW: Check if spectrum should stop after chord ends
+
+  setTimeout(() => {
+    const hasActiveNotes =
+      Object.keys(pianoState.activeNotes).length > 0 ||
+      Object.keys(pianoState.activeDiatonicChords).length > 0;
+    if (!hasActiveNotes) {
+      stopSpectrumIfActive();
+    }
+  }, 100); // Handle score writing if enabled
+
   if (chordData.writeToScore) {
     console.log("Writing chord to score:", chordData);
-    const heldTime = performance.now() - chordData.startTime;
+    const heldTime = performance.now() - chordData.startTime; // FIX: Updated quantization logic to include dotted notes. // Checks must be in order from longest to shortest duration.
 
-    // FIX: Updated quantization logic to include dotted notes.
-    // Checks must be in order from longest to shortest duration.
     let duration = "q"; // Default to quarter note
     if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
     else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
     else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
-    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q.";
-    // The default remains 'q'
-
-    // Use the notes directly from chord data instead of looking them up again
+    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q."; // The default remains 'q' // Use the notes directly from chord data instead of looking them up again
     if (chordData.notes && chordData.notes.length > 0) {
       console.log("About to write note:", {
         clef: chordData.clef,
@@ -404,9 +515,8 @@ export function stopDiatonicChord(key) {
     } else {
       console.warn("No notes found in chord data for score writing");
     }
-  }
+  } // Handle visual repainting
 
-  // Handle visual repainting
   if (
     Object.keys(pianoState.activeDiatonicChords).length <= 1 &&
     (pianoState.isMajorChordMode || pianoState.isMinorChordMode)
@@ -430,17 +540,14 @@ export function stopDiatonicChord(key) {
 export function handleMidiNoteOn(midiNoteNumber, velocity, channel) {
   console.log(
     `MIDI Note On: Channel ${channel}, Note ${midiNoteNumber}, Velocity ${velocity}`
-  );
+  ); // Channel 8 (MIDI channel 9 in user terms) is reserved for diatonic chords // Note: Using channel 8 instead of 9 to avoid percussion channel conflict
 
-  // Channel 8 (MIDI channel 9 in user terms) is reserved for diatonic chords
-  // Note: Using channel 8 instead of 9 to avoid percussion channel conflict
   if (channel === 9) {
     // Map MIDI note number to a diatonic degree (1-7)
     // Assuming MIDI notes 36-42 correspond to degrees 1-7
     const degree = midiNoteNumber - 35;
     if (degree >= 1 && degree <= 7) {
-      console.log(`Playing diatonic chord: degree ${degree}`);
-      // Use the unified playDiatonicChord function with score writing enabled
+      console.log(`Playing diatonic chord: degree ${degree}`); // Use the unified playDiatonicChord function with score writing enabled
       playDiatonicChord(degree, `midi_${midiNoteNumber}`, true);
     } else {
       console.warn(
@@ -448,9 +555,8 @@ export function handleMidiNoteOn(midiNoteNumber, velocity, channel) {
       );
     }
     return;
-  }
+  } // Handle standard note presses
 
-  // Handle standard note presses
   const keyEl = pianoState.noteEls[midiNoteNumber];
   if (keyEl) {
     startKey(keyEl, "sharp", velocity);
@@ -468,45 +574,37 @@ export function handleMidiNoteOn(midiNoteNumber, velocity, channel) {
 export function handleMidiNoteOff(midiNoteNumber, velocity, channel) {
   console.log(
     `MIDI Note Off: Channel ${channel}, Note ${midiNoteNumber}, Velocity ${velocity}`
-  );
+  ); // Handle diatonic chord release from channel 8
 
-  // Handle diatonic chord release from channel 8
   if (channel === 9) {
     const chordKey = `midi_${midiNoteNumber}`;
     const activeChord = pianoState.activeDiatonicChords[chordKey];
     if (activeChord) {
-      console.log(`Stopping diatonic chord: ${chordKey}`);
-      // Use the unified stopDiatonicChord function which handles score writing
+      console.log(`Stopping diatonic chord: ${chordKey}`); // Use the unified stopDiatonicChord function which handles score writing
       stopDiatonicChord(chordKey);
     } else {
       console.warn(`No active diatonic chord found for key: ${chordKey}`);
     }
     return;
-  }
+  } // Handle standard note release
 
-  // Handle standard note release
   const activeNote = pianoState.activeNotes[midiNoteNumber];
   const keyEl = pianoState.noteEls[midiNoteNumber];
 
   if (keyEl && activeNote) {
     // Stop the sound and visual feedback
-    stopKey(keyEl);
+    stopKey(keyEl); // --- Score Writing Logic ---
 
-    // --- Score Writing Logic ---
     const noteInfo = NOTES_BY_MIDI[midiNoteNumber];
     if (!noteInfo) return;
 
-    const heldTime = performance.now() - activeNote.startTime;
+    const heldTime = performance.now() - activeNote.startTime; // FIX: Updated quantization logic to include dotted notes. // Checks must be in order from longest to shortest duration.
 
-    // FIX: Updated quantization logic to include dotted notes.
-    // Checks must be in order from longest to shortest duration.
     let duration = "q"; // Default to quarter note
     if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
     else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
     else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
-    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q.";
-    // The default remains 'q'
-
+    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q."; // The default remains 'q'
     const noteNameForScore =
       activeNote.spelling === "flat" && noteInfo.flatName
         ? noteInfo.flatName
@@ -546,3 +644,21 @@ export function playDiatonicChordFromUI(degree, inputSource) {
 export function stopDiatonicChordFromUI(inputSource) {
   stopDiatonicChord(inputSource);
 }
+
+// ===================================================================
+// Cleanup Function
+// ===================================================================
+
+/**
+ * Cleans up spectrum resources when the app is being destroyed
+ */
+export function cleanupSpectrum() {
+  if (spectrumInitialized) {
+    destroySpectrum();
+    spectrumInitialized = false;
+    spectrumActive = false;
+  }
+}
+
+// Optional: Add window beforeunload event to clean up
+window.addEventListener("beforeunload", cleanupSpectrum);

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta content='IE=edge' http-equiv='X-UA-Compatible'>
+    <meta content='width=device-width, initial-scale=1.0' name='viewport'>
+
+    <title>Piano Tour - SpessaSynth Integration</title>
+    
+    <link href="{{ url_for('static', filename='spes.css') }}" rel='stylesheet'>
+    <link rel="stylesheet" href="{{ url_for('static', filename='pianostyles.css') }}" />
+
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
+    <script>
+        import {
+        getMeasures,
+        resetScore,
+        processAndSyncScore,
+        undoLastWrite,
+      } from '{{ url_for("static", filename="scoreWriter.js") }}';</script>
+</head>
+
+<body id="page-instrument">
+    <div class="piano-container">
+
+        <div class="score-container">
+          <div id="scoreWrap">
+            <div id="score"></div>
+          </div>
+          <div id="nowPlayingDisplay"></div>
+        </div>
+
+        <div class="piano-instrument-container">
+            <div class="container">
+                <div class="main-area">
+                    
+
+                    <div id='keyboard_canvas_wrapper'>
+                        <canvas id='note_canvas'></canvas>
+                        <div id='keyboard'></div>
+                        
+                    </div>
+                    <div id="instrument"></div>
+                    
+
+                    <div class="controls">
+                        <div class="button-row">
+                            <button id="mode-cycle-btn" class="btn">Single Note</button>
+                        </div>
+
+                        <div class="checkbox-row">
+                            <label class="btn btn--toggle">
+                                <input type="checkbox" id="toggleLabelsCheckbox" class="hidden" />
+                                <span>Label Keys</span>
+                            </label>
+                            <button id="clearScoreBtn" class="btn btn--danger">
+                                  Clear Score
+                                </button>
+                                <button id="undo-btn" class="btn btn--danger">Undo</button>
+                            <button id="key-signature-btn" class="btn">Key Signature</button>
+
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class='spessasynth_main hidden'>
+        <div class='top_part'>
+            <div id='synthetizer_controls'></div>
+            <div id='title_wrapper'>
+                <div id='progress_bar'></div>
+                <h1 id='title'></h1>
+                <div class='midi_and_sf_controller'>
+                    <label for='midi_file_input' id='file_upload'>Upload your MIDI files</label>
+                    <input accept='.mid, .rmi, audio/midi, .kar, .xmf, .mxmf' id='midi_file_input' multiple type='file'><br />
+                    <label id='export_button'>Export audio</label>
+                    <label id='sf_upload'> <span>Upload the soundfont</span>
+                        <input accept='.sf2,.sf3,.sfogg,.dls,.dlp' id='sf_file_input' type='file'><br />
+                    </label>
+                    <label id='extra_bank_button'></label>
+                    <select id='sf_selector'></select>
+                </div>
+            </div>
+            <div id='settings_div'></div>
+        </div>
+        <div class='show_top_button'></div>
+
+        <div id='keyboard_canvas_wrapper'>
+            <canvas id='note_canvas'></canvas>
+            <div id='keyboard'></div>
+        </div>
+        <div id='player_info'></div>
+
+        <div class='bottom_part'>
+            <div id='sequencer_controls'></div>
+        </div>
+        <div class='notification_field'></div>
+        <div class='ass_renderer_field'></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='local_main.js') }}" type='module'></script>
+    
+    <script type="module">
+        // --- COMMON DOM READY & EVENT LISTENERS (for base template) ---
+          document.addEventListener("DOMContentLoaded", () => {
+
+            const savedScoreJSON = localStorage.getItem("autosavedScore");
+            if (savedScoreJSON) {
+              try {
+                const savedData = JSON.parse(savedScoreJSON);
+
+                // Handle both old format (just measures array) and new format (object with measures + metadata)
+                const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+
+                if (processAndSyncScore(measures)) {
+                  // Apply key signature and minor mode if saved data is in new format (object, not array)
+                  if (!Array.isArray(savedData)) {
+                    const keySignature = savedData.keySignature || 'C';
+                    const isMinorChordMode = savedData.isMinorChordMode || false;
+                    const title = savedData.title || null;
+
+                    pianoState.keySignature = keySignature;
+                    pianoState.isMinorChordMode = isMinorChordMode;
+                    console.log(`Key signature loaded: ${keySignature}, Minor mode: ${isMinorChordMode}`);
+
+                    // Future: use title if it exists
+                    if (title) {
+                      console.log(`Score title loaded: ${title}`);
+                      // Future: Set document title or display title
+                      // document.title = `Piano Tour - ${title}`;
+                    }
+                  }
+                  console.log("Score successfully synchronized from localStorage.");
+                } else {
+                  localStorage.removeItem("autosavedScore");
+                }
+              } catch (e) {
+                console.error("Failed to parse autosaved score. Clearing data.", e);
+                localStorage.removeItem("autosavedScore");
+              }
+            }
+
+            try {
+              drawAll(getMeasures());
+            } catch (e) {
+              console.error("An error occurred during initial score rendering:", e);
+            }
+
+            document
+              .getElementById("clearScoreBtn")
+              ?.addEventListener("click", (e) => {
+                e.preventDefault();
+                resetScore();
+                document.getElementById("instrument")?.focus();
+              });
+
+            document.getElementById("undo-btn")?.addEventListener("click", (e) => {
+              e.preventDefault();
+              undoLastWrite();
+              document.getElementById("instrument")?.focus();
+            });
+
+            document
+              .getElementById("key-signature-btn")
+              ?.addEventListener("click", (e) => {
+                handleKeySignatureClick(e);
+                document.getElementById("instrument")?.focus();
+              });
+          });
+
+          window.addEventListener("resize", () => {
+            drawAll(getMeasures());
+          });
+
+        // Wait for DOM and SpessaSynth
+        document.addEventListener("DOMContentLoaded", async () => {
+            console.log("🎹 DOM ready, waiting for SpessaSynth...");
+            
+            // Wait for SpessaSynth to be fully ready
+            let attempts = 0;
+            while (!window.manager?.synth && attempts < 200) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                attempts++;
+                if (attempts % 20 === 0) {
+                    console.log(`⏳ Still waiting for SpessaSynth... (${attempts/4}s)`);
+                }
+            }
+            
+            console.log("✅ SpessaSynth ready! Loading Piano Tour...");
+            
+            try {
+                // Import Piano Tour modules
+                const { 
+                    initializeInstrumentUI,
+                    handleToggleLabelsChange,
+                    handleModeCycleClick,
+                } = await import('{{ url_for("static", filename="instrumentHelpers.js") }}');
+                
+                console.log("✅ Piano Tour modules loaded! Initializing...");
+                
+                // Initialize the piano instrument
+                initializeInstrumentUI();
+                
+                // Setup basic event handlers
+                document.getElementById("toggleLabelsCheckbox")?.addEventListener("change", (e) => {
+                    handleToggleLabelsChange(e);
+                    document.getElementById("instrument")?.focus();
+                });
+
+                document.getElementById("mode-cycle-btn")?.addEventListener("click", (e) => {
+                    handleModeCycleClick(e);
+                    document.getElementById("instrument")?.focus();
+                });
+                
+                console.log("🎹 Piano Tour ready!");
+                
+            } catch (error) {
+                console.error("❌ Error initializing Piano Tour:", error);
+            }
+        });
+        
+    </script>
+</body>
+</html>

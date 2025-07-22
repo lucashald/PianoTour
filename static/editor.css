@@ -1,0 +1,113 @@
+/* ==========================================================================
+   EDITOR WIDGET STYLES - Add these to your pianostyles.css
+   ========================================================================== */
+
+/* Editor Panel Structure */
+.piano-app__editor-panel {
+    width: 320px;
+    min-height: 100vh;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 0 12px 12px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+}
+
+/* Editor Widget Layout */
+.editor-widget {
+    margin-bottom: 24px;
+}
+
+.editor-widget__title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.editor-widget__content {
+    /* Base content styling */
+}
+
+.editor-widget__content--note-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+/* Note Group Layout */
+.editor-widget__note-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Note Editor Styles */
+.note-editor {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.note-editor__header {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.note-editor__header::before {
+    content: "🎵";
+    font-size: 18px;
+}
+
+.note-editor__controls {
+    /* Controls container - inherits from existing .control-group styles */
+}
+
+/* Floating Panel Styles */
+.floating-panel {
+    position: fixed;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    z-index: 4000;
+    min-width: 280px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+}
+
+.floating-panel.visible {
+    display: block;
+    animation: panelSlideIn 0.3s ease-out forwards;
+}
+
+.floating-panel.hidden {
+    display: none;
+}
+
+@keyframes panelSlideIn {
+    from { 
+        opacity: 0; 
+        transform: translate(-50%, -50%) scale(0.98); 
+    }
+    to { 
+        opacity: 1;

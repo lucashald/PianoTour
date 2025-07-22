@@ -490,6 +490,11 @@ def testplayer():
     return render_template('testplayer.html')
 
 
+@app.route('/integrated')
+def integrated():
+    return render_template('spesIndex.html')
+
+
 # SpessaSynth expects these routes:
 
 
@@ -506,8 +511,8 @@ def get_version():
 def get_settings():
     return jsonify({
         "renderer": {
-            "renderingMode": "2",  # ✅ "2" = spectrumSingleMode  
-            "renderWaveforms": True,  # ✅ Must be True to enable rendering
+            "renderingMode": "2",
+            "renderWaveforms": True
         },
         "keyboard": {
             "keyRange": {
@@ -517,7 +522,7 @@ def get_settings():
             "mode": "light",  # Light keyboard mode
             "show": True,  # Show keyboard
             "selectedChannel": 0,
-            "autoRange": False  # Use fixed range
+            "autoRange": False
         },
         "interface": {
             "mode": "dark",
@@ -562,9 +567,9 @@ def set_last_sf2():
 def package_json():
     """SpessaSynth checks for version info in package.json"""
     return jsonify({
-        "name": "Piano Tour SpessaSynth",
+        "name": "Piano Tour",
         "version": "3.27.12",
-        "description": "Piano Tour MIDI Player using SpessaSynth"
+        "description": "Piano Tour MIDI Player"
     })
 
 

@@ -1,300 +1,290 @@
-{% extends "index.html" %} {# Extends the base template #}
+{% extends "base.html" %}
 
-{% block title %}Piano Tour - Editor{% endblock %} {# Sets a specific title for this page #}
-
-{% block head_extra %}
-{% endblock %}
+{% block title %}Piano Tour - Editor{% endblock %}
 
 {% block editor %}
-<div class="side-panel">
-    <div id="editorContainer">
-        <div class="panel-section">
-            <h3>Measure</h3>
-            <div class="editor-measure-nav">
-                <h2 id="editorControlsHeader">
-                    <!-- REFACTORED: Using compact button class -->
-                    <button id="editorPrevBtn" class="btn btn--compact">◀</button>
-                    <input type="number" id="editorNumberInput" value="1" min="1" class="measure-input">
-                    <button id="editorNextBtn" class="btn btn--compact">▶</button>
-                </h2>
-            </div>
-        </div>
+<!-- Editor Panel Content -->
+<div id="editorContainer">
+  
+  <!-- Measure Navigation Widget -->
+  <section class="editor-widget">
+    <h3 class="editor-widget__title">Measure</h3>
+    <div class="editor-widget__content" id="editorControlsHeader">
+      <button id="editorPrevBtn" class="btn btn--compact">◀</button>
+      <input type="number" id="editorNumberInput" value="1" min="1" class="measure-input">
+      <button id="editorNextBtn" class="btn btn--compact">▶</button>
+    </div>
+  </section>
 
-        <div class="panel-section">
-            <h3>Treble Clef Notes</h3>
-            <div id="editorTrebleNotesContainer" class="notes-container">
-                {# Treble clef notes will be populated by JavaScript #}
-            </div>
-        </div>
+  <!-- Treble Clef Notes Widget -->
+  <section class="editor-widget">
+    <h3 class="editor-widget__title">Treble Clef Notes</h3>
+    <div class="editor-widget__content editor-widget__content--note-list" id="editorTrebleNotesContainer">
+      <!-- Treble clef notes will be populated by JavaScript -->
+    </div>
+  </section>
 
-        <div class="panel-section">
-            <h3>Bass Clef Notes</h3>
-            <div id="editorBassNotesContainer" class="notes-container">
-                {# Bass clef notes will be populated by JavaScript #}
-            </div>
-        </div>
+  <!-- Bass Clef Notes Widget -->
+  <section class="editor-widget">
+    <h3 class="editor-widget__title">Bass Clef Notes</h3>
+    <div class="editor-widget__content editor-widget__content--note-list" id="editorBassNotesContainer">
+      <!-- Bass clef notes will be populated by JavaScript -->
+    </div>
+  </section>
 
-        <div id="dockedEditingContainer" class="panel-section" style="display: none;">
-            <h3>Edit Note</h3>
-        </div>
+  <!-- Docking area for the floating editor panel -->
+  <section class="editor-widget hidden" id="dockedEditingContainer">
+    <h3 class="editor-widget__title">Edit Note</h3>
+  </section>
 
-        <div id="editorEditBox">
-            <div id="editorExpandedEditor" class="hidden">
-                <div class="note-editor-expanded">
-                    <div class="note-editor-title">
-                        Editing: <span id="editorSelectedNoteDisplay"></span>
-                    </div>
+  <!-- Note Editor -->
+  <div class="note-editor hidden" id="editorExpandedEditor">
+    <div class="note-editor__header">
+      Editing: <span id="editorSelectedNoteDisplay"></span>
+    </div>
 
-                    <div id="singleNoteControls">
-                        <div class="control-group">
-                            <label for="editorNoteLetter">Letter:</label>
-                            <select id="editorNoteLetter" class="dropdown-select">
-                                <option value="C">C</option><option value="D">D</option><option value="E">E</option>
-                                <option value="F">F</option><option value="G">G</option><option value="A">A</option>
-                                <option value="B">B</option><option value="R">R (Rest)</option>
-                            </select>
-                        </div>
+    <!-- Controls for a single note's properties -->
+    <div class="note-editor__controls" id="singleNoteControls">
+      <div class="control-group">
+        <label for="editorNoteLetter">Letter:</label>
+        <select id="editorNoteLetter" class="dropdown-select">
+          <option value="C">C</option><option value="D">D</option><option value="E">E</option>
+          <option value="F">F</option><option value="G">G</option><option value="A">A</option>
+          <option value="B">B</option><option value="R">R (Rest)</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="editorAccidentalDropdown">Accidental:</label>
+        <select id="editorAccidentalDropdown" class="dropdown-select">
+          <option value="">None</option><option value="#">#</option><option value="b">b</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="editorOctaveDropdown">Octave:</label>
+        <select id="editorOctaveDropdown" class="dropdown-select">
+          <option value="2">2</option><option value="3">3</option><option value="4">4</option>
+          <option value="5">5</option><option value="6">6</option><option value="7">7</option>
+        </select>
+      </div>
+    </div>
 
-                        <div class="control-group">
-                            <label for="editorAccidentalDropdown">Accidental:</label>
-                            <select id="editorAccidentalDropdown" class="dropdown-select">
-                                <option value="">None</option><option value="#">#</option><option value="b">b</option>
-                            </select>
-                        </div>
+    <!-- Controls for editing the notes within a chord -->
+    <div class="note-editor__controls hidden" id="chordNotesEditor">
+      <h4>Chord Notes:</h4>
+      <div id="chordNotesContainer">
+        <!-- Chord note inputs will be dynamically populated here -->
+      </div>
+      <button id="addNoteToChordBtn" class="btn btn--compact btn--primary">Add Note to Chord</button>
+    </div>
 
-                        <div class="control-group">
-                            <label for="editorOctaveDropdown">Octave:</label>
-                            <select id="editorOctaveDropdown" class="dropdown-select">
-                                <option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="chordNotesEditor" class="hidden">
-                        <h4 style="color: white; margin-bottom: 12px;">Chord Notes:</h4>
-                        <div id="chordNotesContainer">
-                            {# Chord note inputs will be dynamically populated here #}
-                        </div>
-                        <!-- REFACTORED: Replaced utility color classes with BEM modifier -->
-                        <button id="addNoteToChordBtn" class="btn btn--compact btn--primary">Add Note to Chord</button>
-                    </div>
-
-                    <div class="control-group">
-                        <label for="editorDurationDropdown">Duration:</label>
-                        <select id="editorDurationDropdown" class="dropdown-select">
-                            {# Duration options will be populated by JavaScript #}
-                        </select>
-                    </div>
-
-                    <div class="control-group">
-                        <label>Actions:</label>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <!-- REFACTORED: Using BEM modifiers for purpose -->
-                            <button id="editorRemoveNote" class="btn btn--compact btn--danger">Remove</button>
-                            <button id="editorToggleClef" class="btn btn--compact">Treble</button>
-                            <button id="editorToggleRest" class="btn btn--compact">Toggle Rest</button>
-                        </div>
-                    </div>
-
-                    <div class="control-group">
-                        <label>Move Note:</label>
-                        <div class="move-controls">
-                             <!-- REFACTORED: Using info modifier for non-primary actions -->
-                            <button id="editorMoveToPrevMeasure" class="btn btn--compact btn--info">← Previous Measure</button>
-                            <button id="editorMoveToNextMeasure" class="btn btn--compact btn--info">Next Measure →</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Common controls for duration and actions -->
+    <div class="control-group">
+      <label for="editorDurationDropdown">Duration:</label>
+      <select id="editorDurationDropdown" class="dropdown-select">
+        <!-- Duration options will be populated by JavaScript -->
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Actions:</label>
+      <div class="button-group">
+        <button id="editorRemoveNote" class="btn btn--compact btn--danger">Remove</button>
+        <button id="editorToggleClef" class="btn btn--compact">Treble</button>
+        <button id="editorToggleRest" class="btn btn--compact">Toggle Rest</button>
+      </div>
+    </div>
+    <div class="control-group">
+        <label>Move Note:</label>
+        <div class="button-group">
+            <button id="editorMoveToPrevMeasure" class="btn btn--compact btn--info">← Previous Measure</button>
+            <button id="editorMoveToNextMeasure" class="btn btn--compact btn--info">Next Measure →</button>
         </div>
     </div>
+  </div>
+
 </div>
 
-<div class="editing-panel" id="editingPanel">
-    <div class="panel-header">
-        <span class="panel-title">Edit Note</span>
-        <div class="panel-header-buttons">
-            <!-- REFACTORED: These small panel buttons also get the compact style -->
-            <button class="panel-dock btn btn--compact" aria-label="Dock to sidebar">◀</button>
-            <button class="panel-close btn btn--compact" aria-label="Close panel">✕</button>
-        </div>
+<!-- Floating Editing Panel -->
+<div class="floating-panel hidden" id="editingPanel">
+  <div class="floating-panel__header">
+    <span class="floating-panel__title">Edit Note</span>
+    <div class="floating-panel__actions">
+      <button class="panel-dock btn btn--compact" aria-label="Dock to sidebar">◀</button>
+      <button class="panel-close btn btn--compact" aria-label="Close panel">✕</button>
     </div>
-    <div class="panel-controls">
-        <!-- REFACTORED: All buttons in this panel now use the unified .btn class system -->
-        <div class="control-group">
-            <span class="control-label">Pitch:</span>
-            <button class="btn btn--compact" aria-label="Pitch Up">⬆️</button>
-            <button class="btn btn--compact" aria-label="Pitch Down">⬇️</button>
-            <input type="text" id="currentPitch" value="C4" maxlength="4">
-        </div>
-        <div class="control-group">
-            <span class="control-label">Duration:</span>
-            <button class="btn btn--compact is-active" data-duration="quarter" aria-label="Quarter Note"><span class="control-btn-icon">♩</span></button>
-            <button class="btn btn--compact" data-duration="eighth" aria-label="Eighth Note"><span class="control-btn-icon">♪</span></button>
-            <button class="btn btn--compact" data-duration="half" aria-label="Half Note"><span class="control-btn-icon">♫</span></button>
-            <button class="btn btn--compact" data-duration="whole" aria-label="Whole Note">𝅗</button>
-            <button class="btn btn--compact" data-duration="rest" aria-label="Rest"><span class="control-btn-icon">𝄽</span></button>
-            <button class="btn btn--compact" data-dotted="true" aria-label="Add Dot">●</button>
-        </div>
-        <div class="control-group">
-            <span class="control-label">Type:</span>
-            <button class="btn btn--compact is-active" data-type="note" aria-label="Note Type">Note</button>
-            <button class="btn btn--compact" data-type="chord" aria-label="Chord Type">Chord</button>
-            <button class="btn btn--compact" data-type="rest" aria-label="Rest Type">Rest</button>
-        </div>
-        <div class="control-group">
-            <span class="control-label">Clef:</span>
-            <button class="btn btn--compact" aria-label="Toggle Clef">Toggle Treble/Bass</button>
-        </div>
-        <div class="control-group">
-            <span class="control-label">Octave:</span>
-            <select id="floatingOctaveDropdown" class="dropdown-select" aria-label="Select Octave">
-                <option value="3">3</option>
-                <option value="4" selected>4</option>
-                <option value="5">5</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <span class="control-label">Accidental:</span>
-            <select id="floatingAccidentalDropdown" class="dropdown-select" aria-label="Select Accidental">
-                <option value="natural" selected>♮</option>
-                <option value="sharp">#</option>
-                <option value="flat">b</option>
-            </select>
-        </div>
-        <div class="control-group">
-            <span class="control-label">Actions:</span>
-            <button class="btn btn--compact" aria-label="Move Note to Previous Measure">Move Left</button>
-            <button class="btn btn--compact" aria-label="Move Note to Next Measure">Move Right</button>
-            <button class="btn btn--compact btn--danger" aria-label="Remove Note">Remove</button>
-        </div>
-    </div>
+  </div>
+  <div class="floating-panel__content">
+    <!-- All the same control groups from the docked editor would go here -->
+  </div>
 </div>
+{% endblock %}
+
+{% block palette %}
+    {% include '_palette.html' %}
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
 <script type="module">
-    // NEW: Editor-specific JavaScript initialization
-    import { initializeMusicEditor } from '{{ url_for("static", filename="musicEditorUI.js") }}';
-    import { setPaletteDragState } from '{{ url_for("static", filename="scoreRenderer.js") }}';
+    console.log('🎹 Editor script starting...');
+    
+    // Wait for base initialization to complete
+    function waitForBaseInit() {
+        return new Promise((resolve) => {
+            if (window.pianoTourInitState && window.pianoTourInitState.baseInitialized) {
+                console.log('✓ Base already initialized, proceeding with editor init');
+                resolve();
+            } else {
+                console.log('⏳ Waiting for base initialization...');
+                document.addEventListener('pianoTourBaseReady', () => {
+                    console.log('✓ Base initialization complete, proceeding with editor init');
+                    resolve();
+                }, { once: true });
+            }
+        });
+    }
+    
+    async function initializeEditor() {
+        try {
+            // Wait for base to be ready
+            await waitForBaseInit();
+            
+            console.log('📦 Loading editor modules...');
+            
+            // Import editor modules
+            const { initializeMusicEditor } = await import('{{ url_for("static", filename="musicEditorUI.js") }}');
+            const { setPaletteDragState } = await import('{{ url_for("static", filename="scoreRenderer.js") }}');
+            
+            console.log('✓ Modules loaded, initializing editor...');
+            
+            // Initialize the editor
+            initializeMusicEditor();
+            
+            // Setup additional functionality
+            setupFloatingPanelInteractions();
+            setupPaletteDrag(setPaletteDragState);
+            
+            console.log('✅ Editor initialization complete!');
+            
+        } catch (error) {
+            console.error('❌ Error during editor initialization:', error);
+            
+            // Show user-friendly error message
+            const editorContainer = document.getElementById('editorContainer');
+            if (editorContainer) {
+                editorContainer.innerHTML = `
+                    <div style="color: #ff6b6b; padding: 20px; text-align: center;">
+                        <h3>⚠️ Editor Failed to Load</h3>
+                        <p>Please refresh the page or check the browser console for details.</p>
+                        <button onclick="location.reload()" class="btn btn--primary" style="margin-top: 10px;">
+                            Refresh Page
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    }
 
-    // It's important to ensure the DOM elements are loaded before initializing the editor.
-    document.addEventListener('DOMContentLoaded', () => {
-        initializeMusicEditor(); // Initialize the new editing UI
-        
-        // Setup floating panel interactions that are specific to the editor page
-        setupFloatingPanelInteractions();
-        
-        // NEW: Setup palette drag listeners
-        setupPaletteDrag();
-    });
-
-    function setupPaletteDrag() {
+    function setupPaletteDrag(setPaletteDragState) {
         const paletteNotes = document.querySelectorAll('.palette-note');
+        console.log(`🎨 Setting up palette drag for ${paletteNotes.length} notes`);
+        
         paletteNotes.forEach(note => {
             note.addEventListener('dragstart', (event) => {
                 const type = event.target.dataset.type;
-                // FIX: Get the duration directly from the dragged item's data-duration attribute.
                 const duration = event.currentTarget.dataset.duration;
-
+                console.log(`🎯 Starting palette drag: ${type}, duration: ${duration}`);
                 setPaletteDragState(true, type, duration);
-                event.dataTransfer.setData('text/plain', type); // Necessary for drop event to fire
+                event.dataTransfer.setData('text/plain', type);
             });
         });
     }
 
     function setupFloatingPanelInteractions() {
         const editingPanel = document.getElementById('editingPanel');
+        if (!editingPanel) {
+            console.log('ℹ️ No floating panel found, skipping setup');
+            return;
+        }
+        
+        console.log('🔄 Setting up floating panel interactions');
+        
         const panelCloseBtn = editingPanel.querySelector('.panel-close');
         const panelDockBtn = editingPanel.querySelector('.panel-dock');
 
-        // Close panel handler
-        panelCloseBtn.addEventListener('click', () => {
-            hideNoteEditor();
-        });
+        if (panelCloseBtn) {
+            panelCloseBtn.addEventListener('click', () => {
+                console.log('🔒 Closing editor panel');
+                hideNoteEditor();
+            });
+        }
+        
+        if (panelDockBtn) {
+            panelDockBtn.addEventListener('click', () => {
+                console.log('📌 Toggling panel dock state');
+                toggleDockPanel();
+            });
+        }
 
-        // Dock panel handler
-        panelDockBtn.addEventListener('click', () => {
-            toggleDockPanel();
-        });
-
-        // Hide panel when clicking outside
+        // Click outside to close
         document.addEventListener('click', (e) => {
-            if (!editingPanel.contains(e.target) && !e.target.closest('.note') && !e.target.closest('.palette-note')) {
-                // Don't hide if clicking on editor controls
-                if (!e.target.closest('#editorContainer')) {
-                    hideNoteEditor();
-                }
+            if (!editingPanel.contains(e.target) && 
+                !e.target.closest('.score-viewer__content') && 
+                !e.target.closest('.palette-note') &&
+                !e.target.closest('#editorContainer')) {
+                hideNoteEditor();
             }
         });
 
-        // Add ESC key listener for accessibility
+        // Escape key to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 hideNoteEditor();
             }
         });
-
-        // REFACTORED: Use .is-active for state toggling
-        // Simulate active duration button toggle
-        editingPanel.querySelectorAll('.control-group:nth-child(2) .btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                editingPanel.querySelectorAll('.control-group:nth-child(2) .btn').forEach(b => b.classList.remove('is-active'));
-                this.classList.add('is-active');
-            });
-        });
-
-        // Simulate active type button toggle (Note, Chord, Rest)
-        editingPanel.querySelectorAll('.control-group:nth-child(3) .btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                editingPanel.querySelectorAll('.control-group:nth-child(3) .btn').forEach(b => b.classList.remove('is-active'));
-                this.classList.add('is-active');
-            });
-        });
     }
 
     function hideNoteEditor() {
         const editingPanel = document.getElementById('editingPanel');
-        editingPanel.classList.remove('visible');
+        if(editingPanel) {
+            editingPanel.classList.add('hidden');
+            editingPanel.classList.remove('visible');
+        }
     }
 
     function toggleDockPanel() {
         const editingPanel = document.getElementById('editingPanel');
         const dockedContainer = document.getElementById('dockedEditingContainer');
-        const panelDockBtn = editingPanel.querySelector('.panel-dock');
+        const panelDockBtn = editingPanel?.querySelector('.panel-dock');
+
+        if (!editingPanel || !dockedContainer || !panelDockBtn) {
+            console.error('❌ Missing panel elements for docking');
+            return;
+        }
 
         if (editingPanel.classList.contains('docked')) {
-            // Undock: move back to floating
+            // Undock
             editingPanel.classList.remove('docked');
-            dockedContainer.style.display = 'none';
-            
-            // Move panel back to main container
-            document.querySelector('.main-area').appendChild(editingPanel);
-            
-            // Update dock button
+            dockedContainer.classList.add('hidden');
+            document.querySelector('.piano-app__content-area')?.appendChild(editingPanel);
             panelDockBtn.innerHTML = '◀';
             panelDockBtn.setAttribute('aria-label', 'Dock to sidebar');
-            
-            console.log('Panel undocked');
+            console.log('↗️ Panel undocked');
         } else {
-            // Dock: move to sidebar
+            // Dock
             editingPanel.classList.add('docked');
-            dockedContainer.style.display = 'block';
-            
-            // Update dock button
+            dockedContainer.classList.remove('hidden');
+            dockedContainer.appendChild(editingPanel);
             panelDockBtn.innerHTML = '↗';
             panelDockBtn.setAttribute('aria-label', 'Undock from sidebar');
-            
-            // Move panel to sidebar
-            dockedContainer.appendChild(editingPanel);
-            
-            console.log('Panel docked');
+            console.log('📎 Panel docked');
         }
     }
-</script>
-{% endblock %}
 
-{% block palette %}
-    {% include '_palette.html' %}
+    // Start initialization when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeEditor);
+    } else {
+        // DOM is already ready
+        initializeEditor();
+    }
+</script>
 {% endblock %}

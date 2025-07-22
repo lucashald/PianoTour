@@ -17498,26 +17498,6 @@ function sl(n = !0, e = !1) {
     (this.drawingContext.font = `${Di}px monospace`),
     (this.drawingContext.fillStyle = "white"),
     (this.drawingContext.strokeStyle = "white"),
-    this.drawingContext.fillText(
-      Math.round(o).toString() + " FPS",
-      this.canvas.width,
-      Di * 2 + 5
-    ),
-    this.drawingContext.fillText(this.version, this.canvas.width, 5),
-    this.drawingContext.fillText(
-      `${this.notesOnScreen} notes`,
-      this.canvas.width,
-      Di + 5
-    ),
-    this.noteTimes &&
-      ((this.drawingContext.textAlign = "start"),
-      this.drawingContext.fillText(
-        Math.round(this.seq.currentTempo * this.seq.playbackRate * 100) / 100 +
-          "BPM",
-        0,
-        5
-      ),
-      this.drawingContext.fillText(this.currentTimeSignature, 0, Di + 5)),
     this.showHoldPedal &&
       ((this.drawingContext.font = `${Di * 3}px monospace`),
       (this.drawingContext.textAlign = "center"),
@@ -27712,7 +27692,6 @@ var Zd = !1,
     constructor(e, t, i, s = Zd) {
       (this.localeManager = i),
         (this.context = e),
-        (this.enableDebug = s),
         (this.isExporting = !1),
         (this.audioDelay = new DelayNode(e, { delayTime: 0 })),
         this.audioDelay.connect(e.destination),

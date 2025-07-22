@@ -22,8 +22,8 @@
   "keyboard": {
     "selectedChannel": 0,
     "keyRange": {
-      "min": 0,
-      "max": 127
+      "max": 96,
+      "min": 36
     },
     "mode": "light",
     "autoRange": false,
