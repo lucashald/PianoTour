@@ -1,3 +1,4 @@
 flask
 gunicorn
 mido
+pretty_midi

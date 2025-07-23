@@ -22983,7 +22983,7 @@ var Fc = {
     noWebAudio: "Your browser does not support Web Audio.",
     done: "Ready!",
   },
-  midiUploadButton: "Upload your MIDI files",
+  midiUploadButton: "Upload MIDI files",
   extraBank: {
     title: "Extra bank selection",
     offset: {

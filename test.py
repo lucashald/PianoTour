@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, send_file, jsonify, send_from
 import mido
 from mido import MidiFile, MidiTrack, Message
 import os
+import io
 import tempfile
 import logging
 from collections import defaultdict
@@ -511,7 +512,7 @@ def get_version():
 def get_settings():
     return jsonify({
         "renderer": {
-            "renderingMode": "2",
+            "renderingMode": "0",
             "renderWaveforms": True
         },
         "keyboard": {
@@ -522,7 +523,7 @@ def get_settings():
             "mode": "light",  # Light keyboard mode
             "show": True,  # Show keyboard
             "selectedChannel": 0,
-            "autoRange": False
+            "autoRange": True
         },
         "interface": {
             "mode": "dark",
@@ -532,23 +533,17 @@ def get_settings():
         "midi": {
             "input": None,
             "output": None
+        },
+        # ADD THIS SECTION:
+        "sequencer": {
+            "loop": False,  # This disables looping by default
+            "autoPlay": True  # You can also control auto-play here
         }
     })
 
-
 @app.route('/savesettings', methods=['POST'])
 def save_settings():
-    """Save user settings - SpessaSynth saves preferences"""
-    settings_file = 'spessasynth_settings.json'
-    try:
-        settings = request.get_json()
-        with open(settings_file, 'w') as f:
-            json.dump(settings, f, indent=2)
-        return jsonify({'success': True})
-    except Exception as e:
-        print(f"Error saving settings: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
+        return jsonify({'success': True, 'message': 'Settings received by server.'})
 
 @app.route('/soundfonts')
 def soundfont():

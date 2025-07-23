@@ -29,19 +29,26 @@ class PianoTourPlayer {
         console.log('✅ Piano Tour player ready');
     }
 
-    async waitForLibraries() {
-        return new Promise((resolve) => {
-            const checkLibraries = () => {
-                if (window.SpessaSynth || window.manager) {
-                    console.log('✅ SpessaSynth libraries found');
-                    resolve();
-                } else {
-                    setTimeout(checkLibraries, 100);
+async waitForLibraries() {
+    return new Promise((resolve) => {
+        const checkLibraries = () => {
+            if (window.SpessaSynth || window.manager) {
+                console.log('✅ SpessaSynth libraries found');
+                
+                // ADD THIS: Disable looping by default
+                if (window.manager && window.manager.seq) {
+                    window.manager.seq.loop = false;
+                    console.log('🔁 Looping disabled by default');
                 }
-            };
-            checkLibraries();
-        });
-    }
+                
+                resolve();
+            } else {
+                setTimeout(checkLibraries, 100);
+            }
+        };
+        checkLibraries();
+    });
+}
 
     connectToHTML() {
         // Connect to existing file input
