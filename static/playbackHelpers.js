@@ -66,7 +66,7 @@ export async function startAudio() {
     pianoState.ctxStarted = true;
     console.log("Tone.js audio context started."); // 2. Determine which samples to use based on instrument
     let sampleUrls;
-    if (window.CURRENT_INSTRUMENT === "guitar") {
+    if (pianoState.instrument === "guitar") {
       // The guitar samples are already reasonably sparse.
       // We'll just remove G2 since it's only one semitone from F#2.
       // The remaining samples are all 5-6 semitones apart.
@@ -81,7 +81,7 @@ export async function startAudio() {
         "C#5": "nylonf73.wav",
         G5: "nylonf79.wav",
       };
-    } else if (window.CURRENT_INSTRUMENT === "cello") {
+    } else if (pianoState.instrument === "cello") {
       // The original cello samples were very dense (every 3 semitones).
       // We can keep roughly half of them, spaced about 6 semitones apart,
       // which provides good coverage while significantly reducing load time.
@@ -105,7 +105,7 @@ export async function startAudio() {
         // "G5": "Cello_G5.wav",
         // "G6": "Cello_G6.wav",
       };
-    } else if (window.CURRENT_INSTRUMENT === "sax") {
+    } else if (pianoState.instrument === "sax") {
       // The sax samples were extremely dense, sometimes only 1 semitone apart.
       // We'll keep one sample every 4-5 semitones (a major third / perfect fourth).
       sampleUrls = {
