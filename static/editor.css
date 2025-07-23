@@ -3,7 +3,7 @@
    ========================================================================== */
 
 /* Editor Panel Structure */
-.piano-app__editor-panel {
+.piano-app__side-panel {
     width: 320px;
     min-height: 100vh;
     background: rgba(30, 41, 59, 0.95);

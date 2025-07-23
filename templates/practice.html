@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Are You Notes?</title>
+      <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='pianostyles.css') }}"
+    />
+  <style>
+    /* Quiz-specific styles */
+    .quiz-container {
+      width: 100%;
+      max-width: 400px;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      padding: calc(var(--spacing-unit) * 1.5);
+      margin-bottom: calc(var(--spacing-unit) * 1.5);
+    }
+
+    .quiz-header {
+      text-align: center;
+      margin-bottom: var(--spacing-unit);
+      font-size: 1.25rem;
+      color: var(--color-text-secondary);
+      padding-bottom: var(--spacing-unit);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .score-display {
+      height: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #FFFFFF;
+      color: var(--color-blue-darkest);
+      border-radius: var(--border-radius);
+      margin-bottom: var(--spacing-unit);
+    }
+
+    .form-group {
+      margin-bottom: var(--spacing-unit);
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: calc(var(--spacing-unit) * 0.5);
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+      color: var(--color-text-primary);
+      font-size: 1rem;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .form-control::placeholder {
+      color: var(--color-text-secondary);
+    }
+
+    .btn-block {
+      width: 100%;
+      margin-bottom: calc(var(--spacing-unit) * 0.5);
+    }
+
+    .quiz-stats {
+      text-align: center;
+      margin-top: var(--spacing-unit);
+    }
+
+    .quiz-stats p {
+      margin: calc(var(--spacing-unit) * 0.25) 0;
+      color: var(--color-text-primary);
+    }
+
+    .result-message {
+      min-height: 1.5em;
+      text-align: center;
+      margin: var(--spacing-unit) 0;
+      font-weight: 600;
+    }
+
+    .text-success {
+      color: var(--color-green-light);
+    }
+
+    .text-danger {
+      color: var(--color-peach-light);
+    }
+
+    .text-muted {
+      color: var(--color-text-secondary);
+    }
+
+    .text-warning {
+      color: var(--color-gold-light);
+    }
+
+    .settings-container {
+      width: 100%;
+      max-width: 400px;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius);
+    }
+
+    .settings-header {
+      padding: calc(var(--spacing-unit) * 1.5);
+      background-color: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--color-border);
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+
+    .settings-body {
+      padding: calc(var(--spacing-unit) * 1.5);
+    }
+
+    .caret-icon {
+      transition: transform 0.2s ease;
+    }
+
+    .settings-header.collapsed .caret-icon {
+      transform: rotate(-90deg);
+    }
+
+    .form-check-group {
+      display: flex;
+      justify-content: center;
+      gap: var(--spacing-unit);
+      flex-wrap: wrap;
+    }
+
+    .form-check {
+      display: flex;
+      align-items: center;
+      gap: calc(var(--spacing-unit) * 0.25);
+    }
+
+    .form-check-input {
+      margin: 0;
+    }
+
+    .form-check-label {
+      color: var(--color-text-primary);
+      cursor: pointer;
+    }
+
+    .octave-selectors {
+      display: flex;
+      justify-content: center;
+      gap: calc(var(--spacing-unit) * 0.75);
+      flex-wrap: wrap;
+    }
+
+    .settings-divider {
+      height: 1px;
+      background-color: var(--color-border);
+      margin: var(--spacing-unit) 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="piano-app">
+    <div class="piano-app__content-area">
+      <div class="piano-app__header">
+        <h1 class="piano-app__header-title">Are You Notes?</h1>
+      </div>
+
+      <div class="quiz-container">
+        <div class="quiz-header">Note Quiz</div>
+        <div id="vf-output" class="score-display"></div>
+        <form id="guessForm">
+          <div class="form-group">
+            <label for="guessInput">Enter the name of the note:</label>
+            <input type="text" class="form-control" id="guessInput" placeholder="e.g., C, D#">
+          </div>
+          <button type="submit" class="btn btn--primary btn-block">Submit</button>
+        </form>
+        <button id="playNoteButton" class="btn btn--info btn-block">Play Note Sound</button>
+        <div id="resultMessage" class="result-message">&nbsp;</div>
+        <div class="quiz-stats">
+          <p>Correct: <span id="correctCount">0</span></p>
+          <p>Incorrect: <span id="incorrectCount">0</span></p>
+        </div>
+      </div>
+
+      <div class="settings-container">
+        <div class="settings-header" id="practiceSettingsHeader">
+          Practice Settings
+          <i class="fas fa-caret-down caret-icon"></i>
+        </div>
+        <div id="practiceSettingsBody" class="settings-body">
+          <div class="form-group">
+            <label>Notes to Include:</label>
+            <div class="form-check-group">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="useAccidentals">
+                <label class="form-check-label" for="useAccidentals">Accidentals (#/b)</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="useLandmarkNotes">
+                <label class="form-check-label" for="useLandmarkNotes">Landmark Notes</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Octaves:</label>
+            <div id="octave-selectors" class="octave-selectors">
+            </div>
+          </div>
+          <div class="settings-divider"></div>
+          <button id="midiButton" class="btn btn--info btn-block">Connect MIDI Device</button>
+          <p id="midiStatus" class="text-muted" style="text-align: center; margin-top: var(--spacing-unit);">No MIDI device connected.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+  <script>
+    // Mock note data for demonstration - replace with your actual note-data.js
+    const NOTES_BY_MIDI = {
+      36: { midi: 36, name: "C2", pitchClass: "C", isBlack: false },
+      37: { midi: 37, name: "C#2", pitchClass: "C#", isBlack: true, flatName: "Db2" },
+      38: { midi: 38, name: "D2", pitchClass: "D", isBlack: false },
+      39: { midi: 39, name: "D#2", pitchClass: "D#", isBlack: true, flatName: "Eb2" },
+      40: { midi: 40, name: "E2", pitchClass: "E", isBlack: false },
+      41: { midi: 41, name: "F2", pitchClass: "F", isBlack: false },
+      42: { midi: 42, name: "F#2", pitchClass: "F#", isBlack: true, flatName: "Gb2" },
+      43: { midi: 43, name: "G2", pitchClass: "G", isBlack: false },
+      44: { midi: 44, name: "G#2", pitchClass: "G#", isBlack: true, flatName: "Ab2" },
+      45: { midi: 45, name: "A2", pitchClass: "A", isBlack: false },
+      46: { midi: 46, name: "A#2", pitchClass: "A#", isBlack: true, flatName: "Bb2" },
+      47: { midi: 47, name: "B2", pitchClass: "B", isBlack: false },
+      48: { midi: 48, name: "C3", pitchClass: "C", isBlack: false },
+      49: { midi: 49, name: "C#3", pitchClass: "C#", isBlack: true, flatName: "Db3" },
+      50: { midi: 50, name: "D3", pitchClass: "D", isBlack: false },
+      51: { midi: 51, name: "D#3", pitchClass: "D#", isBlack: true, flatName: "Eb3" },
+      52: { midi: 52, name: "E3", pitchClass: "E", isBlack: false },
+      53: { midi: 53, name: "F3", pitchClass: "F", isBlack: false },
+      54: { midi: 54, name: "F#3", pitchClass: "F#", isBlack: true, flatName: "Gb3" },
+      55: { midi: 55, name: "G3", pitchClass: "G", isBlack: false },
+      56: { midi: 56, name: "G#3", pitchClass: "G#", isBlack: true, flatName: "Ab3" },
+      57: { midi: 57, name: "A3", pitchClass: "A", isBlack: false },
+      58: { midi: 58, name: "A#3", pitchClass: "A#", isBlack: true, flatName: "Bb3" },
+      59: { midi: 59, name: "B3", pitchClass: "B", isBlack: false },
+      60: { midi: 60, name: "C4", pitchClass: "C", isBlack: false },
+      61: { midi: 61, name: "C#4", pitchClass: "C#", isBlack: true, flatName: "Db4" },
+      62: { midi: 62, name: "D4", pitchClass: "D", isBlack: false },
+      63: { midi: 63, name: "D#4", pitchClass: "D#", isBlack: true, flatName: "Eb4" },
+      64: { midi: 64, name: "E4", pitchClass: "E", isBlack: false },
+      65: { midi: 65, name: "F4", pitchClass: "F", isBlack: false },
+      66: { midi: 66, name: "F#4", pitchClass: "F#", isBlack: true, flatName: "Gb4" },
+      67: { midi: 67, name: "G4", pitchClass: "G", isBlack: false },
+      68: { midi: 68, name: "G#4", pitchClass: "G#", isBlack: true, flatName: "Ab4" },
+      69: { midi: 69, name: "A4", pitchClass: "A", isBlack: false },
+      70: { midi: 70, name: "A#4", pitchClass: "A#", isBlack: true, flatName: "Bb4" },
+      71: { midi: 71, name: "B4", pitchClass: "B", isBlack: false },
+      72: { midi: 72, name: "C5", pitchClass: "C", isBlack: false },
+      73: { midi: 73, name: "C#5", pitchClass: "C#", isBlack: true, flatName: "Db5" },
+      74: { midi: 74, name: "D5", pitchClass: "D", isBlack: false },
+      75: { midi: 75, name: "D#5", pitchClass: "D#", isBlack: true, flatName: "Eb5" },
+      76: { midi: 76, name: "E5", pitchClass: "E", isBlack: false },
+      77: { midi: 77, name: "F5", pitchClass: "F", isBlack: false },
+      78: { midi: 78, name: "F#5", pitchClass: "F#", isBlack: true, flatName: "Gb5" },
+      79: { midi: 79, name: "G5", pitchClass: "G", isBlack: false },
+      80: { midi: 80, name: "G#5", pitchClass: "G#", isBlack: true, flatName: "Ab5" },
+      81: { midi: 81, name: "A5", pitchClass: "A", isBlack: false },
+      82: { midi: 82, name: "A#5", pitchClass: "A#", isBlack: true, flatName: "Bb5" },
+      83: { midi: 83, name: "B5", pitchClass: "B", isBlack: false },
+      84: { midi: 84, name: "C6", pitchClass: "C", isBlack: false }
+    };
+
+    const { Factory, StaveConnector, EasyScore, System } = Vex.Flow;
+
+    // --- DOM Elements ---
+    const vfOutput = document.getElementById('vf-output');
+    const guessForm = document.getElementById('guessForm');
+    const guessInput = document.getElementById('guessInput');
+    const playNoteButton = document.getElementById('playNoteButton');
+    const resultMessage = document.getElementById('resultMessage');
+    const correctCountEl = document.getElementById('correctCount');
+    const incorrectCountEl = document.getElementById('incorrectCount');
+    const octaveSelectorsEl = document.getElementById('octave-selectors');
+    const useAccidentalsEl = document.getElementById('useAccidentals');
+    const useLandmarkNotesEl = document.getElementById('useLandmarkNotes');
+    const midiButton = document.getElementById('midiButton');
+    const midiStatus = document.getElementById('midiStatus');
+    
+    // Get references to the header and body for manual toggle
+    const practiceSettingsHeader = document.getElementById('practiceSettingsHeader');
+    const practiceSettingsBody = document.getElementById('practiceSettingsBody');
+    const caretIcon = document.querySelector('.settings-header .caret-icon');
+
+    // --- Game State ---
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let currentNote;
+    let practiceNotes = [];
+    let midiAccess = null;
+    let noteIsBeingChecked = false;
+
+    // Define your landmark notes
+    const LANDMARK_NOTE_NAMES = ['C2', 'C3', 'C4', 'C5', 'C6', 'G4', 'G5', 'F2', 'F3'];
+
+    // --- Core Functions ---
+
+    function drawNote(note) {
+      vfOutput.innerHTML = '';
+      const vf = new Factory({ renderer: { elementId: 'vf-output', width: 220, height: 250 } });
+      const score = vf.EasyScore();
+      const system = vf.System({ x: 20, width: 200, spaceBetweenStaves: 10 });
+
+      const noteNameToDraw = note.name;
+      const clef = note.midi < 60 ? 'bass' : 'treble';
+
+      let trebleNotes = 'B4/1/r';
+      let bassNotes = 'D3/1/r';
+
+      if (clef === 'treble') {
+        trebleNotes = `${noteNameToDraw}/q`;
+      } else {
+        bassNotes = `${noteNameToDraw}/q`;
+      }
+      
+      const trebleVoice = score.voice(score.notes(trebleNotes, { clef: 'treble' })).setStrict(false);
+      const bassVoice = score.voice(score.notes(bassNotes, { clef: 'bass' })).setStrict(false);
+
+      system.addStave({ voices: [trebleVoice] }).addClef('treble').addTimeSignature('4/4');
+      system.addStave({ voices: [bassVoice] }).addClef('bass').addTimeSignature('4/4');
+      system.addConnector().setType(StaveConnector.type.BRACE);
+      system.addConnector().setType(StaveConnector.type.SINGLE_LEFT);
+      system.addConnector().setType(StaveConnector.type.BOLD_DOUBLE_RIGHT);
+
+      vf.draw();
+    }
+
+    function playNote(midiNumber, duration = 0.5) {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const frequency = Math.pow(2, (midiNumber - 69) / 12) * 440;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = frequency;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + duration);
+    }
+    
+    function updatePracticeNotes() {
+      const selectedOctaves = [...octaveSelectorsEl.querySelectorAll('input:checked')].map(input => input.value);
+      const useAccidentals = useAccidentalsEl.checked;
+      const useLandmarkNotes = useLandmarkNotesEl.checked;
+      
+      let allPossibleNotes = Object.values(NOTES_BY_MIDI);
+
+      if (useLandmarkNotes) {
+        practiceNotes = allPossibleNotes.filter(note =>
+          LANDMARK_NOTE_NAMES.includes(note.name)
+        );
+      } else {
+        practiceNotes = allPossibleNotes.filter(note => {
+          const octave = note.name.slice(-1);
+          if (!selectedOctaves.includes(octave)) {
+            return false;
+          }
+
+          if (note.isBlack) {
+            return useAccidentals;
+          }
+          
+          return true;
+        });
+      }
+
+      octaveSelectorsEl.querySelectorAll('input').forEach(input => {
+          input.disabled = useLandmarkNotes;
+          if (useLandmarkNotes) input.checked = false;
+      });
+      useAccidentalsEl.disabled = useLandmarkNotes;
+      if (useLandmarkNotes) useAccidentalsEl.checked = false;
+    }
+
+    function loadRandomNote() {
+      if (practiceNotes.length === 0) {
+          vfOutput.innerHTML = '<div class="text-muted">No notes selected. Please change your settings.</div>';
+          guessInput.disabled = true;
+          return;
+      }
+      
+      guessInput.disabled = false;
+      noteIsBeingChecked = false;
+      currentNote = practiceNotes[Math.floor(Math.random() * practiceNotes.length)];
+      drawNote(currentNote);
+      resultMessage.textContent = '\u00A0';
+      resultMessage.className = 'result-message';
+      guessInput.value = '';
+      guessInput.focus();
+    }
+    
+    function updateAndLoadNewNote() {
+        updatePracticeNotes();
+        loadRandomNote();
+    }
+
+    function generateOctaveSelectors() {
+        const allOctaves = [...new Set(Object.values(NOTES_BY_MIDI).map(n => n.name.slice(-1)))].sort();
+        
+        allOctaves.forEach(octave => {
+            const div = document.createElement('div');
+            div.className = 'form-check';
+
+            const input = document.createElement('input');
+            input.className = 'form-check-input';
+            input.type = 'checkbox';
+            input.id = `octave${octave}`;
+            input.value = octave;
+            if (octave === '3' || octave === '4') {
+                input.checked = true;
+            }
+
+            const label = document.createElement('label');
+            label.className = 'form-check-label';
+            label.htmlFor = `octave${octave}`;
+            label.textContent = octave;
+            
+            div.appendChild(input);
+            div.appendChild(label);
+            octaveSelectorsEl.appendChild(div);
+        });
+    }
+
+    function checkAnswer(guess) {
+        if (!currentNote || !guess || noteIsBeingChecked) return;
+        noteIsBeingChecked = true;
+
+        // Create aliases for both full note name and pitch class only
+        const aliases = [
+            currentNote.name.toLowerCase(),           // Full name (e.g., "c4")
+            currentNote.pitchClass.toLowerCase()      // Pitch class only (e.g., "c")
+        ];
+        
+        // Add flat name aliases if they exist
+        if (currentNote.flatName) {
+            aliases.push(currentNote.flatName.toLowerCase());                    // Full flat name (e.g., "db4")
+            aliases.push(currentNote.flatName.slice(0, -1).toLowerCase());      // Flat pitch class (e.g., "db")
+        }
+
+        if (aliases.includes(guess.toLowerCase())) {
+            correctCount++;
+            resultMessage.textContent = 'Correct!';
+            resultMessage.className = 'result-message text-success';
+        } else {
+            incorrectCount++;
+            const answer = currentNote.flatName ? `${currentNote.name} / ${currentNote.flatName}` : currentNote.name;
+            resultMessage.textContent = `Incorrect. The answer was ${answer}`;
+            resultMessage.className = 'result-message text-danger';
+        }
+        correctCountEl.textContent = correctCount;
+        incorrectCountEl.textContent = incorrectCount;
+        setTimeout(loadRandomNote, 1500);
+    }
+
+    // --- MIDI Functions ---
+    function onMIDISuccess(midiAccess) {
+        console.log("MIDI ready!");
+        midiStatus.textContent = 'MIDI device connected successfully!';
+        midiStatus.className = 'text-success';
+        midiButton.disabled = true;
+        const inputs = midiAccess.inputs.values();
+        for (let input = inputs.next(); input && !input.done; input = inputs.next()) {
+            input.value.onmidimessage = getMIDIMessage;
+        }
+    }
+
+    function onMIDIFailure() {
+        console.log('Could not access your MIDI devices.');
+        midiStatus.textContent = 'Failed to access MIDI devices.';
+        midiStatus.className = 'text-danger';
+    }
+
+    function getMIDIMessage(message) {
+        const command = message.data[0];
+        const note = message.data[1];
+        // a velocity value might not be included with a noteOff command
+        const velocity = (message.data.length > 2) ? message.data[2] : 0;
+
+        // Note on messages have a command of 144
+        if (command === 144 && velocity > 0) {
+            const noteInfo = NOTES_BY_MIDI[note];
+            if (noteInfo) {
+                // Use the pitch class (note name without octave) for MIDI input
+                checkAnswer(noteInfo.pitchClass);
+            }
+        }
+    }
+
+    // --- Event Listeners ---
+    guessForm.addEventListener('submit', function(event) {
+      event.preventDefault();
+      const guess = guessInput.value.trim();
+      checkAnswer(guess);
+    });
+
+    playNoteButton.addEventListener('click', () => {
+      if (currentNote) {
+        playNote(currentNote.midi);
+      }
+    });
+
+    midiButton.addEventListener('click', () => {
+        if (navigator.requestMIDIAccess) {
+            navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+        } else {
+            console.log('Web MIDI API is not supported in this browser.');
+            midiStatus.textContent = 'Web MIDI is not supported by your browser.';
+            midiStatus.className = 'text-warning';
+        }
+    });
+
+    // --- Manual Toggle for Practice Settings ---
+    practiceSettingsHeader.addEventListener('click', () => {
+        if (practiceSettingsBody.style.display === 'none') {
+            practiceSettingsBody.style.display = 'block';
+            practiceSettingsHeader.classList.remove('collapsed');
+        } else {
+            practiceSettingsBody.style.display = 'none';
+            practiceSettingsHeader.classList.add('collapsed');
+        }
+    });
+
+    // --- Initialization ---
+    window.onload = () => {
+        generateOctaveSelectors();
+        
+        useLandmarkNotesEl.addEventListener('change', updateAndLoadNewNote);
+        [...octaveSelectorsEl.querySelectorAll('input'), useAccidentalsEl].forEach(el => {
+            el.addEventListener('change', updateAndLoadNewNote);
+        });
+        
+        updatePracticeNotes();
+        loadRandomNote();
+
+        // Initial state: hide the body and set the header to 'collapsed'
+        practiceSettingsBody.style.display = 'none';
+        practiceSettingsHeader.classList.add('collapsed');
+    };
+  </script>
+</body>
+</html>

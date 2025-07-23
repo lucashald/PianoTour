@@ -27,10 +27,12 @@
     </audio>
 
     <div class="piano-app">
-      {% if request.path == '/editor' %}
-      <aside class="piano-app__editor-panel">
-        {% endif %} {% block editor %}{% endblock %}
+      {% if show_side_panel %}
+      <aside class="piano-app__side-panel">
+        {% block editor %}{% endblock %}
+        {% block extras %}{% endblock %}
       </aside>
+      {% endif %} 
 
       <main class="piano-app__content-area">
         <header class="piano-app__header">
@@ -47,7 +49,7 @@
         </section>
 
         <section class="instrument-panel">
-          {% block spectrum %} {% if show_spectrum %} {% include
+          {% block spectrum %} {% if not hide_spectrum %} {% include
           '_spectrum.html' %} {% endif %} {% endblock %}
           <div class="instrument-panel__keyboard" id="instrument"></div>
         </section>
@@ -93,6 +95,7 @@
             {% else %}
             <a href="/" class="btn btn--info"><span>Piano</span></a>
             {% endif %}
+            <a href="/extras" class="btn btn--info"><span>Extras</span></a>
           </div>
 
           <div class="main-controls__chord-interface hidden" id="chordButtons">

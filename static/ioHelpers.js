@@ -262,11 +262,6 @@ export function initializeFileHandlers() {
         document.getElementById('instrument')?.focus();
     });
     
-    document.getElementById('export-midi-btn')?.addEventListener('click', (e) => {
-        exportMidi(e);
-        document.getElementById('instrument')?.focus();
-    });
-    
     console.log("File handlers initialized.");
 }
 

@@ -12,11 +12,6 @@
     // Update pianoState
     pianoState.instrument = templateInstrument;
 
-    // Keep backwards compatibility by attaching to window
-    window.CURRENT_INSTRUMENT = templateInstrument;
-
     console.log("Set instrument to:", templateInstrument);
-    console.log("pianoState.instrument:", pianoState.instrument);
-    console.log("window.CURRENT_INSTRUMENT:", window.CURRENT_INSTRUMENT);
 </script>
 {% endblock %}
