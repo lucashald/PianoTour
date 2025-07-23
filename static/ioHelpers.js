@@ -32,28 +32,6 @@ function handleFileLoad(event) {
 }
 
 /**
- * Converts an array of MIDI numbers to a VexFlow-compatible note name string.
- * @param {number[]} midiNotes - Array of MIDI numbers, e.g., [60] or [48, 52, 55]
- * @returns {string} A VexFlow name, e.g., "C4" or "(C3 E3 G3)"
- */
-function convertMidiToName(midiNotes) {
-    if (!midiNotes || midiNotes.length === 0) {
-        return "";
-    }
-
-    const noteNames = midiNotes
-        .map(midiNum => NOTES_BY_MIDI[midiNum]?.name) // Safely get the name
-        .filter(name => name); // Filter out any undefined names
-
-    if (noteNames.length === 1) {
-        return noteNames[0];
-    } else {
-        // Format for VexFlow chords
-        return `(${noteNames.join(' ')})`;
-    }
-}
-
-/**
  * Sends a MIDI file to the backend for conversion to JSON,
  * then updates the score with the result.
  * @param {File} file The MIDI file to load.
@@ -62,27 +40,22 @@ async function loadScoreFromMidi(file) {
     const formData = new FormData();
     formData.append('midiFile', file);
     console.log("Uploading MIDI file for conversion...");
+
     try {
         const response = await fetch('/convert-to-json', { method: 'POST', body: formData });
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || `Server responded with status: ${response.status}`);
         }
+
         const jsonDataFromServer = await response.json();
 
-        // Convert MIDI numbers from server to note names for VexFlow
-        const processedData = jsonDataFromServer.map(measure => {
-            return measure.map(note => {
-                if (note.isRest) {
-                    return note;
-                }
-                note.name = convertMidiToName(note.midiNotes);
-                return note;
-            });
-        });
-        
-        // Use the processed data to update the score
-        if (processAndSyncScore(processedData)) {
+        // Debug: Log the data structure
+        console.log("Raw server response:", jsonDataFromServer);
+
+        // The server now returns data with proper VexFlow note names already
+        // No need for MIDI number conversion - use the data directly
+        if (processAndSyncScore(jsonDataFromServer)) {
             drawAll(getMeasures());
             console.log("Score successfully loaded from MIDI file.");
         } else {

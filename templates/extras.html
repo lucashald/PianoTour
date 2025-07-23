@@ -1,28 +1,24 @@
-{% extends "index.html" %} {% block title %}PianoTour -Extras{% endblock %} {%
-block extras %}
+{% extends "index.html" %}
+
+{% block title %}PianoTour - Extras{% endblock %}
+
+{% block extras %}
 <a href="/player">
-  <button
-    id="midi-player-btn"
-    class="btn btn--primary playback-controls__button"
-  >
+  <button id="midi-player-btn" class="btn btn--primary playback-controls__button">
     MIDI Player
   </button>
 </a>
 <a href="/practice">
-  <button id="midi-player-btn" class="btn btn--info playback-controls__button">
+  <button id="practice-btn" class="btn btn--info playback-controls__button">
     Sight Reading Practice
   </button>
 </a>
-
 <button id="export-midi-btn" class="btn btn--info">Export MIDI</button>
 <!-- This input is not a visible button -->
-<input
-  type="file"
-  id="file-loader-input"
-  style="display: none"
-  accept=".json, .mid, .midi"
-/>
-{% endblock %} {% block scripts %}
+<input type="file" id="file-loader-input" style="display: none" accept=".json, .mid, .midi" />
+{% endblock %}
+
+{% block scripts %}
 <script type="module">
   import { exportMidi } from '{{ url_for("static", filename="ioHelpers.js") }}';
   document.getElementById("export-midi-btn")?.addEventListener("click", (e) => {
