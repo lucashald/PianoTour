@@ -272,11 +272,11 @@ class KeyboardAlignedSpectrum {
 
         case "blue fire":
         if (intensity < 0.25) {
-          return `hsl(207, 23%, ${20 + intensity * 100}%)`; // green
+          return `hsl(207, 23%, ${20 + intensity * 100}%)`; // blue
         } else if (intensity < 0.5) {
-          return `hsl(207, 45%, ${30 + intensity * 50}%)`; // greener
+          return `hsl(207, 45%, ${30 + intensity * 50}%)`; // bluer
         } else {
-          return `hsl(207, 84%, ${50 + intensity * 40}%)`; // greenest
+          return `hsl(207, 84%, ${50 + intensity * 40}%)`; // bluest
         }
 
       default:

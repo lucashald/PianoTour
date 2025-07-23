@@ -51,7 +51,7 @@ const DURATION_TO_BEATS = {
   32: 0.125,
   "32.": 0.1875,
 };
-const PLAYBACK_HIGHLIGHT_COLOR = "#1db954"; // A standard highlight color
+const PLAYBACK_HIGHLIGHT_COLOR = "#76B595"; // A standard highlight color
 
 // ===================================================================
 // Internal State for Playback
@@ -174,8 +174,8 @@ function scheduleNoteEvents(
            pianoState.currentSelectedNote.noteId === noteId
          ) {
            styleToRestore = {
-             fillStyle: "#ff6b35", // Orange (selected note color)
-             strokeStyle: "#ff6b35",
+             fillStyle: "#D88368", // Peach (selected note color)
+             strokeStyle: "#D88368",
              shadowColor: null,
              shadowBlur: 0,
            };
@@ -183,8 +183,8 @@ function scheduleNoteEvents(
          // 2. Is its containing measure currently selected? (Green takes next precedence)
          else if (measureIndex === pianoState.currentSelectedMeasure) {
            styleToRestore = {
-             fillStyle: "#1db954", // Green (measure highlight color)
-             strokeStyle: "#1db954",
+             fillStyle: "#76B595", // Green (measure highlight color)
+             strokeStyle: "#76B595",
              shadowColor: null,
              shadowBlur: 0,
            };

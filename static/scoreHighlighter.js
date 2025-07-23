@@ -39,8 +39,8 @@ export function highlightSelectedNote(measureIndex, clef, noteId) {
   }
 
   const selectionStyle = {
-    fillStyle: "#ff6b35",
-    strokeStyle: "#ff6b35",
+    fillStyle: "#D88368", // Peach
+    strokeStyle: "#D88368",
     shadowColor: null,
     shadowBlur: 0,
   };
@@ -68,28 +68,12 @@ export function clearSelectedNoteHighlight() {
  if (vexflowIndex !== undefined) {
    let styleToRestore;
 
-   // NEW: Check if this note is currently being played back using the Set
-   const noteKey = `${measureIndex}-${clef}-${noteId}`;
-   const isInPlaybackSet = pianoState.currentPlaybackNotes.has(noteKey);
-
-   // If this note is currently being played back, restore to playback color
-   if (isInPlaybackSet || isCurrentPlaybackNote) {
-     styleToRestore = {
-       fillStyle: "#1db954", // Green (playback highlight color)
-       strokeStyle: "#1db954",
-       shadowColor: "#1db954",
-       shadowBlur: 15,
-     };
-     console.log(
-       `clearSelectedNoteHighlight: Restoring note to playback highlight color.`
-     );
-   }
-   // Determine the appropriate style to restore based on current highlighting state layering:
-   else if (measureIndex === pianoState.currentSelectedMeasure) {
+   // Determine the appropriate style to restore based on current highlighting state:
+   if (measureIndex === pianoState.currentSelectedMeasure) {
      // If the note's measure is still selected, restore the note to the measure highlight color (green).
      styleToRestore = {
-       fillStyle: "#1db954", // Green (measure highlight color)
-       strokeStyle: "#1db954",
+       fillStyle: "#76B595", // Green (measure highlight color)
+       strokeStyle: "#76B595",
        shadowColor: null,
        shadowBlur: 0,
      };
@@ -112,8 +96,6 @@ export function clearSelectedNoteHighlight() {
    // Apply the determined style to the VexFlow note.
    setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, styleToRestore);
  }
-
- pianoState.currentSelectedNote = null;
 }
 
 export function highlightSelectedMeasure(measureIndex) {
@@ -143,8 +125,8 @@ export function highlightSelectedMeasure(measureIndex) {
     }
 
     const measureStyle = {
-      fillStyle: "#1db954",
-      strokeStyle: "#1db954",
+      fillStyle: "#76B595",
+      strokeStyle: "#76B595",
       shadowColor: null,
       shadowBlur: 0,
     };
@@ -354,8 +336,8 @@ export function clearPlaybackHighlight() {
         pianoState.currentSelectedNote.noteId === noteId
       ) {
         styleToRestore = {
-          fillStyle: "#ff6b35", // Orange (selected note color)
-          strokeStyle: "#ff6b35",
+          fillStyle: "#295570", // Orange (selected note color)
+          strokeStyle: "#295570",
           shadowColor: null,
           shadowBlur: 0,
         };
@@ -366,8 +348,8 @@ export function clearPlaybackHighlight() {
       // 2. Is its containing measure currently selected? (Green takes next precedence)
       else if (measureIdx === pianoState.currentSelectedMeasure) {
         styleToRestore = {
-          fillStyle: "#1db954", // Green (measure highlight color)
-          strokeStyle: "#1db954",
+          fillStyle: "#76B595", // Green (measure highlight color)
+          strokeStyle: "#76B595",
           shadowColor: null,
           shadowBlur: 0,
         };

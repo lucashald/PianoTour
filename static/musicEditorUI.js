@@ -5,7 +5,7 @@
 // ===================================================================
 // Imports
 // ===================================================================
-
+import { pianoState } from "./appState.js";
 import { getMeasures, addNoteToMeasure, removeNoteFromMeasure, updateNoteInMeasure, moveNoteBetweenMeasures } from './scoreWriter.js';
 import {
     drawAll,
@@ -197,6 +197,7 @@ function renderNoteEditBox() {
         highlightSelectedNote(editorSelectedMeasureIndex, selectedNote.clef, selectedNote.id);
     } else {
         clearSelectedNoteHighlight();
+        pianoState.currentSelectedNote = null;
     }
 }
 
