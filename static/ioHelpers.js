@@ -163,55 +163,40 @@ function saveScoreToFile() {
 }
 
 /**
- * Converts the current score to the backend's expected JSON format
+ * Converts the current score to VexFlow JSON format
  * and sends it to the /convert-to-midi endpoint to generate a MIDI file.
  */
-function exportMidi() {
+export function exportMidi() {
     console.log("Starting MIDI export...");
 
-    // Helper function to parse VexFlow note names (including chords) into MIDI numbers.
-    function parseNotesToMidi(noteName) {
-        if (noteName.startsWith('(') && noteName.endsWith(')')) {
-            const noteNames = noteName.slice(1, -1).split(' ').map(name => name.trim());
-            return noteNames.map(name => NOTES_BY_NAME[name]).filter(midi => midi !== undefined);
-        } else {
-            const midiNumber = NOTES_BY_NAME[noteName];
-            return midiNumber !== undefined ? [midiNumber] : [];
-        }
-    }
-
-    // Transform the application's score data into the format the backend expects.
-    const midiData = getMeasures().map(measure => {
-        return measure.map(note => {
-            if (note.isRest) {
+    // Transform the application's score data into VexFlow JSON format
+    const vexflowJson = {
+        keySignature: "C",  // You might want to make this configurable
+        tempo: 120,         // You might want to make this configurable
+        timeSignature: {
+            numerator: 4,
+            denominator: 4
+        },
+        instrument: "piano",
+        midiChannel: "0",
+        measures: getMeasures().map((measure, measureIndex) => {
+            return measure.map((note, noteIndex) => {
                 return {
-                    midiNotes: [],
+                    id: `note-${measureIndex}-${noteIndex}`,
+                    name: note.name,  // VexFlow format: "C4" or "(C4 E4 G4)"
                     clef: note.clef,
                     duration: note.duration,
-                    isRest: true,
-                    velocity: note.velocity || 80
+                    measure: measureIndex,
+                    isRest: note.isRest
                 };
-            } else {
-                const midiNotes = parseNotesToMidi(note.name);
-                if (midiNotes.length === 0) {
-                    console.warn(`Could not find MIDI number for note: ${note.name}`);
-                    return null;
-                }
-                return {
-                    midiNotes: midiNotes,
-                    clef: note.clef,
-                    duration: note.duration,
-                    isRest: false,
-                    velocity: note.velocity || 80
-                };
-            }
-        }).filter(note => note !== null);
-    });
+            });
+        })
+    };
 
     fetch('/convert-to-midi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(midiData)
+        body: JSON.stringify(vexflowJson)
     })
     .then(response => {
         if (!response.ok) {

@@ -8,6 +8,7 @@ import logging
 from collections import defaultdict
 import math
 import json
+import ugly_midi
 
 # --- Basic Configuration ---
 logging.basicConfig(level=logging.INFO)
@@ -121,243 +122,46 @@ def split_duration_across_measures(duration_ticks, remaining_space_in_measure,
 
 def midi_to_json_data(midi_file_path):
     """
-    Converts a MIDI file to the app's JSON format with robust logic for duration,
-    clef, and measure construction to prevent VexFlow errors.
-    Now includes measure numbers in the output.
+    Converts a MIDI file to the app's JSON format using ugly_midi library.
     """
     try:
-        mid = MidiFile(midi_file_path)
-    except Exception as e:
-        logger.error(f"Mido failed to parse MIDI file: {e}")
-        raise ValueError("Invalid or corrupted MIDI file.")
+        # Use ugly_midi to convert MIDI to VexFlow JSON
+        vexflow_json = ugly_midi.midi_to_json(midi_file_path)
 
-    midi_ticks_per_beat = mid.ticks_per_beat or TICKS_PER_BEAT
-    normalization_factor = TICKS_PER_BEAT / midi_ticks_per_beat
+        # Transform VexFlow format to your app's expected format
+        song_data = []
 
-    # --- Step 1: Extract Time Signature and Note Events ---
-    time_signature_numerator = 4
-    time_signature_denominator = 4
-    all_events = []
+        for measure_index, measure in enumerate(
+                vexflow_json.get('measures', [])):
+            measure_notes = []
 
-    for i, track in enumerate(mid.tracks):
-        absolute_time = 0
-        for msg in track:
-            absolute_time += msg.time
-            if msg.is_meta and msg.type == 'time_signature':
-                time_signature_numerator = msg.numerator
-                time_signature_denominator = msg.denominator
-                logger.info(
-                    f"Time signature: {time_signature_numerator}/{time_signature_denominator}"
-                )
-            if msg.type in ['note_on', 'note_off']:
-                all_events.append({
-                    'type': msg.type,
-                    'note': msg.note,
-                    'velocity': msg.velocity,
-                    'time': absolute_time,
-                    'track': i
-                })
-
-    all_events.sort(key=lambda e: e['time'])
-    logger.info(f"Total events: {len(all_events)}")
-
-    # --- Step 2: Convert Events into Normalized Timed Notes ---
-    notes_on = {}
-    timed_notes = []
-
-    for event in all_events:
-        key = (event['note'], event['track'])
-        if event['type'] == 'note_on' and event['velocity'] > 0:
-            notes_on[key] = event
-        elif event['type'] == 'note_off' or (event['type'] == 'note_on'
-                                             and event['velocity'] == 0):
-            if key in notes_on:
-                note_on_event = notes_on.pop(key)
-                duration_ticks = event['time'] - note_on_event['time']
-                if duration_ticks > 0:
-                    normalized_duration = duration_ticks * normalization_factor
-                    timed_notes.append({
-                        'midiNotes': [event['note']],
-                        'clef':
-                        'bass' if event['note'] < 60 else 'treble',
-                        'start_time':
-                        note_on_event['time'] * normalization_factor,
-                        'duration_ticks':
-                        normalized_duration,
-                        'isRest':
-                        False
+            for note in measure:
+                if note.get('isRest', False):
+                    measure_notes.append({
+                        'name': '',
+                        'clef': note.get('clef', 'treble'),
+                        'duration': note.get('duration', 'q'),
+                        'isRest': True,
+                        'velocity': 80,
+                        'measure': measure_index
+                    })
+                else:
+                    measure_notes.append({
+                        'name': note.get('name', 'C4'),
+                        'clef': note.get('clef', 'treble'),
+                        'duration': note.get('duration', 'q'),
+                        'isRest': False,
+                        'velocity': 80,  # Default velocity
+                        'measure': measure_index
                     })
 
-    # Handle any notes that were turned on but never turned off
-    for key, note_on_event in notes_on.items():
-        logger.warning(f"Note {key} was turned on but never turned off")
-        # Add with a default duration
-        default_duration = TICKS_PER_BEAT  # quarter note
-        timed_notes.append({
-            'midiNotes': [note_on_event['note']],
-            'clef': 'bass' if note_on_event['note'] < 60 else 'treble',
-            'start_time': note_on_event['time'] * normalization_factor,
-            'duration_ticks': default_duration,
-            'isRest': False
-        })
+            song_data.append(measure_notes)
 
-    timed_notes.sort(key=lambda x: x['start_time'])
-    logger.info(f"Total timed notes: {len(timed_notes)}")
+        return song_data
 
-    # --- Step 3: Group Simultaneous Notes into Chords ---
-    if not timed_notes:
-        logger.warning("No timed notes found")
-        return []
-
-    chord_groups = []
-    CHORD_TOLERANCE_TICKS = 20
-    current_chord = [timed_notes[0]]
-
-    for i in range(1, len(timed_notes)):
-        if abs(timed_notes[i]['start_time'] -
-               current_chord[0]['start_time']) <= CHORD_TOLERANCE_TICKS:
-            current_chord.append(timed_notes[i])
-        else:
-            # Process current chord
-            combined_midi_notes = [
-                note['midiNotes'][0] for note in current_chord
-            ]
-            avg_duration = sum(note['duration_ticks']
-                               for note in current_chord) / len(current_chord)
-            # Clef decision based on lowest note for bass clef dominance
-            clef = 'bass' if min(combined_midi_notes) < 60 else 'treble'
-            chord_groups.append({
-                'midiNotes': combined_midi_notes,
-                'clef': clef,
-                'start_time': current_chord[0]['start_time'],
-                'duration_ticks': avg_duration,
-                'isRest': False
-            })
-            current_chord = [timed_notes[i]]
-
-    # Don't forget the last chord
-    if current_chord:
-        combined_midi_notes = [note['midiNotes'][0] for note in current_chord]
-        avg_duration = sum(note['duration_ticks']
-                           for note in current_chord) / len(current_chord)
-        clef = 'bass' if min(combined_midi_notes) < 60 else 'treble'
-        chord_groups.append({
-            'midiNotes': combined_midi_notes,
-            'clef': clef,
-            'start_time': current_chord[0]['start_time'],
-            'duration_ticks': avg_duration,
-            'isRest': False
-        })
-
-    logger.info(f"Total chord groups: {len(chord_groups)}")
-
-    # --- Step 4: Build Measures with Robust Logic ---
-    if not chord_groups:
-        return []
-
-    ticks_per_measure = TICKS_PER_BEAT * time_signature_numerator * (
-        4 / time_signature_denominator)
-    logger.info(f"Ticks per measure: {ticks_per_measure}")
-
-    song_data = []
-    time_cursor = 0
-    current_measure = []
-    current_measure_ticks = 0
-    current_measure_number = 1  # Start measure numbering from 1
-
-    def add_measure_if_needed():
-        nonlocal current_measure, current_measure_ticks, current_measure_number
-        if current_measure:
-            # Fill remaining space with rest if needed
-            remaining_ticks = ticks_per_measure - current_measure_ticks
-            if remaining_ticks > 0:
-                rest_duration = ticks_to_duration_symbol(remaining_ticks)
-                current_measure.append({
-                    'isRest': True,
-                    'duration': rest_duration,
-                    'measure':
-                    current_measure_number - 1  # 0-based measure numbering
-                })
-
-            song_data.append(current_measure)
-            current_measure = []
-            current_measure_ticks = 0
-            current_measure_number += 1
-
-    def add_item_to_current_measure(item, duration_ticks):
-        nonlocal current_measure_ticks
-
-        remaining_space = ticks_per_measure - current_measure_ticks
-        duration_symbol = ticks_to_duration_symbol(duration_ticks)
-        actual_duration_ticks = DURATION_TO_TICKS_MAP.get(duration_symbol, 0)
-
-        if actual_duration_ticks <= remaining_space:
-            # Item fits in current measure
-            item_copy = item.copy()
-            item_copy['duration'] = duration_symbol
-            item_copy[
-                'measure'] = current_measure_number - 1  # 0-based measure numbering
-            current_measure.append(item_copy)
-            current_measure_ticks += actual_duration_ticks
-        else:
-            # Item needs to be split across measures
-            duration_parts = split_duration_across_measures(
-                duration_ticks, remaining_space, ticks_per_measure)
-
-            for i, duration_symbol in enumerate(duration_parts):
-                # If current measure is full, start a new one
-                if current_measure_ticks >= ticks_per_measure:
-                    add_measure_if_needed()
-
-                item_copy = item.copy()
-                item_copy['duration'] = duration_symbol
-                item_copy[
-                    'measure'] = current_measure_number - 1  # 0-based measure numbering
-
-                # Add tie if this is not the last part
-                if i < len(duration_parts) - 1:
-                    item_copy['tied'] = True
-
-                current_measure.append(item_copy)
-                current_measure_ticks += DURATION_TO_TICKS_MAP.get(
-                    duration_symbol, 0)
-
-    # Process all chord groups
-    for item in chord_groups:
-        # Add rest if there's a gap
-        rest_duration = item['start_time'] - time_cursor
-        if rest_duration > 1:  # Small tolerance
-            add_item_to_current_measure({'isRest': True}, rest_duration)
-
-        # Add the note/chord
-        add_item_to_current_measure(item, item['duration_ticks'])
-
-        # Update time cursor
-        time_cursor = item['start_time'] + item['duration_ticks']
-
-    # Add the last measure if it has content
-    add_measure_if_needed()
-
-    # Validation and logging
-    logger.info(f"Generated {len(song_data)} measures")
-    for i, measure in enumerate(
-            song_data[:3]):  # Print first 3 measures for debugging
-        total_ticks = sum(
-            DURATION_TO_TICKS_MAP.get(n.get('duration'), 0) for n in measure)
-        logger.info(
-            f"Measure {i}: {len(measure)} items, {total_ticks}/{ticks_per_measure} ticks"
-        )
-        for j, item in enumerate(measure):
-            if item.get('isRest'):
-                logger.info(
-                    f"  Rest: {item.get('duration', 'unknown duration')} measure:{item.get('measure', 'unknown')}"
-                )
-            else:
-                logger.info(
-                    f"  Note: {item.get('midiNotes', [])} clef:{item.get('clef')} duration:{item.get('duration', 'unknown')} measure:{item.get('measure', 'unknown')}"
-                )
-
-    return song_data
+    except Exception as e:
+        logger.error(f"ugly_midi failed to parse MIDI file: {e}")
+        raise ValueError(f"Failed to convert MIDI file: {str(e)}")
 
 
 # --- Core Conversion Logic ---
@@ -457,17 +261,21 @@ def index():
 def editor():
     return render_template('editor.html', show_side_panel=True)
 
+
 @app.route('/extras')
 def extras():
     return render_template('extras.html', show_side_panel=True)
+
 
 @app.route('/print')
 def print():
     return render_template('print.html')
 
+
 @app.route('/practice')
 def practice():
     return render_template('practice.html')
+
 
 @app.route('/guitar')
 def guitar():
@@ -547,9 +355,14 @@ def get_settings():
         }
     })
 
+
 @app.route('/savesettings', methods=['POST'])
 def save_settings():
-        return jsonify({'success': True, 'message': 'Settings received by server.'})
+    return jsonify({
+        'success': True,
+        'message': 'Settings received by server.'
+    })
+
 
 @app.route('/soundfonts')
 def soundfont():
@@ -593,10 +406,16 @@ def convert_to_midi():
         song_data = request.json
         if not song_data:
             return jsonify({'error': 'No song data provided'}), 400
-        midi_file = create_piano_midi(song_data)
+
+        # Use ugly_midi library instead of create_piano_midi
+        midi_data = ugly_midi.json_to_midi(song_data)
+
         fd, temp_midi_path = tempfile.mkstemp(suffix='.mid')
         os.close(fd)
-        midi_file.save(temp_midi_path)
+
+        # Use ugly_midi's save function instead of midi_file.save()
+        ugly_midi.save_midi(midi_data, temp_midi_path)
+
         return send_file(temp_midi_path,
                          as_attachment=True,
                          download_name='score.mid',

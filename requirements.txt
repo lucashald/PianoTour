@@ -2,3 +2,4 @@ flask
 gunicorn
 mido
 pretty_midi
+git+https://github.com/lucashald/uglymidi.git
