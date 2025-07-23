@@ -450,7 +450,7 @@ def get_velocity(note_info):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', show_spectrum=True)
 
 
 @app.route('/editor')
