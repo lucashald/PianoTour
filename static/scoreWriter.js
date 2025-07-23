@@ -306,7 +306,8 @@ export function writeNote(obj) {
         clef, 
         duration, 
         measure: currentIndex, 
-        isRest 
+        isRest,
+        chordName: chordName
     };
 
     measuresData[currentIndex] ??= []; 
