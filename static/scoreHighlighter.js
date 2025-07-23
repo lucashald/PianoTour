@@ -11,6 +11,7 @@ import {
   getVexflowIndexByNoteId,
   getMeasureXPositions,
 } from "./scoreRenderer.js";
+import { updateNowPlayingDisplay } from "./uiHelpers.js";
 
 export function highlightSelectedNote(measureIndex, clef, noteId) {
   console.log(
@@ -18,12 +19,9 @@ export function highlightSelectedNote(measureIndex, clef, noteId) {
   );
   clearSelectedNoteHighlight();
 
-  if (
-    pianoState.currentPlaybackNote &&
-    pianoState.currentPlaybackNote.measureIndex === measureIndex &&
-    pianoState.currentPlaybackNote.clef === clef &&
-    pianoState.currentPlaybackNote.noteId === noteId
-  ) {
+  // NEW: Check if this note is in the currentPlaybackNotes Set
+  const noteKey = `${measureIndex}-${clef}-${noteId}`;
+  if (pianoState.currentPlaybackNotes.has(noteKey)) {
     console.log(
       "highlightSelectedNote: Clearing conflicting playback highlight for target note."
     );
@@ -51,54 +49,71 @@ export function highlightSelectedNote(measureIndex, clef, noteId) {
 }
 
 /**
- * Clears the currently selected individual note highlight.
- * It restores the note's style to black by default, or to the measure highlight color (green) if its containing measure is also selected.
- */
+* Clears the currently selected individual note highlight.
+* It restores the note's style to black by default, or to the measure highlight color (green) if its containing measure is also selected.
+*/
 export function clearSelectedNoteHighlight() {
-  console.log("clearSelectedNoteHighlight: Clearing selected note highlight.");
-  if (!pianoState.currentSelectedNote) {
-    console.log(
-      "clearSelectedNoteHighlight: No note currently selected to clear."
-    );
-    return;
-  }
+ console.log("clearSelectedNoteHighlight: Clearing selected note highlight.");
+ if (!pianoState.currentSelectedNote) {
+   console.log(
+     "clearSelectedNoteHighlight: No note currently selected to clear."
+   );
+   return;
+ }
 
-  const { measureIndex, clef, noteId } = pianoState.currentSelectedNote;
+ const { measureIndex, clef, noteId } = pianoState.currentSelectedNote;
 
-  // Convert to VexFlow index to target the specific VexFlow note object.
-  const vexflowIndex = getVexflowIndexByNoteId()[noteId];
-  if (vexflowIndex !== undefined) {
-    let styleToRestore;
-    // Determine the appropriate style to restore based on current highlighting state layering:
-    if (measureIndex === pianoState.currentSelectedMeasure) {
-      // If the note's measure is still selected, restore the note to the measure highlight color (green).
-      styleToRestore = {
-        fillStyle: "#1db954", // Green (measure highlight color)
-        strokeStyle: "#1db954",
-        shadowColor: null,
-        shadowBlur: 0,
-      };
-      console.log(
-        `clearSelectedNoteHighlight: Restoring note to measure highlight color.`
-      );
-    } else {
-      // Otherwise, restore the note to its default black color.
-      styleToRestore = {
-        fillStyle: "#000000", // Black (default note color)
-        strokeStyle: "#000000",
-        shadowColor: null,
-        shadowBlur: 0,
-      };
-      console.log(
-        `clearSelectedNoteHighlight: Restoring note to default black color.`
-      );
-    }
+ // Convert to VexFlow index to target the specific VexFlow note object.
+ const vexflowIndex = getVexflowIndexByNoteId()[noteId];
+ if (vexflowIndex !== undefined) {
+   let styleToRestore;
 
-    // Apply the determined style to the VexFlow note.
-    setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, styleToRestore);
-  }
+   // NEW: Check if this note is currently being played back using the Set
+   const noteKey = `${measureIndex}-${clef}-${noteId}`;
+   const isInPlaybackSet = pianoState.currentPlaybackNotes.has(noteKey);
 
-  pianoState.currentSelectedNote = null;
+   // If this note is currently being played back, restore to playback color
+   if (isInPlaybackSet || isCurrentPlaybackNote) {
+     styleToRestore = {
+       fillStyle: "#1db954", // Green (playback highlight color)
+       strokeStyle: "#1db954",
+       shadowColor: "#1db954",
+       shadowBlur: 15,
+     };
+     console.log(
+       `clearSelectedNoteHighlight: Restoring note to playback highlight color.`
+     );
+   }
+   // Determine the appropriate style to restore based on current highlighting state layering:
+   else if (measureIndex === pianoState.currentSelectedMeasure) {
+     // If the note's measure is still selected, restore the note to the measure highlight color (green).
+     styleToRestore = {
+       fillStyle: "#1db954", // Green (measure highlight color)
+       strokeStyle: "#1db954",
+       shadowColor: null,
+       shadowBlur: 0,
+     };
+     console.log(
+       `clearSelectedNoteHighlight: Restoring note to measure highlight color.`
+     );
+   } else {
+     // Otherwise, restore the note to its default black color.
+     styleToRestore = {
+       fillStyle: "#000000", // Black (default note color)
+       strokeStyle: "#000000",
+       shadowColor: null,
+       shadowBlur: 0,
+     };
+     console.log(
+       `clearSelectedNoteHighlight: Restoring note to default black color.`
+     );
+   }
+
+   // Apply the determined style to the VexFlow note.
+   setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, styleToRestore);
+ }
+
+ pianoState.currentSelectedNote = null;
 }
 
 export function highlightSelectedMeasure(measureIndex) {
@@ -263,55 +278,55 @@ box-sizing: border-box; /* Include padding and border in the element's total wid
 // ===================================================================
 
 /**
- * Applies a playback highlight to a single note. This highlight is typically temporary,
- * indicating the note currently being played. It takes visual precedence over measure highlight,
- * but can be overridden by individual note selection.
- * @param {number} measureIndex - The index of the measure the note is in.
- * @param {string} clef - The clef of the note ('treble' or 'bass').
- * @param {string} noteId - The unique ID of the note.
- * @param {string} color - The color for the playback highlight (e.g., '#FFD700' for gold).
- */
+* Applies a playback highlight to a single note. This highlight is typically temporary,
+* indicating the note currently being played. It takes visual precedence over measure highlight,
+* but can be overridden by individual note selection.
+* @param {number} measureIndex - The index of the measure the note is in.
+* @param {string} clef - The clef of the note ('treble' or 'bass').
+* @param {string} noteId - The unique ID of the note.
+* @param {string} color - The color for the playback highlight (e.g., '#FFD700' for gold).
+*/
 export function addPlaybackHighlight(measureIndex, clef, noteId, color) {
-  console.log(
-    `addPlaybackHighlight: Highlighting playback note: M${measureIndex}, C${clef}, ID${noteId}`
-  );
-  // 1. Clear any existing playback highlight first to ensure only one note is highlighted for playback at a time.
-  clearPlaybackHighlight();
+ console.log(
+   `addPlaybackHighlight: Highlighting playback note: M${measureIndex}, C${clef}, ID${noteId}`
+ );
 
-  pianoState.currentPlaybackNote = { measureIndex, clef, noteId };
+ // NEW: Add to the playback notes Set (don't clear existing ones)
+ const noteKey = `${measureIndex}-${clef}-${noteId}`;
+ pianoState.currentPlaybackNotes.add(noteKey);
 
-  // Convert to VexFlow index to target the specific VexFlow note object.
-  const vexflowIndex = getVexflowIndexByNoteId()[noteId];
-  if (vexflowIndex === undefined) {
-    console.warn(
-      `addPlaybackHighlight: Cannot add playback highlight: VexFlow index not found for measure ${measureIndex}, clef ${clef}, noteId ${noteId}.`
-    );
-    return;
-  }
+ // Convert to VexFlow index to target the specific VexFlow note object.
+ const vexflowIndex = getVexflowIndexByNoteId()[noteId];
+ if (vexflowIndex === undefined) {
+   console.warn(
+     `addPlaybackHighlight: Cannot add playback highlight: VexFlow index not found for measure ${measureIndex}, clef ${clef}, noteId ${noteId}.`
+   );
+   return;
+ }
 
-  const playbackStyle = {
-    fillStyle: color,
-    strokeStyle: color,
-    shadowColor: color,
-    shadowBlur: 15,
-  };
+ const playbackStyle = {
+   fillStyle: color,
+   strokeStyle: color,
+   shadowColor: color,
+   shadowBlur: 15,
+ };
 
-  setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, playbackStyle);
+ setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, playbackStyle);
 
-  // IMPORTANT: If the playback note is *also* the currently selected individual note,
-  // we need to re-apply the orange selection highlight immediately after.
-  // This ensures that the orange selection color visually overrides the playback color.
-  if (
-    pianoState.currentSelectedNote &&
-    pianoState.currentSelectedNote.measureIndex === measureIndex &&
-    pianoState.currentSelectedNote.clef === clef &&
-    pianoState.currentSelectedNote.noteId === noteId
-  ) {
-    console.log(
-      "addPlaybackHighlight: Playback note is also selected. Re-applying selection highlight to override playback."
-    );
-    highlightSelectedNote(measureIndex, clef, noteId);
-  }
+ // IMPORTANT: If the playback note is *also* the currently selected individual note,
+ // we need to re-apply the orange selection highlight immediately after.
+ // This ensures that the orange selection color visually overrides the playback color.
+ if (
+   pianoState.currentSelectedNote &&
+   pianoState.currentSelectedNote.measureIndex === measureIndex &&
+   pianoState.currentSelectedNote.clef === clef &&
+   pianoState.currentSelectedNote.noteId === noteId
+ ) {
+   console.log(
+     "addPlaybackHighlight: Playback note is also selected. Re-applying selection highlight to override playback."
+   );
+   highlightSelectedNote(measureIndex, clef, noteId);
+ }
 }
 
 /**
@@ -320,65 +335,65 @@ export function addPlaybackHighlight(measureIndex, clef, noteId, color) {
  */
 export function clearPlaybackHighlight() {
   console.log("clearPlaybackHighlight: Clearing playback highlight.");
-  if (!pianoState.currentPlaybackNote) {
-    console.log(
-      "clearPlaybackHighlight: No playback note currently active to clear."
-    );
-    return;
+
+  // NEW: Clear all notes from the Set
+  for (const noteKey of pianoState.currentPlaybackNotes) {
+    const [measureIndex, clef, noteId] = noteKey.split('-');
+    const measureIdx = parseInt(measureIndex);
+
+    const vexflowIndex = getVexflowIndexByNoteId()[noteId];
+    if (vexflowIndex !== undefined) {
+      let styleToRestore;
+
+      // Determine the correct style to restore based on the highlighting precedence:
+      // 1. Is it the currently selected individual note? (Orange takes highest precedence)
+      if (
+        pianoState.currentSelectedNote &&
+        pianoState.currentSelectedNote.measureIndex === measureIdx &&
+        pianoState.currentSelectedNote.clef === clef &&
+        pianoState.currentSelectedNote.noteId === noteId
+      ) {
+        styleToRestore = {
+          fillStyle: "#ff6b35", // Orange (selected note color)
+          strokeStyle: "#ff6b35",
+          shadowColor: null,
+          shadowBlur: 0,
+        };
+        console.log(
+          `clearPlaybackHighlight: Restoring note to selected note color.`
+        );
+      }
+      // 2. Is its containing measure currently selected? (Green takes next precedence)
+      else if (measureIdx === pianoState.currentSelectedMeasure) {
+        styleToRestore = {
+          fillStyle: "#1db954", // Green (measure highlight color)
+          strokeStyle: "#1db954",
+          shadowColor: null,
+          shadowBlur: 0,
+        };
+        console.log(
+          `clearPlaybackHighlight: Restoring note to measure highlight color.`
+        );
+      }
+      // 3. Otherwise, restore to default black (lowest precedence).
+      else {
+        styleToRestore = {
+          fillStyle: "#000000", // Black (default note color)
+          strokeStyle: "#000000",
+          shadowColor: null,
+          shadowBlur: 0,
+        };
+        console.log(
+          `clearPlaybackHighlight: Restoring note to default black color.`
+        );
+      }
+
+      setVexFlowNoteStyle(measureIdx, clef, vexflowIndex, styleToRestore);
+    }
   }
 
-  const { measureIndex, clef, noteId } = pianoState.currentPlaybackNote;
-  const vexflowIndex = getVexflowIndexByNoteId()[noteId];
-
-  if (vexflowIndex !== undefined) {
-    let styleToRestore;
-
-    // Determine the correct style to restore based on the highlighting precedence:
-    // 1. Is it the currently selected individual note? (Orange takes highest precedence)
-    if (
-      pianoState.currentSelectedNote &&
-      pianoState.currentSelectedNote.measureIndex === measureIndex &&
-      pianoState.currentSelectedNote.clef === clef &&
-      pianoState.currentSelectedNote.noteId === noteId
-    ) {
-      styleToRestore = {
-        fillStyle: "#ff6b35", // Orange (selected note color)
-        strokeStyle: "#ff6b35",
-        shadowColor: null,
-        shadowBlur: 0,
-      };
-      console.log(
-        `clearPlaybackHighlight: Restoring note to selected note color.`
-      );
-    }
-    // 2. Is its containing measure currently selected? (Green takes next precedence)
-    else if (measureIndex === pianoState.currentSelectedMeasure) {
-      styleToRestore = {
-        fillStyle: "#1db954", // Green (measure highlight color)
-        strokeStyle: "#1db954",
-        shadowColor: null,
-        shadowBlur: 0,
-      };
-      console.log(
-        `clearPlaybackHighlight: Restoring note to measure highlight color.`
-      );
-    }
-    // 3. Otherwise, restore to default black (lowest precedence).
-    else {
-      styleToRestore = {
-        fillStyle: "#000000", // Black (default note color)
-        strokeStyle: "#000000",
-        shadowColor: null,
-        shadowBlur: 0,
-      };
-      console.log(
-        `clearPlaybackHighlight: Restoring note to default black color.`
-      );
-    }
-
-    setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, styleToRestore);
-  }
-  pianoState.currentPlaybackNote = null;
+  // Clear the Set
+  pianoState.currentPlaybackNotes.clear();
 }
 
 /**
@@ -424,7 +439,7 @@ export function resetAllNoteStyles() {
  * @param {number} vexflowNoteIndex - The VexFlow-internal index of the note.
  * @param {object} style - The VexFlow style object { fillStyle, strokeStyle, shadowColor, shadowBlur }.
  */
-function setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, style) {
+export function setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, style) {
   const vexflowNoteMap = getVexFlowNoteMap();
   const note = vexflowNoteMap[measureIndex]?.[clef]?.[vexflowIndex];
   if (!note) {

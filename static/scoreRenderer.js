@@ -418,17 +418,15 @@ export function drawAll(measures) {
         pianoState.currentSelectedNote.noteId
       );
     }
-    if (pianoState.currentPlaybackNote) {
+    // NEW: Restore all notes from the playback Set
+    for (const noteKey of pianoState.currentPlaybackNotes) {
+      const [measureIndex, clef, noteId] = noteKey.split('-');
+      const measureIdx = parseInt(measureIndex);
       console.log(
         `drawAll: Restoring playback highlight for note`,
-        pianoState.currentPlaybackNote
+        { measureIndex: measureIdx, clef, noteId }
       );
-      addPlaybackHighlight(
-        pianoState.currentPlaybackNote.measureIndex,
-        pianoState.currentPlaybackNote.clef,
-        pianoState.currentPlaybackNote.noteId,
-        "#FFD700"
-      );
+      addPlaybackHighlight(measureIdx, clef, noteId, "#FFD700");
     }
 
     const scoreWrap = document.getElementById("scoreWrap");

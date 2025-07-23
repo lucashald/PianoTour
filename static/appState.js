@@ -55,5 +55,5 @@ export const pianoState = {
 	// Track user selections and playback.
 	currentSelectedMeasure: -1,
     currentSelectedNote: null, // { measureIndex, clef, noteId }
-    currentPlaybackNote: null, // { measureIndex, clef, noteId }
+    currentPlaybackNotes: new Set(),
 };
