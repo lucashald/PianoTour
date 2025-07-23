@@ -118,8 +118,6 @@
       } from '{{ url_for("static", filename="instrumentHelpers.js") }}';
       import {
         startAudio,
-        handleMidiNoteOn,
-        handleMidiNoteOff,
       } from '{{ url_for("static", filename="playbackHelpers.js") }}';
       import {
         getMeasures,
@@ -141,6 +139,8 @@
       import {
         initMidi,
         setMidiCallbacks,
+            handleMidiNoteOn,
+        handleMidiNoteOff,
       } from '{{ url_for("static", filename="midi-controller.js") }}';
 
       // Store initialization state globally so child scripts can check it

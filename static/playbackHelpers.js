@@ -36,6 +36,7 @@ import {
   destroySpectrum,
 } from "./spectrum.js";
 
+import { handleMidiNoteOn, handleMidiNoteOff } from "./midi-controller.js";
 // ===================================================================
 // Module Variables
 // ===================================================================
@@ -525,103 +526,6 @@ export function stopDiatonicChord(key) {
   }
 
   delete pianoState.activeDiatonicChords[key];
-}
-
-// ===================================================================
-// MIDI Event Handlers (Fixed)
-// ===================================================================
-
-/**
- * Handles incoming MIDI Note On messages.
- * @param {number} midiNoteNumber - The MIDI note number (0-127).
- * @param {number} velocity - The note velocity (1-127).
- * @param {number} channel - The MIDI channel (0-15).
- */
-export function handleMidiNoteOn(midiNoteNumber, velocity, channel) {
-  console.log(
-    `MIDI Note On: Channel ${channel}, Note ${midiNoteNumber}, Velocity ${velocity}`
-  ); // Channel 8 (MIDI channel 9 in user terms) is reserved for diatonic chords // Note: Using channel 8 instead of 9 to avoid percussion channel conflict
-
-  if (channel === 9) {
-    // Map MIDI note number to a diatonic degree (1-7)
-    // Assuming MIDI notes 36-42 correspond to degrees 1-7
-    const degree = midiNoteNumber - 35;
-    if (degree >= 1 && degree <= 7) {
-      console.log(`Playing diatonic chord: degree ${degree}`); // Use the unified playDiatonicChord function with score writing enabled
-      playDiatonicChord(degree, `midi_${midiNoteNumber}`, true);
-    } else {
-      console.warn(
-        `Invalid diatonic degree: ${degree} (from MIDI note ${midiNoteNumber})`
-      );
-    }
-    return;
-  } // Handle standard note presses
-
-  const keyEl = pianoState.noteEls[midiNoteNumber];
-  if (keyEl) {
-    startKey(keyEl, "sharp", velocity);
-  } else {
-    console.warn(`No key element found for MIDI note ${midiNoteNumber}`);
-  }
-}
-
-/**
- * Handles incoming MIDI Note Off messages.
- * @param {number} midiNoteNumber - The MIDI note number (0-127).
- * @param {number} velocity - The note velocity (1-127).
- * @param {number} channel - The MIDI channel (0-15).
- */
-export function handleMidiNoteOff(midiNoteNumber, velocity, channel) {
-  console.log(
-    `MIDI Note Off: Channel ${channel}, Note ${midiNoteNumber}, Velocity ${velocity}`
-  ); // Handle diatonic chord release from channel 8
-
-  if (channel === 9) {
-    const chordKey = `midi_${midiNoteNumber}`;
-    const activeChord = pianoState.activeDiatonicChords[chordKey];
-    if (activeChord) {
-      console.log(`Stopping diatonic chord: ${chordKey}`); // Use the unified stopDiatonicChord function which handles score writing
-      stopDiatonicChord(chordKey);
-    } else {
-      console.warn(`No active diatonic chord found for key: ${chordKey}`);
-    }
-    return;
-  } // Handle standard note release
-
-  const activeNote = pianoState.activeNotes[midiNoteNumber];
-  const keyEl = pianoState.noteEls[midiNoteNumber];
-
-  if (keyEl && activeNote) {
-    // Stop the sound and visual feedback
-    stopKey(keyEl); // --- Score Writing Logic ---
-
-    const noteInfo = NOTES_BY_MIDI[midiNoteNumber];
-    if (!noteInfo) return;
-
-    const heldTime = performance.now() - activeNote.startTime; // FIX: Updated quantization logic to include dotted notes. // Checks must be in order from longest to shortest duration.
-
-    let duration = "q"; // Default to quarter note
-    if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-    else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
-    else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
-    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q."; // The default remains 'q'
-    const noteNameForScore =
-      activeNote.spelling === "flat" && noteInfo.flatName
-        ? noteInfo.flatName
-        : noteInfo.name;
-    const clef = noteInfo.midi < 60 ? "bass" : "treble";
-
-    writeNote({
-      clef,
-      duration,
-      notes: [noteNameForScore],
-      chordName: noteNameForScore, // For single notes, the chordName is just the note name
-    });
-  } else if (!keyEl) {
-    console.warn(`No key element found for MIDI note ${midiNoteNumber}`);
-  } else if (!activeNote) {
-    console.warn(`No active note found for MIDI note ${midiNoteNumber}`);
-  }
 }
 
 // ===================================================================
