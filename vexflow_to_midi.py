@@ -5,7 +5,7 @@ VexFlow JSON to MIDI Converter
 Converts VexFlow-style JSON music notation to MIDI files using pretty_midi.
 
 Usage:
-    python vexflow_to_midi.py input.json output.mid
+    python ugly_midi.py input.json output.mid
 """
 
 import argparse
