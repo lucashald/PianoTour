@@ -123,56 +123,7 @@ function doRemoveNote(measureIndex, noteId) {
     return removedNote;
 }
 
-function doAddNote(measureIndex, noteData, insertBeforeNoteId = null) {
-    // Ensure the target measure exists
-    if (!measuresData[measureIndex]) {
-        measuresData[measureIndex] = [];
-        console.log(`doAddNote: Initialized new measure ${measureIndex}.`);
-    }
 
-    const targetMeasure = measuresData[measureIndex];
-    let insertIndex = -1;
-
-    if (insertBeforeNoteId !== null) {
-        insertIndex = targetMeasure.findIndex(note => note.id === insertBeforeNoteId);
-        if (insertIndex === -1) {
-            console.warn(`doAddNote: Note with ID ${insertBeforeNoteId} not found in measure ${measureIndex}. Appending to end.`);
-        }
-    }
-
-    // Create temporary measure for overflow checking
-    const tempMeasure = [...targetMeasure];
-    if (insertIndex === -1) {
-        tempMeasure.push(noteData);
-        console.log(`doAddNote: Preparing to append note to measure ${measureIndex}.`);
-    } else {
-        tempMeasure.splice(insertIndex, 0, noteData);
-        console.log(`doAddNote: Preparing to insert note at index ${insertIndex} in measure ${measureIndex}.`);
-    }
-
-    const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
-
-    // Handle overflow by creating new measure
-    if (trebleBeats > MEASURE_CAPACITY_BEATS || bassBeats > MEASURE_CAPACITY_BEATS) {
-        console.warn(`Adding note to measure ${measureIndex} would cause overflow. Creating new measure.`);
-        const nextMeasureIndex = measuresData.length;
-        measuresData[nextMeasureIndex] = [noteData];
-        currentIndex = nextMeasureIndex;
-        const newMeasureBeats = calculateMeasureBeats(measuresData[currentIndex]);
-        currentTrebleBeats = newMeasureBeats.trebleBeats;
-        currentBassBeats = newMeasureBeats.bassBeats;
-    } else {
-        // No overflow, insert normally
-        measuresData[measureIndex] = tempMeasure;
-        if (measureIndex === currentIndex) {
-            const updatedBeats = calculateMeasureBeats(measuresData[currentIndex]);
-            currentTrebleBeats = updatedBeats.trebleBeats;
-            currentBassBeats = updatedBeats.bassBeats;
-        }
-    }
-
-    return noteData.id;
-}
 
 function doUpdateNote(measureIndex, noteId, newNoteData) {
     if (!measuresData[measureIndex]) {
@@ -328,28 +279,90 @@ export function writeNote(obj) {
 }
 
 // ===================================================================
-// Public API Functions (Handle side effects)
+// Editor Functions
 // ===================================================================
 
 /**
-* Adds a new note at a specified position within a measure.
-* This function checks for measure overflow and creates a new measure if necessary.
+* Inserts a new note at a specified position within a measure.
+* This function handles ID generation, overflow checking, and creates new measures if needed.
 * @param {number} measureIndex - The index of the measure to modify.
-* @param {object} noteData - The note object to insert.
+* @param {object} noteData - The note object to insert (without ID).
 * @param {string|null} [insertBeforeNoteId=null] - The ID of the note to insert before. If null, appends to end.
- * If the ID is not found, it appends to the end.
+* @returns {object|null} Object with {noteId, measureIndex, clef} of the added note, or null if not added due to overflow.
 */
 export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = null) {
     console.log('addNoteToMeasure input: measureIndex=', measureIndex, 'noteData=', noteData, 'insertBeforeNoteId=', insertBeforeNoteId);
 
-    const addedNoteId = doAddNote(measureIndex, noteData, insertBeforeNoteId);
+    // Ensure the target measure exists
+    if (!measuresData[measureIndex]) {
+        measuresData[measureIndex] = [];
+        console.log(`addNoteToMeasure: Initialized new measure ${measureIndex}.`);
+    }
 
-    // Save history AFTER the change is made
+    // Generate unique ID for the note if it doesn't have one
+    if (!noteData.id) {
+        noteData.id = generateUniqueId();
+    }
+
+    const targetMeasure = measuresData[measureIndex];
+    let insertIndex = -1;
+
+    // Find insertion position
+    if (insertBeforeNoteId !== null) {
+        insertIndex = targetMeasure.findIndex(note => note.id === insertBeforeNoteId);
+        if (insertIndex === -1) {
+            console.warn(`addNoteToMeasure: Note with ID ${insertBeforeNoteId} not found in measure ${measureIndex}. Appending to end.`);
+        }
+    }
+
+    // Create temporary measure to test for overflow
+    const tempMeasure = [...targetMeasure];
+    if (insertIndex === -1) {
+        tempMeasure.push(noteData);
+        console.log(`addNoteToMeasure: Preparing to append note to measure ${measureIndex}.`);
+    } else {
+        tempMeasure.splice(insertIndex, 0, noteData);
+        console.log(`addNoteToMeasure: Preparing to insert note at index ${insertIndex} in measure ${measureIndex}.`);
+    }
+
+    const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
+
+    // Handle overflow by creating new measure
+    let finalMeasureIndex = measureIndex;
+    if (trebleBeats > MEASURE_CAPACITY_BEATS || bassBeats > MEASURE_CAPACITY_BEATS) {
+        console.warn(`addNoteToMeasure: Adding note to measure ${measureIndex} would cause overflow. Creating new measure.`);
+        finalMeasureIndex = measuresData.length;
+        measuresData[finalMeasureIndex] = [noteData];
+
+        // Update currentIndex if this is the current working measure
+        if (measureIndex === currentIndex) {
+            currentIndex = finalMeasureIndex;
+            const newMeasureBeats = calculateMeasureBeats(measuresData[currentIndex]);
+            currentTrebleBeats = newMeasureBeats.trebleBeats;
+            currentBassBeats = newMeasureBeats.bassBeats;
+        }
+    } else {
+        // No overflow, insert normally
+        measuresData[measureIndex] = tempMeasure;
+
+        // Update current beats if editing the current measure
+        if (measureIndex === currentIndex) {
+            const updatedBeats = calculateMeasureBeats(measuresData[currentIndex]);
+            currentTrebleBeats = updatedBeats.trebleBeats;
+            currentBassBeats = updatedBeats.bassBeats;
+        }
+    }
+
+    // Save history and handle side effects
     saveStateToHistory();
     handleSideEffects();
 
-    console.log(`addNoteToMeasure output: Note added. Current beats - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}.`);
-    return addedNoteId;
+    console.log(`addNoteToMeasure output: Note added with ID ${noteData.id}. Current beats - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}.`);
+    return {
+        noteId: noteData.id,
+        measureIndex: finalMeasureIndex,
+        clef: noteData.clef
+    };
 }
 
 /**
@@ -463,27 +476,6 @@ export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureI
 
     console.log(`moveNoteBetweenMeasures output: true. Note with ID ${fromNoteId} moved successfully.`);
     return true;
-}
-
-/**
-* Enhanced version of addNoteToMeasure that can create new measures if the target measureIndex
- * is beyond the current number of measures.
-* @param {number} measureIndex - The index of the measure to modify or create.
-* @param {object} note - The note object to insert.
-* @param {string|null} [insertBeforeNoteId=null] - The ID of the note to insert before. If null, appends.
-* @returns {string|null} The ID of the added note, or null if not added.
-*/
-export function addNoteToMeasureWithExpansion(measureIndex, note, insertBeforeNoteId = null) {
-    console.log('addNoteToMeasureWithExpansion input: measureIndex=', measureIndex, 'note=', note, 'insertBeforeNoteId=', insertBeforeNoteId);
-    // Ensure we have enough measures to reach the target measureIndex
-    while (measuresData.length <= measureIndex) {
-        measuresData.push([]);
-        console.log(`addNoteToMeasureWithExpansion: Created new empty measure at index ${measuresData.length - 1}`);
-    }
-
-    const addedNoteId = addNoteToMeasure(measureIndex, note, insertBeforeNoteId);
-    console.log('addNoteToMeasureWithExpansion output: Added note ID:', addedNoteId);
-    return addedNoteId;
 }
 
 export function resetScore() {

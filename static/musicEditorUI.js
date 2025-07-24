@@ -67,10 +67,6 @@ function parseSingleNoteName(noteName) {
     return { letter, accidental, octave };
 }
 
-// ===================================================================
-// UI Rendering Functions
-// ===================================================================
-
 function renderNoteEditBox() {
     const measures = getMeasures();
     if (editorSelectedMeasureIndex >= measures.length) {
@@ -83,6 +79,7 @@ function renderNoteEditBox() {
         measureNumberInput.value = editorSelectedMeasureIndex + 1;
         measureNumberInput.max = measures.length > 0 ? measures.length : 1;
     }
+
     document.getElementById('editorPrevBtn').disabled = editorSelectedMeasureIndex <= 0;
     document.getElementById('editorNextBtn').disabled = false;
 
@@ -91,10 +88,10 @@ function renderNoteEditBox() {
     trebleNotesContainer.innerHTML = '';
     bassNotesContainer.innerHTML = '';
 
-    const createAddButton = (clef, originalIndex) => {
+    const createAddButton = (clef, insertBeforeNoteId = null) => {
         const btn = document.createElement('button');
         btn.className = 'btn btn--compact btn--info add-note-initial';
-        btn.dataset.originalIndex = originalIndex;
+        btn.dataset.insertBeforeNoteId = insertBeforeNoteId; // null means append to end
         btn.dataset.clef = clef;
         btn.textContent = '+';
         return btn;
@@ -112,24 +109,45 @@ function renderNoteEditBox() {
         return btn;
     };
 
-    const addInitialButtonToContainer = (container, clef) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'button-group'; // Use a class styled in editor.css
-        wrapper.appendChild(createAddButton(clef, -1));
-        container.appendChild(wrapper);
-    };
+    // Separate notes by clef for easier processing
+    const trebleNotes = currentMeasure.filter(note => note.clef === 'treble');
+    const bassNotes = currentMeasure.filter(note => note.clef === 'bass');
 
-    addInitialButtonToContainer(trebleNotesContainer, 'treble');
-    addInitialButtonToContainer(bassNotesContainer, 'bass');
+    // Render treble clef notes
+    // Add initial + button for treble (before first note)
+    const initialTrebleWrapper = document.createElement('div');
+    initialTrebleWrapper.className = 'button-group';
+    initialTrebleWrapper.appendChild(createAddButton('treble', trebleNotes[0]?.id || null));
+    trebleNotesContainer.appendChild(initialTrebleWrapper);
 
-    currentMeasure.forEach((note, noteIndex) => {
-        const container = note.clef === 'treble' ? trebleNotesContainer : bassNotesContainer;
+    trebleNotes.forEach((note, index) => {
         const noteWrapper = document.createElement('div');
         noteWrapper.className = 'button-group';
         noteWrapper.appendChild(createNoteButton(note));
-        noteWrapper.appendChild(createAddButton(note.clef, noteIndex));
-        container.appendChild(noteWrapper);
+        // Add button after this note (before next note, or at end)
+        const nextNoteId = trebleNotes[index + 1]?.id || null;
+        noteWrapper.appendChild(createAddButton('treble', nextNoteId));
+        trebleNotesContainer.appendChild(noteWrapper);
     });
+
+    // Render bass clef notes
+    // Add initial + button for bass (before first note)
+    const initialBassWrapper = document.createElement('div');
+    initialBassWrapper.className = 'button-group';
+    initialBassWrapper.appendChild(createAddButton('bass', bassNotes[0]?.id || null));
+    bassNotesContainer.appendChild(initialBassWrapper);
+
+    bassNotes.forEach((note, index) => {
+        const noteWrapper = document.createElement('div');
+        noteWrapper.className = 'button-group';
+        noteWrapper.appendChild(createNoteButton(note));
+        // Add button after this note (before next note, or at end)
+        const nextNoteId = bassNotes[index + 1]?.id || null;
+        noteWrapper.appendChild(createAddButton('bass', nextNoteId));
+        bassNotesContainer.appendChild(noteWrapper);
+    });
+
+// End
 
     const editorExpandedEditor = document.getElementById('editorExpandedEditor');
     const singleNoteControls = document.getElementById('singleNoteControls');
@@ -221,6 +239,7 @@ function handleEditorNoteSelectClick(measureIndex, clef, noteId) {
         editorSelectedNoteId = null;
         clearSelectedNoteHighlight();
         renderNoteEditBox();
+        scrollToMeasure(measureIndex);
         return;
     }
     const currentMeasureNotes = getMeasures()[measureIndex] || [];
@@ -229,10 +248,12 @@ function handleEditorNoteSelectClick(measureIndex, clef, noteId) {
         editorSelectedNoteId = null;
         clearSelectedNoteHighlight();
         renderNoteEditBox();
+        scrollToMeasure(measureIndex);
         return;
     }
     editorSelectedNoteId = (editorSelectedNoteId === noteId) ? null : noteId;
     renderNoteEditBox();
+    scrollToMeasure(measureIndex);
 }
 
 function handleMeasureClick(measureIndex, wasNoteClicked) {
@@ -326,13 +347,17 @@ export function initializeMusicEditor() {
         if (target.id === 'editorNextBtn') changeMeasure(editorSelectedMeasureIndex + 1);
 
         if (target.classList.contains('add-note-initial')) {
-            const insertAfterLinearIndex = parseInt(target.dataset.originalIndex, 10);
+            const insertBeforeNoteId = target.dataset.insertBeforeNoteId === 'null' ? null : target.dataset.insertBeforeNoteId;
             const newClef = target.dataset.clef;
             const newNote = { name: "C4", clef: newClef, duration: "q", isRest: false };
-            const addedNoteId = addNoteToMeasure(editorSelectedMeasureIndex, newNote, insertAfterLinearIndex + 1);
-            editorSelectedNoteId = addedNoteId;
-            renderNoteEditBox();
+            const addedNoteResult = addNoteToMeasure(editorSelectedMeasureIndex, newNote, insertBeforeNoteId);
+
+            if (addedNoteResult) {
+                // Automatically select the newly added note
+                handleEditorNoteSelectClick(addedNoteResult.measureIndex, addedNoteResult.clef, addedNoteResult.noteId);
+            }
         }
+        
         if (target.classList.contains('editor-note-select')) {
             const noteId = target.dataset.noteId;
             const clef = target.dataset.clef;
