@@ -393,23 +393,6 @@ h4 {
   display: none !important;
 }
 
-/* ==========================================================================
-   EDITOR WIDGET STYLES - Add these to your pianostyles.css
-   ========================================================================== */
-
-/* Editor Panel Structure */
-.piano-app__side-panel {
-    width: 320px;
-    min-height: 100vh;
-    background: rgba(30, 41, 59, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 20px;
-    border-radius: 0 12px 12px 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    flex-shrink: 0;
-}
-
 .piano-app__side-panel .btn--side {
   margin: 0.5rem; 
 }
@@ -426,6 +409,22 @@ h4 {
   gap: 4px; /* Adjust the horizontal space between the two buttons */
 }
 
+/* ==========================================================================
+   EDITOR WIDGET STYLES - Add these to your pianostyles.css
+   ========================================================================== */
+
+/* Editor Panel Structure */
+.piano-app__side-panel {
+    width: 320px;
+    min-height: 100vh;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 0 12px 12px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+}
 
 /* Editor Widget Layout */
 .editor-widget {
@@ -524,6 +523,19 @@ h4 {
     to { 
         opacity: 1;
     }}
+
+    /* Editor Panel Structure */
+.piano-app__side-panel {
+    width: 320px;
+    min-height: 100vh;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 0 12px 12px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+}
 
 /* Editor Widget Layout */
 .editor-widget {
@@ -761,345 +773,183 @@ h4 {
     flex-wrap: wrap;
     align-items: center;
 }
-/* Enhanced Mobile-Friendly Drag and Drop Styles */
 
-/* =================================================================== */
-/* PALETTE NOTES - TOUCH-FRIENDLY */
-/* =================================================================== */
-
+/* Individual Palette Notes */
 .palette-note {
+    width: 60px;
+    height: 45px;
+    background: #724E91;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--border-radius-sm);
+    color: #FFFFFF;
     cursor: grab;
-    transition: transform 0.1s ease, opacity 0.1s ease, box-shadow 0.1s ease;
-    /* Make touch targets larger on mobile */
-    min-height: 44px; /* Apple's recommended minimum touch target */
-    min-width: 44px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    position: relative;
-    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 600;
+    transition: var(--transition);
     user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
 }
 
-/* Touch device specific styles */
-@media (hover: none) and (pointer: coarse) {
-    .palette-note {
-        /* Larger touch targets on touch devices */
-        min-height: 48px;
-        min-width: 48px;
-        padding: 8px;
-    }
-}
-
+/* Hover Effects */
 .palette-note:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: #9269b6;
+    border-color: var(--primary-green);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
 }
 
-/* Active/pressed state for touch */
+/* Active/Dragging State */
 .palette-note:active {
-    cursor: grabbing;
+    cursor: none;
     transform: scale(0.95);
 }
 
-.palette-note.dragging {
-    opacity: 0.6;
-    transform: scale(0.9);
-    cursor: grabbing;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-/* Enhanced visual feedback for dragging */
-.palette-note.dragging::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: rgba(34, 197, 94, 0.2);
-    border: 2px solid rgba(34, 197, 94, 0.5);
-    border-radius: 8px;
-    pointer-events: none;
-    animation: pulse 1s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 0.8; }
-}
-
-/* =================================================================== */
-/* SCORE AREA DRAG STATES */
-/* =================================================================== */
-
-.score-viewer__content.drag-over {
-    background-color: rgba(59, 130, 246, 0.05);
-    outline: 2px dashed rgba(59, 130, 246, 0.3);
-    outline-offset: -2px;
-    transition: background-color 0.2s ease, outline 0.2s ease;
-}
-
-/* Enhanced drag preview */
-#drag-snap-preview {
-    transition: all 0.1s ease-out;
-    font-size: 14px;
-    padding: 4px 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    border-radius: 4px;
-    font-weight: 600;
-    backdrop-filter: blur(4px);
-}
-
-/* =================================================================== */
-/* VEXFLOW NOTE ELEMENTS - TOUCH-FRIENDLY */
-/* =================================================================== */
-
-.vf-stavenote {
-    /* Ensure notes are touchable */
-    min-width: 20px;
-    min-height: 20px;
-    cursor: grab;
-    transition: transform 0.1s ease, opacity 0.1s ease;
-}
-
-.vf-stavenote:hover {
-    transform: scale(1.05);
-}
-
-.vf-stavenote.dragging {
+/* Note Duration Labels */
+.note-duration {
+    font-size: 9px;
+    margin-top: 2px;
     opacity: 0.7;
-    transform: scale(1.1);
-    cursor: grabbing;
-}
-
-/* =================================================================== */
-/* DRAG SUCCESS/FAILURE ANIMATIONS */
-/* =================================================================== */
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
-@keyframes successScale {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-@keyframes copyFlash {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-.drag-success {
-    animation: successScale 0.3s ease;
-}
-
-.drag-copy {
-    animation: copyFlash 0.2s ease;
-}
-
-.drag-failed {
-    animation: shake 0.5s ease-in-out;
-}
-
-/* =================================================================== */
-/* TOAST NOTIFICATIONS */
-/* =================================================================== */
-
-.toast {
-    font-family: system-ui, -apple-system, sans-serif;
-    font-size: 14px;
     font-weight: 500;
-    border-radius: 6px;
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.1);
+    line-height: 1;
 }
 
-.toast--success {
-    background: linear-gradient(135deg, #51cf66, #40c057) !important;
+/* Special Chord Styles */
+.chord-major {
+    background: linear-gradient(135deg, var(--success), #22c55e) !important;
+    color: white !important;
+    border-color: var(--success) !important;
 }
 
-.toast--error {
-    background: linear-gradient(135deg, #ff6b6b, #fa5252) !important;
+.chord-major:hover {
+    background: linear-gradient(135deg, #22c55e, var(--success)) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4) !important;
 }
 
-.toast--info {
-    background: linear-gradient(135deg, #339af0, #228be6) !important;
+.chord-minor {
+    background: linear-gradient(135deg, #a855f7, #9333ea) !important;
+    color: white !important;
+    border-color: #a855f7 !important;
 }
 
-/* =================================================================== */
-/* TOUCH-SPECIFIC CURSOR BEHAVIOR */
-/* =================================================================== */
-
-@media (hover: none) and (pointer: coarse) {
-    /* Remove cursor styles on touch devices */
-    .palette-note,
-    .vf-stavenote {
-        cursor: default !important;
-    }
-
-    /* Provide haptic-like feedback with transforms */
-    .palette-note:active,
-    .vf-stavenote:active {
-        transform: scale(0.95);
-    }
-
-    /* Enhanced touch feedback */
-    .palette-note:active::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.1);
-        border-radius: inherit;
-        pointer-events: none;
-    }
+.chord-minor:hover {
+    background: linear-gradient(135deg, #9333ea, #a855f7) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(168, 85, 247, 0.4) !important;
 }
 
-/* =================================================================== */
-/* ACCESSIBILITY ENHANCEMENTS */
-/* =================================================================== */
+/* Palette Separator */
+.palette-separator {
+    width: 2px;
+    height: 40px;
+    background: linear-gradient(
+        180deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.4) 20%, 
+        rgba(255, 255, 255, 0.6) 50%, 
+        rgba(255, 255, 255, 0.4) 80%, 
+        transparent 100%
+    );
+    margin: 0 8px;
+    border-radius: 1px;
+}
 
-/* Focus styles for keyboard navigation */
-.palette-note:focus,
-.vf-stavenote:focus {
-    outline: 2px solid #339af0;
+/* Rest Note Special Styling */
+.palette-note[data-type="rest"] {
+    background: linear-gradient(135deg, var(--text-muted), #6b7280) !important;
+    color: white !important;
+    border-color: var(--text-muted) !important;
+}
+
+.palette-note[data-type="rest"]:hover {
+    background: linear-gradient(135deg, #6b7280, var(--text-muted)) !important;
+    box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4) !important;
+}
+
+/* Drag Feedback Animation */
+.palette-note.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg) scale(0.9);
+}
+
+/* Focus States for Accessibility */
+.palette-note:focus-visible {
+    outline: 2px solid var(--primary-green);
     outline-offset: 2px;
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
+/* Enhanced musical note symbols */
+.palette-note[data-type="quarter"] {
+    font-size: 22px;
+}
+
+.palette-note[data-type="eighth"] {
+    font-size: 20px;
+}
+
+.palette-note[data-type="half"] {
+    font-size: 20px;
+}
+
+.palette-note[data-type="whole"] {
+    font-size: 18px;
+}
+
+.palette-note[data-type="rest"] {
+    font-size: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .note-palette {
+        gap: 8px;
+    }
+    
     .palette-note {
-        border: 2px solid;
+        width: 50px;
+        height: 38px;
+        font-size: 16px;
     }
-
-    .drag-snap-preview {
-        border-width: 3px;
-        font-weight: bold;
+    
+    .note-duration {
+        font-size: 8px;
     }
-}
-
-/* Reduced motion support */
-@media (prefers-reduced-motion: reduce) {
-    .palette-note,
-    .vf-stavenote,
-    #drag-snap-preview {
-        transition: none;
-        animation: none;
-    }
-
-    .palette-note:hover,
-    .vf-stavenote:hover {
-        transform: none;
+    
+    .note-palette-container {
+        padding: 12px;
+        max-width: 100%;
     }
 }
 
-/* =================================================================== */
-/* PREVENT DEFAULT BEHAVIORS THAT INTERFERE WITH DRAG */
-/* =================================================================== */
+/* Animation for when palette items are being dragged */
+@keyframes palette-drag-start {
+    0% { transform: scale(1) rotate(0deg); }
+    100% { transform: scale(0.9) rotate(3deg); }
+}
 
-.palette-note,
-.score-viewer__content,
-.vf-stavenote {
+.palette-note[draggable="true"]:active {
+    animation: palette-drag-start 0.1s ease-out;
+}
+
+/* Mobile optimization */
+
+.instrument-panel__keyboard, .instrument-panel__keyboard * {
     -webkit-user-select: none;
     -moz-user-select: none;
-    -ms-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
 }
 
-/* =================================================================== */
-/* LOADING STATES */
-/* =================================================================== */
-
-.palette-note.loading {
-    opacity: 0.5;
-    pointer-events: none;
-}
-
-.palette-note.loading::after {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    border: 2px solid transparent;
-    border-top: 2px solid currentColor;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* =================================================================== */
-/* DARK MODE SUPPORT */
-/* =================================================================== */
-
-@media (prefers-color-scheme: dark) {
-    .score-viewer__content.drag-over {
-        background-color: rgba(59, 130, 246, 0.1);
-        outline-color: rgba(59, 130, 246, 0.4);
-    }
-
-    #drag-snap-preview {
-        backdrop-filter: blur(8px);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-    }
-
-    .toast {
-        border-color: rgba(255,255,255,0.2);
-    }
-}
-
-/* =================================================================== */
-/* RESPONSIVE DESIGN */
-/* =================================================================== */
-
-/* Tablet styles */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .palette-note {
-        min-height: 46px;
-        min-width: 46px;
-    }
-}
-
-/* Large screens - more subtle effects */
-@media (min-width: 1200px) {
-    .palette-note:hover {
-        transform: scale(1.02);
-    }
-
-    .vf-stavenote:hover {
-        transform: scale(1.02);
-    }
-}
-
-/* =================================================================== */
-/* PERFORMANCE OPTIMIZATIONS */
-/* =================================================================== */
-
-/* Use hardware acceleration for smooth animations */
-.palette-note,
-.vf-stavenote,
-#drag-snap-preview {
-    will-change: transform, opacity;
-    transform: translateZ(0); /* Force hardware acceleration */
-}
-
-/* Remove will-change when not dragging to save GPU memory */
-.palette-note:not(.dragging),
-.vf-stavenote:not(.dragging) {
-    will-change: auto;
+/* But allow normal touch behavior on the gate */
+#gate {
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    user-select: auto !important;
+    -webkit-touch-callout: default !important;
+    touch-action: auto !important;
 }
