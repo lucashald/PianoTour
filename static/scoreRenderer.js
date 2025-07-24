@@ -596,8 +596,6 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     draggedNote = null;
     scoreElement.style.cursor = "default";
     clearDragPreview();
-    // Redraw to ensure the main selection highlight is correctly restored.
-    safeRedraw();
   });
 
   // Palette Drag and Drop Listeners
@@ -1172,6 +1170,7 @@ function detectMeasureClick(x, y) {
  * @param {number} measureIndex - The index of the measure to scroll to.
  */
 export function scrollToMeasure(measureIndex) {
+  console.log('scrollToMeasure called with index', measureIndex);
   const scoreWrap = document.getElementById("scoreWrap"); // The HTML element acting as the scrollable container for the score.
   const measureWidth = 340; // The fixed width of a single measure in pixels.
 

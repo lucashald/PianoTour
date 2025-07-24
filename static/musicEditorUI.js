@@ -217,16 +217,8 @@ function renderNoteEditBox() {
         clearSelectedNoteHighlight();
         pianoState.currentSelectedNote = null;
     }
-}
-
-function changeMeasure(newMeasureIndex) {
-    const measures = getMeasures();
-    if (newMeasureIndex >= 0 && newMeasureIndex <= measures.length) {
-        editorSelectedMeasureIndex = newMeasureIndex;
-        editorSelectedNoteId = null;
-        renderNoteEditBox();
-        scrollToMeasure(editorSelectedMeasureIndex);
-    }
+    scrollToMeasure(editorSelectedMeasureIndex);
+    console.log('scrolling to', editorSelectedMeasureIndex)
 }
 
 // ===================================================================
@@ -237,38 +229,34 @@ function handleEditorNoteSelectClick(measureIndex, clef, noteId) {
     editorSelectedMeasureIndex = measureIndex;
     if (noteId === null) {
         editorSelectedNoteId = null;
-        clearSelectedNoteHighlight();
         renderNoteEditBox();
-        scrollToMeasure(measureIndex);
         return;
     }
     const currentMeasureNotes = getMeasures()[measureIndex] || [];
     const foundNote = currentMeasureNotes.find(note => note.id === noteId);
     if (!foundNote || foundNote.clef !== clef) {
         editorSelectedNoteId = null;
-        clearSelectedNoteHighlight();
         renderNoteEditBox();
-        scrollToMeasure(measureIndex);
         return;
     }
     editorSelectedNoteId = (editorSelectedNoteId === noteId) ? null : noteId;
     renderNoteEditBox();
-    scrollToMeasure(measureIndex);
 }
 
-function handleMeasureClick(measureIndex, wasNoteClicked) {
-    if (!wasNoteClicked) {
-        editorSelectedNoteId = null;
-        clearSelectedNoteHighlight();
+function changeMeasure(newMeasureIndex, clearSelectedNote = true) {
+    console.log('changeMeasure called', newMeasureIndex, clearSelectedNote);
+    const measures = getMeasures();
+
+    // Bounds checking
+    if (newMeasureIndex < 0 || newMeasureIndex > measures.length) {
+        return;
     }
-    editorSelectedMeasureIndex = measureIndex;
-    renderNoteEditBox();
-    scrollToMeasure(measureIndex);
-}
 
-function handleNoteClick(measureIndex, clef, noteId) {
-    handleEditorNoteSelectClick(measureIndex, clef, noteId);
-    scrollToMeasure(measureIndex);
+    // Update measure index
+    editorSelectedMeasureIndex = newMeasureIndex;
+
+    // Re-render UI
+    renderNoteEditBox();
 }
 
 function updateChordFromUI() {
@@ -330,7 +318,10 @@ function removeNoteFromChordUI(noteIndexToRemove) {
 
 export function initializeMusicEditor() {
     renderNoteEditBox();
-    enableScoreInteraction(handleMeasureClick, handleNoteClick);
+    enableScoreInteraction(
+        (measureIndex, wasNoteClicked) => changeMeasure(measureIndex, !wasNoteClicked),
+        handleEditorNoteSelectClick
+    );
 
     // FIX: Target the correct container for event delegation
     const editorContainer = document.getElementById('editorContainer');
@@ -467,7 +458,6 @@ export function initializeMusicEditor() {
             editorSelectedNoteId = fromNoteId;
         }
         renderNoteEditBox();
-        scrollToMeasure(editorSelectedMeasureIndex);
     });
 
     const durationDropdown = document.getElementById('editorDurationDropdown');
