@@ -12,7 +12,7 @@ import {
     scrollToMeasure,
     enableScoreInteraction,
 } from './scoreRenderer.js';
-import { DURATIONS } from './note-data.js';
+import { DURATIONS, ALL_NOTE_INFO, NOTES_BY_NAME } from './note-data.js';
 import {
     highlightSelectedMeasure,
     highlightSelectedNote,
@@ -45,8 +45,37 @@ function formatChord(noteArray) {
     if (!Array.isArray(noteArray) || noteArray.length === 0) {
         return '';
     }
-    const uniqueNotes = [...new Set(noteArray)].sort();
-    return uniqueNotes.length > 1 ? `(${uniqueNotes.join(' ')})` : uniqueNotes[0];
+    return noteArray.length > 1 ? `(${noteArray.join(' ')})` : noteArray[0];
+}
+
+/**
+ * Transposes a chord by a given number of semitones
+ * @param {string} chordString - The chord in format "(C4 E4 G4)" or single note "C4"
+ * @param {number} semitones - Number of semitones to transpose (positive = up, negative = down)
+ * @returns {string} - Transposed chord in same format
+ */
+function transposeChord(chordString, semitones) {
+    if (semitones === 0) return chordString;
+
+    const notes = parseChord(chordString);
+    const transposedNotes = notes.map(noteName => {
+        const originalMidi = NOTES_BY_NAME[noteName];
+        if (originalMidi === undefined) {
+            console.warn(`transposeChord: Unknown note ${noteName}, keeping unchanged`);
+            return noteName;
+        }
+
+        const newMidi = originalMidi + semitones;
+        const newNoteInfo = ALL_NOTE_INFO.find(info => info.midi === newMidi);
+        if (!newNoteInfo) {
+            console.warn(`transposeChord: MIDI ${newMidi} out of range, keeping ${noteName} unchanged`);
+            return noteName;
+        }
+
+        return newNoteInfo.name;
+    });
+
+    return formatChord(transposedNotes);
 }
 
 function parseSingleNoteName(noteName) {
@@ -102,7 +131,24 @@ function renderNoteEditBox() {
         btn.className = `btn btn--compact editor-note-select note-duration-${note.duration.replace('.', 'dot')}`;
         btn.dataset.noteId = note.id;
         btn.dataset.clef = note.clef;
-        btn.textContent = note.isRest ? "Rest" : (isChord(note.name) ? `Chord (${parseChord(note.name).length})` : note.name);
+
+        // Determine button text with priority: chordName > existing logic
+        let buttonText;
+        if (note.isRest) {
+            buttonText = "Rest";
+        } else if (note.chordName) {
+            // Use the chord name if available
+            buttonText = note.chordName;
+        } else if (isChord(note.name)) {
+            // Fallback to existing chord logic
+            buttonText = `Chord (${parseChord(note.name).length})`;
+        } else {
+            // Single note
+            buttonText = note.name;
+        }
+
+        btn.textContent = buttonText;
+
         if (note.id === editorSelectedNoteId) {
             btn.classList.add('active-note-select');
         }
@@ -436,24 +482,51 @@ export function initializeMusicEditor() {
     });
 
     document.addEventListener('noteDropped', (event) => {
-        const { fromMeasureIndex, fromNoteId, toMeasureIndex, insertPosition, clefChanged, pitchChanged, newClef, newPitch } = event.detail;
+        // Fix: Use insertBeforeNoteId instead of insertPosition
+        const { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId, clefChanged, pitchChanged, newClef, newPitch } = event.detail;
         const measures = getMeasures();
         const originalNote = measures[fromMeasureIndex]?.find(note => note.id === fromNoteId);
         if (!originalNote) return;
 
         if (fromMeasureIndex !== toMeasureIndex) {
+            // Moving between measures - maintain chord structure
             const noteToMove = removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
             if (noteToMove) {
                 if (clefChanged) noteToMove.clef = newClef;
-                if (pitchChanged) noteToMove.name = newPitch;
-                addNoteToMeasure(toMeasureIndex, noteToMove, insertPosition);
+                if (pitchChanged && !originalNote.isRest) {
+                    // Handle chord transposition
+                    if (isChord(originalNote.name)) {
+                        const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
+                        const newPitchMidi = NOTES_BY_NAME[newPitch];
+                        if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
+                            const semitoneChange = newPitchMidi - originalFirstNoteMidi;
+                            noteToMove.name = transposeChord(originalNote.name, semitoneChange);
+                        }
+                    } else {
+                        noteToMove.name = newPitch;
+                    }
+                }
+                // Fix: Use insertBeforeNoteId instead of insertPosition
+                addNoteToMeasure(toMeasureIndex, noteToMove, insertBeforeNoteId);
                 editorSelectedMeasureIndex = toMeasureIndex;
                 editorSelectedNoteId = noteToMove.id;
             }
         } else if (clefChanged || pitchChanged) {
+            // Same measure, just changing properties
             const updatedNoteData = {};
             if (clefChanged) updatedNoteData.clef = newClef;
-            if (pitchChanged) updatedNoteData.name = newPitch;
+            if (pitchChanged && !originalNote.isRest) {
+                if (isChord(originalNote.name)) {
+                    const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
+                    const newPitchMidi = NOTES_BY_NAME[newPitch];
+                    if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
+                        const semitoneChange = newPitchMidi - originalFirstNoteMidi;
+                        updatedNoteData.name = transposeChord(originalNote.name, semitoneChange);
+                    }
+                } else {
+                    updatedNoteData.name = newPitch;
+                }
+            }
             updateNoteInMeasure(fromMeasureIndex, fromNoteId, updatedNoteData);
             editorSelectedNoteId = fromNoteId;
         }
