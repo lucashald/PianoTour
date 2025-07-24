@@ -4,16 +4,16 @@
 
 {% block extras %}
 <a href="/player">
-  <button id="midi-player-btn" class="btn btn--primary playback-controls__button">
+  <button id="midi-player-btn" class="btn btn--primary btn--side playback-controls__button">
     MIDI Player
   </button>
 </a>
 <a href="/practice">
-  <button id="practice-btn" class="btn btn--info playback-controls__button">
+  <button id="practice-btn" class="btn btn--info btn--side">
     Sight Reading Practice
   </button>
 </a>
-<button id="export-midi-btn" class="btn btn--info">Export MIDI</button>
+<button id="export-midi-btn" class="btn btn--info btn--side">Export MIDI</button>
 <!-- This input is not a visible button -->
 <input type="file" id="file-loader-input" style="display: none" accept=".json, .mid, .midi" />
 {% endblock %}

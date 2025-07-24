@@ -184,10 +184,17 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
         return false;
     }
 
+    const existingNote = measuresData[measureIndex][noteIndex];
+
+    // If the name is being changed, strip the chordName
+    if (newNoteData.name && newNoteData.name !== existingNote.name) {
+        newNoteData = { ...newNoteData, chordName: undefined };
+    }
+
     // Create a temporary copy to test for overflow
     const tempMeasure = JSON.parse(JSON.stringify(measuresData[measureIndex]));
-    const existingNote = tempMeasure[noteIndex];
-    const updatedTempNote = { ...existingNote, ...newNoteData };
+    const tempExistingNote = tempMeasure[noteIndex];
+    const updatedTempNote = { ...tempExistingNote, ...newNoteData };
     tempMeasure[noteIndex] = updatedTempNote;
 
     const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);

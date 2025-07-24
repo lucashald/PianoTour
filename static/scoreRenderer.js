@@ -1,8 +1,8 @@
 // scoreRenderer.js
 // This module handles rendering the musical score using VexFlow.
-// Simplified: Direct styling for selected note/measure/playback, no stored original styles.
+// Enhanced HTML5 + Touch Drag and Drop with full dragend capabilities
 
-import { getMeasures, addNoteToMeasure } from "./scoreWriter.js"; // Updated import
+import { getMeasures, addNoteToMeasure } from "./scoreWriter.js";
 import {
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
@@ -10,7 +10,7 @@ import {
   KEY_SIGNATURES,
   getCurrentVexFlowKeySignature,
 } from "./note-data.js";
-import { pianoState } from "./appState.js"; // ADD THIS LINE
+import { pianoState } from "./appState.js";
 import {
   addPlaybackHighlight,
   clearPlaybackHighlight,
@@ -22,10 +22,10 @@ import {
   clearSelectedNoteHighlight,
 } from "./scoreHighlighter.js";
 import { saveToLocalStorage } from './ioHelpers.js';
+
 // ===================================================================
 // Global Variables
 // ===================================================================
-
 // --- VexFlow Objects & Score Layout ---
 let vexflowNoteMap = [];
 let measureXPositions = [];
@@ -34,46 +34,36 @@ let vfContext = null;
 let vexFlowFactory = null;
 let vexflowIndexByNoteId = {};
 
-// --- Drag and Drop State ---
-let draggedNote = null; // { measureIndex, clef, noteId, originalNoteData, vexflowIndex }
-let dragStartPosition = null; // { x, y } in client coordinates. Used to track initial mouse down.
-let isDragging = false; // True if a drag operation has officially begun (moved past threshold)
-let originalNoteData = null; // Store the original note's data from `getMeasures()` for drag operation
-let originalVexFlowNoteBBox = null; // Store the bounding box of the VexFlow note at drag start
-
-// NEW: Palette Drag State
-let isPaletteDrag = false;
-let paletteDragType = null;
-let selectedDuration = "q"; // Default duration for palette drops
-
-// Event Listener Internal State for Drag/Click Detection (used within enableScoreInteraction)
-let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for drag/click differentiation
-let mouseDownNoteTarget = null; // Stores noteInfo if mousedown occurred on a note
-let hasMouseMovedSinceMousedown = false; // Tracks if mouse has moved beyond threshold since mousedown
+// --- Enhanced Drag and Drop State ---
+let dragPreview = null;
+let isDraggingNote = false;
+let touchDragData = null;
+let touchStartPos = null;
+let isTouchDragging = false;
 
 // Dynamic Y-calibration variables
-const STAFF_LINE_SPACING = 10; // This remains a constant for the physical spacing of staff lines
-
-// NEW:
-let TREBLE_CLEF_G4_Y = null; // Will be calibrated
-let BASS_CLEF_F3_Y = null; // Will be calibrated
-let STAFF_LINE_SPACING_ACTUAL = null; // Actual measured spacing
+const STAFF_LINE_SPACING = 10;
+let TREBLE_CLEF_G4_Y = null;
+let BASS_CLEF_F3_Y = null;
+let STAFF_LINE_SPACING_ACTUAL = null;
 let TREBLE_STAFF_TOP_Y = null;
 let TREBLE_STAFF_BOTTOM_Y = null;
 let BASS_STAFF_TOP_Y = null;
 let BASS_STAFF_BOTTOM_Y = null;
 
-// Drag threshold to differentiate between click and drag
-const DRAG_THRESHOLD = 5; // pixels
+// Drag threshold for touch
+const DRAG_THRESHOLD = 5;
+
+// Detect if device supports touch
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
 // Staff position to note mappings
-// Positions are numbered from top (0) to bottom, including ledger lines
 const TREBLE_STAFF_POSITIONS = [
   { position: -2, note: "C6", type: "ledger" },
   { position: -1.5, note: "B5", type: "ledger-space" },
   { position: -1, note: "A5", type: "ledger" },
   { position: -0.5, note: "G5", type: "ledger-space" },
-  { position: 0, note: "F5", type: "line" }, // Top line
+  { position: 0, note: "F5", type: "line" },
   { position: 0.5, note: "E5", type: "space" },
   { position: 1, note: "D5", type: "line" },
   { position: 1.5, note: "C5", type: "space" },
@@ -81,7 +71,7 @@ const TREBLE_STAFF_POSITIONS = [
   { position: 2.5, note: "A4", type: "space" },
   { position: 3, note: "G4", type: "line" },
   { position: 3.5, note: "F4", type: "space" },
-  { position: 4, note: "E4", type: "line" }, // Bottom line
+  { position: 4, note: "E4", type: "line" },
   { position: 4.5, note: "D4", type: "space" },
   { position: 5, note: "C4", type: "ledger" },
   { position: 5.5, note: "B3", type: "ledger-space" },
@@ -95,7 +85,7 @@ const BASS_STAFF_POSITIONS = [
   { position: -1.5, note: "B3", type: "space" },
   { position: -1, note: "A3", type: "ledger" },
   { position: -0.5, note: "G3", type: "space" },
-  { position: 0, note: "A3", type: "line" }, // Top line
+  { position: 0, note: "A3", type: "line" },
   { position: 0.5, note: "G3", type: "space" },
   { position: 1, note: "F3", type: "line" },
   { position: 1.5, note: "E3", type: "space" },
@@ -103,48 +93,18 @@ const BASS_STAFF_POSITIONS = [
   { position: 2.5, note: "C3", type: "space" },
   { position: 3, note: "B2", type: "line" },
   { position: 3.5, note: "A2", type: "space" },
-  { position: 4, note: "G2", type: "line" }, // Bottom line
+  { position: 4, note: "G2", type: "line" },
   { position: 4.5, note: "F2", type: "space" },
   { position: 5, note: "E2", type: "ledger" },
   { position: 5.5, note: "D2", type: "ledger-space" },
   { position: 6, note: "C2", type: "ledger" },
 ];
 
-function logNotePositions() {
-  const testNotes = ["C4", "E5", "G4", "B4", "D5", "F5"];
-  console.log("=== Actual rendered note positions ===");
-
-  for (
-    let measureIndex = 0;
-    measureIndex < vexflowNoteMap.length;
-    measureIndex++
-  ) {
-    const measure = getMeasures()[measureIndex];
-    if (!measure) continue;
-
-    measure.forEach((note, i) => {
-      if (testNotes.includes(note.name) && !note.isRest) {
-        const vexflowIndex = vexflowIndexByNoteId[note.id];
-        const vexNote =
-          vexflowNoteMap[measureIndex]?.[note.clef]?.[vexflowIndex];
-        if (vexNote) {
-          const bbox = vexNote.getBoundingBox();
-          const centerY = bbox.y + bbox.h / 2;
-          console.log(
-            `${note.name}: Y=${centerY} (bbox.y=${bbox.y}, height=${bbox.h})`
-          );
-        }
-      }
-    });
-  }
-}
 // ===================================================================
-// Core Rendering & Interaction
+// Core Rendering Functions
 // ===================================================================
 function calibrateStaffPositions() {
   console.log("Calibrating staff positions...");
-
-  // Get first measure's staves
   const trebleStave = vexflowStaveMap[0]?.treble;
   const bassStave = vexflowStaveMap[0]?.bass;
 
@@ -153,140 +113,68 @@ function calibrateStaffPositions() {
     TREBLE_STAFF_BOTTOM_Y = trebleStave.getYForLine(4);
     const staffHeight = TREBLE_STAFF_BOTTOM_Y - TREBLE_STAFF_TOP_Y;
     STAFF_LINE_SPACING_ACTUAL = staffHeight / 4;
-    console.log(
-      `Treble staff: top=${TREBLE_STAFF_TOP_Y}, bottom=${TREBLE_STAFF_BOTTOM_Y}, spacing=${STAFF_LINE_SPACING_ACTUAL}`
-    );
+    console.log(`Treble staff: top=${TREBLE_STAFF_TOP_Y}, bottom=${TREBLE_STAFF_BOTTOM_Y}, spacing=${STAFF_LINE_SPACING_ACTUAL}`);
   }
 
   if (bassStave) {
     BASS_STAFF_TOP_Y = bassStave.getYForLine(0);
     BASS_STAFF_BOTTOM_Y = bassStave.getYForLine(4);
-    console.log(
-      `Bass staff: top=${BASS_STAFF_TOP_Y}, bottom=${BASS_STAFF_BOTTOM_Y}`
-    );
+    console.log(`Bass staff: top=${BASS_STAFF_TOP_Y}, bottom=${BASS_STAFF_BOTTOM_Y}`);
   }
 }
 
-/**
- * Finds the nearest staff position (line or space) for a given Y coordinate
- * @param {number} y - Y coordinate
- * @param {string} clef - 'treble' or 'bass'
- * @returns {{position: number, note: string, y: number}} The nearest position info
- */
 function findNearestStaffPosition(y, clef) {
   const stave = vexflowStaveMap[0]?.[clef];
   if (!stave) {
     console.warn("No stave found for clef:", clef);
-    return null;
+    return {
+      position: clef === "treble" ? 3 : 1,
+      note: clef === "treble" ? "G4" : "F3",
+      y: y,
+      type: "line"
+    };
   }
 
-  const positions =
-    clef === "treble" ? TREBLE_STAFF_POSITIONS : BASS_STAFF_POSITIONS;
+  const positions = clef === "treble" ? TREBLE_STAFF_POSITIONS : BASS_STAFF_POSITIONS;
   let nearest = null;
   let minDistance = Infinity;
 
-  // Check each possible position
   for (const pos of positions) {
-    // Calculate the Y coordinate for this position
     const posY = stave.getYForLine(pos.position);
     const distance = Math.abs(y - posY);
 
     if (distance < minDistance) {
       minDistance = distance;
-      nearest = {
-        ...pos,
-        y: posY,
-      };
+      nearest = { ...pos, y: posY };
     }
   }
 
-  return nearest;
+  return nearest || {
+    position: clef === "treble" ? 3 : 1,
+    note: clef === "treble" ? "G4" : "F3",
+    y: y,
+    type: "line"
+  };
 }
 
-function calibrateTrebleStaff(stave) {
-  try {
-    // In VexFlow, lines are numbered 0-4 from top to bottom
-    // Treble clef: E5(0), C5(1), A4(2), F4(3), D4(4)
-    // G4 sits between lines 2 and 3
-
-    const topLineY = stave.getYForLine(0);
-    const bottomLineY = stave.getYForLine(4);
-
-    TREBLE_STAFF_TOP_Y = topLineY;
-    TREBLE_STAFF_BOTTOM_Y = bottomLineY;
-
-    // G4 is on the second line from bottom (line 3.5 in VexFlow terms)
-    TREBLE_CLEF_G4_Y = stave.getYForLine(3);
-
-    // Calculate actual line spacing
-    const staffHeight = bottomLineY - topLineY;
-    STAFF_LINE_SPACING_ACTUAL = staffHeight / 4; // 5 lines = 4 spaces
-    console.log(
-      `Treble staff calibration: top=${topLineY}, bottom=${bottomLineY}, height=${staffHeight}, calculated spacing=${STAFF_LINE_SPACING_ACTUAL}, G4 position=${TREBLE_CLEF_G4_Y}`
-    );
-  } catch (error) {
-    console.error("Error calibrating treble staff:", error);
-  }
-}
-
-function calibrateBassStaff(stave) {
-  try {
-    // Bass clef: G3(0), E3(1), C3(2), A2(3), F2(4)
-    // F3 is between lines 0 and 1
-
-    const topLineY = stave.getYForLine(0);
-    const bottomLineY = stave.getYForLine(4);
-
-    BASS_STAFF_TOP_Y = topLineY;
-    BASS_STAFF_BOTTOM_Y = bottomLineY;
-    BASS_CLEF_F3_Y = stave.getYForLine(1);
-  } catch (error) {
-    console.error("Error calibrating bass staff:", error);
-  }
-}
-
-function getStaffLineYPosition(noteName, clef) {
-  const stave = vexflowStaveMap[0]?.[clef];
-  if (!stave) return null;
-
-  // Convert note name to line number
-  const lineNumber = noteToLineNumber(noteName, clef);
-  if (lineNumber === null) return null;
-
-  return stave.getYForLine(lineNumber);
-}
-
-/**
- * Sets the key signature and updates all related UI elements.
- * @param {string} keySignature - The key signature (e.g., 'F', 'F Major', 'Dm', 'D minor')
- * @returns {boolean} True if successful, false if invalid key signature
- */
 export function setKeySignature(keySignature) {
   if (!keySignature || typeof keySignature !== "string") {
     console.warn("setKeySignature: Invalid key signature provided");
     return false;
   }
 
-  // Look up the key signature data
   const keyData = KEY_SIGNATURES[keySignature];
   if (!keyData) {
     console.warn(`setKeySignature: Unknown key signature "${keySignature}"`);
     return false;
   }
 
-  // Update the piano state
   pianoState.keySignature = keyData.displayName;
   pianoState.keySignatureType = keyData.type;
-
-  // Redraw the score with new key signature
   safeRedraw();
   saveToLocalStorage();
 
-  // Log the change
-  console.log(
-    `Key signature set to: ${keyData.displayName} (type: ${keyData.type})`
-  );
-
+  console.log(`Key signature set to: ${keyData.displayName} (type: ${keyData.type})`);
   return true;
 }
 
@@ -302,7 +190,7 @@ export function drawAll(measures) {
   vexflowNoteMap = [];
   measureXPositions = [];
   vexflowStaveMap = [];
-  vexflowIndexByNoteId = {}; // Clear the ID mapping
+  vexflowIndexByNoteId = {};
 
   const measureWidth = 340;
   const measureCount = measures.length > 0 ? measures.length : 1;
@@ -324,7 +212,6 @@ export function drawAll(measures) {
     const score = vexFlowFactory.EasyScore();
     let currentX = 20;
 
-    // ADD THIS: Collect all voices for applyAccidentals
     const allVoices = [];
 
     for (let i = 0; i < measureCount; i++) {
@@ -336,14 +223,10 @@ export function drawAll(measures) {
       vexflowNoteMap[i] = { treble: [], bass: [] };
 
       const trebleSpec = trebleNotesData.length
-        ? trebleNotesData
-            .map((n) => `${n.name}/${n.duration}${n.isRest ? "/r" : ""}`)
-            .join(", ")
+        ? trebleNotesData.map((n) => `${n.name}/${n.duration}${n.isRest ? "/r" : ""}`).join(", ")
         : "B4/1/r";
       const bassSpec = bassNotesData.length
-        ? bassNotesData
-            .map((n) => `${n.name}/${n.duration}${n.isRest ? "/r" : ""}`)
-            .join(", ")
+        ? bassNotesData.map((n) => `${n.name}/${n.duration}${n.isRest ? "/r" : ""}`).join(", ")
         : "D3/1/r";
 
       const trebleVexNotes = score.notes(trebleSpec, { clef: "treble" });
@@ -351,7 +234,6 @@ export function drawAll(measures) {
       vexflowNoteMap[i].treble = trebleVexNotes;
       vexflowNoteMap[i].bass = bassVexNotes;
 
-      // Build ID to VexFlow index mapping
       trebleNotesData.forEach((noteData, vexflowIndex) => {
         if (noteData.id) {
           vexflowIndexByNoteId[noteData.id] = vexflowIndex;
@@ -370,7 +252,6 @@ export function drawAll(measures) {
         spaceBetweenStaves: 10,
       });
 
-      // ADD THIS: Store the voices so we can apply accidentals
       const trebleVoice = score.voice(trebleVexNotes).setStrict(false);
       const bassVoice = score.voice(bassVexNotes).setStrict(false);
       allVoices.push(trebleVoice, bassVoice);
@@ -394,7 +275,6 @@ export function drawAll(measures) {
       currentX += measureWidth;
     }
 
-    // ADD THIS: Apply accidentals based on key signature BEFORE rendering
     const keySignature = getCurrentVexFlowKeySignature();
     Vex.Flow.Accidental.applyAccidentals(allVoices, keySignature);
 
@@ -402,35 +282,29 @@ export function drawAll(measures) {
     console.log("drawAll: VexFlow drawing complete.");
 
     if (pianoState.currentSelectedMeasure !== -1) {
-      console.log(
-        `drawAll: Restoring measure highlight for measure ${pianoState.currentSelectedMeasure}`
-      );
       highlightSelectedMeasure(pianoState.currentSelectedMeasure);
     }
     if (pianoState.currentSelectedNote) {
-      console.log(
-        `drawAll: Restoring selected note highlight for note`,
-        pianoState.currentSelectedNote
-      );
       highlightSelectedNote(
         pianoState.currentSelectedNote.measureIndex,
         pianoState.currentSelectedNote.clef,
         pianoState.currentSelectedNote.noteId
       );
     }
-    // NEW: Restore all notes from the playback Set
     for (const noteKey of pianoState.currentPlaybackNotes) {
       const [measureIndex, clef, noteId] = noteKey.split('-');
       const measureIdx = parseInt(measureIndex);
-      console.log(
-        `drawAll: Restoring playback highlight for note`,
-        { measureIndex: measureIdx, clef, noteId }
-      );
       addPlaybackHighlight(measureIdx, clef, noteId, "#FFD700");
     }
 
     const scoreWrap = document.getElementById("scoreWrap");
     if (scoreWrap) scoreWrap.scrollLeft = scoreWrap.scrollWidth;
+
+    // Dispatch event to notify that score was redrawn
+    document.dispatchEvent(new CustomEvent('scoreRedrawn'));
+
+    // CRITICAL: Setup draggable notes after rendering
+    setupExistingNotesAsDraggable();
   } catch (e) {
     console.error("drawAll: VexFlow rendering error:", e);
   }
@@ -438,665 +312,56 @@ export function drawAll(measures) {
   console.log("drawAll: END");
 }
 
-/**
- * A safe redraw that preserves the current selection and all highlight states.
- */
 export function safeRedraw() {
   console.log("safeRedraw: Called. Triggering full drawAll.");
   const scoreData = getMeasures();
-  // drawAll now explicitly handles re-applying pianoState.currentSelectedMeasure, pianoState.currentSelectedNote, and pianoState.currentPlaybackNote
   drawAll(scoreData);
   console.log("safeRedraw: ✓ Completed with highlights preserved");
 }
 
-export function enableScoreInteraction(onMeasureClick, onNoteClick) {
-  console.log("enableScoreInteraction: Attaching unified event listeners.");
-  const scoreElement = document.getElementById("score");
-  if (!scoreElement) {
-    console.error("enableScoreInteraction: Score element not found.");
-    return;
-  }
-
-  let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for drag/click differentiation
-  let mouseDownNoteTarget = null; // Stores noteInfo if mousedown occurred on a note
-  let hasMouseMovedSinceMousedown = false; // Tracks if mouse has moved beyond threshold since mousedown
-  let isDraggingInitiated = false; // Internal flag to track if drag has begun for this sequence
-
-  // Mouse Down Listener
-  scoreElement.addEventListener("mousedown", (event) => {
-    if (event.button !== 0 || isPaletteDrag) return; // Only left-click, ignore if a palette drag is starting
-
-    const rect = scoreElement.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    console.log(`enableScoreInteraction: Mouse down at (${x}, ${y})`);
-
-    // Reset state for a new interaction sequence
-    mouseDownInitialPos = { x, y };
-    mouseDownNoteTarget = detectNoteClick(x, y);
-    hasMouseMovedSinceMousedown = false;
-    isDragging = false;
-    isDraggingInitiated = false;
-
-    if (mouseDownNoteTarget) {
-      console.log(
-        `enableScoreInteraction: Mouse down on target:`,
-        mouseDownNoteTarget
-      );
-    }
-  });
-
-  // Mouse Move Listener
-  scoreElement.addEventListener("mousemove", (event) => {
-    if (!mouseDownInitialPos && !isPaletteDrag) return;
-
-    const rect = scoreElement.getBoundingClientRect();
-    const currentX = event.clientX - rect.left;
-    const currentY = event.clientY - rect.top;
-
-    // --- Drag Initiation for existing notes ---
-    if (mouseDownInitialPos && !isPaletteDrag && !isDraggingInitiated) {
-      const distance = Math.sqrt(
-        Math.pow(currentX - mouseDownInitialPos.x, 2) +
-          Math.pow(currentY - mouseDownInitialPos.y, 2)
-      );
-      if (
-        distance > DRAG_THRESHOLD &&
-        mouseDownNoteTarget &&
-        mouseDownNoteTarget.noteId !== null
-      ) {
-        hasMouseMovedSinceMousedown = true;
-        isDraggingInitiated = true;
-        isDragging = true;
-        startDrag(mouseDownNoteTarget, mouseDownInitialPos);
-        scoreElement.style.cursor = "none";
-        console.log("enableScoreInteraction: Drag initiated on existing note.");
-      }
-    }
-
-    // --- Visual Feedback during drag ---
-    // FIX: Handle palette drag and note drag in separate blocks to respect their different contexts.
-    if (isPaletteDrag) {
-      // Logic for palette drag preview
-      const targetMeasureIndex = detectMeasureClick(currentX, currentY);
-      // This provides a simple hover highlight without interfering with the actual selection state
-      // It relies on a function that can clear other highlights or is non-destructive.
-      // For now, we'll just call the highlighter directly, assuming it's safe.
-      highlightSelectedMeasure(targetMeasureIndex);
-
-      const clef = detectClefRegion(currentY);
-      const nearest = findNearestStaffPosition(currentY, clef);
-      if (nearest) {
-        updateDragPreview(currentX, nearest.y, paletteDragType);
-      }
-    } else if (isDraggingInitiated && draggedNote) {
-      // Original, correct logic for dragging an existing note.
-      const targetMeasureIndex = detectMeasureClick(currentX, currentY);
-
-      if (
-        targetMeasureIndex !== -1 &&
-        targetMeasureIndex !== pianoState.currentSelectedMeasure
-      ) {
-        highlightSelectedMeasure(targetMeasureIndex);
-      } else if (
-        targetMeasureIndex === -1 &&
-        pianoState.currentSelectedMeasure !== -1
-      ) {
-        clearMeasureHighlight();
-      }
-
-      const clef = detectClefRegion(currentY);
-      const nearest = findNearestStaffPosition(currentY, clef);
-      if (nearest) {
-        updateDragPreview(currentX, nearest.y, nearest.note);
-      }
-    }
-  });
-
-  // Mouse Up Listener
-  scoreElement.addEventListener("mouseup", (event) => {
-    if (!mouseDownInitialPos || isPaletteDrag) return;
-
-    const rect = scoreElement.getBoundingClientRect();
-    const endX = event.clientX - rect.left;
-    const endY = event.clientY - rect.top;
-
-    if (isDraggingInitiated) {
-      console.log("enableScoreInteraction: Drag operation completed.");
-      completeDrag(endX, endY);
-    } else if (!hasMouseMovedSinceMousedown) {
-      // This was a click, not a drag.
-      if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
-        console.log(
-          "enableScoreInteraction: Pure click on EXISTING note detected."
-        );
-        onNoteClick(
-          mouseDownNoteTarget.measureIndex,
-          mouseDownNoteTarget.clef,
-          mouseDownNoteTarget.noteId
-        );
-      } else {
-        console.log(
-          "enableScoreInteraction: Pure click on measure background detected."
-        );
-        const measureIndex = detectMeasureClick(endX, endY);
-        if (measureIndex !== -1) {
-          onMeasureClick(measureIndex, false);
-        }
-      }
-    }
-
-    // Reset all interaction state variables
-    mouseDownInitialPos = null;
-    mouseDownNoteTarget = null;
-    hasMouseMovedSinceMousedown = false;
-    isDragging = false;
-    isDraggingInitiated = false;
-    draggedNote = null;
-    scoreElement.style.cursor = "default";
-    clearDragPreview();
-    // Redraw to ensure the main selection highlight is correctly restored.
-    safeRedraw();
-  });
-
-  // Palette Drag and Drop Listeners
-  scoreElement.addEventListener("dragover", (event) => {
-    event.preventDefault(); // Allow drop
-  });
-
-  scoreElement.addEventListener("drop", (event) => {
-    event.preventDefault();
-    if (isPaletteDrag) {
-      const rect = scoreElement.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      handlePaletteDrop(x, y);
-
-      // Reset palette drag state
-      isPaletteDrag = false;
-      paletteDragType = null;
-      scoreElement.style.cursor = "default";
-      clearDragPreview();
-    }
-  });
-}
-
-/**
- * Handles the drop event for items dragged from the palette.
- * @param {number} endX - The final X coordinate of the drop.
- * @param {number} endY - The final Y coordinate of the drop.
- */
-function handlePaletteDrop(endX, endY) {
-  console.log("handlePaletteDrop: Processing palette drop at", endX, endY);
-  clearDragPreview();
-
-  const targetMeasureIndex = detectMeasureClick(endX, endY);
-  if (targetMeasureIndex === -1) {
-    console.log("handlePaletteDrop: Dropped outside a valid measure area.");
-    return;
-  }
-
-  const clef = detectClefRegion(endY);
-  const nearestPosition = findNearestStaffPosition(endY, clef);
-  if (!nearestPosition) {
-    console.warn(
-      "handlePaletteDrop: Could not determine staff position for the drop."
-    );
-    return;
-  }
-
-  const newNoteName = nearestPosition.note;
-
-  // Create the new note object
-  const newNote = {
-    name: newNoteName,
-    clef: clef,
-    duration: selectedDuration, // Use the stored duration
-    isRest: paletteDragType === "rest",
-    id: Date.now().toString(), // Generate a unique ID
-  };
-
-  if (newNote.isRest) {
-    newNote.name = "R"; // Ensure rests have the correct name
-  }
-
-  // TODO: Handle chord creation for 'major' and 'minor' types
-  if (paletteDragType === "major" || paletteDragType === "minor") {
-    // For now, just add the root note
-    console.log(
-      `Chord drop (${paletteDragType}) detected. Creating single note for now.`
-    );
-  }
-
-  // Find insertion position (simplified: for now, append to the clef)
-  addNoteToMeasure(targetMeasureIndex, newNote);
-  console.log("handlePaletteDrop: Added new note to measure:", newNote);
-}
-
-/**
- * Updates the visual preview during drag to show where note will snap
- * @param {number} x - Current X position
- * @param {number} snapY - Y position where note will snap
- * @param {string} noteName - Name of the note it will snap to
- */
-function updateDragPreview(x, snapY, noteName) {
-  let preview = document.getElementById("drag-snap-preview");
-
-  if (!preview) {
-    // Create preview element if it doesn't exist
-    preview = document.createElement("div");
-    preview.id = "drag-snap-preview";
-    preview.style.cssText = `
-            position: absolute;
-            background: rgba(59, 130, 246, 0.3);
-            border: 2px solid #3b82f6;
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-size: 12px;
-            color: #3b82f6;
-            font-weight: bold;
-            pointer-events: none;
-            z-index: 1000;
-            transition: top 0.1s ease-out;
-        `;
-    document.getElementById("score").appendChild(preview);
-  }
-
-  // Position the preview
-  preview.style.left = `${x - 20}px`;
-  preview.style.top = `${snapY - 10}px`;
-  preview.textContent = noteName;
-  preview.style.display = "block";
-
-  console.log(
-    `updateDragPreview: Showing preview for ${noteName} at Y=${snapY}`
-  );
-}
-
-/**
- * Clears the drag preview element
- */
-function clearDragPreview() {
-  const preview = document.getElementById("drag-snap-preview");
-  if (preview) {
-    preview.style.display = "none";
-    console.log("clearDragPreview: Preview cleared");
-  }
-}
-
-function startDrag(noteInfo, initialClickPos) {
-  console.log("startDrag: Initializing drag state.");
-  draggedNote = noteInfo;
-  dragStartPosition = initialClickPos;
-  const measures = getMeasures();
-  const targetMeasure = measures[noteInfo.measureIndex];
-
-  // Find the note by ID instead of using index
-  let foundNote = null;
-  if (targetMeasure && noteInfo.noteId) {
-    foundNote = targetMeasure.find((note) => note.id === noteInfo.noteId);
-  }
-
-  if (foundNote) {
-    originalNoteData = { ...foundNote };
-  } else {
-    console.warn(
-      "startDrag: Original note data not found in measures model. Using fallback data."
-    );
-    originalNoteData = {
-      name: "C4",
-      clef: "treble",
-      duration: "q",
-      isRest: false,
-      measure: noteInfo.measureIndex,
-    };
-  }
-
-  const vexflowIndex = vexflowIndexByNoteId[noteInfo.noteId];
-  const vexNote =
-    vexflowNoteMap[noteInfo.measureIndex]?.[noteInfo.clef]?.[vexflowIndex];
-  if (vexNote) {
-    originalVexFlowNoteBBox = vexNote.getBoundingBox();
-  } else {
-    console.warn(
-      "startDrag: VexFlow note for BBox not found. BBox fallback active."
-    );
-    originalVexFlowNoteBBox = {
-      x: initialClickPos.x,
-      y: initialClickPos.y,
-      w: 10,
-      h: 10,
-    };
-  }
-
-  console.log("startDrag: Drag state initialized for note:", draggedNote);
-}
-
-function completeDrag(currentX, currentY) {
-  console.log("completeDrag: Processing drag completion.");
-
-  // NEW: Check for palette drag
-  if (isPaletteDrag) {
-    handlePaletteDrop(currentX, currentY);
-    return;
-  }
-
-  if (!draggedNote || !originalNoteData) {
-    console.warn(
-      "completeDrag: Called without active dragged note or original data. Aborting."
-    );
-    return;
-  }
-
-  const targetMeasureIndex = detectMeasureClick(currentX, currentY);
-  if (targetMeasureIndex === -1) {
-    console.log(
-      "completeDrag: Dropped outside valid measure area. Drag operation cancelled."
-    );
-    return;
-  }
-
-  let clefChanged = false;
-  let pitchChanged = false;
-  let newClef = originalNoteData.clef;
-  let newPitchName = originalNoteData.name;
-
-  const potentialNewClef = detectClefRegion(currentY);
-  if (potentialNewClef && potentialNewClef !== originalNoteData.clef) {
-    clefChanged = true;
-    newClef = potentialNewClef;
-    console.log(
-      `completeDrag: Clef change detected: from ${originalNoteData.clef} to ${newClef}`
-    );
-  }
-
-  if (!originalNoteData.isRest && originalVexFlowNoteBBox) {
-    const calculatedNewPitchMIDI = calculateAbsolutePitchFromY(
-      currentY,
-      newClef
-    );
-
-    const newNoteInfo = ALL_NOTE_INFO.find(
-      (n) => n.midi === calculatedNewPitchMIDI
-    );
-    if (newNoteInfo) {
-      newPitchName = newNoteInfo.name;
-    } else {
-      console.warn(
-        `completeDrag: Could not find note name for MIDI ${calculatedNewPitchMIDI}. Keeping original pitch name as fallback.`
-      );
-      newPitchName = originalNoteData.name;
-    }
-
-    if (
-      newPitchName !== originalNoteData.name ||
-      (clefChanged &&
-        NOTES_BY_NAME[originalNoteData.name] !== calculatedNewPitchMIDI)
-    ) {
-      pitchChanged = true;
-      console.log(
-        `completeDrag: Pitch change detected: from ${originalNoteData.name} to ${newPitchName} in ${newClef} clef.`
-      );
-    }
-  } else if (originalNoteData.isRest) {
-    newPitchName = "R";
-    console.log("completeDrag: Dragged a rest. Pitch name remains R.");
-  }
-
-  let insertBeforeNoteId = null;
-  const currentMeasuresData = getMeasures();
-  const targetMeasureNotes = currentMeasuresData[targetMeasureIndex]?.filter(
-    (n) => n.clef === newClef
-  );
-
-  if (targetMeasureNotes && targetMeasureNotes.length > 0) {
-    const measureStartX = measureXPositions[targetMeasureIndex];
-    const relativeDropX = currentX - measureStartX;
-
-    const vexFlowNotesInTargetClef =
-      vexflowNoteMap[targetMeasureIndex]?.[newClef];
-
-    if (vexFlowNotesInTargetClef) {
-      for (let i = 0; i < vexFlowNotesInTargetClef.length; i++) {
-        const vexFlowNote = vexFlowNotesInTargetClef[i];
-        const noteBBox = vexFlowNote.getBoundingBox();
-        if (
-          noteBBox &&
-          noteBBox.x + noteBBox.w / 2 - measureStartX > relativeDropX
-        ) {
-          insertBeforeNoteId = targetMeasureNotes[i].id;
-          console.log(
-            `completeDrag: Determined insertion before note ID ${insertBeforeNoteId} at VexFlow clef index ${i}.`
-          );
-          break;
-        }
-      }
-    }
-  }
-  console.log(
-    "completeDrag: Insert before note ID:",
-    insertBeforeNoteId || "Append to end"
-  );
-
-  document.dispatchEvent(
-    new CustomEvent("noteDropped", {
-      detail: {
-        fromMeasureIndex: draggedNote.measureIndex,
-        fromNoteId: draggedNote.noteId,
-        toMeasureIndex: targetMeasureIndex,
-        insertBeforeNoteId: insertBeforeNoteId,
-        clefChanged: clefChanged,
-        pitchChanged: pitchChanged,
-        newClef: newClef,
-        newPitch: newPitchName,
-      },
-    })
-  );
-  console.log("completeDrag: Dispatched noteDropped event with details:", {
-    fromMeasureIndex: draggedNote.measureIndex,
-    fromNoteId: draggedNote.noteId,
-    toMeasureIndex: targetMeasureIndex,
-    insertBeforeNoteId: insertBeforeNoteId,
-    clefChanged: clefChanged,
-    pitchChanged: pitchChanged,
-    newClef: newClef,
-    newPitch: newPitchName,
-  });
-}
-/**
- * Calculates the MIDI pitch value based on Y coordinate and clef using snap-to-position
- * @param {number} y - The Y coordinate on the score (pixel value)
- * @param {string} clef - The clef ('treble' or 'bass')
- * @returns {number} The MIDI pitch value
- */
 function calculateAbsolutePitchFromY(y, clef) {
   const nearest = findNearestStaffPosition(y, clef);
-
   if (!nearest) {
     console.warn("Could not find nearest staff position, using fallback");
-    return 60; // Middle C fallback
+    return 60;
   }
 
-  console.log(
-    `Snapped Y=${y} to position ${nearest.position} (${nearest.note}) at Y=${nearest.y}`
-  );
-
-  // Convert note name to MIDI
+  console.log(`Snapped Y=${y} to position ${nearest.position} (${nearest.note}) at Y=${nearest.y}`);
   const midi = NOTES_BY_NAME[nearest.note];
   if (midi === undefined) {
     console.error("Unknown note name:", nearest.note);
     return 60;
   }
-
   return midi;
 }
 
-/**
- * Calculates the pitch change object based on drag.
- * This function is used to determine the conceptual change in pitch during a drag operation.
- * @param {string} originalNoteName - The original note name (e.g., 'C4').
- * @param {string} originalClef - The original clef ('treble' or 'bass').
- * @param {number} originalNoteY - The original Y position of the note's center from VexFlow bbox. (This parameter is now mostly illustrative, as `calculateAbsolutePitchFromY` uses `currentY` directly).
- * @param {number} currentY - The current Y position of the cursor.
- * @param {string} targetClef - The target clef ('treble' or 'bass').
- * @returns {object} Object with originalPitch (MIDI), newPitch (MIDI), semitoneChange, and clefChange.
- */
-function calculatePitchChange(
-  originalNoteName,
-  originalClef,
-  originalNoteY,
-  currentY,
-  targetClef
-) {
-  // Convert the original note name to its MIDI value.
-  const originalPitchMIDI = NOTES_BY_NAME[originalNoteName];
-  if (originalPitchMIDI === undefined) {
-    console.warn(
-      `calculatePitchChange: Original note MIDI not found for ${originalNoteName}. Cannot calculate accurate pitch change.`
-    );
-    return {
-      originalPitch: -1,
-      newPitch: -1,
-      semitoneChange: 0,
-      clefChange: false,
-    };
-  }
-
-  // Calculate the new MIDI pitch based on the current Y position and the detected target clef.
-  const newPitchMIDI = calculateAbsolutePitchFromY(currentY, targetClef);
-
-  return {
-    originalPitch: originalPitchMIDI,
-    newPitch: newPitchMIDI,
-    semitoneChange: newPitchMIDI - originalPitchMIDI, // Difference in semitones
-    clefChange: originalClef !== targetClef, // Boolean indicating if the clef changed
-  };
-}
-
-/**
- * Determines the clef region based on the Y coordinate of a point on the score.
- * This function uses dynamically calibrated Y values for a more accurate distinction between staves.
- * @param {number} y - The Y coordinate (pixel value) on the score.
- * @returns {string} 'treble' or 'bass'.
- */
 function detectClefRegion(y) {
   if (!TREBLE_STAFF_BOTTOM_Y || !BASS_STAFF_TOP_Y) {
-    // Fallback to old logic if not calibrated
-    const midpointY =
-      (TREBLE_CLEF_G4_Y || 100) +
-      ((BASS_CLEF_F3_Y || 227) - (TREBLE_CLEF_G4_Y || 100)) / 2;
+    const midpointY = (TREBLE_CLEF_G4_Y || 100) + ((BASS_CLEF_F3_Y || 227) - (TREBLE_CLEF_G4_Y || 100)) / 2;
     return y < midpointY ? "treble" : "bass";
   }
 
-  // Use actual staff boundaries
-  const gapMidpoint =
-    TREBLE_STAFF_BOTTOM_Y + (BASS_STAFF_TOP_Y - TREBLE_STAFF_BOTTOM_Y) / 2;
+  const gapMidpoint = TREBLE_STAFF_BOTTOM_Y + (BASS_STAFF_TOP_Y - TREBLE_STAFF_BOTTOM_Y) / 2;
   return y < gapMidpoint ? "treble" : "bass";
-}
-
-function convertVexFlowIndexToLinearIndex(measureIndex, clef, vexflowIndex) {
-  const measuresData = getMeasures(); // Get the most up-to-date measures data
-  const measureData = measuresData[measureIndex];
-  if (!measureData) {
-    console.warn(
-      `convertVexFlowIndexToLinearIndex: No measure data found for index ${measureIndex}.`
-    );
-    return -1;
-  }
-
-  let clefNoteCount = 0;
-
-  for (let i = 0; i < measureData.length; i++) {
-    const note = measureData[i];
-    if (note.clef === clef) {
-      if (clefNoteCount === vexflowIndex) {
-        return i;
-      }
-      clefNoteCount++;
-    }
-  }
-
-  console.warn(
-    `convertVexFlowIndexToLinearIndex: Could not find linear index for VexFlow index ${vexflowIndex} in measure ${measureIndex}, clef ${clef}.`
-  );
-  return -1;
-}
-
-/**
- * Converts a linear index from the scoreWriter's measure data array to its VexFlow clef-specific index.
- * This is the inverse operation of `convertVexFlowIndexToLinearIndex`, useful when you have data model index
- * and need to target the corresponding VexFlow object.
- * @param {number} measureIndex - The index of the measure the note is in.
- * @param {string} clef - The clef of the note ('treble' or 'bass').
- * @param {number} linearIndex - The linear index of the note in the `measuresData[measureIndex]` array.
- * @returns {number} The VexFlow-internal index of the note within its clef's array (e.g., vexflowNoteMap[measureIndex][clef][result]), or -1 if not found/mismatched.
- */
-function convertLinearIndexToVexFlowIndex(measureIndex, clef, linearIndex) {
-  const measureData = getMeasures()[measureIndex];
-  // Basic validation: Check if measureData exists, linearIndex is within bounds, and the clef of the note at that index matches.
-  if (
-    !measureData ||
-    linearIndex < 0 ||
-    linearIndex >= measureData.length ||
-    measureData[linearIndex].clef !== clef
-  ) {
-    return -1; // Invalid input or clef mismatch for the specified note.
-  }
-
-  let clefNoteCount = 0;
-  // Count how many notes of the given clef appear *before* the specified linearIndex.
-  // This count will be the VexFlow-internal index for the note at linearIndex.
-  for (let i = 0; i < linearIndex; i++) {
-    if (measureData[i].clef === clef) {
-      clefNoteCount++;
-    }
-  }
-  // If the note at linearIndex matches the clef (which was checked in the initial `if` condition),
-  // then `clefNoteCount` now represents its VexFlow-internal index within its clef's array.
-  return clefNoteCount;
 }
 
 function detectNoteClick(x, y) {
   console.log("detectNoteClick: Input x:", x, "y:", y);
   const measuresData = getMeasures();
-  for (
-    let measureIndex = 0;
-    measureIndex < measuresData.length;
-    measureIndex++
-  ) {
+  for (let measureIndex = 0; measureIndex < measuresData.length; measureIndex++) {
     const currentMeasureData = measuresData[measureIndex] || [];
 
     for (let i = 0; i < currentMeasureData.length; i++) {
       const noteData = currentMeasureData[i];
       const clef = noteData.clef;
       const noteId = noteData.id;
-
-      // Get VexFlow index from the pre-built mapping
       const vexflowNoteIndex = vexflowIndexByNoteId[noteId];
 
-      if (
-        vexflowNoteIndex !== undefined &&
-        vexflowNoteMap[measureIndex]?.[clef]?.[vexflowNoteIndex]
-      ) {
-        const vexflowNote =
-          vexflowNoteMap[measureIndex][clef][vexflowNoteIndex];
+      if (vexflowNoteIndex !== undefined && vexflowNoteMap[measureIndex]?.[clef]?.[vexflowNoteIndex]) {
+        const vexflowNote = vexflowNoteMap[measureIndex][clef][vexflowNoteIndex];
         const bbox = vexflowNote.getBoundingBox();
 
-        if (
-          bbox &&
-          x >= bbox.x &&
-          x <= bbox.x + bbox.w &&
-          y >= bbox.y &&
-          y <= bbox.y + bbox.h
-        ) {
-          console.log("detectNoteClick: Existing note found and mapped:", {
-            measureIndex,
-            clef,
-            noteId,
-            originalNoteData: noteData,
-            vexflowIndex: vexflowNoteIndex,
-          });
+        if (bbox && x >= bbox.x && x <= bbox.x + bbox.w && y >= bbox.y && y <= bbox.y + bbox.h) {
           return {
             measureIndex: measureIndex,
             clef: clef,
@@ -1110,13 +375,8 @@ function detectNoteClick(x, y) {
   }
 
   const clickedMeasureIndex = detectMeasureClick(x, y);
-
   if (clickedMeasureIndex !== -1) {
     const clefRegion = detectClefRegion(y);
-    console.log(
-      `detectNoteClick: Clicked on Measure Background: Measure ${clickedMeasureIndex}, Clef Region ${clefRegion}.`
-    );
-
     return {
       measureIndex: clickedMeasureIndex,
       clef: clefRegion,
@@ -1125,91 +385,924 @@ function detectNoteClick(x, y) {
       vexflowIndex: -1,
     };
   }
-
-  console.log(
-    "detectNoteClick: No note or measure background found at given coordinates."
-  );
   return null;
 }
 
-/**
- * Detects which measure was clicked or interacted with based on X, Y coordinates.
- * This function assumes a fixed measure width and a defined vertical range for the score area.
- * @param {number} x - The X coordinate of the event (relative to the score element).
- * @param {number} y - The Y coordinate of the event (relative to the score element).
- * @returns {number} The measure index (0-indexed) if a measure is detected, or -1 if the coordinates are outside any measure's bounds.
- */
 function detectMeasureClick(x, y) {
   const measureWidth = 340;
-
-  // Use calibrated bounds if available, otherwise use default values.
-  const scoreTopY = TREBLE_STAFF_TOP_Y || 20;
-  const scoreBottomY = BASS_STAFF_BOTTOM_Y || 280;
-
-  // Define margins to allow for drops on ledger lines both above and below the staves.
-  const topMargin = 50;
-  const bottomMargin = 50; // THE FIX: Added a margin for the bottom boundary.
-
-  // Check if the drop is within the adjusted vertical bounds of the score.
-  if (y < scoreTopY - topMargin || y > scoreBottomY + bottomMargin) {
-    return -1; // Return -1 if the drop is outside the valid vertical area.
-  }
-
-  // Iterate through the stored X positions of each measure.
   for (let i = 0; i < measureXPositions.length; i++) {
     const measureStartX = measureXPositions[i];
-    // Check if the event's X coordinate falls within the horizontal bounds of the current measure.
     if (x >= measureStartX && x <= measureStartX + measureWidth) {
-      return i; // Return the index of the detected measure.
+      return i;
+    }
+  }
+  return -1;
+}
+
+export function scrollToMeasure(measureIndex) {
+  const scoreWrap = document.getElementById("scoreWrap");
+  const measureWidth = 340;
+
+  if (scoreWrap && measureXPositions[measureIndex] !== undefined) {
+    const targetScrollLeft = Math.max(0, measureXPositions[measureIndex] - scoreWrap.clientWidth / 2 + measureWidth / 2);
+    scoreWrap.scrollTo({ left: targetScrollLeft, behavior: "smooth" });
+    console.log(`scrollToMeasure: Scrolled to measure ${measureIndex}.`);
+  } else {
+    console.warn(`scrollToMeasure: Cannot scroll to measure ${measureIndex}.`);
+  }
+}
+
+// ===================================================================
+// ENHANCED HTML5 + TOUCH DRAG AND DROP SYSTEM
+// ===================================================================
+
+export function enableScoreInteraction(onMeasureClick, onNoteClick) {
+  console.log("enableScoreInteraction: Setting up enhanced drag and drop.");
+  const scoreElement = document.getElementById("score");
+  if (!scoreElement) {
+    console.error("enableScoreInteraction: Score element not found.");
+    return;
+  }
+
+  setupUnifiedDropZone(scoreElement, onMeasureClick, onNoteClick);
+  setupExistingNotesAsDraggable();
+}
+
+function setupUnifiedDropZone(scoreElement, onMeasureClick, onNoteClick) {
+  // HTML5 Drag Events
+  scoreElement.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    showDragPreview(e, 'html5');
+  });
+
+  scoreElement.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    scoreElement.classList.add('drag-over');
+  });
+
+  scoreElement.addEventListener('dragleave', (e) => {
+    if (!scoreElement.contains(e.relatedTarget)) {
+      scoreElement.classList.remove('drag-over');
+      hideDragPreview();
+    }
+  });
+
+  scoreElement.addEventListener('drop', (e) => {
+    e.preventDefault();
+    scoreElement.classList.remove('drag-over');
+    hideDragPreview();
+    handleScoreDrop(e, 'html5');
+  });
+
+  // Touch Events for Mobile
+  scoreElement.addEventListener('touchmove', (e) => {
+    if (isTouchDragging && touchDragData) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      showDragPreview({ clientX: touch.clientX, clientY: touch.clientY }, 'touch');
+    }
+  }, { passive: false });
+
+  scoreElement.addEventListener('touchend', (e) => {
+    if (isTouchDragging && touchDragData) {
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      handleScoreDrop({ clientX: touch.clientX, clientY: touch.clientY }, 'touch');
+      endTouchDrag();
+    }
+  });
+
+  // Click/Tap Events
+  const handleClickOrTap = (e) => {
+    if (isDraggingNote || isTouchDragging) return;
+
+    let clientX, clientY;
+    if (e.type === 'touchend') {
+      if (e.changedTouches.length === 0) return;
+      const touch = e.changedTouches[0];
+      clientX = touch.clientX;
+      clientY = touch.clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const rect = scoreElement.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    const noteTarget = detectNoteClick(x, y);
+    if (noteTarget && noteTarget.noteId) {
+      onNoteClick(noteTarget.measureIndex, noteTarget.clef, noteTarget.noteId);
+    } else {
+      const measureIndex = detectMeasureClick(x, y);
+      if (measureIndex !== -1) {
+        onMeasureClick(measureIndex, false);
+      }
+    }
+  };
+
+  scoreElement.addEventListener('click', handleClickOrTap);
+  scoreElement.addEventListener('touchend', handleClickOrTap);
+}
+
+function setupExistingNotesAsDraggable() {
+  const measures = getMeasures();
+  console.log('Setting up draggable notes for', measures.length, 'measures');
+
+  // Wait a short time for VexFlow to fully render the SVG elements
+  setTimeout(() => {
+    for (let measureIndex = 0; measureIndex < measures.length; measureIndex++) {
+      const measure = measures[measureIndex] || [];
+      console.log(`Measure ${measureIndex}: ${measure.length} notes`);
+
+      for (let i = 0; i < measure.length; i++) {
+        const noteData = measure[i];
+        const vexflowIndex = vexflowIndexByNoteId[noteData.id];
+        const vexNote = vexflowNoteMap[measureIndex]?.[noteData.clef]?.[vexflowIndex];
+
+        if (vexNote) {
+          // Try to find the SVG element for this note
+          const noteElement = findNoteElement(vexNote, noteData, measureIndex);
+
+          console.log(`Note ${noteData.id} (${noteData.name}):`, {
+            vexflowIndex,
+            hasVexNote: !!vexNote,
+            hasElement: !!noteElement
+          });
+
+          if (noteElement) {
+            // Make draggable
+            noteElement.draggable = true;
+            noteElement.style.cursor = 'grab';
+            noteElement.dataset.noteId = noteData.id;
+            noteElement.dataset.measureIndex = measureIndex;
+            noteElement.dataset.clef = noteData.clef;
+
+            console.log(`✓ Made note ${noteData.name} draggable`);
+
+            setupHTML5DragEvents(noteElement, noteData, measureIndex);
+            setupTouchDragEvents(noteElement, noteData, measureIndex);
+          } else {
+            console.warn(`✗ Could not find SVG element for note ${noteData.name}`);
+          }
+        }
+      }
+    }
+  }, 100); // Small delay to ensure SVG is fully rendered
+}
+
+/**
+ * Finds the SVG element for a VexFlow note
+ */
+function findNoteElement(vexNote, noteData, measureIndex) {
+  const scoreElement = document.getElementById("score");
+  if (!scoreElement) return null;
+
+  try {
+    // Method 1: Try to get element from VexFlow note attributes
+    if (vexNote.attrs && vexNote.attrs.el) {
+      return vexNote.attrs.el;
+    }
+
+    // Method 2: Try to find by VexFlow's internal element
+    if (vexNote.elem) {
+      return vexNote.elem;
+    }
+
+    // Method 3: Search for SVG elements that might represent this note
+    const svgElements = scoreElement.querySelectorAll('g.vf-stavenote, g.vf-note, path, circle, ellipse');
+
+    // Try to find by position - get the note's rendered position
+    if (vexNote.getAbsoluteX && vexNote.getYs) {
+      const noteX = vexNote.getAbsoluteX();
+      const noteYs = vexNote.getYs();
+      const noteY = noteYs[0]; // First note head position
+
+      // Find SVG elements near this position
+      for (const element of svgElements) {
+        const rect = element.getBoundingClientRect();
+        const scoreRect = scoreElement.getBoundingClientRect();
+
+        const elementX = rect.left - scoreRect.left + rect.width / 2;
+        const elementY = rect.top - scoreRect.top + rect.height / 2;
+
+        // Check if this element is close to the note position (within 20px)
+        if (Math.abs(elementX - noteX) < 20 && Math.abs(elementY - noteY) < 20) {
+          return element;
+        }
+      }
+    }
+
+    // Method 4: Create a wrapper div around the note area
+    const bbox = vexNote.getBoundingBox();
+    if (bbox) {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = `
+        position: absolute;
+        left: ${bbox.x}px;
+        top: ${bbox.y}px;
+        width: ${bbox.w}px;
+        height: ${bbox.h}px;
+        background: transparent;
+        z-index: 10;
+        pointer-events: auto;
+      `;
+
+      scoreElement.appendChild(wrapper);
+      return wrapper;
+    }
+
+  } catch (error) {
+    console.warn('Error finding note element:', error);
+  }
+
+  return null;
+}
+
+function setupHTML5DragEvents(noteElement, noteData, measureIndex) {
+  noteElement.addEventListener('dragstart', (e) => {
+    isDraggingNote = true;
+    noteElement.style.cursor = 'grabbing';
+    noteElement.dataset.dragStartTime = Date.now().toString();
+
+    const dragData = {
+      type: 'existing-note',
+      fromMeasureIndex: measureIndex,
+      fromNoteId: noteData.id,
+      fromClef: noteData.clef,
+      originalNoteData: noteData
+    };
+
+    e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+    e.dataTransfer.effectAllowed = 'move';
+    createMusicalDragImage(e, noteData);
+
+    console.log('HTML5 drag started for existing note:', dragData);
+  });
+
+  // Enhanced dragend with full capabilities
+  noteElement.addEventListener('dragend', (e) => {
+    console.log('🏁 Enhanced drag operation completed');
+
+    const dropEffect = e.dataTransfer.dropEffect;
+    console.log('Drop effect:', dropEffect);
+
+    switch (dropEffect) {
+      case 'move':
+        handleSuccessfulMove(noteElement, noteData);
+        break;
+      case 'copy':
+        handleSuccessfulCopy(noteElement, noteData);
+        break;
+      case 'none':
+        handleFailedDrop(noteElement, noteData);
+        break;
+      default:
+        handleUnknownDrop(noteElement, noteData);
+    }
+
+    performAdvancedCleanup(noteElement);
+    logDragOperation(noteData, dropEffect, e);
+    provideFeedbackToUser(dropEffect, noteData);
+    updateApplicationState(dropEffect, noteData);
+  });
+}
+
+function setupTouchDragEvents(noteElement, noteData, measureIndex) {
+  let touchStartTime = 0;
+
+  noteElement.addEventListener('touchstart', (e) => {
+    touchStartTime = Date.now();
+    touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+    touchDragData = {
+      type: 'existing-note',
+      fromMeasureIndex: measureIndex,
+      fromNoteId: noteData.id,
+      fromClef: noteData.clef,
+      originalNoteData: noteData,
+      element: noteElement
+    };
+  }, { passive: true });
+
+  noteElement.addEventListener('touchmove', (e) => {
+    if (!touchDragData || isTouchDragging) return;
+
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+    const timeDelta = Date.now() - touchStartTime;
+
+    if ((deltaX > 10 || deltaY > 10) && timeDelta > 100) {
+      e.preventDefault();
+      startTouchDrag();
+    }
+  }, { passive: false });
+
+  noteElement.addEventListener('touchend', (e) => {
+    if (!isTouchDragging) {
+      touchDragData = null;
+      touchStartPos = null;
+    }
+  });
+}
+
+export function setupPaletteDrag() {
+  const paletteNotes = document.querySelectorAll('.palette-note');
+  console.log(`🎨 Setting up unified drag for ${paletteNotes.length} palette notes`);
+
+  paletteNotes.forEach(note => {
+    note.draggable = true;
+    note.style.cursor = 'grab';
+
+    note.addEventListener('dragstart', (e) => {
+      setupPaletteHTML5Drag(e, note);
+    });
+
+    note.addEventListener('dragend', (e) => {
+      const dropEffect = e.dataTransfer.dropEffect;
+
+      note.style.cursor = 'grab';
+      note.classList.remove('dragging');
+
+      // Provide feedback for palette drops too
+      const type = note.dataset.type;
+      const duration = note.dataset.duration;
+      provideFeedbackToUser(dropEffect, { name: `${duration} ${type}`, isRest: type === 'rest' });
+
+      console.log('Palette drag ended with effect:', dropEffect);
+    });
+
+    setupPaletteTouchEvents(note);
+  });
+}
+
+function setupPaletteHTML5Drag(event, note) {
+  note.style.cursor = 'grabbing';
+  note.classList.add('dragging');
+
+  const type = note.dataset.type;
+  const duration = note.dataset.duration;
+
+  const dragData = {
+    type: 'palette-note',
+    noteType: type,
+    duration: duration
+  };
+
+  event.dataTransfer.setData('application/json', JSON.stringify(dragData));
+  event.dataTransfer.effectAllowed = 'copy';
+  createPaletteDragImage(event, type, duration);
+
+  console.log('🎯 HTML5 drag started from palette:', dragData);
+}
+
+function setupPaletteTouchEvents(note) {
+  let touchStartTime = 0;
+
+  note.addEventListener('touchstart', (e) => {
+    touchStartTime = Date.now();
+    touchStartPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+    const type = note.dataset.type;
+    const duration = note.dataset.duration;
+
+    touchDragData = {
+      type: 'palette-note',
+      noteType: type,
+      duration: duration,
+      element: note
+    };
+  }, { passive: true });
+
+  note.addEventListener('touchmove', (e) => {
+    if (!touchDragData || isTouchDragging) return;
+
+    const touch = e.touches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+    const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+    const timeDelta = Date.now() - touchStartTime;
+
+    if ((deltaX > 10 || deltaY > 10) && timeDelta > 100) {
+      e.preventDefault();
+      startTouchDrag();
+      note.classList.add('dragging');
+    }
+  }, { passive: false });
+
+  note.addEventListener('touchend', (e) => {
+    if (!isTouchDragging) {
+      touchDragData = null;
+      touchStartPos = null;
+    }
+  });
+}
+
+function startTouchDrag() {
+  isTouchDragging = true;
+  document.body.style.cursor = 'grabbing';
+
+  if (touchDragData.element) {
+    touchDragData.element.style.opacity = '0.5';
+  }
+
+  console.log('Touch drag started:', touchDragData);
+}
+
+function endTouchDrag() {
+  // Simulate dragend behavior for touch
+  if (touchDragData.type === 'existing-note') {
+    // For touch, we assume successful move if dropped on score
+    handleSuccessfulMove(touchDragData.element, touchDragData.originalNoteData);
+  }
+
+  isTouchDragging = false;
+  document.body.style.cursor = 'default';
+
+  if (touchDragData.element) {
+    touchDragData.element.style.opacity = '1';
+    touchDragData.element.classList.remove('dragging');
+  }
+
+  touchDragData = null;
+  touchStartPos = null;
+  hideDragPreview();
+
+  console.log('Touch drag ended');
+}
+
+// Enhanced dragend handlers
+function handleSuccessfulMove(noteElement, noteData) {
+  console.log('✅ Note successfully moved:', noteData.name);
+  showSuccessAnimation(noteElement);
+  saveToLocalStorage();
+}
+
+function handleSuccessfulCopy(noteElement, noteData) {
+  console.log('📋 Note successfully copied:', noteData.name);
+  showCopyAnimation(noteElement);
+}
+
+function handleFailedDrop(noteElement, noteData) {
+  console.log('❌ Drop failed - note returned to original position');
+  animateSnapBack(noteElement);
+  showToastNotification(`Cannot drop ${noteData.name} there`, 'error');
+}
+
+function handleUnknownDrop(noteElement, noteData) {
+  console.log('❓ Unknown drop result');
+  handleFailedDrop(noteElement, noteData);
+}
+
+function performAdvancedCleanup(noteElement) {
+  noteElement.style.opacity = '';
+  noteElement.style.transform = '';
+  noteElement.style.boxShadow = '';
+  noteElement.classList.remove('dragging', 'drag-source');
+
+  delete noteElement.dataset.dragStartTime;
+  delete noteElement.dataset.dragStartPosition;
+
+  document.body.style.cursor = '';
+  noteElement.style.cursor = 'grab';
+
+  isDraggingNote = false;
+  hideDragPreview();
+  clearMeasureHighlight();
+}
+
+function logDragOperation(noteData, dropEffect, event) {
+  const dragEndData = {
+    timestamp: Date.now(),
+    noteId: noteData.id,
+    noteName: noteData.name,
+    dropEffect: dropEffect,
+    dragDuration: Date.now() - (parseInt(event.target.dataset.dragStartTime) || Date.now()),
+    isTouch: isTouchDevice
+  };
+
+  console.log('📊 Drag operation logged:', dragEndData);
+}
+
+function provideFeedbackToUser(dropEffect, noteData) {
+  const messages = {
+    'move': `✅ ${noteData.name} moved successfully`,
+    'copy': `📋 ${noteData.name} copied successfully`, 
+    'none': `❌ Cannot drop ${noteData.name} there`,
+    'link': `🔗 ${noteData.name} linked successfully`
+  };
+
+  const message = messages[dropEffect] || `❓ ${noteData.name} - unknown result`;
+  showToastNotification(message, dropEffect === 'none' ? 'error' : 'success');
+}
+
+function updateApplicationState(dropEffect, noteData) {
+  if (dropEffect === 'move' || dropEffect === 'copy') {
+    // Could add to undo stack here
+    console.log(`Application state updated for ${dropEffect} operation`);
+  }
+}
+
+function showSuccessAnimation(element) {
+  element.style.transition = 'transform 0.3s ease';
+  element.style.transform = 'scale(1.1)';
+
+  setTimeout(() => {
+    element.style.transform = 'scale(1)';
+    setTimeout(() => {
+      element.style.transition = '';
+    }, 300);
+  }, 150);
+}
+
+function showCopyAnimation(element) {
+  element.style.transition = 'opacity 0.2s ease';
+  element.style.opacity = '0.5';
+
+  setTimeout(() => {
+    element.style.opacity = '1';
+    setTimeout(() => {
+      element.style.transition = '';
+    }, 200);
+  }, 100);
+}
+
+function animateSnapBack(element) {
+  element.style.animation = 'shake 0.5s ease-in-out';
+  setTimeout(() => {
+    element.style.animation = '';
+  }, 500);
+}
+
+function showToastNotification(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast--${type}`;
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === 'error' ? '#ff6b6b' : '#51cf66'};
+    color: white;
+    padding: 12px 16px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 10000;
+    transition: opacity 0.3s ease;
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+  `;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}
+
+function createMusicalDragImage(event, noteData) {
+  const dragImage = document.createElement('div');
+  dragImage.style.cssText = `
+    position: absolute;
+    top: -1000px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #333;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 24px;
+    pointer-events: none;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  `;
+
+  const symbols = {
+    'w': '𝅝', 'h': '𝅗𝅥', 'q': '♩', '8': '♪', '16': '𝅘𝅥𝅯',
+    'w.': '𝅝.', 'h.': '𝅗𝅥.', 'q.': '♩.', '8.': '♪.', '16.': '𝅘𝅥𝅯.'
+  };
+
+  const restSymbols = {
+    'w': '𝄻', 'h': '𝄼', 'q': '𝄽', '8': '𝄾', '16': '𝄿',
+    'w.': '𝄻.', 'h.': '𝄼.', 'q.': '𝄽.', '8.': '𝄾.', '16.': '𝄿.'
+  };
+
+  if (noteData.isRest) {
+    dragImage.innerHTML = `
+      <div style="font-size: 28px;">${restSymbols[noteData.duration] || '𝄽'}</div>
+      <div style="font-size: 12px; margin-top: 4px; color: #666;">Rest</div>
+    `;
+  } else {
+    dragImage.innerHTML = `
+      <div style="font-size: 28px;">${symbols[noteData.duration] || '♩'}</div>
+      <div style="font-size: 12px; margin-top: 4px; color: #666;">${noteData.name}</div>
+    `;
+  }
+
+  document.body.appendChild(dragImage);
+  event.dataTransfer.setDragImage(dragImage, 20, 20);
+
+  setTimeout(() => {
+    if (document.body.contains(dragImage)) {
+      document.body.removeChild(dragImage);
+    }
+  }, 0);
+}
+
+function createPaletteDragImage(event, type, duration) {
+  const dragImage = document.createElement('div');
+  dragImage.style.cssText = `
+    position: absolute;
+    top: -1000px;
+    background: rgba(34, 197, 94, 0.95);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  `;
+
+  const durationNames = {
+    'w': 'Whole', 'h': 'Half', 'q': 'Quarter', '8': '8th', '16': '16th',
+    'w.': 'Dotted Whole', 'h.': 'Dotted Half', 'q.': 'Dotted Quarter',
+    '8.': 'Dotted 8th', '16.': 'Dotted 16th'
+  };
+
+  const displayName = durationNames[duration] || duration;
+  dragImage.textContent = type === 'rest' ? `${displayName} Rest` : `${displayName} Note`;
+  document.body.appendChild(dragImage);
+
+  event.dataTransfer.setDragImage(dragImage, 10, 10);
+
+  setTimeout(() => {
+    if (document.body.contains(dragImage)) {
+      document.body.removeChild(dragImage);
+    }
+  }, 0);
+}
+
+function showDragPreview(event, eventType) {
+  const scoreElement = document.getElementById("score");
+  const rect = scoreElement.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+
+  let dragData;
+  if (eventType === 'html5') {
+    try {
+      dragData = JSON.parse(event.dataTransfer.getData('application/json'));
+    } catch (e) {
+      dragData = { type: 'unknown' };
+    }
+  } else if (eventType === 'touch') {
+    dragData = touchDragData || { type: 'unknown' };
+  }
+
+  const clef = detectClefRegion(y);
+  const nearest = findNearestStaffPosition(y, clef);
+
+  if (nearest) {
+    let previewText;
+    if (dragData.type === 'palette-note') {
+      previewText = dragData.noteType === 'rest' ? 'Rest' : nearest.note;
+    } else if (dragData.type === 'existing-note') {
+      previewText = dragData.originalNoteData?.isRest ? 'Rest' : nearest.note;
+    } else {
+      previewText = nearest.note;
+    }
+
+    updateDragPreview(x, nearest.y, previewText, dragData.type === 'palette-note');
+  }
+
+  const targetMeasureIndex = detectMeasureClick(x, y);
+  if (targetMeasureIndex !== -1) {
+    if (targetMeasureIndex !== pianoState.currentSelectedMeasure) {
+      highlightSelectedMeasure(targetMeasureIndex);
+    }
+  } else {
+    if (pianoState.currentSelectedMeasure !== -1) {
+      clearMeasureHighlight();
+    }
+  }
+}
+
+function updateDragPreview(x, snapY, noteName, isPaletteNote = false) {
+  if (!dragPreview) {
+    dragPreview = document.createElement('div');
+    dragPreview.id = 'drag-snap-preview';
+    dragPreview.style.cssText = `
+      position: absolute;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 12px;
+      font-weight: bold;
+      pointer-events: none;
+      z-index: 1000;
+      transition: all 0.1s ease-out;
+    `;
+    document.getElementById("score").appendChild(dragPreview);
+  }
+
+  dragPreview.style.left = `${x - 20}px`;
+  dragPreview.style.top = `${snapY - 10}px`;
+  dragPreview.textContent = noteName;
+  dragPreview.style.display = 'block';
+
+  if (isPaletteNote) {
+    dragPreview.style.background = 'rgba(34, 197, 94, 0.3)';
+    dragPreview.style.border = '2px solid #22c55e';
+    dragPreview.style.color = '#22c55e';
+  } else {
+    dragPreview.style.background = 'rgba(59, 130, 246, 0.3)';
+    dragPreview.style.border = '2px solid #3b82f6';
+    dragPreview.style.color = '#3b82f6';
+  }
+}
+
+function hideDragPreview() {
+  if (dragPreview) {
+    dragPreview.style.display = 'none';
+  }
+}
+
+function handleScoreDrop(event, eventType) {
+  const scoreElement = document.getElementById("score");
+  const rect = scoreElement.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+
+  let dragData;
+  if (eventType === 'html5') {
+    try {
+      dragData = JSON.parse(event.dataTransfer.getData('application/json'));
+    } catch (e) {
+      console.warn('Could not parse drag data:', e);
+      return;
+    }
+  } else if (eventType === 'touch') {
+    dragData = touchDragData;
+    if (!dragData) {
+      console.warn('No touch drag data available');
+      return;
     }
   }
 
-  return -1; // If the loop completes, the drop was not within any measure's horizontal bounds.
-}
-/**
- * Scrolls the score container horizontally to bring a specific measure into view.
- * It attempts to center the target measure within the scrollable area.
- * @param {number} measureIndex - The index of the measure to scroll to.
- */
-export function scrollToMeasure(measureIndex) {
-  const scoreWrap = document.getElementById("scoreWrap"); // The HTML element acting as the scrollable container for the score.
-  const measureWidth = 340; // The fixed width of a single measure in pixels.
+  console.log(`${eventType.toUpperCase()} drop detected:`, { x, y, dragData });
 
-  // Ensure the scrollable container exists and the target measure's X position is known.
-  if (scoreWrap && measureXPositions[measureIndex] !== undefined) {
-    // Calculate the target scroll position.
-    // This calculation aims to place the center of the target measure at the center of the scrollable viewport.
-    const targetScrollLeft = Math.max(
-      0, // Ensures the scroll position does not go below zero (leftmost edge).
-      measureXPositions[measureIndex] -
-        scoreWrap.clientWidth / 2 +
-        measureWidth / 2
-    );
+  const targetMeasureIndex = detectMeasureClick(x, y);
+  const newClef = detectClefRegion(y);
+  const nearestPosition = findNearestStaffPosition(y, newClef);
 
-    // Apply the calculated scroll position with smooth animation.
-    scoreWrap.scrollTo({
-      left: targetScrollLeft,
-      behavior: "smooth",
-    });
-    console.log(`scrollToMeasure: Scrolled to measure ${measureIndex}.`);
-  } else {
-    console.warn(
-      `scrollToMeasure: Cannot scroll to measure ${measureIndex}. Score wrapper element or measure position not found.`
-    );
+  console.log('Drop analysis:', {
+    targetMeasureIndex,
+    newClef,
+    nearestPosition: nearestPosition?.note,
+    coordinates: { x, y }
+  });
+
+  // FIXED: Always allow drops on score, let the drop handler validate
+  if (dragData.type === 'palette-note') {
+    handlePaletteNoteDrop(dragData, targetMeasureIndex, newClef, nearestPosition, x, y);
+  } else if (dragData.type === 'existing-note') {
+    handleExistingNoteDrop(dragData, targetMeasureIndex, newClef, nearestPosition, x, y);
   }
 }
 
-export function setPaletteDragState(isDragging, type, duration) {
-  isPaletteDrag = isDragging;
-  paletteDragType = type;
-  if (duration) {
-    selectedDuration = duration;
+function handlePaletteNoteDrop(dragData, targetMeasureIndex, newClef, nearestPosition, x, y) {
+  console.log('Handling palette note drop');
+
+  const newPitchName = dragData.noteType === 'rest' ? 'R' : (nearestPosition?.note || 'C4');
+
+  let insertBeforeNoteId = null;
+
+  // FIXED: Allow drops even if targetMeasureIndex is -1 (let drop handler validate)
+  if (targetMeasureIndex !== -1) {
+    const currentMeasuresData = getMeasures();
+    const targetMeasureNotes = currentMeasuresData[targetMeasureIndex]?.filter(n => n.clef === newClef);
+
+    if (targetMeasureNotes && targetMeasureNotes.length > 0) {
+      const measureStartX = measureXPositions[targetMeasureIndex];
+      const relativeDropX = x - measureStartX;
+
+      const vexFlowNotesInTargetClef = vexflowNoteMap[targetMeasureIndex]?.[newClef];
+      if (vexFlowNotesInTargetClef) {
+        for (let i = 0; i < vexFlowNotesInTargetClef.length; i++) {
+          const vexFlowNote = vexFlowNotesInTargetClef[i];
+          const noteBBox = vexFlowNote.getBoundingBox();
+          if (noteBBox && noteBBox.x + noteBBox.w / 2 - measureStartX > relativeDropX) {
+            insertBeforeNoteId = targetMeasureNotes[i].id;
+            break;
+          }
+        }
+      }
+    }
   }
+
+  console.log('Dispatching palette note drop event:', {
+    isNewNote: true,
+    noteType: dragData.noteType,
+    duration: dragData.duration,
+    toMeasureIndex: targetMeasureIndex,
+    insertPosition: insertBeforeNoteId,
+    newClef: newClef,
+    newPitch: newPitchName,
+    dropPosition: { x, y }
+  });
+
+  document.dispatchEvent(new CustomEvent("noteDropped", {
+    detail: {
+      isNewNote: true,
+      noteType: dragData.noteType,
+      duration: dragData.duration,
+      toMeasureIndex: targetMeasureIndex,
+      insertPosition: insertBeforeNoteId,
+      newClef: newClef,
+      newPitch: newPitchName,
+      dropPosition: { x, y }
+    },
+  }));
+}
+
+function handleExistingNoteDrop(dragData, targetMeasureIndex, newClef, nearestPosition, x, y) {
+  console.log('Handling existing note drop');
+
+  const originalNoteData = dragData.originalNoteData;
+  let clefChanged = newClef !== originalNoteData.clef;
+  let pitchChanged = false;
+  let newPitchName = originalNoteData.name;
+
+  if (!originalNoteData.isRest && nearestPosition) {
+    const calculatedNewPitchMIDI = calculateAbsolutePitchFromY(y, newClef);
+    const newNoteInfo = ALL_NOTE_INFO.find(n => n.midi === calculatedNewPitchMIDI);
+
+    if (newNoteInfo) {
+      newPitchName = newNoteInfo.name;
+    } else {
+      newPitchName = nearestPosition.note;
+    }
+
+    if (newPitchName !== originalNoteData.name || clefChanged) {
+      pitchChanged = true;
+    }
+  } else if (originalNoteData.isRest) {
+    newPitchName = "R";
+  }
+
+  let insertBeforeNoteId = null;
+  if (targetMeasureIndex !== -1) {
+    const currentMeasuresData = getMeasures();
+    const targetMeasureNotes = currentMeasuresData[targetMeasureIndex]?.filter(n => n.clef === newClef);
+
+    if (targetMeasureNotes && targetMeasureNotes.length > 0) {
+      const measureStartX = measureXPositions[targetMeasureIndex];
+      const relativeDropX = x - measureStartX;
+
+      const vexFlowNotesInTargetClef = vexflowNoteMap[targetMeasureIndex]?.[newClef];
+      if (vexFlowNotesInTargetClef) {
+        for (let i = 0; i < vexFlowNotesInTargetClef.length; i++) {
+          const vexFlowNote = vexFlowNotesInTargetClef[i];
+          const noteBBox = vexFlowNote.getBoundingBox();
+          if (noteBBox && noteBBox.x + noteBBox.w / 2 - measureStartX > relativeDropX) {
+            insertBeforeNoteId = targetMeasureNotes[i].id;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  document.dispatchEvent(new CustomEvent("noteDropped", {
+    detail: {
+      fromMeasureIndex: dragData.fromMeasureIndex,
+      fromNoteId: dragData.fromNoteId,
+      toMeasureIndex: targetMeasureIndex,
+      insertPosition: insertBeforeNoteId,
+      clefChanged: clefChanged,
+      pitchChanged: pitchChanged,
+      newClef: newClef,
+      newPitch: newPitchName,
+      dropPosition: { x, y }
+    },
+  }));
+}
+
+export function refreshDraggableNotes() {
+  setupExistingNotesAsDraggable();
 }
 
 // --- Getters for external modules ---
-// These functions provide read-only access to internal rendering data structures.
-// They allow other modules (e.g., for playback synchronization, analysis, or debugging) to query the current rendered state of the score.
 export function getVexFlowNoteMap() {
   return vexflowNoteMap;
 }
@@ -1229,4 +1322,26 @@ export function getVexflowIndexByNoteId() {
   return vexflowIndexByNoteId;
 }
 
-console.log("✓ scoreRenderer.js loaded successfully");
+// Inject CSS for animations
+const dragCSS = `
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.toast {
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+}
+`;
+
+if (!document.getElementById('drag-styles')) {
+  const style = document.createElement('style');
+  style.id = 'drag-styles';
+  style.textContent = dragCSS;
+  document.head.appendChild(style);
+}
+
+console.log("✓ Enhanced HTML5 + Touch Drag and Drop system loaded successfully");
