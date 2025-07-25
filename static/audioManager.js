@@ -228,111 +228,176 @@ export function startSpectrumIfReady() {
 // Core Audio Initialization (Enhanced with Unlock Status)
 // ===================================================================
 
+/**
+ * Initializes the entire audio system, combining unlock status checks with retry logic.
+ */
 async function initializeAudio() {
-  let timeoutId;
-  try {
-    setAudioStatus('loading');
-    console.log("InitializeAudio: Status set to loading");
+    let timeoutId;
+    try {
+        setAudioStatus('loading');
+        console.log("InitializeAudio: Starting comprehensive audio initialization.");
 
-    // Check unlock status for optimization
-    const wasPreviouslyUnlocked = wasAudioPreviouslyUnlocked();
-    const isFreshUnlock = isUnlockStatusFresh();
+        // Create a global timeout for the entire process
+        const overallTimeoutPromise = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => {
+                reject(new Error("Audio initialization timed out after 15 seconds."));
+            }, 15000);
+        });
 
-    console.log(`Audio unlock status - Previously: ${wasPreviouslyUnlocked}, Fresh: ${isFreshUnlock}`);
+        // Race the main initialization against the timeout
+        await Promise.race([
+            (async () => {
+                // Stage 1: Attempt to unlock audio, but only if necessary.
+                const wasPreviouslyUnlocked = wasAudioPreviouslyUnlocked();
+                const isFreshUnlock = isUnlockStatusFresh();
+                console.log(`Audio unlock status - Previously: ${wasPreviouslyUnlocked}, Fresh: ${isFreshUnlock}`);
 
-    const overallTimeoutPromise = new Promise((resolve, reject) => {
-      timeoutId = setTimeout(() => {
-        reject(new Error("Audio initialization timed out after 15 seconds."));
-      }, 15000);
-    });
+                if (!isFreshUnlock) {
+                    console.log("Unlock status is not fresh, attempting multiple unlock strategies.");
+                    await attemptMultipleAudioUnlocks();
+                } else {
+                    console.log("Skipping audio unlock attempts - recently unlocked.");
+                }
 
-    await Promise.race([
-      (async () => {
-        // 1. Handle iOS unlock audio (optimize based on status)
-        const unlockAudio = document.getElementById("unlock-audio");
-        if (unlockAudio && !isFreshUnlock) {
-          try {
-            await unlockAudio.play();
-            console.log("Silent audio played for iOS unlock");
-          } catch (e) {
-            console.warn("Silent audio play failed, continuing anyway:", e);
-          }
-        } else if (isFreshUnlock) {
-          console.log("Skipping iOS unlock audio - recently unlocked");
+                // Stage 2: Initialize Tone.js with retry logic.
+                await initializeToneWithRetry();
+
+                // Stage 3: Create sampler and wait for samples to load.
+                console.log("Creating and configuring sampler...");
+                const sampleUrls = getSampleUrls();
+                pianoState.sampler = new Tone.Sampler({
+                    urls: sampleUrls,
+                    release: 1,
+                    baseUrl: "/static/samples/",
+                    onload: () => console.log("All samples loaded successfully."),
+                    onerror: (error) => console.error("Sample loading error:", error)
+                }).toDestination();
+
+                await Tone.loaded();
+                console.log("Sampler is ready!");
+
+                // Stage 4: Final setup and validation.
+                pianoState.ctxStarted = true;
+                pianoState.samplerReady = true;
+                initializeSpectrumVisualizer();
+
+                const isValid = await validateAudioSystem();
+                if (!isValid) {
+                    throw new Error("Audio system validation failed after setup.");
+                }
+
+            })(),
+            overallTimeoutPromise
+        ]);
+
+        // --- Success Path ---
+        clearTimeout(timeoutId); // Clear the timeout
+        setAudioStatus('ready');
+        markAudioAsUnlocked(); // 🎯 Save the successful unlock status
+        processDeferredAction();
+
+        const instrument = document.getElementById("instrument");
+        if (instrument) {
+            instrument.focus();
         }
-
-        // 2. Start Tone.js audio context
-        await Tone.start();
-        console.log("Tone.js audio context started. State:", Tone.context.state);
-
-        // 3. Handle iOS-specific issues
-        if (Tone.context.state === 'interrupted') {
-          console.log("Context interrupted, attempting resume...");
-          await Tone.context.resume();
-          console.log("Context resume attempted. New state:", Tone.context.state);
-        }
-
-        if (Tone.context.state !== 'running') {
-          throw new Error(`Audio context in unexpected state: ${Tone.context.state}`);
-        }
-
-        // 4. Create and configure sampler
-        const sampleUrls = getSampleUrls();
-        pianoState.sampler = new Tone.Sampler({
-          urls: sampleUrls,
-          release: 1,
-          baseUrl: "/static/samples/",
-          onload: () => { console.log("All samples loaded successfully."); },
-          onerror: (error) => { console.error("Sample loading error:", error); }
-        }).toDestination();
-
-        // 5. Wait for all samples to load
-        await Tone.loaded();
-        console.log("Sampler is ready!");
-
-        // 6. Set flags
-        pianoState.ctxStarted = true;
-        pianoState.samplerReady = true;
-        pianoState.isUnlocked = true;
-
-        // 7. Initialize spectrum visualizer
-        initializeSpectrumVisualizer();
-
-        // 8. Perform final validation
-        const isValid = await validateAudioSystem();
-        if (!isValid) {
-          throw new Error("Audio validation failed");
-        }
-
+        window.dispatchEvent(new Event('audioReady'));
         return true;
-      })(),
-      overallTimeoutPromise
-    ]);
 
-    // Success path
-    setAudioStatus('ready');
-    markAudioAsUnlocked(); // 🎯 Save unlock status on successful init
-    processDeferredAction();
-
-    const instrument = document.getElementById("instrument");
-    if (instrument) {
-      instrument.focus();
+    } catch (error) {
+        // --- Error Path ---
+        console.error("A critical error occurred during audio initialization:", error);
+        clearTimeout(timeoutId); // Ensure timeout is cleared on error
+        setAudioStatus('error');
+        deferredAction = null;
+        pianoState.lastAudioError = error;
+        return false;
     }
+}
 
-    window.dispatchEvent(new Event('audioReady'));
-    return true;
+/**
+ * Tries multiple strategies to unlock the audio context on mobile devices.
+ */
+async function attemptMultipleAudioUnlocks() {
+    const unlockStrategies = [
+        // Strategy 1: Play a silent HTML audio element.
+        async () => {
+            const unlockAudio = document.getElementById("unlock-audio");
+            if (unlockAudio) {
+                try {
+                    await unlockAudio.play();
+                    console.log("Unlock Strategy: Native audio element played successfully.");
+                    return true;
+                } catch (e) {
+                    console.warn("Unlock Strategy: Native audio play failed.", e.name);
+                    return false;
+                }
+            }
+            return false;
+        },
+        // Strategy 2: Create and play a silent buffer with the Web Audio API.
+        async () => {
+            try {
+                const audioContext = new(window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') {
+                   await audioContext.resume();
+                }
+                const buffer = audioContext.createBuffer(1, 1, 22050);
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                source.connect(audioContext.destination);
+                source.start(0);
+                // Close the temporary context to conserve resources
+                setTimeout(() => audioContext.close(), 500);
+                console.log("Unlock Strategy: Web Audio API buffer played successfully.");
+                return true;
+            } catch (e) {
+                console.warn("Unlock Strategy: Web Audio API unlock failed.", e.name);
+                return false;
+            }
+        }
+    ];
 
-  } catch (error) {
-    console.error("Audio initialization failed:", error);
-    setAudioStatus('error');
-    deferredAction = null;
-    pianoState.lastAudioError = error;
-    return false;
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
+    for (const strategy of unlockStrategies) {
+        if (await strategy()) {
+            return; // Exit as soon as one strategy succeeds
+        }
     }
-  }
+    console.warn("All audio unlock strategies failed. Proceeding with Tone.start() as a last resort.");
+}
+
+
+/**
+ * Attempts to start Tone.js, retrying on failure.
+ * @param {number} maxRetries - The maximum number of attempts.
+ */
+async function initializeToneWithRetry(maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            await Tone.start();
+            console.log(`Tone.js started successfully on attempt ${attempt}.`);
+
+            // Handle specific mobile browser state where context is 'interrupted'.
+            if (Tone.context.state === 'interrupted') {
+                console.log("Context was interrupted, attempting resume...");
+                await Tone.context.resume();
+            }
+
+            // Final check to ensure the context is running.
+            if (Tone.context.state !== 'running') {
+                throw new Error(`Audio context is in an unexpected state: ${Tone.context.state}`);
+            }
+
+            return; // Success, exit the loop.
+
+        } catch (error) {
+            console.warn(`Tone.js start attempt ${attempt} of ${maxRetries} failed:`, error);
+            if (attempt === maxRetries) {
+                throw new Error("Failed to start Tone.js after multiple retries.");
+            }
+            // Wait with an increasing backoff before the next retry.
+            await new Promise(resolve => setTimeout(resolve, 300 * attempt));
+        }
+    }
 }
 
 async function validateAudioSystem() {

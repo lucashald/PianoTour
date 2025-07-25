@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, jsonify, send_from_directory
+from flask import Flask, render_template, request, send_file, jsonify, send_from_directory, redirect
 import os
 import io
 import tempfile
@@ -79,7 +79,7 @@ def extras():
 
 
 @app.route('/print')
-def print():
+def print_page():
     return render_template('print.html')
 
 
