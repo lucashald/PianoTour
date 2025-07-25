@@ -1,140 +1,115 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-   <title>Audio Manager Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bare Minimum Audio Test (No Cleanup)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        #status-display {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            display: inline-block;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        /* The #instrument div is referenced by audioManager.js, but won't display anything */
+        #instrument {
+            width: 1px;
+            height: 1px;
+            overflow: hidden; /* Hide it visually */
+            position: absolute; /* Take it out of flow */
+            top: -9999px; /* Move it off-screen */
+            left: -9999px;
+        }
+    </style>
 </head>
 <body>
-   <h1>Audio Manager Test</h1>
-   
-   <!-- Container for the gate -->
-   <div id="instrument" style="border: 1px solid black; padding: 20px; margin: 20px;">
-       <p>Instrument container - gate will appear here</p>
-   </div>
-   
-   <!-- Status display -->
-   <div id="status">
-       <h2>Status:</h2>
-       <p>Audio Status: <span id="audioStatus">unknown</span></p>
-       <p>Gate Visible: <span id="gateVisible">unknown</span></p>
-       <p>Audio Ready: <span id="audioReady">unknown</span></p>
-   </div>
-   
-   <!-- Manual controls for testing -->
-   <div id="controls">
-       <h2>Manual Controls:</h2>
-       <button id="playButton">Test Play Note (Smart)</button>
-       <button id="playMultipleButton">Test Multiple Notes</button>
-       <button id="statusButton">Check Status</button>
-       <button id="cleanupButton">Cleanup Audio</button>
-   </div>
-   
-   <!-- Test gate options -->
-   <div>
-       <h2>Gate Options:</h2>
-       <button id="toggleGateButton">Toggle Gate Visibility</button>
-       <button id="noGateButton">Test Without Gate</button>
-   </div>
-   
-   <!-- Silent audio element for iOS -->
-   <audio id="unlock-audio" preload="auto" style="display: none">
-       <source src="{{ url_for('static', filename='silence.mp3') }}" type="audio/mpeg" />
-   </audio>
-   
-   <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
-   
-   <script type="module">
-       import audioManager from '{{ url_for("static", filename="audioManager.js") }}';
-       import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
-       
-       // Destructure what we need
-       const {
-           initializeAudioManager,
-           createGate,
-           isGateVisible,
-           isAudioReady,
-           cleanupAudio,
-           unlockAndExecute
-       } = audioManager;
-       
-       // Make pianoState global for debugging
-       window.pianoState = pianoState;
-       
-       // Initialize
-       initializeAudioManager();
-       createGate(document.getElementById('instrument'));
-       
-       // Update status display
-       function updateStatus() {
-           document.getElementById('audioStatus').textContent = pianoState.audioStatus || 'not set';
-           document.getElementById('gateVisible').textContent = isGateVisible();
-           document.getElementById('audioReady').textContent = isAudioReady();
-       }
-       
-       // Update status every second
-       setInterval(updateStatus, 1000);
-       updateStatus();
-       
-       // Event Listeners
-       
-       // Smart play - initializes audio if needed
-       document.getElementById('playButton').addEventListener('click', () => {
-           unlockAndExecute(() => {
-               console.log('Playing C4...');
-               pianoState.sampler.triggerAttackRelease('C4', '8n');
-           });
-       });
-       
-       // Test multiple clicks - only last one should play
-       document.getElementById('playMultipleButton').addEventListener('click', () => {
-           // Simulate 3 rapid clicks
-           for (let i = 0; i < 3; i++) {
-               const note = ['C4', 'E4', 'G4'][i];
-               unlockAndExecute(() => {
-                   console.log(`Playing ${note}...`);
-                   pianoState.sampler.triggerAttackRelease(note, '8n');
-               });
-           }
-       });
-       
-       // Check status
-       document.getElementById('statusButton').addEventListener('click', () => {
-           console.log('Current state:', {
-               audioStatus: pianoState.audioStatus,
-               sampler: pianoState.sampler,
-               gateVisible: isGateVisible(),
-               audioReady: isAudioReady(),
-               toneContextState: Tone.context?.state
-           });
-       });
-       
-       // Cleanup
-       document.getElementById('cleanupButton').addEventListener('click', () => {
-           cleanupAudio();
-           setTimeout(() => createGate(document.getElementById('instrument')), 100);
-       });
-       
-       // Toggle gate visibility
-       let gateHidden = false;
-       document.getElementById('toggleGateButton').addEventListener('click', () => {
-           const gate = document.getElementById('gate');
-           if (gate) {
-               gateHidden = !gateHidden;
-               gate.style.display = gateHidden ? 'none' : 'flex';
-           }
-       });
-       
-       // Test without creating gate
-       document.getElementById('noGateButton').addEventListener('click', () => {
-           cleanupAudio();
-           console.log('Testing without gate - click play button to initialize audio seamlessly');
-       });
-       
-       // Listen for audio ready
-       window.addEventListener('audioReady', () => {
-           console.log('🎉 Audio ready event received!');
-       });
-       
-       console.log('Test page ready');
-   </script>
+    <h1>Bare Minimum Audio Manager Test (No Explicit Cleanup)</h1>
+    <p>Click the button below to initialize audio and play a C4 note.</p>
+    <p>Observe the status and console logs. Be aware of potential issues on repeated clicks.</p>
+
+    <div id="instrument"></div>
+
+    <div id="status-display">
+        <strong>Audio Status:</strong> <span id="audioStatus">uninitialized</span>
+    </div>
+
+    <button id="startButton">Initialize Audio & Play C4</button>
+    <button id="cleanupButton">Cleanup Audio (Minimal Reset)</button>
+
+    <audio id="unlock-audio" preload="auto" style="display: none">
+        <source src="{{ url_for('static', filename='silence.mp3') }}" type="audio/mpeg" />
+    </audio>
+
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
+    <script type="module">
+        import audioManager from '{{ url_for("static", filename="audioManager.js") }}';
+        import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
+
+        // Destructure the necessary functions
+        const { initializeAudioManager, unlockAndExecute } = audioManager;
+
+        // Make pianoState global for debugging in browser console (if available)
+        window.pianoState = pianoState;
+
+        // Initialize the audio manager (sets initial pianoState.audioStatus)
+        initializeAudioManager();
+
+        const audioStatusSpan = document.getElementById('audioStatus');
+        const startButton = document.getElementById('startButton');
+        const cleanupButton = document.getElementById('cleanupButton');
+
+        // Function to update the displayed status
+        function updateStatusDisplay() {
+            audioStatusSpan.textContent = pianoState.audioStatus;
+        }
+
+        // Update status display every second
+        setInterval(updateStatusDisplay, 1000);
+        // Initial update
+        updateStatusDisplay();
+
+        // Event listener for the "Initialize Audio & Play C4" button
+        startButton.addEventListener('click', () => {
+            console.log("Button clicked: Attempting to unlock and execute.");
+            
+            // Define the deferred action: play C4
+            const playC4Action = () => {
+                console.log('Deferred action executed: Playing C4...');
+                if (pianoState.sampler) {
+                    pianoState.sampler.triggerAttackRelease('C4', '8n');
+                } else {
+                    console.warn('Sampler not ready to play C4.');
+                }
+            };
+
+            // Call unlockAndExecute with the deferred action
+            unlockAndExecute(playC4Action);
+        });
+
+        // Event listener for the "Cleanup Audio (Minimal Reset)" button
+        cleanupButton.addEventListener('click', () => {
+            console.log("Cleanup button clicked (minimal reset).");
+            // Only reset pianoState.audioStatus, let browser worry about Tone.js resources
+            pianoState.audioStatus = 'uninitialized';
+            // We are explicitly NOT calling pianoState.sampler.dispose()
+            // We are explicitly NOT calling Tone.context.close()
+            pianoState.sampler = null; // Still set sampler to null to avoid using a stale reference
+            Tone.context = null; // Important: Clear Tone.context reference for Tone.js to create a new one on next start
+            updateStatusDisplay();
+        });
+
+        console.log("Bare minimum test page ready (no explicit Tone.js cleanup).");
+    </script>
 </body>
 </html>

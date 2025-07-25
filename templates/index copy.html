@@ -105,7 +105,9 @@
       </main>
     </div>
 
+    <!-- BASE SCRIPTS - Common to all pages -->
     <script type="module">
+      // --- All your common JavaScript from the original file goes here ---
       console.log("Main script execution started.");
 
       // --- COMMON IMPORTS (for base template) ---
@@ -115,7 +117,7 @@
         handleModeCycleClick,
       } from '{{ url_for("static", filename="instrumentHelpers.js") }}';
       import {
-        startAudio, // playbackHelpers.js will now call audioManager.unlockAndExecute
+        startAudio,
       } from '{{ url_for("static", filename="playbackHelpers.js") }}';
       import {
         getMeasures,
@@ -137,12 +139,9 @@
       import {
         initMidi,
         setMidiCallbacks,
-        handleMidiNoteOn,
+            handleMidiNoteOn,
         handleMidiNoteOff,
       } from '{{ url_for("static", filename="midi-controller.js") }}';
-      
-      // NEW: Import audioManager itself to ensure its initialization is called
-      import audioManager from '{{ url_for("static", filename="audioManager.js") }}'; // <--- NEW IMPORT
 
       // Store initialization state globally so child scripts can check it
       window.pianoTourInitState = {
@@ -168,13 +167,11 @@
         setInitialDimensions();
 
         // Initialize lightweight components immediately
-        // Call audioManager's top-level initialization first
-        audioManager.initializeAudioManager(); // <--- NEW: Initialize audioManager
-        initializeInstrumentUI(); // Instrument UI will now handle its own event listeners for unlock
+        initializeInstrumentUI();
         initializePlayer();
         initializeFileHandlers();
 
-        // Set up event handlers (lightweight) - Simplified setupEventHandlers
+        // Set up event handlers (lightweight)
         setupEventHandlers();
 
         // Show loading state for score
@@ -196,8 +193,10 @@
       }
 
       function setInitialDimensions() {
+        // Set proper CSS custom properties for consistent sizing
         const root = document.documentElement;
 
+        // Calculate viewport-based dimensions
         const vw = Math.max(
           document.documentElement.clientWidth || 0,
           window.innerWidth || 0
@@ -207,6 +206,7 @@
           window.innerHeight || 0
         );
 
+        // Set minimum dimensions to prevent layout shift
         root.style.setProperty(
           "--score-min-width",
           Math.min(vw * 0.9, 1100) + "px"
@@ -243,11 +243,11 @@
         console.log("⚡ Starting heavy component initialization...");
 
         try {
+          // Load score from localStorage asynchronously
           await loadScoreFromStorage();
 
-          // setupUnlockSystem is now much simpler/removed from here.
-          // MIDI initialization is now independent of a single 'unlock' function.
-          // It's handled below if audio is ready.
+          // Initialize unlock functionality
+          setupUnlockSystem();
 
           // Mark heavy initialization complete
           window.pianoTourInitState.heavyInitialized = true;
@@ -269,19 +269,24 @@
         }
 
         try {
+          // Show loading indicator
           updateLoadingMessage("🔄 Loading saved score...");
 
+          // Parse in chunks to avoid blocking
           const savedData = await parseJSONAsync(savedScoreJSON);
 
+          // Process score data
           const measures = Array.isArray(savedData)
             ? savedData
             : savedData.measures;
 
           if (processAndSyncScore(measures)) {
+            // Apply metadata if available
             if (!Array.isArray(savedData)) {
               applyScoreMetadata(savedData);
             }
 
+            // Re-render with loaded data
             updateLoadingMessage("🎨 Rendering score...");
             await renderScoreAsync(getMeasures());
 
@@ -297,9 +302,11 @@
         }
       }
 
+      // Asynchronous JSON parsing to prevent blocking
       function parseJSONAsync(jsonString) {
         return new Promise((resolve, reject) => {
           try {
+            // Use setTimeout to yield control back to browser
             setTimeout(() => {
               try {
                 const result = JSON.parse(jsonString);
@@ -314,6 +321,7 @@
         });
       }
 
+      // Asynchronous score rendering
       function renderScoreAsync(measures) {
         return new Promise((resolve) => {
           requestAnimationFrame(() => {
@@ -322,7 +330,7 @@
               resolve();
             } catch (error) {
               console.error("Render error:", error);
-              resolve();
+              resolve(); // Don't fail completely
             }
           });
         });
@@ -363,27 +371,38 @@
         }
       }
 
-      // setupUnlockSystem is effectively replaced by how audioManager works now
-      // and how instrumentHelpers.js now triggers unlock on key press.
-      // MIDI initialization will now happen when audioManager dispatches 'audioReady'.
       function setupUnlockSystem() {
-        // This function is largely deprecated as audio unlock is now handled
-        // directly by user interaction with piano keys via audioManager.unlockAndExecute.
-        // We will now listen for the 'audioReady' event to trigger MIDI init.
-        console.log("setupUnlockSystem: Deprecated, relying on audioReady event for MIDI init.");
+        pianoState.unlock = async () => {
+          if (pianoState.midiInitialized) return;
+
+          console.log("🔓 Unlocking audio system...");
+
+          const audioStarted = await startAudio();
+
+          if (audioStarted && !pianoState.midiInitialized) {
+            setMidiCallbacks({
+              onNoteOn: handleMidiNoteOn,
+              onNoteOff: handleMidiNoteOff,
+            });
+            initMidi();
+            pianoState.midiInitialized = true;
+            console.log("🎵 Audio and MIDI systems are now live.");
+          }
+        };
       }
 
-
       function setupEventHandlers() {
+        // Debounced resize handler to prevent layout thrashing
         let resizeTimeout;
         window.addEventListener("resize", () => {
           clearTimeout(resizeTimeout);
           resizeTimeout = setTimeout(() => {
             console.log("📏 Handling resize...");
             drawAll(getMeasures());
-          }, 150);
+          }, 150); // 150ms debounce
         });
 
+        // Set up other event handlers
         const eventHandlers = [
           { id: "clearScoreBtn", event: "click", handler: handleClearScore },
           { id: "undo-btn", event: "click", handler: handleUndo },
@@ -415,26 +434,14 @@
             element.addEventListener(event, (e) => {
               e.preventDefault();
               handler(e);
+              // Refocus instrument after any action
               document.getElementById("instrument")?.focus();
             });
           }
         });
-        
-        // NEW: Listen for audioReady event to initialize MIDI
-        window.addEventListener('audioReady', () => {
-            if (!pianoState.midiInitialized) {
-                console.log("🎵 audioReady event received. Initializing MIDI.");
-                setMidiCallbacks({
-                    onNoteOn: handleMidiNoteOn,
-                    onNoteOff: handleMidiNoteOff,
-                });
-                initMidi();
-                pianoState.midiInitialized = true;
-                console.log("MIDI systems are now live.");
-            }
-        });
       }
 
+      // Event handler functions
       function handleClearScore(e) {
         resetScore();
       }
@@ -444,6 +451,7 @@
       }
     </script>
 
+    <!-- CHILD SCRIPTS BLOCK - This is where child templates can add their scripts -->
     {% block scripts %}{% endblock %}
   </body>
 </html>
