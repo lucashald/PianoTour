@@ -38,16 +38,11 @@ import {
 
 import { handleMidiNoteOn, handleMidiNoteOff } from "./midi-controller.js";
 
-// NEW: Import audioManager for its core unlock functionality
-import audioManager from "./audioManager.js";
+import audioManager, { startSpectrumIfReady, stopSpectrumIfActive } from "./audioManager.js";
 
 // ===================================================================
 // Module Variables
 // ===================================================================
-
-// Spectrum state tracking
-let spectrumInitialized = false;
-let spectrumActive = false;
 
 // ===================================================================
 // Core Audio Functions
@@ -115,26 +110,6 @@ function initializeSpectrumVisualizer() {
   } catch (error) {
     console.error("Error initializing spectrum:", error);
     spectrumInitialized = false;
-  }
-}
-
-/**
- * Starts spectrum visualization when audio begins
- */
-export function startSpectrumIfReady() {
-  if (spectrumInitialized && !spectrumActive) {
-    startSpectrumVisualization();
-    spectrumActive = true;
-  }
-}
-
-/**
- * Stops spectrum visualization when audio ends
- */
-export function stopSpectrumIfActive() {
-  if (spectrumActive) {
-    stopSpectrumVisualization();
-    spectrumActive = false;
   }
 }
 
@@ -442,32 +417,41 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100) {
 
   const durationMs = DURATION_THRESHOLDS[duration] || DURATION_THRESHOLDS.q;
 
+  // Create a unique key for tracking this specific triggerAttackRelease call
+  const attackReleaseKey = `attackRelease_${Date.now()}_${Math.random()}`;
+
   // Trigger attack immediately
   pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127);
 
   // Start spectrum visualization when notes are played
   startSpectrumIfReady();
 
+  // Add to activeDiatonicChords to track this note for spectrum purposes
+  pianoState.activeDiatonicChords[attackReleaseKey] = {
+    notes: Array.isArray(note) ? note : [note],
+    startTime: performance.now(),
+    isAttackRelease: true // Flag to identify this type
+  };
+
   // Schedule release after the specified duration
   setTimeout(() => {
     pianoState.sampler.triggerRelease(note);
 
-    // Check if any notes are still active
-    const hasActiveNotes =
-      Object.keys(pianoState.activeNotes).length > 0 ||
-      Object.keys(pianoState.activeDiatonicChords).length > 0;
+    // Account for the sampler's release time (1 second) before stopping spectrum
+    setTimeout(() => {
+      // Remove this specific attackRelease from tracking
+      delete pianoState.activeDiatonicChords[attackReleaseKey];
 
-    // Stop spectrum if no notes are active (with small delay)
-    if (!hasActiveNotes) {
-      setTimeout(() => {
-        const stillHasActiveNotes =
-          Object.keys(pianoState.activeNotes).length > 0 ||
-          Object.keys(pianoState.activeDiatonicChords).length > 0;
-        if (!stillHasActiveNotes) {
-          stopSpectrumIfActive();
-        }
-      }, 100); // Small delay to handle rapid note changes
-    }
+      // Check if any notes are still active
+      const hasActiveNotes =
+        Object.keys(pianoState.activeNotes).length > 0 ||
+        Object.keys(pianoState.activeDiatonicChords).length > 0;
+
+      // Stop spectrum if no notes are active
+      if (!hasActiveNotes) {
+        stopSpectrumIfActive();
+      }
+    }, 1000); // Wait for the sampler's release time (1 second)
   }, durationMs);
 }
 

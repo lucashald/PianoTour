@@ -8,6 +8,13 @@
 import { pianoState } from "./appState.js";
 // Tone is loaded globally via script tag
 
+// Add these imports with your other imports at the top of audioManager.js
+import {
+  initializeSpectrum,
+  connectSpectrumToAudio,
+  startSpectrumVisualization,
+  stopSpectrumVisualization,
+} from './spectrum.js';
 // ===================================================================
 // Audio State Management
 // ===================================================================
@@ -236,46 +243,60 @@ async function initializeAudio() {
   }
 }
 
-/**
- * Initialize spectrum visualizer (copied from playbackHelpers.js)
- */
+
+// Add these variables near the top with other module variables
+let spectrumInitialized = false;
+let spectrumActive = false;
+
+// Update the initializeSpectrumVisualizer function to set the flag:
 function initializeSpectrumVisualizer() {
   try {
-    // Check if spectrum container exists in the DOM
     const spectrumContainer = document.getElementById("spectrum");
     if (!spectrumContainer) {
       console.log("Spectrum container not found - spectrum disabled");
       return;
     }
 
-    // Import spectrum functions dynamically
-    import('./spectrum.js').then(spectrum => {
-      const spectrumOptions = {
-        fftSize: 4096,
-        smoothingTimeConstant: 0.8,
-        canvasHeight: 120,
-        backgroundColor: "#000000",
-        colorScheme: "blue fire",
-        showGrid: false,
-        showLabels: false,
-        minDb: -90,
-        maxDb: -5,
-        enableFrequencyGain: true,
-        debugMode: false,
-      };
+    const spectrumOptions = {
+      fftSize: 4096,
+      smoothingTimeConstant: 0.8,
+      canvasHeight: 120,
+      backgroundColor: "#000000",
+      colorScheme: "blue fire",
+      showGrid: false,
+      showLabels: false,
+      minDb: -90,
+      maxDb: -5,
+      enableFrequencyGain: true,
+      debugMode: false,
+    };
 
-      spectrum.initializeSpectrum(spectrumOptions);
+    initializeSpectrum(spectrumOptions);
+    spectrumInitialized = true; // ← Add this line
 
-      // Connect to the sampler if it exists
-      if (pianoState.sampler) {
-        spectrum.connectSpectrumToAudio(pianoState.sampler);
-        console.log("Spectrum connected to piano sampler");
-      }
-    }).catch(error => {
-      console.warn("Could not initialize spectrum:", error);
-    });
+    // Connect to the sampler if it exists
+    if (pianoState.sampler) {
+      connectSpectrumToAudio(pianoState.sampler);
+      console.log("Spectrum connected to piano sampler");
+    }
   } catch (error) {
     console.error("Error initializing spectrum:", error);
+    spectrumInitialized = false; // ← Add this line
+  }
+}
+
+// Add these new functions for spectrum control:
+export function startSpectrumIfReady() {
+  if (spectrumInitialized && !spectrumActive) {
+    startSpectrumVisualization();
+    spectrumActive = true;
+  }
+}
+
+export function stopSpectrumIfActive() {
+  if (spectrumActive) {
+    stopSpectrumVisualization();
+    spectrumActive = false;
   }
 }
 
@@ -404,4 +425,6 @@ export default {
   initializeAudioState,
   unlockAndExecute,
   isAudioReady,
+  startSpectrumIfReady,  // ← Add this
+  stopSpectrumIfActive,  // ← Add this
 };
