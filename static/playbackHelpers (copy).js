@@ -549,46 +549,6 @@ export function stopDiatonicChordFromUI(inputSource) {
   stopDiatonicChord(inputSource);
 }
 
-/**
- * Triggers attack and release for notes with a specific duration
- * @param {string|string[]} note - The note name(s) (e.g., "C4", ["C4", "E4", "G4"])
- * @param {string} duration - Duration key from DURATION_THRESHOLDS (e.g., "q", "h", "w")
- * @param {number} [velocity=100] - MIDI velocity (1-127)
- */
-export function triggerAttackRelease(note, duration = "q", velocity = 100) {
-  if (!pianoState.samplerReady) return;
-
-  const durationMs = DURATION_THRESHOLDS[duration] || DURATION_THRESHOLDS.q;
-
-  // Trigger attack immediately
-  pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127);
-
-  // Start spectrum visualization when notes are played
-  startSpectrumIfReady();
-
-  // Schedule release after the specified duration
-  setTimeout(() => {
-    pianoState.sampler.triggerRelease(note);
-
-    // Check if any notes are still active
-    const hasActiveNotes =
-      Object.keys(pianoState.activeNotes).length > 0 ||
-      Object.keys(pianoState.activeDiatonicChords).length > 0;
-
-    // Stop spectrum if no notes are active (with small delay)
-    if (!hasActiveNotes) {
-      setTimeout(() => {
-        const stillHasActiveNotes =
-          Object.keys(pianoState.activeNotes).length > 0 ||
-          Object.keys(pianoState.activeDiatonicChords).length > 0;
-        if (!stillHasActiveNotes) {
-          stopSpectrumIfActive();
-        }
-      }, 100); // Small delay to handle rapid note changes
-    }
-  }, durationMs);
-}
-
 // ===================================================================
 // Cleanup Function
 // ===================================================================
