@@ -108,7 +108,9 @@
     <script type="module">
       // --- All your common JavaScript from the original file goes here ---
       console.log("Main script execution started.");
-
+      // Calculate scrollbar width and set it as a CSS variable
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.setProperty('--scrollbar-width', `${scrollbarWidth}px`);
       // --- COMMON IMPORTS (for base template) ---
       import {
         initializeInstrumentUI,
