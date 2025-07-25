@@ -37,6 +37,10 @@ import {
 } from "./spectrum.js";
 
 import { handleMidiNoteOn, handleMidiNoteOff } from "./midi-controller.js";
+
+// NEW: Import audioManager for its core unlock functionality
+import audioManager from "./audioManager.js";
+
 // ===================================================================
 // Module Variables
 // ===================================================================
@@ -57,136 +61,16 @@ let spectrumActive = false;
  */
 export async function startAudio() {
   // If the app is already unlocked, do nothing.
-  if (pianoState.isUnlocked) return true;
+  if (audioManager.isAudioReady()) return true;
 
   try {
-    // First play the native audio to unlock iOS
-    await document.getElementById("unlock-audio").play(); // 1. Start Tone.js audio context
-
-    await Tone.start();
-    pianoState.ctxStarted = true;
-    console.log("Tone.js audio context started."); // 2. Determine which samples to use based on instrument
-    let sampleUrls;
-    if (pianoState.instrument === "guitar") {
-      // The guitar samples are already reasonably sparse.
-      // We'll just remove G2 since it's only one semitone from F#2.
-      // The remaining samples are all 5-6 semitones apart.
-      sampleUrls = {
-        "F#2": "nylonf42.wav",
-        // G2: "nylonf43.wav", // Redundant: Only 1 semitone from F#2
-        C3: "nylonf48.wav",
-        F3: "nylonf53.wav",
-        "A#3": "nylonf58.wav",
-        D4: "nylonf62.wav",
-        "G#4": "nylonf68.wav",
-        "C#5": "nylonf73.wav",
-        G5: "nylonf79.wav",
-      };
-    } else if (pianoState.instrument === "cello") {
-      // The original cello samples were very dense (every 3 semitones).
-      // We can keep roughly half of them, spaced about 6 semitones apart,
-      // which provides good coverage while significantly reducing load time.
-      sampleUrls = {
-        "A#3": "Cello_A#3.wav",
-        "A#4": "Cello_A#4.wav",
-        "A#5": "Cello_A#5.wav",
-        "A#6": "Cello_A#6.wav",
-        // "C#3": "Cello_C#3.wav",
-        // "C#4": "Cello_C#4.wav",
-        // "C#5": "Cello_C#5.wav",
-        // "C#6": "Cello_C#6.wav",
-        // "C#7": "Cello_C#7.wav",
-        E3: "Cello_E3.wav",
-        E4: "Cello_E4.wav",
-        E5: "Cello_E5.wav",
-        E6: "Cello_E6.wav",
-        // E7: "Cello_E7.wav", // Top range can be covered by E6
-        // "G3": "Cello_G3.wav",
-        // "G4": "Cello_G4.wav",
-        // "G5": "Cello_G5.wav",
-        // "G6": "Cello_G6.wav",
-      };
-    } else if (pianoState.instrument === "sax") {
-      // The sax samples were extremely dense, sometimes only 1 semitone apart.
-      // We'll keep one sample every 4-5 semitones (a major third / perfect fourth).
-      sampleUrls = {
-        A2: "TSAX45-2.wav",
-        // "A#2": "TSAX46.wav",
-        // B2: "TSAX47.wav",
-        "C#3": "TSAX49.wav",
-        // "D#3": "TSAX51.wav",
-        // E3: "TSAX52-2.wav",
-        F3: "TSAX53-3.wav",
-        // "F#3": "TSAX54.wav",
-        // G3: "TSAX55-2.wav",
-        A3: "TSAX57.wav",
-        // "A#3": "TSAX58-2.wav",
-        // B3: "TSAX59.wav",
-        C4: "TSAX60-3.wav",
-        // "C#4": "TSAX61.wav",
-        D4: "TSAX62-2.wav",
-        // "D#4": "TSAX63.wav",
-        F4: "TSAX65-2.wav",
-        // "F#4": "TSAX66.wav",
-        // G4: "TSAX67-3.wav",
-        "G#4": "TSAX68.wav",
-        A4: "TSAX69-3.wav",
-        // B4: "TSAX71-2.wav",
-        C5: "TSAX72.wav",
-        // "D#5": "TSAX75.wav",
-        "F#5": "TSAX78-2.wav",
-        // G5: "TSAX79.wav",
-        // "G#5": "TSAX80-2.wav",
-        "A#5": "TSAX82-2.wav",
-        // B5: "TSAX83.wav",
-        C6: "TSAX84-2.wav",
-      };
-    } else {
-      // The default piano samples were sampled every 2 semitones in the bass/mids.
-      // We can optimize this by keeping samples every 3-4 semitones.
-      sampleUrls = {
-        C2: "SteinwayD_m_C2_L.wav",
-        // D2: "SteinwayD_m_D2_L.wav",
-        E2: "SteinwayD_m_E2_L.wav",
-        // "F#2": "SteinwayD_m_F#2_L.wav",
-        "G#2": "SteinwayD_m_G#2_L.wav",
-        // "A#2": "SteinwayD_m_A#2_L.wav",
-        C3: "SteinwayD_m_C3_L.wav",
-        // D3: "SteinwayD_m_D3_L.wav",
-        E3: "SteinwayD_m_E3_L.wav",
-        // "F#3": "SteinwayD_m_F#3_L.wav",
-        "G#3": "SteinwayD_m_G#3_L.wav",
-        // "A#3": "SteinwayD_m_A#3_L.wav",
-        C4: "SteinwayD_m_C4_L.wav",
-        // D4: "SteinwayD_m_D4_L.wav",
-        E4: "SteinwayD_m_E4_L.wav",
-        "F#4": "SteinwayD_m_F#4_L.wav", // Keep this one for the upper-mid range
-        // "G#4": "SteinwayD_m_G#4_L.wav",
-        "A#4": "SteinwayD_m_A#4_L.wav",
-        C5: "SteinwayD_m_C5_L.wav",
-        "F#5": "SteinwayD_m_F#5_L.wav", // Larger jump is ok in high register
-        C6: "SteinwayD_m_C6_L.wav",
-      };
-    } // 3. Create and load the audio sampler
-
-    pianoState.sampler = new Tone.Sampler({
-      urls: sampleUrls,
-      release: 1,
-      baseUrl: "/static/samples/",
-    }).toDestination();
-
-    await Tone.loaded();
-    pianoState.samplerReady = true;
-    console.log("Sampler is ready!"); // 4. NEW: Initialize spectrum visualizer
-
-    initializeSpectrumVisualizer(); // 5. Update the global state to indicate the app is unlocked
-
-    pianoState.isUnlocked = true;
-
-    return true; // Signal success
+    // Audio initialization is now handled by audioManager.initializeAudio()
+    // This function will primarily be responsible for initiating that process.
+    // The actual starting of Tone.js context and sampler loading is in audioManager.
+    console.warn("startAudio() in playbackHelpers is deprecated. Use audioManager.unlockAndExecute() instead.");
+    return await audioManager.unlockAndExecute(() => { /* no-op, just ensure audio is ready */ });
   } catch (error) {
-    console.error("Error during audio initialization:", error);
-    pianoState.isUnlocked = false; // Ensure state is correct on failure
+    console.error("Error during audio initialization through playbackHelpers.startAudio:", error);
     return false; // Signal failure
   }
 }
@@ -261,11 +145,10 @@ export function stopSpectrumIfActive() {
  * @param {number} [velocity=100] - MIDI velocity (1-127).
  */
 export function trigger(note, on, velocity = 100) {
-  if (!pianoState.samplerReady) return;
+  if (!audioManager.isAudioReady()) return;
 
   if (on) {
     pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127); // NEW: Start spectrum visualization when notes are played
-
     startSpectrumIfReady();
   } else {
     pianoState.sampler.triggerRelease(note); // Check if any notes are still active
@@ -308,7 +191,6 @@ export function startKey(el, velocity = 100) {
   el.dataset.playing = "note";
   el.classList.add("pressed");
   trigger(noteName, true, velocity);
-
   const spelling = pianoState.keySignatureType === "b" ? "flat" : "sharp";
   pianoState.activeNotes[midi] = { el, spelling, startTime: performance.now() };
 }
@@ -556,7 +438,7 @@ export function stopDiatonicChordFromUI(inputSource) {
  * @param {number} [velocity=100] - MIDI velocity (1-127)
  */
 export function triggerAttackRelease(note, duration = "q", velocity = 100) {
-  if (!pianoState.samplerReady) return;
+  if (!audioManager.isAudioReady()) return;
 
   const durationMs = DURATION_THRESHOLDS[duration] || DURATION_THRESHOLDS.q;
 

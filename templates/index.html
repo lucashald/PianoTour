@@ -105,7 +105,6 @@
       </main>
     </div>
 
-    <!-- BASE SCRIPTS - Common to all pages -->
     <script type="module">
       // --- All your common JavaScript from the original file goes here ---
       console.log("Main script execution started.");
@@ -116,9 +115,7 @@
         handleToggleLabelsChange,
         handleModeCycleClick,
       } from '{{ url_for("static", filename="instrumentHelpers.js") }}';
-      import {
-        startAudio,
-      } from '{{ url_for("static", filename="playbackHelpers.js") }}';
+      // REMOVED: import { startAudio } from '{{ url_for("static", filename="playbackHelpers.js") }}'; // No longer needed, audioManager handles this
       import {
         getMeasures,
         resetScore,
@@ -139,9 +136,12 @@
       import {
         initMidi,
         setMidiCallbacks,
-            handleMidiNoteOn,
+        handleMidiNoteOn,
         handleMidiNoteOff,
       } from '{{ url_for("static", filename="midi-controller.js") }}';
+      // NEW: Import audioManager
+      import audioManager from '{{ url_for("static", filename="audioManager.js") }}';
+
 
       // Store initialization state globally so child scripts can check it
       window.pianoTourInitState = {
@@ -165,6 +165,11 @@
       function initializeImmediateUI() {
         // Set proper initial dimensions BEFORE any content loads
         setInitialDimensions();
+
+        // NEW: Initialize audioManager early, before any user interaction might trigger it
+        audioManager.initializeAudioManager();
+        console.log("✅ AudioManager initialized.");
+
 
         // Initialize lightweight components immediately
         initializeInstrumentUI();
@@ -246,7 +251,7 @@
           // Load score from localStorage asynchronously
           await loadScoreFromStorage();
 
-          // Initialize unlock functionality
+          // Initialize unlock functionality (now uses audioManager)
           setupUnlockSystem();
 
           // Mark heavy initialization complete
@@ -371,25 +376,35 @@
         }
       }
 
+      // REVISED: setupUnlockSystem to use audioManager for MIDI initialization
       function setupUnlockSystem() {
         pianoState.unlock = async () => {
-          if (pianoState.midiInitialized) return;
+          // No longer using pianoState.midiInitialized as a direct gate for audio unlock
+          // audioManager handles the core audio unlock, and MIDI setup can follow that.
+          
+          console.log("🔓 Attempting to unlock audio and initialize MIDI via audioManager...");
+          
+          const success = await audioManager.unlockAndExecute(() => {
+            // This deferred action runs AFTER audio context is running and sampler is loaded
+            if (!pianoState.midiInitialized) { // Check midiInitialized here, after audio is confirmed ready
+              setMidiCallbacks({
+                onNoteOn: handleMidiNoteOn,
+                onNoteOff: handleMidiNoteOff,
+              });
+              initMidi();
+              pianoState.midiInitialized = true;
+              console.log("🎵 MIDI systems initialized.");
+            }
+          });
 
-          console.log("🔓 Unlocking audio system...");
-
-          const audioStarted = await startAudio();
-
-          if (audioStarted && !pianoState.midiInitialized) {
-            setMidiCallbacks({
-              onNoteOn: handleMidiNoteOn,
-              onNoteOff: handleMidiNoteOff,
-            });
-            initMidi();
-            pianoState.midiInitialized = true;
-            console.log("🎵 Audio and MIDI systems are now live.");
+          if (success) {
+            console.log("✅ Audio and MIDI systems are now live (or were already).");
+          } else {
+            console.warn("❌ Failed to initialize audio/MIDI system.");
           }
         };
       }
+
 
       function setupEventHandlers() {
         // Debounced resize handler to prevent layout thrashing
@@ -451,7 +466,6 @@
       }
     </script>
 
-    <!-- CHILD SCRIPTS BLOCK - This is where child templates can add their scripts -->
     {% block scripts %}{% endblock %}
   </body>
 </html>

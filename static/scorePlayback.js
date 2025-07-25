@@ -4,18 +4,18 @@
 // Imports
 // ===================================================================
 
-import { pianoState } from "./appState.js"; 
-import { startAudio, trigger } from "./playbackHelpers.js"; 
-import { NOTES_BY_NAME } from "./note-data.js"; 
-import { getMeasures } from "./scoreWriter.js"; 
-import { safeRedraw, scrollToMeasure, getVexflowIndexByNoteId } from "./scoreRenderer.js"; 
+import { pianoState } from "./appState.js";
+import { trigger } from "./playbackHelpers.js";
+import { NOTES_BY_NAME } from "./note-data.js";
+import { getMeasures } from "./scoreWriter.js";
+import { safeRedraw, scrollToMeasure, getVexflowIndexByNoteId } from "./scoreRenderer.js";
 import {
   addPlaybackHighlight,
-  clearPlaybackHighlight,
   clearAllHighlights,
   setVexFlowNoteStyle,
 } from "./scoreHighlighter.js";
 import { updateNowPlayingDisplay } from "./uiHelpers.js";
+import audioManager from "./audioManager.js"; // NEW: Import audioManager
 
 // ===================================================================
 // Constants
@@ -221,7 +221,7 @@ function scheduleNoteEvents(
 * @param {number} [bpm=120] - The tempo for playback in beats per minute.
 */
 export function playScore(measures, bpm = 120) {
- if (!pianoState.samplerReady) {
+ if (!audioManager.isAudioReady()) { // REPLACED: pianoState.samplerReady with audioManager.isAudioReady()
    console.warn("Sampler is not ready. Cannot play score.");
    return;
  } else if (Tone.Transport.state === "started") {
@@ -327,7 +327,7 @@ export function stopPlayback() {
   lastScrolledMeasureIndex = -1; // Reset scroll tracking
 
   // Release all currently playing notes on the sampler
-  if (pianoState.samplerReady && pianoState.sampler) {
+  if (audioManager.isAudioReady() && pianoState.sampler) { // REPLACED: pianoState.samplerReady with audioManager.isAudioReady()
     if (pianoState.sampler.releaseAll) {
       pianoState.sampler.releaseAll();
     } else {
@@ -362,10 +362,19 @@ export function initializePlayer() {
     ?.addEventListener("click", async (e) => {
       e.preventDefault();
       document.getElementById("instrument")?.focus();
-      const audioReady = await startAudio();
-      if (audioReady) {
+      // Directly check if audio is ready, or attempt to unlock and then play.
+      // The audioManager.unlockAndExecute function is the single point for this.
+      const playAction = () => {
         playScore(getMeasures());
         Tone.Transport.start();
+      };
+
+      // Attempt to unlock audio and execute the play action.
+      // If audio is already ready, it executes immediately.
+      // If not, it initiates loading and executes once ready.
+      const audioStarted = await audioManager.unlockAndExecute(playAction);
+      if (!audioStarted) {
+          console.warn("Could not start audio for playback. Please ensure user interaction has occurred.");
       }
     });
 
@@ -382,6 +391,8 @@ export function initializePlayer() {
     ?.addEventListener("click", (e) => {
       e.preventDefault();
       document.getElementById("instrument")?.focus();
-      pianoState.unlock();
+      // Removed direct call to pianoState.unlock() as audioManager handles unlocking.
+      // A simple call to unlockAndExecute with a no-op function is sufficient to trigger unlock on click.
+      audioManager.unlockAndExecute(() => { console.log("MIDI connection audio unlocked."); });
     });
 }

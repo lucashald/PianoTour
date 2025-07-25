@@ -191,10 +191,12 @@ class KeyboardAlignedSpectrum {
    */
   _setupAudioAnalyser() {
     try {
+      // This is where the analyser is created.
+      // It's still responsible for its own analyser instance.
       this.analyser = new Tone.Analyser("fft", this.config.fftSize);
       this.analyser.smoothing = this.config.smoothingTimeConstant;
     } catch (error) {
-      console.error("Error creating Tone.js analyser:", error);
+      console.error("Error creating Tone.js analyser in spectrum.js:", error);
     }
   }
 
@@ -215,6 +217,11 @@ class KeyboardAlignedSpectrum {
    * @private
    */
   _frequencyToBin(frequency) {
+    // Ensure Tone.context is available before trying to use it
+    if (!Tone.context || Tone.context.sampleRate === undefined) {
+      console.warn("Tone.context not ready, cannot convert frequency to bin.");
+      return 0; // Return a default or handle error appropriately
+    }
     const nyquistFreq = Tone.context.sampleRate / 2;
     return Math.round((frequency / nyquistFreq) * this.analyser.size);
   }
@@ -607,7 +614,7 @@ class KeyboardAlignedSpectrum {
 
 // Global spectrum instance
 let spectrumVisualizer = null;
-let isSpectrumEnabled = false;
+let isSpectrumEnabled = false; // This flag is still relevant for enabling/disabling the feature
 
 /**
  * Creates and initializes the spectrum visualizer
@@ -653,9 +660,13 @@ export function initializeSpectrum(options = {}) {
       isSpectrumEnabled = true;
       console.log("Spectrum initialized successfully");
 
-      // Auto-connect to sampler if it exists
+      // Auto-connect to sampler if it exists.
+      // NOTE: `pianoState.sampler` should be set by `audioManager` *before* this
+      // function is called if auto-connection is desired.
       if (pianoState.sampler) {
         connectSpectrumToAudio(pianoState.sampler);
+      } else {
+        console.log("Sampler not yet available for spectrum auto-connection.");
       }
     }
   } catch (error) {

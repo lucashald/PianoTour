@@ -1,16 +1,18 @@
+// instrumentHelpers.js
+
 // ===================================================================
 // Imports
 // ===================================================================
 
-import { pianoState } from "./appState.js";
+import { pianoState } from "./appState.js"; 
 import {
   trigger,
-  triggerAttackRelease, // <-- Add this import
+  triggerAttackRelease, 
   startKey,
   stopKey,
   playDiatonicChord,
   stopDiatonicChord,
-} from "./playbackHelpers.js";
+} from "./playbackHelpers.js"; 
 import {
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
@@ -23,12 +25,12 @@ import {
   DURATION_THRESHOLDS,
   chordDefinitions,
   notesByMidiKeyAware,
-} from "./note-data.js";
-import { writeNote } from "./scoreWriter.js";
-import { updateNowPlayingDisplay } from "./uiHelpers.js";
+} from "./note-data.js"; 
+import { writeNote } from "./scoreWriter.js"; 
+import { updateNowPlayingDisplay } from "./uiHelpers.js"; 
 
 // NEW: Import audioManager for its core unlock functionality
-import audioManager from "./audioManager.js";
+import audioManager from "./audioManager.js"; 
 
 // ===================================================================
 // Constants (derived from imported data)
