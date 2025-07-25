@@ -61,6 +61,10 @@
   box-sizing: border-box;
 }
 
+.no-scroll {
+  overflow: hidden;
+}
+
 body {
   font-family: Arial, sans-serif;
   background: linear-gradient(135deg, var(--color-blue-darkest) 0%, var(--color-blue-medium) 50%, var(--color-blue-lightest) 100%);

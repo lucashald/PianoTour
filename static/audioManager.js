@@ -224,18 +224,15 @@ export function startSpectrumIfReady() {
   }
 }
 
-// ===================================================================
-// Core Audio Initialization (Enhanced with Unlock Status)
-// ===================================================================
-
 /**
- * Initializes the entire audio system, combining unlock status checks with retry logic.
+ * Simplified initialization that runs the full unlock process every time.
+ * Assumes a first-time visitor for debugging purposes.
  */
 async function initializeAudio() {
     let timeoutId;
     try {
         setAudioStatus('loading');
-        console.log("InitializeAudio: Starting comprehensive audio initialization.");
+        console.log("InitializeAudio: Starting UNCONDITIONAL audio initialization for debugging.");
 
         // Create a global timeout for the entire process
         const overallTimeoutPromise = new Promise((_, reject) => {
@@ -247,17 +244,9 @@ async function initializeAudio() {
         // Race the main initialization against the timeout
         await Promise.race([
             (async () => {
-                // Stage 1: Attempt to unlock audio, but only if necessary.
-                const wasPreviouslyUnlocked = wasAudioPreviouslyUnlocked();
-                const isFreshUnlock = isUnlockStatusFresh();
-                console.log(`Audio unlock status - Previously: ${wasPreviouslyUnlocked}, Fresh: ${isFreshUnlock}`);
-
-                if (!isFreshUnlock) {
-                    console.log("Unlock status is not fresh, attempting multiple unlock strategies.");
-                    await attemptMultipleAudioUnlocks();
-                } else {
-                    console.log("Skipping audio unlock attempts - recently unlocked.");
-                }
+                // Stage 1: Always attempt to unlock audio.
+                console.log("Forcing multiple unlock strategies for debugging.");
+                await attemptMultipleAudioUnlocks();
 
                 // Stage 2: Initialize Tone.js with retry logic.
                 await initializeToneWithRetry();
@@ -285,7 +274,6 @@ async function initializeAudio() {
                 if (!isValid) {
                     throw new Error("Audio system validation failed after setup.");
                 }
-
             })(),
             overallTimeoutPromise
         ]);
@@ -293,7 +281,7 @@ async function initializeAudio() {
         // --- Success Path ---
         clearTimeout(timeoutId); // Clear the timeout
         setAudioStatus('ready');
-        markAudioAsUnlocked(); // 🎯 Save the successful unlock status
+        // We don't call markAudioAsUnlocked() in this debug version to ensure it runs fresh every time.
         processDeferredAction();
 
         const instrument = document.getElementById("instrument");
