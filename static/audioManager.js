@@ -1,27 +1,85 @@
-// audioManager.js - Stripped Version (No Gate, No Loading Cursor)
-// Bare minimum for audio initialization and single deferred action
-
-// ===================================================================
-// Imports
-// ===================================================================
+// audioManager.js - Enhanced with unlock status persistence
 
 import { pianoState } from "./appState.js";
-// Tone is loaded globally via script tag
-
-// Add these imports with your other imports at the top of audioManager.js
 import {
   initializeSpectrum,
   connectSpectrumToAudio,
   startSpectrumVisualization,
   stopSpectrumVisualization,
 } from './spectrum.js';
+
+// ===================================================================
+// Audio Unlock Status Persistence (Internal)
+// ===================================================================
+
+const UNLOCK_KEY = 'pianoTourAudioUnlocked';
+
+/**
+ * Check if audio was previously unlocked
+ * @returns {boolean}
+ */
+function wasAudioPreviouslyUnlocked() {
+  try {
+    const unlocked = localStorage.getItem(UNLOCK_KEY);
+    return unlocked === 'true';
+  } catch (error) {
+    console.error('Failed to check unlock status:', error);
+    return false;
+  }
+}
+
+/**
+ * Mark audio as unlocked
+ */
+function markAudioAsUnlocked() {
+  try {
+    localStorage.setItem(UNLOCK_KEY, 'true');
+    localStorage.setItem(UNLOCK_KEY + '_timestamp', Date.now().toString());
+    console.log('Audio marked as unlocked');
+  } catch (error) {
+    console.error('Failed to save unlock status:', error);
+  }
+}
+
+/**
+ * Check if unlock status is recent (within 24 hours)
+ * @returns {boolean}
+ */
+function isUnlockStatusFresh() {
+  try {
+    if (!wasAudioPreviouslyUnlocked()) return false;
+
+    const timestamp = localStorage.getItem(UNLOCK_KEY + '_timestamp');
+    if (!timestamp) return false;
+
+    const unlockTime = parseInt(timestamp);
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    return (now - unlockTime) < oneDay;
+  } catch (error) {
+    console.error('Failed to check unlock freshness:', error);
+    return false;
+  }
+}
+
+/**
+ * Clear unlock status (for testing or reset)
+ */
+function clearUnlockStatus() {
+  try {
+    localStorage.removeItem(UNLOCK_KEY);
+    localStorage.removeItem(UNLOCK_KEY + '_timestamp');
+    console.log('Audio unlock status cleared');
+  } catch (error) {
+    console.error('Failed to clear unlock status:', error);
+  }
+}
+
 // ===================================================================
 // Audio State Management
 // ===================================================================
 
-/**
- * Initialize audio state in pianoState if not already present
- */
 export function initializeAudioState() {
   if (!pianoState.audioStatus) {
     pianoState.audioStatus = 'uninitialized';
@@ -29,31 +87,22 @@ export function initializeAudioState() {
   }
 }
 
-/**
- * Transition to a new audio status (Gate and cursor logic removed)
- * @param {string} newStatus - The new status to transition to
- */
 function setAudioStatus(newStatus) {
   console.log(`Audio status: ${pianoState.audioStatus} → ${newStatus}`);
   pianoState.audioStatus = newStatus;
-  // No updateGateVisibility or setLoadingCursor calls here anymore
 }
 
 // ===================================================================
-// Deferred Action Management (Single Action Only)
+// Deferred Action Management
 // ===================================================================
 
-// Store only one deferred action
 let deferredAction = null;
 
-/**
- * Process the deferred action if one exists (Loading cursor reset removed)
- */
 function processDeferredAction() {
   if (deferredAction) {
     console.log('Processing deferred action');
     const action = deferredAction;
-    deferredAction = null; // Clear deferred action after processing
+    deferredAction = null;
 
     try {
       action();
@@ -64,15 +113,10 @@ function processDeferredAction() {
 }
 
 // ===================================================================
-// Sample URL Configuration (FULL PIANO SAMPLES)
+// Sample URL Configuration
 // ===================================================================
 
-/**
- * Get sample URLs based on the current instrument (full piano set)
- * @returns {Object} Map of note names to sample file names
- */
 function getSampleUrls() {
-  // Use the same sample strategy as playbackHelpers.js for consistency
   if (pianoState.instrument === "guitar") {
     return {
       "F#2": "nylonf42.wav",
@@ -112,7 +156,6 @@ function getSampleUrls() {
       C6: "TSAX84-2.wav",
     };
   } else {
-    // Default piano samples (optimized set from playbackHelpers.js)
     return {
       C2: "SteinwayD_m_C2_L.wav",
       E2: "SteinwayD_m_E2_L.wav",
@@ -132,123 +175,12 @@ function getSampleUrls() {
 }
 
 // ===================================================================
-// Core Audio Initialization
+// Spectrum Management
 // ===================================================================
 
-/**
- * Initialize the audio system and load samples
- * @returns {Promise<boolean>} True if successful, false if an error occurred
- */
-async function initializeAudio() {
-  let timeoutId;
-  try {
-    setAudioStatus('loading');
-    console.log("InitializeAudio: Status set to loading. Starting Tone.start()");
-
-    // Set a timeout for the entire initialization process
-    const overallTimeoutPromise = new Promise((resolve, reject) => {
-        timeoutId = setTimeout(() => {
-            reject(new Error("Audio initialization timed out after 15 seconds."));
-        }, 15000); // 15 seconds overall timeout
-    });
-
-    // Race the actual initialization against the timeout
-    await Promise.race([
-        (async () => {
-            // Play silent audio to unlock iOS (if element exists)
-            const unlockAudio = document.getElementById("unlock-audio");
-            if (unlockAudio) {
-                try {
-                    await unlockAudio.play();
-                } catch (e) {
-                    console.warn("Silent audio play failed, continuing anyway:", e);
-                }
-            }
-
-            // Start Tone.js audio context
-            await Tone.start();
-            console.log("Tone.js audio context started. State:", Tone.context.state);
-
-            // Handle iOS-specific issues
-            if (Tone.context.state === 'interrupted') {
-                console.log("Context interrupted, attempting resume...");
-                await Tone.context.resume();
-                console.log("Context resume attempted. New state:", Tone.context.state);
-            }
-
-            // Verify context is truly running
-            if (Tone.context.state !== 'running') {
-                throw new Error(`Audio context in unexpected state: ${Tone.context.state}`);
-            }
-
-            // Create and configure sampler with full sample set
-            const sampleUrls = getSampleUrls();
-            pianoState.sampler = new Tone.Sampler({
-                urls: sampleUrls,
-                release: 1,
-                baseUrl: "/static/samples/",
-                onload: () => { console.log("All samples loaded successfully."); },
-                onerror: (error) => { console.error("Sample loading error:", error); }
-            }).toDestination();
-
-            // Wait for all samples to load
-            await Tone.loaded();
-            console.log("Sampler is ready!");
-
-            // Set flags to match playbackHelpers.js expectations
-            pianoState.ctxStarted = true;
-            pianoState.samplerReady = true;
-            pianoState.isUnlocked = true;
-
-            // Initialize spectrum visualizer
-            initializeSpectrumVisualizer();
-
-            // Perform final validation
-            const isValid = await validateAudioSystem();
-            if (!isValid) {
-                throw new Error("Audio validation failed");
-            }
-
-            return true; // Indicate success for Promise.race
-        })(),
-        overallTimeoutPromise // The timeout promise
-    ]);
-
-    // If we reach here, initialization was successful before timeout
-    setAudioStatus('ready');
-    processDeferredAction(); // Execute the deferred action
-
-    // Focus the instrument for keyboard input
-    const instrument = document.getElementById("instrument");
-    if (instrument) {
-      instrument.focus();
-    }
-
-    // Dispatch ready event
-    window.dispatchEvent(new Event('audioReady'));
-
-    return true;
-
-  } catch (error) {
-    console.error("Audio initialization failed:", error);
-    setAudioStatus('error'); // Set status to error
-
-    deferredAction = null; // Clear deferred action on error
-    pianoState.lastAudioError = error;
-    return false;
-  } finally {
-    if (timeoutId) {
-        clearTimeout(timeoutId);
-    }
-  }
-}
-
-
-// Add these variables near the top with other module variables
 let spectrumInitialized = false;
 let spectrumActive = false;
 
-// Update the initializeSpectrumVisualizer function to set the flag:
 function initializeSpectrumVisualizer() {
   try {
     const spectrumContainer = document.getElementById("spectrum");
@@ -272,24 +204,23 @@ function initializeSpectrumVisualizer() {
     };
 
     initializeSpectrum(spectrumOptions);
-    spectrumInitialized = true; // ← Add this line
+    spectrumInitialized = true;
 
-    // Connect to the sampler if it exists
     if (pianoState.sampler) {
       connectSpectrumToAudio(pianoState.sampler);
       console.log("Spectrum connected to piano sampler");
     }
   } catch (error) {
     console.error("Error initializing spectrum:", error);
-    spectrumInitialized = false; // ← Add this line
+    spectrumInitialized = false;
   }
 }
 
-// Add these new functions for spectrum control:
 export function startSpectrumIfReady() {
   if (spectrumInitialized && !spectrumActive) {
     startSpectrumVisualization();
     spectrumActive = true;
+    console.log("Spectrum visualization started from audioManager");
   }
 }
 
@@ -297,13 +228,121 @@ export function stopSpectrumIfActive() {
   if (spectrumActive) {
     stopSpectrumVisualization();
     spectrumActive = false;
+    console.log("Spectrum visualization stopped from audioManager");
   }
 }
 
-/**
- * Validate that the audio system is truly ready
- * @returns {Promise<boolean>}
- */
+// ===================================================================
+// Core Audio Initialization (Enhanced with Unlock Status)
+// ===================================================================
+
+async function initializeAudio() {
+  let timeoutId;
+  try {
+    setAudioStatus('loading');
+    console.log("InitializeAudio: Status set to loading");
+
+    // Check unlock status for optimization
+    const wasPreviouslyUnlocked = wasAudioPreviouslyUnlocked();
+    const isFreshUnlock = isUnlockStatusFresh();
+
+    console.log(`Audio unlock status - Previously: ${wasPreviouslyUnlocked}, Fresh: ${isFreshUnlock}`);
+
+    const overallTimeoutPromise = new Promise((resolve, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error("Audio initialization timed out after 15 seconds."));
+      }, 15000);
+    });
+
+    await Promise.race([
+      (async () => {
+        // 1. Handle iOS unlock audio (optimize based on status)
+        const unlockAudio = document.getElementById("unlock-audio");
+        if (unlockAudio && !isFreshUnlock) {
+          try {
+            await unlockAudio.play();
+            console.log("Silent audio played for iOS unlock");
+          } catch (e) {
+            console.warn("Silent audio play failed, continuing anyway:", e);
+          }
+        } else if (isFreshUnlock) {
+          console.log("Skipping iOS unlock audio - recently unlocked");
+        }
+
+        // 2. Start Tone.js audio context
+        await Tone.start();
+        console.log("Tone.js audio context started. State:", Tone.context.state);
+
+        // 3. Handle iOS-specific issues
+        if (Tone.context.state === 'interrupted') {
+          console.log("Context interrupted, attempting resume...");
+          await Tone.context.resume();
+          console.log("Context resume attempted. New state:", Tone.context.state);
+        }
+
+        if (Tone.context.state !== 'running') {
+          throw new Error(`Audio context in unexpected state: ${Tone.context.state}`);
+        }
+
+        // 4. Create and configure sampler
+        const sampleUrls = getSampleUrls();
+        pianoState.sampler = new Tone.Sampler({
+          urls: sampleUrls,
+          release: 1,
+          baseUrl: "/static/samples/",
+          onload: () => { console.log("All samples loaded successfully."); },
+          onerror: (error) => { console.error("Sample loading error:", error); }
+        }).toDestination();
+
+        // 5. Wait for all samples to load
+        await Tone.loaded();
+        console.log("Sampler is ready!");
+
+        // 6. Set flags
+        pianoState.ctxStarted = true;
+        pianoState.samplerReady = true;
+        pianoState.isUnlocked = true;
+
+        // 7. Initialize spectrum visualizer
+        initializeSpectrumVisualizer();
+
+        // 8. Perform final validation
+        const isValid = await validateAudioSystem();
+        if (!isValid) {
+          throw new Error("Audio validation failed");
+        }
+
+        return true;
+      })(),
+      overallTimeoutPromise
+    ]);
+
+    // Success path
+    setAudioStatus('ready');
+    markAudioAsUnlocked(); // 🎯 Save unlock status on successful init
+    processDeferredAction();
+
+    const instrument = document.getElementById("instrument");
+    if (instrument) {
+      instrument.focus();
+    }
+
+    window.dispatchEvent(new Event('audioReady'));
+    return true;
+
+  } catch (error) {
+    console.error("Audio initialization failed:", error);
+    setAudioStatus('error');
+    deferredAction = null;
+    pianoState.lastAudioError = error;
+    return false;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 async function validateAudioSystem() {
   try {
     if (Tone.context.state !== 'running') {
@@ -322,30 +361,22 @@ async function validateAudioSystem() {
 }
 
 // ===================================================================
-// User Interaction Handlers (PRODUCTION VERSION)
+// User Interaction Handlers
 // ===================================================================
 
-/**
- * Unlock audio and execute a deferred action
- * @param {Function} newAction - Action to execute once audio is ready
- * @param {boolean} replaceExisting - Whether to replace existing deferred action (default: true)
- * @returns {Promise<boolean>} Whether the action was executed
- */
 export async function unlockAndExecute(newAction, replaceExisting = true) {
   console.log('UnlockAndExecute called, current status:', pianoState.audioStatus);
 
-  // Aggressive Tone.context resume attempt on every interaction
   if (Tone.context && Tone.context.state !== 'running') {
-      console.log(`Attempting to resume AudioContext. Current state: ${Tone.context.state}`);
-      try {
-          await Tone.context.resume();
-          console.log(`AudioContext resumed. New state: ${Tone.context.state}`);
-      } catch (e) {
-          console.warn("Failed to resume AudioContext during unlock:", e);
-      }
+    console.log(`Attempting to resume AudioContext. Current state: ${Tone.context.state}`);
+    try {
+      await Tone.context.resume();
+      console.log(`AudioContext resumed. New state: ${Tone.context.state}`);
+    } catch (e) {
+      console.warn("Failed to resume AudioContext during unlock:", e);
+    }
   }
 
-  // If already ready, just run the action
   if (pianoState.audioStatus === 'ready') {
     console.log('Audio already ready, executing action immediately');
     try {
@@ -357,7 +388,6 @@ export async function unlockAndExecute(newAction, replaceExisting = true) {
     }
   }
 
-  // Store deferred action (replacing any existing one by default)
   if (replaceExisting || !deferredAction) {
     deferredAction = newAction;
     console.log(replaceExisting ? 'Deferred action replaced' : 'Deferred action stored');
@@ -366,9 +396,6 @@ export async function unlockAndExecute(newAction, replaceExisting = true) {
     return false;
   }
 
-  // No setLoadingCursor call here anymore
-
-  // If currently loading, just wait
   if (pianoState.audioStatus === 'loading') {
     console.log('Audio currently loading, action deferred');
     return new Promise((resolve) => {
@@ -378,19 +405,18 @@ export async function unlockAndExecute(newAction, replaceExisting = true) {
           resolve(true);
         } else if (pianoState.audioStatus === 'error') {
           clearInterval(checkReady);
-          deferredAction = null; // Clear deferred action on error
+          deferredAction = null;
           resolve(false);
         }
       }, 50);
     });
   }
 
-  // Initialize audio
   console.log('Starting audio initialization with deferred action');
   const success = await initializeAudio();
 
   if (!success) {
-    deferredAction = null; // Clear deferred action on error
+    deferredAction = null;
   }
 
   return success;
@@ -400,24 +426,37 @@ export async function unlockAndExecute(newAction, replaceExisting = true) {
 // Public API
 // ===================================================================
 
-/**
- * Initialize the audio manager system (stripped of gate/keyboard/iOS monitor/cursor)
- */
 export function initializeAudioManager() {
   initializeAudioState();
-  console.log("Audio manager initialized (stripped version, no gate, no cursor)");
+  console.log("Audio manager initialized");
 }
 
-/**
- * Check if audio is fully ready
- * @returns {boolean}
- */
 export function isAudioReady() {
   return pianoState.audioStatus === 'ready';
 }
 
+/**
+ * Get unlock status information (for UI updates)
+ * @returns {Object} Unlock status info
+ */
+export function getUnlockStatus() {
+  return {
+    wasPreviouslyUnlocked: wasAudioPreviouslyUnlocked(),
+    isFreshUnlock: isUnlockStatusFresh(),
+    canOptimizeUnlock: isUnlockStatusFresh()
+  };
+}
+
+/**
+ * Reset unlock status (for testing)
+ */
+export function resetUnlockStatus() {
+  clearUnlockStatus();
+  console.log('Audio unlock status reset');
+}
+
 // ===================================================================
-// Exports Summary
+// Default Export
 // ===================================================================
 
 export default {
@@ -425,6 +464,8 @@ export default {
   initializeAudioState,
   unlockAndExecute,
   isAudioReady,
-  startSpectrumIfReady,  // ← Add this
-  stopSpectrumIfActive,  // ← Add this
+  startSpectrumIfReady,
+  stopSpectrumIfActive,
+  getUnlockStatus,
+  resetUnlockStatus,
 };
