@@ -224,14 +224,6 @@ export function startSpectrumIfReady() {
   }
 }
 
-export function stopSpectrumIfActive() {
-  if (spectrumActive) {
-    stopSpectrumVisualization();
-    spectrumActive = false;
-    console.log("Spectrum visualization stopped from audioManager");
-  }
-}
-
 // ===================================================================
 // Core Audio Initialization (Enhanced with Unlock Status)
 // ===================================================================
@@ -465,7 +457,6 @@ export default {
   unlockAndExecute,
   isAudioReady,
   startSpectrumIfReady,
-  stopSpectrumIfActive,
   getUnlockStatus,
   resetUnlockStatus,
 };

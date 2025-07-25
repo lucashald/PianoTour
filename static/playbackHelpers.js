@@ -27,22 +27,15 @@ import {
 } from "./instrumentHelpers.js";
 import { writeNote } from "./scoreWriter.js";
 
-// Import spectrum visualization functions
+// Import spectrum visualization functions - SIMPLIFIED
 import {
-  initializeSpectrum,
-  connectSpectrumToAudio,
   startSpectrumVisualization,
   stopSpectrumVisualization,
-  destroySpectrum,
 } from "./spectrum.js";
 
 import { handleMidiNoteOn, handleMidiNoteOff } from "./midi-controller.js";
 
-import audioManager, { startSpectrumIfReady, stopSpectrumIfActive } from "./audioManager.js";
-
-// ===================================================================
-// Module Variables
-// ===================================================================
+import audioManager from "./audioManager.js";
 
 // ===================================================================
 // Core Audio Functions
@@ -71,47 +64,8 @@ export async function startAudio() {
 }
 
 // ===================================================================
-// NEW SPECTRUM HELPER FUNCTIONS
+// Core Playback Functions
 // ===================================================================
-
-/**
- * Initializes the spectrum visualizer
- */
-function initializeSpectrumVisualizer() {
-  try {
-    // Check if spectrum container exists in the DOM
-    const spectrumContainer = document.getElementById("spectrum");
-    if (!spectrumContainer) {
-      console.log("Spectrum container not found - spectrum disabled");
-      return;
-    } // Initialize spectrum with improved options for better upper frequency detection
-
-    const spectrumOptions = {
-      fftSize: 4096, // Higher resolution for better frequency precision
-      smoothingTimeConstant: 0.8,
-      canvasHeight: 120,
-      backgroundColor: "#000000",
-      colorScheme: "blue fire",
-      showGrid: false,
-      showLabels: false,
-      minDb: -90, // More sensitive to weak signals
-      maxDb: -5, // Higher ceiling for strong signals
-      enableFrequencyGain: true, // Boost higher frequencies
-      debugMode: false, // Set to true to see frequency analysis in console
-    };
-
-    initializeSpectrum(spectrumOptions);
-    spectrumInitialized = true; // Connect to the sampler if it exists
-
-    if (pianoState.sampler) {
-      connectSpectrumToAudio(pianoState.sampler);
-      console.log("Spectrum connected to piano sampler");
-    }
-  } catch (error) {
-    console.error("Error initializing spectrum:", error);
-    spectrumInitialized = false;
-  }
-}
 
 /**
  * Triggers or releases notes on the Tone.js sampler.
@@ -123,24 +77,19 @@ export function trigger(note, on, velocity = 100) {
   if (!audioManager.isAudioReady()) return;
 
   if (on) {
-    pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127); // NEW: Start spectrum visualization when notes are played
-    startSpectrumIfReady();
+    pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127);
+    startSpectrumVisualization(); // ✅ SIMPLIFIED
   } else {
-    pianoState.sampler.triggerRelease(note); // Check if any notes are still active
+    pianoState.sampler.triggerRelease(note);
 
+    // Check if any notes are still active
     const hasActiveNotes =
       Object.keys(pianoState.activeNotes).length > 0 ||
-      Object.keys(pianoState.activeDiatonicChords).length > 0; // NEW: Stop spectrum if no notes are active (with small delay)
+      Object.keys(pianoState.activeDiatonicChords).length > 0;
 
+    // Stop spectrum if no notes are active
     if (!hasActiveNotes) {
-      setTimeout(() => {
-        const stillHasActiveNotes =
-          Object.keys(pianoState.activeNotes).length > 0 ||
-          Object.keys(pianoState.activeDiatonicChords).length > 0;
-        if (!stillHasActiveNotes) {
-          stopSpectrumIfActive();
-        }
-      }, 100); // Small delay to handle rapid note changes
+      stopSpectrumVisualization(); // ✅ Let spectrum handle its own timing
     }
   }
 }
@@ -291,15 +240,13 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
   if (notesForPlayback.length === 0) {
     console.warn(`No notes determined for playback for ${specificChordKey}.`);
     return;
-  } // Play the chord
+  }
 
+  // Play the chord
   trigger(notesForPlayback, true);
-  paintChordOnTheFly({ notes: notesForPlayback }); // NEW: Start spectrum when chord begins
+  paintChordOnTheFly({ notes: notesForPlayback });
 
-  if (spectrumInitialized) {
-    startSpectrumIfReady();
-  } // Store chord data consistently for both input methods
-
+  // Store chord data consistently for both input methods
   pianoState.activeDiatonicChords[key] = {
     key: specificChordKey,
     clef: clefForPlayback,
@@ -316,8 +263,9 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
  */
 export function stopDiatonicChord(key) {
   const chordData = pianoState.activeDiatonicChords[key];
-  if (!chordData) return; // Stop the audio
+  if (!chordData) return;
 
+  // Stop the audio
   if (chordData.notes?.length) {
     trigger(chordData.notes, false);
   } else {
@@ -337,26 +285,20 @@ export function stopDiatonicChord(key) {
         trigger(notesForRelease, false);
       }
     }
-  } // NEW: Check if spectrum should stop after chord ends
+  }
 
-  setTimeout(() => {
-    const hasActiveNotes =
-      Object.keys(pianoState.activeNotes).length > 0 ||
-      Object.keys(pianoState.activeDiatonicChords).length > 0;
-    if (!hasActiveNotes) {
-      stopSpectrumIfActive();
-    }
-  }, 100); // Handle score writing if enabled
-
+  // Handle score writing if enabled
   if (chordData.writeToScore) {
     console.log("Writing chord to score:", chordData);
-    const heldTime = performance.now() - chordData.startTime; // FIX: Updated quantization logic to include dotted notes. // Checks must be in order from longest to shortest duration.
+    const heldTime = performance.now() - chordData.startTime;
 
     let duration = "q"; // Default to quarter note
     if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
     else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
     else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
-    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q."; // The default remains 'q' // Use the notes directly from chord data instead of looking them up again
+    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q.";
+
+    // Use the notes directly from chord data instead of looking them up again
     if (chordData.notes && chordData.notes.length > 0) {
       console.log("About to write note:", {
         clef: chordData.clef,
@@ -373,8 +315,9 @@ export function stopDiatonicChord(key) {
     } else {
       console.warn("No notes found in chord data for score writing");
     }
-  } // Handle visual repainting
+  }
 
+  // Handle visual repainting
   if (
     Object.keys(pianoState.activeDiatonicChords).length <= 1 &&
     (pianoState.isMajorChordMode || pianoState.isMinorChordMode)
@@ -424,7 +367,7 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100) {
   pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127);
 
   // Start spectrum visualization when notes are played
-  startSpectrumIfReady();
+  startSpectrumVisualization(); // ✅ SIMPLIFIED
 
   // Add to activeDiatonicChords to track this note for spectrum purposes
   pianoState.activeDiatonicChords[attackReleaseKey] = {
@@ -437,38 +380,17 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100) {
   setTimeout(() => {
     pianoState.sampler.triggerRelease(note);
 
-    // Account for the sampler's release time (1 second) before stopping spectrum
-    setTimeout(() => {
-      // Remove this specific attackRelease from tracking
-      delete pianoState.activeDiatonicChords[attackReleaseKey];
+    // Remove this specific attackRelease from tracking
+    delete pianoState.activeDiatonicChords[attackReleaseKey];
 
-      // Check if any notes are still active
-      const hasActiveNotes =
-        Object.keys(pianoState.activeNotes).length > 0 ||
-        Object.keys(pianoState.activeDiatonicChords).length > 0;
+    // Check if any notes are still active
+    const hasActiveNotes =
+      Object.keys(pianoState.activeNotes).length > 0 ||
+      Object.keys(pianoState.activeDiatonicChords).length > 0;
 
-      // Stop spectrum if no notes are active
-      if (!hasActiveNotes) {
-        stopSpectrumIfActive();
-      }
-    }, 1000); // Wait for the sampler's release time (1 second)
+    // Stop spectrum if no notes are active (spectrum handles its own timing)
+    if (!hasActiveNotes) {
+      stopSpectrumVisualization(); // ✅ Let spectrum handle decay timing
+    }
   }, durationMs);
 }
-
-// ===================================================================
-// Cleanup Function
-// ===================================================================
-
-/**
- * Cleans up spectrum resources when the app is being destroyed
- */
-export function cleanupSpectrum() {
-  if (spectrumInitialized) {
-    destroySpectrum();
-    spectrumInitialized = false;
-    spectrumActive = false;
-  }
-}
-
-// Optional: Add window beforeunload event to clean up
-window.addEventListener("beforeunload", cleanupSpectrum);

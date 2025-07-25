@@ -694,13 +694,31 @@ export function startSpectrumVisualization() {
   }
 }
 
-/**
- * Stops spectrum visualization
- */
+// Add these variables at the module level in spectrum.js
+let spectrumStopTimeout = null;
+let pendingStopRequests = 0;
+
 export function stopSpectrumVisualization() {
-  if (spectrumVisualizer) {
-    spectrumVisualizer.stop();
+  if (!spectrumVisualizer) return;
+
+  // Clear any existing timeout
+  if (spectrumStopTimeout) {
+    clearTimeout(spectrumStopTimeout);
   }
+
+  pendingStopRequests++;
+  const currentRequestId = pendingStopRequests;
+
+  console.log(`Spectrum stop requested (#${currentRequestId}), waiting for audio decay...`);
+
+  spectrumStopTimeout = setTimeout(() => {
+    if (currentRequestId === pendingStopRequests && spectrumVisualizer.instance.isAnimating) {
+      console.log(`🎵 Audio decay complete, stopping spectrum visualization (#${currentRequestId})`);
+      spectrumVisualizer.stop();
+      spectrumStopTimeout = null;
+      pendingStopRequests = 0;
+    }
+  }, 1200);
 }
 
 /**
