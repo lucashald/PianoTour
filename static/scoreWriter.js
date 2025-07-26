@@ -5,7 +5,7 @@
 // Imports
 // ===================================================================
 
-import { NOTES_BY_NAME } from './note-data.js'; // Needed for note name to MIDI mapping for sorting and internal consistency
+import { NOTES_BY_NAME, identifyChordStrict } from './note-data.js'; // Needed for note name to MIDI mapping for sorting and internal consistency
 import { drawAll } from './scoreRenderer.js';
 import { updateNowPlayingDisplay } from './uiHelpers.js';
 import { saveToLocalStorage } from './ioHelpers.js';
@@ -137,10 +137,30 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
 
     const existingNote = measuresData[measureIndex][noteIndex];
 
-    // If the name is being changed, strip the chordName
-    if (newNoteData.name && newNoteData.name !== existingNote.name) {
-        newNoteData = { ...newNoteData, chordName: undefined };
+// If the name is being changed, strip the chordName
+if (newNoteData.name && newNoteData.name !== existingNote.name) {
+    console.log('Note Data changed');
+    let identifiedChord = undefined;
+    console.log('identifiedChord set to undefined.');
+    
+    // Parse the name - could be single note "C4" or chord "(C4 E4 G4)"
+    if (newNoteData.name.startsWith('(') && newNoteData.name.endsWith(')')) {
+        console.log('chord detected');
+        // It's a chord - extract the note names
+        const noteNames = newNoteData.name
+            .slice(1, -1) // Remove parentheses
+            .split(' ');  // Split by spaces
+        
+        identifiedChord = identifyChordStrict(noteNames) || undefined;
+        console.log('chord identified as', identifiedChord);
     }
+    // If it's a single note, don't try to identify a chord
+    
+    newNoteData = { 
+        ...newNoteData, 
+        chordName: identifiedChord 
+    };
+}
 
     // Create a temporary copy to test for overflow
     const tempMeasure = JSON.parse(JSON.stringify(measuresData[measureIndex]));
