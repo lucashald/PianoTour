@@ -102,7 +102,7 @@ function buildMap(baseIdx) {
     }
   }
   keyMap["h"] = keyMap[" "];
-  keyMap["g"] = keyMap["t"];
+  keyMap["g"] = keyMap[" "];
   return keyMap;
 }
 
@@ -903,6 +903,7 @@ instrumentDiv.addEventListener("pointerdown", handleInitial, {
 instrumentDiv.addEventListener("click", handleInitial, { 
   once: true 
 });
+document.addEventListener("keydown", handleInitialKeyboard, { once: true });
 }
 
 function addAdvancedListeners() {
@@ -919,6 +920,8 @@ function addAdvancedListeners() {
     instrumentDiv.removeEventListener("click", handleInitial);
     instrumentDiv.removeEventListener("pointerdown", handleInitial);
     instrumentDiv.removeEventListener("touchstart", handleInitial);
+    document.removeEventListener("keydown", handleInitialKeyboard);
+
 }
 
 function addButtonListeners() {
@@ -1004,6 +1007,51 @@ function handleInitial(e) {
    audioManager.unlockAndExecute(playNoteAndWriteToScore);
    console.log("Calling unlock and execute with note play functionality");
   
+}
+
+function handleInitialKeyboard(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  
+  if (e.repeat) return;
+  const k = e.key.toLowerCase();
+  
+  // Only handle keys that are in our keyMap (piano keys)
+  if (pianoState.keyMap[k] === undefined) return;
+  
+  const baseMidi = pianoState.keyMap[k];
+  let targetMidi = baseMidi;
+  
+  // Handle shift for sharp/flat (if next note is black)
+  const nextNote = notesByMidiKeyAware(baseMidi + 1);
+  if (e.shiftKey && nextNote?.isBlack) {
+    targetMidi = baseMidi + 1;
+  }
+  
+  const noteInfo = notesByMidiKeyAware(targetMidi);
+  if (!noteInfo) return;
+  
+  const keyDetails = {
+    midi: targetMidi,
+    noteName: noteInfo.name,
+    clef: noteInfo.midi < 60 ? "bass" : "treble"
+  };
+  
+  const unlockAction = () => {
+    console.log("Audio unlocked via keyboard. Setting up advanced listeners.");
+    addAdvancedListeners();
+    addDraggingListeners();
+    
+    // Play the note and write to score
+    triggerAttackRelease([keyDetails.noteName], "q");
+    writeNote({
+      clef: keyDetails.clef,
+      duration: "q",
+      notes: [keyDetails.noteName],
+    });
+  };
+  
+  audioManager.unlockAndExecute(unlockAction);
 }
 
 /**
