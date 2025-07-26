@@ -2,6 +2,7 @@
 
 import { pianoState } from "./appState.js";
 
+// NOTES
 const ALL_NOTE_INFO = [
   { midi: 36, name: "C2", pitchClass: "C", isBlack: false },
   { midi: 37, name: "C#2", flatName: "Db2", pitchClass: "C#", isBlack: true },
@@ -140,8 +141,8 @@ export {
   ALL_NOTE_INFO,
 };
 
-// --- Chord Definitions ---
-const CHORD_DEFINITIONS = {
+// CHORDS
+export const CHORD_DEFINITIONS = {
   // C Chords
   C: {
     notes: ["C", "E", "G"],
@@ -2922,7 +2923,7 @@ export const CHORD_GROUPS = [
   },
 ];
 
-const UNIFIED_CHORD_DEFINITIONS = {
+export const UNIFIED_CHORD_DEFINITIONS = {
   // === MAJOR TRIADS ===
   maj: {
     fullName: "Major Triad",
@@ -3100,9 +3101,7 @@ const UNIFIED_CHORD_DEFINITIONS = {
   },
 };
 
-export { CHORD_DEFINITIONS, UNIFIED_CHORD_DEFINITIONS };
 
-// --- Diatonic Chord Labels & Qualities (Moved from helperfunctions.js) ---
 export const MAJOR_DIATONIC_LABELS = {
   intervals: [0, 2, 4, 5, 7, 9, 11],
   labels: ["I", "ii", "iii", "IV", "V", "vi", "7°"],
@@ -3138,7 +3137,7 @@ export const CHORD_STRUCTURES = {
   minor: { rootOffset: -3, fifthOffset: 4 }, // Relative to center note
 };
 
-// FIX: Added thresholds for dotted notes to allow quantization when recording from performance.
+// TIMING
 export const DURATION_THRESHOLDS = {
   q: 550,
   "q.": 825,
@@ -3162,6 +3161,7 @@ export const DURATIONS = [
   //{ key: '32', name: 'Thirty-second', beatValue: 0.125 },
 ];
 
+// KEYS AND SCALES
 const keySignatures = [
   // Major keys with #s
   {
@@ -3474,7 +3474,7 @@ export function identifyChordFlexible(notes) {
   return null;
 }
 
-// Helper functions (same as before)
+// FUNCTIONS
 function normalizeToSharps(note) {
   const match = ALL_NOTE_INFO.find(info => info.flatName === note);
   return match ? match.name : note;
@@ -3485,7 +3485,7 @@ function arraysEqual(arr1, arr2) {
          arr1.every((val, index) => val === arr2[index]);
 }
 
-// === SCALE FUNCTIONS ===
+
 
 /**
  * Get scale notes for a given tonic and mode

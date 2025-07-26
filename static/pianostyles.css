@@ -183,7 +183,7 @@ h4 {
 
 .instrument-panel__spectrum {
   min-height: var(--min-height-spectrum);
-  background-color: #04273C;
+  background-color: #000;
   border-radius: var(--border-radius);
 }
 
