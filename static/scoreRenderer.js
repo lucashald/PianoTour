@@ -21,7 +21,7 @@ import {
   highlightSelectedNote,
   clearSelectedNoteHighlight,
 } from "./scoreHighlighter.js";
-import { saveToLocalStorage } from './ioHelpers.js';
+import { saveToLocalStorage } from "./ioHelpers.js";
 // ===================================================================
 // Global Variables
 // ===================================================================
@@ -137,7 +137,8 @@ function logNotePositions() {
       }
     });
   }
-}function calibrateStaffPositions() {
+}
+function calibrateStaffPositions() {
   console.log("Calibrating staff positions...");
 
   // Get first measure's staves
@@ -166,7 +167,9 @@ function logNotePositions() {
   const scoreContainer = document.getElementById("score")?.parentElement;
   const containerHeight = scoreContainer ? scoreContainer.clientHeight : 350;
   const verticalOffset = Math.max(20, (containerHeight - 300) / 2);
-  console.log(`Score vertical centering: container=${containerHeight}px, offset=${verticalOffset}px`);
+  console.log(
+    `Score vertical centering: container=${containerHeight}px, offset=${verticalOffset}px`
+  );
 }
 /**
  * Finds the nearest staff position (line or space) for a given Y coordinate
@@ -319,7 +322,9 @@ export function drawAll(measures) {
     const scoreHeight = 300; // Height of the VexFlow score
     const verticalOffset = Math.max(20, (containerHeight - scoreHeight) / 2);
 
-    console.log(`drawAll: Centering score - Container height: ${containerHeight}, Score height: ${scoreHeight}, Vertical offset: ${verticalOffset}`);
+    console.log(
+      `drawAll: Centering score - Container height: ${containerHeight}, Score height: ${scoreHeight}, Vertical offset: ${verticalOffset}`
+    );
 
     vexFlowFactory = new Vex.Flow.Factory({
       renderer: {
@@ -388,15 +393,23 @@ export function drawAll(measures) {
       const staveTreble = system.addStave({ voices: [trebleVoice] });
       const staveBass = system.addStave({ voices: [bassVoice] });
       vexflowStaveMap[i] = { treble: staveTreble, bass: staveBass };
-
+      function formatTimeSignature() {
+        return `${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`;
+      }
+      function formatTempo() {
+        return pianoState.tempo;
+      }
       if (i === 0) {
-        staveTreble.addClef("treble").addTimeSignature("4/4");
-        staveBass.addClef("bass").addTimeSignature("4/4");
+        const timeSignature = formatTimeSignature();
+        const tempo = formatTempo();
+        staveTreble.addClef("treble").addTimeSignature(timeSignature);
+        staveBass.addClef("bass").addTimeSignature(timeSignature);
         system.addConnector("brace");
         system.addConnector("singleLeft");
         const keySignature = getCurrentVexFlowKeySignature();
         staveTreble.addKeySignature(keySignature);
         staveBass.addKeySignature(keySignature);
+        staveTreble.setTempo({ duration: 'q', bpm: pianoState.tempo }, -27);
       }
       if (i === measureCount - 1) {
         system.addConnector("boldDoubleRight");
@@ -430,12 +443,13 @@ export function drawAll(measures) {
     }
     // NEW: Restore all notes from the playback Set
     for (const noteKey of pianoState.currentPlaybackNotes) {
-      const [measureIndex, clef, noteId] = noteKey.split('-');
+      const [measureIndex, clef, noteId] = noteKey.split("-");
       const measureIdx = parseInt(measureIndex);
-      console.log(
-        `drawAll: Restoring playback highlight for note`,
-        { measureIndex: measureIdx, clef, noteId }
-      );
+      console.log(`drawAll: Restoring playback highlight for note`, {
+        measureIndex: measureIdx,
+        clef,
+        noteId,
+      });
       addPlaybackHighlight(measureIdx, clef, noteId, "#FFD700");
     }
 
@@ -1155,8 +1169,8 @@ function detectMeasureClick(x, y) {
   const verticalOffset = Math.max(20, (containerHeight - scoreHeight) / 2);
 
   // Use calibrated bounds if available, otherwise use calculated values with offset
-  const scoreTopY = (TREBLE_STAFF_TOP_Y || verticalOffset + 20);
-  const scoreBottomY = (BASS_STAFF_BOTTOM_Y || verticalOffset + 280);
+  const scoreTopY = TREBLE_STAFF_TOP_Y || verticalOffset + 20;
+  const scoreBottomY = BASS_STAFF_BOTTOM_Y || verticalOffset + 280;
 
   // Define margins to allow for drops on ledger lines both above and below the staves.
   const topMargin = 50;
@@ -1164,7 +1178,11 @@ function detectMeasureClick(x, y) {
 
   // Check if the drop is within the adjusted vertical bounds of the score.
   if (y < scoreTopY - topMargin || y > scoreBottomY + bottomMargin) {
-    console.log(`detectMeasureClick: Y=${y} outside bounds (${scoreTopY - topMargin} to ${scoreBottomY + bottomMargin})`);
+    console.log(
+      `detectMeasureClick: Y=${y} outside bounds (${scoreTopY - topMargin} to ${
+        scoreBottomY + bottomMargin
+      })`
+    );
     return -1; // Return -1 if the drop is outside the valid vertical area.
   }
 
@@ -1185,7 +1203,7 @@ function detectMeasureClick(x, y) {
  * @param {number} measureIndex - The index of the measure to scroll to.
  */
 export function scrollToMeasure(measureIndex) {
-  console.log('scrollToMeasure called with index', measureIndex);
+  console.log("scrollToMeasure called with index", measureIndex);
   const scoreWrap = document.getElementById("scoreWrap"); // The HTML element acting as the scrollable container for the score.
   const measureWidth = 340; // The fixed width of a single measure in pixels.
 

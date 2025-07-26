@@ -245,7 +245,7 @@ function scheduleNoteEvents(
 * @param {Array} measures - The array of measures containing the score data.
 * @param {number} [bpm=120] - The tempo for playback in beats per minute.
 */
-export function playScore(measures, bpm = 120) {
+export function playScore(measures, bpm = pianoState.tempo) {
  if (!audioManager.isAudioReady()) { // REPLACED: pianoState.samplerReady with audioManager.isAudioReady()
    console.warn("Sampler is not ready. Cannot play score.");
    return;
@@ -284,7 +284,7 @@ export function playScore(measures, bpm = 120) {
 
  // 3. Iterate through each measure to schedule all notes and visual feedback.
  let currentTransportTime = 0; // Use seconds instead of beats
- const beatsPerMeasure = 4; // Assuming 4/4 time signature
+ const beatsPerMeasure = pianoState.timeSignature.numerator; // Assuming 4/4 time signature
  const secondsPerBeat = 60 / bpm; // Convert BPM to seconds per beat
 
  measures.forEach((measure, measureIndex) => {

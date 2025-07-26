@@ -76,7 +76,128 @@ body {
 body {
   scrollbar-gutter: stable both-edges;
 }
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
 
+.control-row:last-child {
+  margin-bottom: 0;
+}
+
+.control-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+/* Time Signature Controls */
+.time-signature-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-signature-input {
+  width: 50px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.time-signature-input:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+
+.time-signature-separator {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--color-text-secondary);
+  margin: 0 4px;
+}
+
+.time-signature-select {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.time-signature-select:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+
+/* Tempo Controls */
+.tempo-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tempo-input {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tempo-input:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+
+.tempo-label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Measure Controls */
+.measure-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.measure-input {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.measure-input:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
 /* ==========================================================================
    2. Main Application Layout
    - Defines the overall structure and centering for the app.

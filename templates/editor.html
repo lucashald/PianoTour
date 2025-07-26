@@ -6,15 +6,47 @@
 <!-- Editor Panel Content -->
 <div id="editorContainer">
   
-  <!-- Measure Navigation Widget -->
-  <section class="editor-widget">
-    <h3 class="editor-widget__title">Measure</h3>
-    <div class="editor-widget__content" id="editorControlsHeader">
-      <button id="editorPrevBtn" class="btn btn--compact">◀</button>
-      <input type="number" id="editorNumberInput" value="1" min="1" class="measure-input">
-      <button id="editorNextBtn" class="btn btn--compact">▶</button>
+<!-- Time Signature & Measure Controls -->
+<section class="editor-widget">
+  <h3 class="editor-widget__title">Score Controls</h3>
+  <div class="editor-widget__content">
+    
+    <!-- Time Signature Row -->
+    <div class="control-row">
+      <label class="control-label">Time Signature</label>
+      <div class="time-signature-controls">
+          <select id="time-signature-numerator" class="time-signature-select">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+        </select>
+        <span class="time-signature-separator">/</span>
+        <select id="time-signature-denominator" class="time-signature-select">
+          <option value="4" selected>4</option>
+        </select>
+      </div>
     </div>
-  </section>
+
+    <!-- Tempo Row -->
+    <div class="control-row">
+      <label class="control-label">Tempo (BPM)</label>
+      <div class="tempo-controls">
+        <input type="number" id="tempo-input" value="120" min="60" max="200" class="tempo-input">
+      </div>
+    </div>
+
+    <!-- Measure Navigation Row -->
+    <div class="control-row">
+      <label class="control-label">Measure</label>
+      <div class="measure-controls">
+        <button id="editorPrevBtn" class="btn btn--compact" title="Previous measure">◀</button>
+        <input type="number" id="editorNumberInput" value="1" min="1" class="measure-input">
+        <button id="editorNextBtn" class="btn btn--compact" title="Next measure">▶</button>
+      </div>
+    </div>
+
+  </div>
+</section>
 
   <!-- Treble Clef Notes Widget -->
   <section class="editor-widget">
