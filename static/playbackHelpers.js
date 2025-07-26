@@ -13,10 +13,15 @@ import {
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
   UNIFIED_CHORD_DEFINITIONS,
-  diatonicChordQualities,
-  chordDefinitions,
+  DIATONIC_CHORD_QUALITIES,
+  CHORD_DEFINITIONS,
   DURATION_THRESHOLDS,
   notesByMidiKeyAware,
+  getScaleNotes,
+  getPitchClass,
+  getInterval,
+  transposeNote,
+  getOctave,
 } from "./note-data.js";
 
 // Import UI painting functions
@@ -138,24 +143,10 @@ export function stopKey(el) {
   delete pianoState.activeNotes[midi];
 }
 
-// ===================================================================
-// Diatonic Chord Playback (Unified)
-// ===================================================================
-
-/**
- * Unified function to play a diatonic chord based on a scale degree.
- * Works for both MIDI controller and keyboard/mouse inputs.
- * @param {number} degree - The scale degree (1-7).
- * @param {string|number} key - The unique identifier for this chord instance.
- * @param {boolean} [writeToScore=true] - Whether to prepare for score writing.
- */
 export function playDiatonicChord(degree, key, writeToScore = true) {
-  const isInChordMode =
-    pianoState.isMajorChordMode || pianoState.isMinorChordMode;
+  const isInChordMode = pianoState.isMajorChordMode || pianoState.isMinorChordMode;
   const localMode = isInChordMode
-    ? pianoState.isMajorChordMode
-      ? "major"
-      : "minor"
+    ? pianoState.isMajorChordMode ? "major" : "minor"
     : "major";
   const spaceMidi = pianoState.keyMap[" "];
   if (!spaceMidi && !isInChordMode) return;
@@ -168,71 +159,58 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
     return;
   }
 
-  const qualityKey = diatonicChordQualities[localMode][degree];
+  const qualityKey = DIATONIC_CHORD_QUALITIES[localMode][degree];
   const chordDef = UNIFIED_CHORD_DEFINITIONS[qualityKey];
   if (!chordDef) {
     console.warn(`No chord definition found for qualityKey: ${qualityKey}`);
     return;
   }
 
-  const scale = Tonal.Scale.get(
-    `${Tonal.Note.pitchClass(localTonic)} ${localMode}`
-  );
-  if (!scale?.notes?.length) {
+  // REPLACED: Use our scale function instead of Tonal
+  const scaleNotes = getScaleNotes(getPitchClass(localTonic), localMode);
+  if (!scaleNotes?.length) {
     console.warn(`Could not get scale for ${localTonic} ${localMode}`);
     return;
   }
 
-  const rootPitchClassTonal = scale.notes[degree - 1];
-  const intervalToRoot = Tonal.Interval.distance(
-    Tonal.Note.pitchClass(localTonic),
-    rootPitchClassTonal
-  );
-  const actualRootNoteNameWithOctave = Tonal.Note.transpose(
-    localTonic,
-    intervalToRoot
-  );
-  const specificChordKey =
-    Tonal.Note.pitchClass(actualRootNoteNameWithOctave) +
-    (chordDef.suffix || "");
-  const predefinedChord = chordDefinitions[specificChordKey];
+  const rootPitchClass = scaleNotes[degree - 1];
+  
+  // REPLACED: Use our interval function
+  const intervalSemitones = getInterval(getPitchClass(localTonic), rootPitchClass);
+  
+  // REPLACED: Use our transpose function  
+  const actualRootNoteNameWithOctave = transposeNote(localTonic, intervalSemitones);
+  
+  const specificChordKey = getPitchClass(actualRootNoteNameWithOctave) + (chordDef.suffix || "");
+  const predefinedChord = CHORD_DEFINITIONS[specificChordKey];
   let notesForPlayback = [];
   let clefForPlayback = "treble";
   let chordNameForDisplay = predefinedChord?.displayName || specificChordKey;
 
-  if (
-    !predefinedChord ||
-    (!predefinedChord.treble?.length && !predefinedChord.bass?.length)
-  ) {
-    console.warn(
-      `Predefined chord not found for ${specificChordKey}. Deriving for playback.`
-    );
+  if (!predefinedChord || (!predefinedChord.treble?.length && !predefinedChord.bass?.length)) {
+    console.warn(`Predefined chord not found for ${specificChordKey}. Deriving for playback.`);
     const rootMidi = NOTES_BY_NAME[actualRootNoteNameWithOctave];
     if (rootMidi === undefined) return;
     notesForPlayback = chordDef.intervals
       .map((interval) => NOTES_BY_MIDI[rootMidi + interval]?.name)
       .filter(Boolean);
-    if (
-      notesForPlayback.length > 0 &&
-      Math.min(...notesForPlayback.map((n) => NOTES_BY_NAME[n])) < 60
-    ) {
+    if (notesForPlayback.length > 0 && 
+        Math.min(...notesForPlayback.map((n) => NOTES_BY_NAME[n])) < 60) {
       clefForPlayback = "bass";
     }
   } else {
-    const tonicOctave = Tonal.Note.octave(localTonic);
-    notesForPlayback =
-      tonicOctave >= 4 || !predefinedChord.bass.length
-        ? predefinedChord.treble
-        : predefinedChord.bass;
+    // REPLACED: Use our octave function
+    const tonicOctave = getOctave(localTonic);
+    notesForPlayback = tonicOctave >= 4 || !predefinedChord.bass.length
+      ? predefinedChord.treble
+      : predefinedChord.bass;
     if (!notesForPlayback.length) {
       notesForPlayback = predefinedChord.treble.length
         ? predefinedChord.treble
         : predefinedChord.bass;
     }
-    if (
-      notesForPlayback.length > 0 &&
-      Math.min(...notesForPlayback.map((n) => NOTES_BY_NAME[n])) < 60
-    ) {
+    if (notesForPlayback.length > 0 && 
+        Math.min(...notesForPlayback.map((n) => NOTES_BY_NAME[n])) < 60) {
       clefForPlayback = "bass";
     }
   }
@@ -241,7 +219,6 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
     console.warn(`No notes determined for playback for ${specificChordKey}.`);
     return;
   }
-
   // Play the chord
   trigger(notesForPlayback, true);
   paintChordOnTheFly({ notes: notesForPlayback });
@@ -270,7 +247,7 @@ export function stopDiatonicChord(key) {
     trigger(chordData.notes, false);
   } else {
     // Fallback to predefined chord lookup
-    const predefinedChord = chordDefinitions[chordData.key];
+    const predefinedChord = CHORD_DEFINITIONS[chordData.key];
     if (predefinedChord) {
       let notesForRelease =
         chordData.clef === "bass" && predefinedChord.bass?.length

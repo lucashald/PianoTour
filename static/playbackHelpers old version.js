@@ -13,8 +13,8 @@ import {
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
   UNIFIED_CHORD_DEFINITIONS,
-  diatonicChordQualities,
-  chordDefinitions,
+  DIATONIC_CHORD_QUALITIES,
+  CHORD_DEFINITIONS,
   DURATION_THRESHOLDS,
   notesByMidiKeyAware,
 } from "./note-data.js";
@@ -362,7 +362,7 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
     return;
   }
 
-  const qualityKey = diatonicChordQualities[localMode][degree];
+  const qualityKey = DIATONIC_CHORD_QUALITIES[localMode][degree];
   const chordDef = UNIFIED_CHORD_DEFINITIONS[qualityKey];
   if (!chordDef) {
     console.warn(`No chord definition found for qualityKey: ${qualityKey}`);
@@ -389,7 +389,7 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
   const specificChordKey =
     Tonal.Note.pitchClass(actualRootNoteNameWithOctave) +
     (chordDef.suffix || "");
-  const predefinedChord = chordDefinitions[specificChordKey];
+  const predefinedChord = CHORD_DEFINITIONS[specificChordKey];
   let notesForPlayback = [];
   let clefForPlayback = "treble";
   let chordNameForDisplay = predefinedChord?.displayName || specificChordKey;
@@ -465,7 +465,7 @@ export function stopDiatonicChord(key) {
     trigger(chordData.notes, false);
   } else {
     // Fallback to predefined chord lookup
-    const predefinedChord = chordDefinitions[chordData.key];
+    const predefinedChord = CHORD_DEFINITIONS[chordData.key];
     if (predefinedChord) {
       let notesForRelease =
         chordData.clef === "bass" && predefinedChord.bass?.length

@@ -16,11 +16,11 @@ import {
   WHITE_KEY_WIDTH,
   BLACK_KEY_WIDTH,
   ALL_NOTE_INFO,
-  majorDiatonicLabels,
-  minorDiatonicLabels,
+  MAJOR_DIATONIC_LABELS,
+  MINOR_DIATONIC_LABELS,
   CHORD_STRUCTURES,
   DURATION_THRESHOLDS,
-  chordDefinitions,
+  CHORD_DEFINITIONS,
   notesByMidiKeyAware,
 } from "./note-data.js";
 import { writeNote } from "./scoreWriter.js";

@@ -5,7 +5,7 @@
 // Imports
 // ===================================================================
 
-import { chordDefinitions, chordGroups, DURATION_THRESHOLDS } from './note-data.js';
+import { CHORD_DEFINITIONS, CHORD_GROUPS, DURATION_THRESHOLDS } from './note-data.js';
 import { writeNote } from './scoreWriter.js';
 import { trigger } from './playbackHelpers.js';
 import { pianoState } from './appState.js';
@@ -54,8 +54,8 @@ function resolveChordName(chordName) {
             const preferredRoot = pianoState.keySignatureType === 'b' ? flat : sharp;
             const preferredChordName = preferredRoot + quality;
 
-            // Return the preferred version if it exists in chordDefinitions
-            if (chordDefinitions[preferredChordName]) {
+            // Return the preferred version if it exists in CHORD_DEFINITIONS
+            if (CHORD_DEFINITIONS[preferredChordName]) {
                 return preferredChordName;
             }
         }
@@ -65,12 +65,12 @@ function resolveChordName(chordName) {
 }
 
 export function generateChordButtons() {
-    if (typeof chordGroups === 'undefined' || !document.getElementById('chordGroupsContainer')) return;
+    if (typeof CHORD_GROUPS === 'undefined' || !document.getElementById('CHORD_GROUPSContainer')) return;
 
-    const chordGroupsContainer = document.getElementById('chordGroupsContainer');
-    chordGroupsContainer.innerHTML = ''; // Clear previous buttons
+    const CHORD_GROUPSContainer = document.getElementById('CHORD_GROUPSContainer');
+    CHORD_GROUPSContainer.innerHTML = ''; // Clear previous buttons
 
-    chordGroups.forEach(group => {
+    CHORD_GROUPS.forEach(group => {
         const section = document.createElement('div');
         section.className = 'chord-section';
         const heading = document.createElement('h4');
@@ -86,7 +86,7 @@ export function generateChordButtons() {
 
             // Resolve chord name based on current key signature
             const resolvedChordName = resolveChordName(chordName);
-            const chordDefinition = chordDefinitions[resolvedChordName];
+            const chordDefinition = CHORD_DEFINITIONS[resolvedChordName];
             if (!chordDefinition) return;
 
             btn.chordData = chordDefinition;
@@ -96,16 +96,16 @@ export function generateChordButtons() {
             grid.appendChild(btn);
         });
         section.appendChild(grid);
-        chordGroupsContainer.appendChild(section);
+        CHORD_GROUPSContainer.appendChild(section);
     });
 
-    document.querySelectorAll('#chordGroupsContainer .btn').forEach(button => {
+    document.querySelectorAll('#CHORD_GROUPSContainer .btn').forEach(button => {
         button.addEventListener('pointerdown', function (e) {
             e.preventDefault(); 
             const chordDefinition = this.chordData;
             if (!chordDefinition) return;
 
-            document.querySelectorAll('#chordGroupsContainer .btn').forEach(btn => btn.classList.remove('is-active'));
+            document.querySelectorAll('#CHORD_GROUPSContainer .btn').forEach(btn => btn.classList.remove('is-active'));
             this.classList.add('is-active');
 
             updateNowPlayingDisplay(chordDefinition.displayName);

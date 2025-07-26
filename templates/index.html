@@ -15,7 +15,6 @@
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
     {% block head_extra %}{% endblock %}
   </head>
   <body id="page-instrument">
@@ -99,7 +98,7 @@
           </div>
 
           <div class="main-controls__chord-interface hidden" id="chordButtons">
-            <div id="chordGroupsContainer"></div>
+            <div id="CHORD_GROUPSContainer"></div>
           </div>
         </nav>
       </main>
