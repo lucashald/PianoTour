@@ -137,11 +137,7 @@ function logNotePositions() {
       }
     });
   }
-}
-// ===================================================================
-// Core Rendering & Interaction
-// ===================================================================
-function calibrateStaffPositions() {
+}function calibrateStaffPositions() {
   console.log("Calibrating staff positions...");
 
   // Get first measure's staves
@@ -165,8 +161,13 @@ function calibrateStaffPositions() {
       `Bass staff: top=${BASS_STAFF_TOP_Y}, bottom=${BASS_STAFF_BOTTOM_Y}`
     );
   }
-}
 
+  // Log the vertical centering info
+  const scoreContainer = document.getElementById("score")?.parentElement;
+  const containerHeight = scoreContainer ? scoreContainer.clientHeight : 350;
+  const verticalOffset = Math.max(20, (containerHeight - 300) / 2);
+  console.log(`Score vertical centering: container=${containerHeight}px, offset=${verticalOffset}px`);
+}
 /**
  * Finds the nearest staff position (line or space) for a given Y coordinate
  * @param {number} y - Y coordinate
@@ -289,7 +290,6 @@ export function setKeySignature(keySignature) {
 
   return true;
 }
-
 export function drawAll(measures) {
   console.log("drawAll: START");
   const out = document.getElementById("score");
@@ -313,11 +313,19 @@ export function drawAll(measures) {
   }
 
   try {
+    // Calculate vertical centering
+    const scoreContainer = out.parentElement; // Should be .score-viewer__container
+    const containerHeight = scoreContainer ? scoreContainer.clientHeight : 350;
+    const scoreHeight = 300; // Height of the VexFlow score
+    const verticalOffset = Math.max(20, (containerHeight - scoreHeight) / 2);
+
+    console.log(`drawAll: Centering score - Container height: ${containerHeight}, Score height: ${scoreHeight}, Vertical offset: ${verticalOffset}`);
+
     vexFlowFactory = new Vex.Flow.Factory({
       renderer: {
         elementId: "score",
         width: measureWidth * measureCount + 20,
-        height: 300,
+        height: Math.max(scoreHeight, containerHeight), // Ensure renderer is tall enough
       },
     });
     vfContext = vexFlowFactory.getContext();
@@ -364,8 +372,10 @@ export function drawAll(measures) {
         }
       });
 
+      // Create system with vertical offset for centering
       const system = vexFlowFactory.System({
         x: currentX,
+        y: verticalOffset, // ADD THIS: Apply vertical centering
         width: measureWidth,
         spaceBetweenStaves: 10,
       });
@@ -437,7 +447,6 @@ export function drawAll(measures) {
   calibrateStaffPositions();
   console.log("drawAll: END");
 }
-
 /**
  * A safe redraw that preserves the current selection and all highlight states.
  */
@@ -1129,10 +1138,9 @@ function detectNoteClick(x, y) {
   );
   return null;
 }
-
 /**
  * Detects which measure was clicked or interacted with based on X, Y coordinates.
- * This function assumes a fixed measure width and a defined vertical range for the score area.
+ * This function assumes a fixed measure width and accounts for vertical centering.
  * @param {number} x - The X coordinate of the event (relative to the score element).
  * @param {number} y - The Y coordinate of the event (relative to the score element).
  * @returns {number} The measure index (0-indexed) if a measure is detected, or -1 if the coordinates are outside any measure's bounds.
@@ -1140,16 +1148,23 @@ function detectNoteClick(x, y) {
 function detectMeasureClick(x, y) {
   const measureWidth = 340;
 
-  // Use calibrated bounds if available, otherwise use default values.
-  const scoreTopY = TREBLE_STAFF_TOP_Y || 20;
-  const scoreBottomY = BASS_STAFF_BOTTOM_Y || 280;
+  // Calculate the current vertical offset (same logic as in drawAll)
+  const scoreContainer = document.getElementById("score")?.parentElement;
+  const containerHeight = scoreContainer ? scoreContainer.clientHeight : 350;
+  const scoreHeight = 300;
+  const verticalOffset = Math.max(20, (containerHeight - scoreHeight) / 2);
+
+  // Use calibrated bounds if available, otherwise use calculated values with offset
+  const scoreTopY = (TREBLE_STAFF_TOP_Y || verticalOffset + 20);
+  const scoreBottomY = (BASS_STAFF_BOTTOM_Y || verticalOffset + 280);
 
   // Define margins to allow for drops on ledger lines both above and below the staves.
   const topMargin = 50;
-  const bottomMargin = 50; // THE FIX: Added a margin for the bottom boundary.
+  const bottomMargin = 50;
 
   // Check if the drop is within the adjusted vertical bounds of the score.
   if (y < scoreTopY - topMargin || y > scoreBottomY + bottomMargin) {
+    console.log(`detectMeasureClick: Y=${y} outside bounds (${scoreTopY - topMargin} to ${scoreBottomY + bottomMargin})`);
     return -1; // Return -1 if the drop is outside the valid vertical area.
   }
 
