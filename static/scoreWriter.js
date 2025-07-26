@@ -141,7 +141,6 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
 if (newNoteData.name && newNoteData.name !== existingNote.name) {
     console.log('Note Data changed');
     let identifiedChord = undefined;
-    console.log('identifiedChord set to undefined.');
     
     // Parse the name - could be single note "C4" or chord "(C4 E4 G4)"
     if (newNoteData.name.startsWith('(') && newNoteData.name.endsWith(')')) {
