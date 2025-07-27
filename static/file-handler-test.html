@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Handler Double-Fire Test</title>
+</head>
+<body>
+    <!-- Test HTML structure -->
+    <button id="load-score-btn" class="btn btn--info">Load</button>
+    <button id="save-score-btn" class="btn btn--primary">Save</button>
+    <input type="file" id="file-loader-input" style="display: none" accept=".json, .mid, .midi" />
+    <div id="instrument"></div>
+
+    <!-- Test Results -->
+    <div id="test-results"></div>
+
+    <script type="module">
+        // Mock the dependencies
+        const mockPianoState = { keySignature: 'C' };
+        const mockGetMeasures = () => [];
+        const mockProcessAndSyncScore = () => true;
+        const mockDrawAll = () => {};
+        const mockSetKeySignature = () => true;
+        const mockUpdateUI = () => {};
+
+        // Counter to track how many times file handling is called
+        let fileHandlingCallCount = 0;
+        let testResults = [];
+
+        // Mock file handling functions with counters
+        function loadScoreFromJson(file) {
+            fileHandlingCallCount++;
+            console.log(`loadScoreFromJson called (count: ${fileHandlingCallCount}) for file: ${file.name}`);
+        }
+
+        function loadScoreFromMidi(file) {
+            fileHandlingCallCount++;
+            console.log(`loadScoreFromMidi called (count: ${fileHandlingCallCount}) for file: ${file.name}`);
+        }
+
+        function saveScoreToFile() {
+            console.log('saveScoreToFile called');
+        }
+
+        // The file handling code to test
+        function handleFileLoad(event) {
+            console.log('handleFileLoad called, files:', event.target.files.length);
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+
+            if (fileExtension === 'json') {
+                loadScoreFromJson(file);
+            } else if (fileExtension === 'mid' || fileExtension === 'midi') {
+                loadScoreFromMidi(file);
+            } else {
+                alert(`Unsupported file type: .${fileExtension}\nPlease select a .json or .mid file.`);
+            }
+            
+            // This line causes the double-fire bug when uncommented
+            // event.target.value = '';
+        }
+
+        function initializeFileHandlers() {
+            console.log('Initializing file handlers...');
+            document.getElementById('load-score-btn')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('file-loader-input')?.click();
+            });
+
+            document.getElementById('file-loader-input')?.addEventListener('change', (e) => {
+                console.log('Change event fired');
+                handleFileLoad(e);
+                document.getElementById('instrument')?.focus();
+            });
+
+            document.getElementById('save-score-btn')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                saveScoreToFile();
+                document.getElementById('instrument')?.focus();
+            });
+        }
+
+        // Helper function to create a mock file
+        function createMockFile(name, type = 'application/json') {
+            const file = new File(['mock content'], name, { type });
+            return file;
+        }
+
+        // Helper function to simulate file selection with a fresh input
+        function simulateFileSelection(fileName, testName = '') {
+            return new Promise((resolve) => {
+                console.log(`\n--- Starting ${testName || 'test'} with file: ${fileName} ---`);
+                
+                // Create a completely new file input for each test
+                const oldInput = document.getElementById('file-loader-input');
+                const newInput = document.createElement('input');
+                newInput.type = 'file';
+                newInput.id = 'file-loader-input';
+                newInput.style.display = 'none';
+                newInput.accept = '.json, .mid, .midi';
+                
+                // Replace the old input
+                oldInput.parentNode.replaceChild(newInput, oldInput);
+                
+                const file = createMockFile(fileName);
+                
+                // Reset counter before test
+                fileHandlingCallCount = 0;
+                console.log('Reset counter to 0');
+
+                // Add the change listener to the new input
+                newInput.addEventListener('change', (e) => {
+                    console.log('Change event fired on new input');
+                    handleFileLoad(e);
+                });
+
+                // Create a FileList-like object
+                const fileList = {
+                    0: file,
+                    length: 1,
+                    item: (index) => index === 0 ? file : null,
+                    [Symbol.iterator]: function* () {
+                        yield file;
+                    }
+                };
+
+                // Set the files property using a descriptor that allows reconfiguration
+                try {
+                    Object.defineProperty(newInput, 'files', {
+                        value: fileList,
+                        writable: false,
+                        configurable: true
+                    });
+                } catch (e) {
+                    console.warn('Could not set files property:', e);
+                }
+
+                // Trigger the change event
+                console.log('Dispatching change event...');
+                const changeEvent = new Event('change', { bubbles: true });
+                newInput.dispatchEvent(changeEvent);
+
+                // Give a moment for any double-firing to occur
+                setTimeout(() => {
+                    console.log(`Final count for ${testName}: ${fileHandlingCallCount}`);
+                    resolve(fileHandlingCallCount);
+                }, 200);
+            });
+        }
+
+        // Test functions
+        async function testSingleFileSelection() {
+            console.log('\n🧪 Testing single file selection...');
+            const callCount = await simulateFileSelection('test.json', 'Single File Test');
+            
+            const success = callCount === 1;
+            testResults.push({
+                test: 'Single file selection',
+                expected: 1,
+                actual: callCount,
+                passed: success
+            });
+
+            if (success) {
+                console.log('✅ PASS: File handler called exactly once');
+            } else {
+                console.log(`❌ FAIL: File handler called ${callCount} times, expected 1`);
+            }
+
+            return success;
+        }
+
+        async function testMultipleFileSelections() {
+            console.log('\n🧪 Testing multiple file selections...');
+            
+            // First selection
+            let callCount1 = await simulateFileSelection('test1.json', 'First Multiple File Test');
+            
+            // Second selection
+            let callCount2 = await simulateFileSelection('test2.mid', 'Second Multiple File Test');
+            
+            const success = callCount1 === 1 && callCount2 === 1;
+            testResults.push({
+                test: 'Multiple file selections',
+                expected: '1 call each',
+                actual: `${callCount1}, ${callCount2} calls`,
+                passed: success
+            });
+
+            if (success) {
+                console.log('✅ PASS: Each file selection triggered exactly one handler call');
+            } else {
+                console.log(`❌ FAIL: File selections triggered ${callCount1} and ${callCount2} calls`);
+            }
+
+            return success;
+        }
+
+        async function testDifferentFileTypes() {
+            console.log('\n🧪 Testing different file types...');
+            
+            const jsonCount = await simulateFileSelection('test.json', 'JSON File Test');
+            const midiCount = await simulateFileSelection('test.mid', 'MIDI File Test');
+            
+            const success = jsonCount === 1 && midiCount === 1;
+            testResults.push({
+                test: 'Different file types',
+                expected: '1 call each type',
+                actual: `JSON: ${jsonCount}, MIDI: ${midiCount} calls`,
+                passed: success
+            });
+
+            return success;
+        }
+
+        // Test with the problematic code (clearing input value)
+        async function testWithValueClearing() {
+            console.log('\n🧪 Testing with value clearing (should demonstrate bug)...');
+            
+            return new Promise((resolve) => {
+                // Create a fresh input for this test
+                const oldInput = document.getElementById('file-loader-input');
+                const newInput = document.createElement('input');
+                newInput.type = 'file';
+                newInput.id = 'file-loader-input';
+                newInput.style.display = 'none';
+                newInput.accept = '.json, .mid, .midi';
+                
+                oldInput.parentNode.replaceChild(newInput, oldInput);
+                
+                const file = createMockFile('test.json');
+                fileHandlingCallCount = 0;
+
+                // Add problematic handler that clears the value
+                newInput.addEventListener('change', (e) => {
+                    console.log('Problematic change event fired');
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const fileExtension = file.name.split('.').pop().toLowerCase();
+                    if (fileExtension === 'json') {
+                        loadScoreFromJson(file);
+                    } else if (fileExtension === 'mid' || fileExtension === 'midi') {
+                        loadScoreFromMidi(file);
+                    }
+                    
+                    // This should cause the double-firing bug
+                    console.log('Clearing input value...');
+                    e.target.value = '';
+                });
+
+                // Set up the file
+                const fileList = {
+                    0: file,
+                    length: 1,
+                    item: (index) => index === 0 ? file : null
+                };
+
+                Object.defineProperty(newInput, 'files', {
+                    value: fileList,
+                    writable: false,
+                    configurable: true
+                });
+
+                // Trigger the event
+                console.log('Dispatching change event for value clearing test...');
+                const changeEvent = new Event('change', { bubbles: true });
+                newInput.dispatchEvent(changeEvent);
+
+                setTimeout(() => {
+                    const shouldDoubleFire = fileHandlingCallCount > 1;
+                    testResults.push({
+                        test: 'With value clearing (expected to double-fire)',
+                        expected: '>1 call (demonstrates bug)',
+                        actual: `${fileHandlingCallCount} calls`,
+                        passed: shouldDoubleFire
+                    });
+
+                    if (shouldDoubleFire) {
+                        console.log(`✅ Bug detected: File handler called ${fileHandlingCallCount} times (demonstrates the bug)`);
+                    } else {
+                        console.log(`⚠️ Bug not reproduced: File handler called ${fileHandlingCallCount} times`);
+                    }
+
+                    resolve(shouldDoubleFire);
+                }, 200);
+            });
+        }
+
+        // Display test results
+        function displayResults() {
+            const resultsDiv = document.getElementById('test-results');
+            const passedTests = testResults.filter(t => t.passed).length;
+            const totalTests = testResults.length;
+
+            let html = `
+                <h2>Test Results: ${passedTests}/${totalTests} passed</h2>
+                <table border="1" style="border-collapse: collapse; width: 100%; margin-top: 10px;">
+                    <tr style="background-color: #f0f0f0;">
+                        <th style="padding: 8px;">Test</th>
+                        <th style="padding: 8px;">Expected</th>
+                        <th style="padding: 8px;">Actual</th>
+                        <th style="padding: 8px;">Result</th>
+                    </tr>
+            `;
+
+            testResults.forEach(result => {
+                const status = result.passed ? '✅ PASS' : '❌ FAIL';
+                const rowColor = result.passed ? '#e8f5e8' : '#ffe8e8';
+                html += `
+                    <tr style="background-color: ${rowColor}">
+                        <td style="padding: 8px;">${result.test}</td>
+                        <td style="padding: 8px;">${result.expected}</td>
+                        <td style="padding: 8px;">${result.actual}</td>
+                        <td style="padding: 8px;">${status}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</table>';
+            
+            if (passedTests === totalTests) {
+                html += '<p style="color: green; font-weight: bold;">🎉 All tests passed! No double-firing detected.</p>';
+            } else {
+                html += '<p style="color: red; font-weight: bold;">⚠️ Some tests failed. Check console for details.</p>';
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        // Run all tests
+        async function runTests() {
+            console.log('🧪 Starting File Handler Tests...');
+            
+            // Initialize the file handlers first
+            initializeFileHandlers();
+
+            // Run tests sequentially
+            await testSingleFileSelection();
+            await testMultipleFileSelections(); 
+            await testDifferentFileTypes();
+            await testWithValueClearing();
+
+            // Display results
+            displayResults();
+
+            console.log('🏁 All tests completed!');
+        }
+
+        // Start tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>
