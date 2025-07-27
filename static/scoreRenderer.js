@@ -57,7 +57,7 @@ let mouseDownNoteTarget = null; // Stores noteInfo if mousedown occurred on a no
 let hasMouseMovedSinceMousedown = false; // Tracks if mouse has moved beyond threshold since mousedown
 
 // Scroll to measures initial state.
-hasInitialScrolled = false;
+let hasInitialScrolled = false;
 
 // Dynamic Y-calibration variables
 const STAFF_LINE_SPACING = 10; // This remains a constant for the physical spacing of staff lines
