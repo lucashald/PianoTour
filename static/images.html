@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VexFlow Note Image Generator (Final Corrected)</title>
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <style>
+        body { font-family: sans-serif; }
+        #output { display: flex; flex-wrap: wrap; justify-content: center; }
+        .note-wrapper { text-align: center; margin: 15px; }
+        .note-container { border: 1px solid #ccc; }
+        .note-wrapper p { margin: 5px 0; font-size: 14px; }
+        .note-wrapper a { font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h2>VexFlow Note Image Generator</h2>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button onclick="generateAllNotes()">Generate All Note Images</button>
+    </div>
+    <div id="output"></div>
+
+    <script>
+        function generateNoteImage(duration, fileName) {
+            const SCALE = 2.0;
+            const BASE_WIDTH = 80;
+            const BASE_HEIGHT = 120;
+
+            // Use a unique ID that's valid for CSS selectors
+            const containerId = `note-container-${fileName.replace('.', '_')}`;
+            const container = document.createElement('div');
+            container.id = containerId;
+            container.classList.add('note-container');
+
+            container.style.display = 'none';
+            document.body.appendChild(container);
+
+            try {
+                const vexFlowFactory = new Vex.Flow.Factory({
+                    renderer: {
+                        elementId: containerId,
+                        width: BASE_WIDTH * SCALE,
+                        height: BASE_HEIGHT * SCALE,
+                    }
+                });
+
+                const vfContext = vexFlowFactory.getContext();
+                vfContext.scale(SCALE, SCALE);
+
+                const score = vexFlowFactory.EasyScore();
+
+                const noteKey = duration.includes('r') ? 'B4' : 'G4';
+                const noteSpec = `${noteKey}/${duration}`;
+
+                const vexNotes = score.notes(noteSpec, { clef: 'treble' });
+                const voice = score.voice(vexNotes).setStrict(false);
+                
+                vexFlowFactory.System({
+                    x: 0,
+                    y: 0,
+                    width: BASE_WIDTH,
+                    spaceBetweenStaves: 10
+                }).addStave({
+                    voices: [voice]
+                }).addClef('treble');
+
+                vexFlowFactory.draw();
+
+            } catch (error) {
+                console.error(`Error generating note for duration ${duration}:`, error);
+                document.body.removeChild(container);
+                const errorDiv = document.createElement('div');
+                errorDiv.textContent = `Error: ${duration}`;
+                errorDiv.style.color = 'red';
+                return errorDiv;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('note-wrapper');
+
+            const label = document.createElement('p');
+            label.textContent = `Name: ${fileName}`;
+
+            const downloadLink = document.createElement('a');
+            downloadLink.textContent = 'Download PNG';
+
+            const svg = container.querySelector('svg');
+            if (svg) {
+                svgToPng(svg, fileName, downloadLink, BASE_WIDTH * SCALE, BASE_HEIGHT * SCALE);
+            } else {
+                console.error('No SVG found for', fileName);
+            }
+
+            container.style.display = 'inline-block';
+            wrapper.appendChild(container);
+            wrapper.appendChild(label);
+            wrapper.appendChild(downloadLink);
+
+            return wrapper;
+        }
+
+        function svgToPng(svg, fileName, link, width, height) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = width;
+            canvas.height = height;
+
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const svgUrl = URL.createObjectURL(new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' }));
+
+            const img = new Image();
+            img.onload = function () {
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+
+                canvas.toBlob(function (blob) {
+                    const url = URL.createObjectURL(blob);
+                    link.href = url;
+                    link.download = `${fileName}.png`;
+                    URL.revokeObjectURL(svgUrl);
+                });
+            };
+            img.src = svgUrl;
+        }
+
+        function generateAllNotes() {
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = 'Generating...';
+            
+            // --- FIX: Reverted to using '.' for dotted notes ---
+            const notes = {
+                'whole-note': 'w', 'half-note': 'h', 'quarter-note': 'q', 'eighth-note': '8', 'sixteenth-note': '16',
+                'dotted-half-note': 'h.', 'dotted-quarter-note': 'q.', 'dotted-eighth-note': '8.',
+                'whole-rest': 'wr', 'half-rest': 'hr', 'quarter-rest': 'qr', 'eighth-rest': '8r', 'sixteenth-rest': '16r',
+                'dotted-half-rest': 'hr.', 'dotted-quarter-rest': 'qr.', 'dotted-eighth-rest': '8r.'
+            };
+
+            // Use requestAnimationFrame to prevent the UI from freezing
+            requestAnimationFrame(() => {
+                outputDiv.innerHTML = '';
+                for (const [name, duration] of Object.entries(notes)) {
+                    const noteElement = generateNoteImage(duration, name);
+                    outputDiv.appendChild(noteElement);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

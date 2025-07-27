@@ -132,6 +132,62 @@ const {
   BW: BLACK_KEY_WIDTH,
 } = buildNoteData();
 
+// Map of note durations to their corresponding PNG file paths
+export const NOTE_IMAGE_MAP = {
+  // Regular notes
+  'w': '/static/whole.png',
+  'h': '/static/half-up.png',
+  'q': '/static/quarter-up.png',
+  '8': '/static/8th-up.png',
+  '16': '/static/16th-up.png',
+  
+  // Dotted notes
+  'h.': '/static/dotted-half-up.png',
+  'q.': '/static/dotted-quarter-up.png',
+  '8.': '/static/dotted-8th-up.png',
+  
+  // Down stem variants
+  'hdown': '/static/half-down.png',
+  'qdown': '/static/quarter-down.png',
+  '8down': '/static/8th-down.png',
+  '16down': '/static/16th-down.png'
+};
+
+// Note positions with stem directions (combined for all notes)
+const NOTE_STEM_DIRECTIONS = {
+  // Treble clef - down stems (above and including middle line B4)
+  'E6': 'down', 'D6': 'down', 'C6': 'down', 'B5': 'down', 'A5': 'down', 'G5': 'down',
+  'F5': 'down', 'E5': 'down', 'D5': 'down', 'C5': 'down', 'B4': 'down',
+  
+  // Treble clef - up stems (below middle line B4)
+  'A4': 'up', 'G4': 'up', 'F4': 'up', 'E4': 'up', 'D4': 'up', 'C4': 'up', 'B3': 'up', 'A3': 'up',
+  
+  // Bass clef - down stems (above and including middle line B2)
+  'G3': 'down', 'F3': 'down', 'E3': 'down', 'D3': 'down', 
+  
+  // Bass clef - up stems (below middle line B2)
+ 'C3': 'up', 'B2': 'up', 'A2': 'up', 'G2': 'up', 'F2': 'up', 'E2': 'up', 'D2': 'up', 'C2': 'up'
+};
+
+// Helper function to get the correct image path based on note name and duration
+export function getNoteImagePath(duration, noteName) {
+  // Whole notes don't have stems
+  if (duration === 'w') {
+    return NOTE_IMAGE_MAP['w'];
+  }
+  
+  // Get stem direction for this note
+  const stemDirection = NOTE_STEM_DIRECTIONS[noteName] || 'up'; // Default to up
+  
+  // Build the correct duration key based on stem direction
+  let durationKey = duration;
+  if (stemDirection === 'down' && NOTE_IMAGE_MAP[duration + 'down']) {
+    durationKey = duration + 'down';
+  }
+  
+  return NOTE_IMAGE_MAP[durationKey] || NOTE_IMAGE_MAP['q'];
+}
+
 // Export the core note data and key dimensions
 export {
   NOTES_BY_MIDI,
