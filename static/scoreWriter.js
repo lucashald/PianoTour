@@ -6,7 +6,7 @@
 // ===================================================================
 import { pianoState } from "./appState.js";
 import { NOTES_BY_NAME, identifyChordStrict } from './note-data.js'; // Needed for note name to MIDI mapping for sorting and internal consistency
-import { drawAll } from './scoreRenderer.js';
+import { drawAll, scrollToMeasure } from './scoreRenderer.js';
 import { updateNowPlayingDisplay } from './uiHelpers.js';
 import { saveToLocalStorage } from './ioHelpers.js';
 

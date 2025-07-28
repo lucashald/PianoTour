@@ -56,9 +56,6 @@ let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for dr
 let mouseDownNoteTarget = null; // Stores noteInfo if mousedown occurred on a note
 let hasMouseMovedSinceMousedown = false; // Tracks if mouse has moved beyond threshold since mousedown
 
-// Scroll to measures initial state.
-let hasInitialScrolled = false;
-
 // Dynamic Y-calibration variables
 const STAFF_LINE_SPACING = 10; // This remains a constant for the physical spacing of staff lines
 
@@ -464,10 +461,7 @@ export function drawAll(measures) {
     }
 
     const scoreWrap = document.getElementById("scoreWrap");
-    if (scoreWrap && !hasInitialScrolled) {
   scoreWrap.scrollLeft = scoreWrap.scrollWidth;
-  hasInitialScrolled = true;
-}
   } catch (e) {
     console.error("drawAll: VexFlow rendering error:", e);
   }
