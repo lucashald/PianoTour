@@ -7,6 +7,8 @@ from collections import defaultdict
 import math
 import json
 import ugly_midi
+import jsonschema
+from jsonschema import validate
 
 # --- Basic Configuration ---
 logging.basicConfig(level=logging.INFO)
@@ -210,37 +212,148 @@ def not_found(error):
     return "Page not found", 404
 
 
+import jsonschema
+from jsonschema import validate
+
+# More permissive schema that allows ugly_midi to handle missing/invalid data
+SONG_DATA_SCHEMA = {
+    "type": "array",
+    "maxItems": 1000,
+    "items": {
+        "type": "array",
+        "maxItems": 100,
+        "items": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 50
+                },  # More generous
+                "clef": {
+                    "type": "string",
+                    "maxLength": 20
+                },  # Allow invalid clefs
+                "duration": {
+                    "type": "string",
+                    "maxLength": 10
+                },
+                "isRest": {
+                    "type": "boolean"
+                },
+                "velocity": {
+                    "type": ["integer", "string"],
+                    "minimum": 0,
+                    "maximum": 127
+                },
+                "measure": {
+                    "type": ["integer", "string"],
+                    "minimum": 0
+                },
+                "id": {
+                    "type": "string",
+                    "maxLength": 100
+                }  # Allow IDs
+            },
+            "required":
+            [],  # Don't require any fields - let ugly_midi handle defaults
+            "additionalProperties":
+            True  # Allow extra fields that ugly_midi might ignore
+        }
+    }
+}
+
+
+def sanitize_for_ugly_midi(song_data):
+    """
+    Light sanitization that prevents obvious attacks while preserving ugly_midi's flexibility
+    """
+    if not isinstance(song_data, list):
+        raise ValueError("Song data must be an array of measures")
+
+    sanitized = []
+    for measure_idx, measure in enumerate(song_data[:1000]):  # Limit measures
+        if not isinstance(measure, list):
+            continue
+
+        sanitized_measure = []
+        for note_idx, note in enumerate(
+                measure[:100]):  # Limit notes per measure
+            if not isinstance(note, dict):
+                continue
+
+            # Basic sanitization - remove null bytes, limit string lengths
+            sanitized_note = {}
+            for key, value in note.items():
+                if isinstance(value, str):
+                    # Remove null bytes and limit length
+                    clean_value = value.replace('\x00', '').strip()
+                    sanitized_note[key] = clean_value[:100]  # Reasonable limit
+                elif isinstance(value, (int, float, bool)):
+                    sanitized_note[key] = value
+                elif value is None:
+                    sanitized_note[key] = None
+                # Ignore complex objects/arrays to prevent injection
+
+            sanitized_measure.append(sanitized_note)
+        sanitized.append(sanitized_measure)
+
+    return sanitized
+
+
 @app.route('/convert-to-midi', methods=['POST'])
 def convert_to_midi():
     temp_midi_path = None
     try:
-        song_data = request.json
+        # Check content type
+        if not request.is_json:
+            return jsonify({'error':
+                            'Content-Type must be application/json'}), 400
+
+        song_data = request.get_json()
         if not song_data:
             return jsonify({'error': 'No song data provided'}), 400
 
-        # Use ugly_midi library instead of create_piano_midi
-        midi_data = ugly_midi.json_to_midi(song_data)
+        # Check size limits
+        if len(str(song_data)) > 1024 * 1024:  # 1MB limit
+            return jsonify({'error': 'Song data too large'}), 413
 
-        fd, temp_midi_path = tempfile.mkstemp(suffix='.mid')
+        # Validate against schema
+        try:
+            validate(instance=song_data, schema=SONG_DATA_SCHEMA)
+        except jsonschema.exceptions.ValidationError as e:
+            return jsonify({'error':
+                            f'Invalid song data format: {str(e)}'}), 400
+
+        # Sanitize input
+        try:
+            sanitized_data = sanitize_for_ugly_midi(song_data)
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+
+        # Process with ugly_midi
+        midi_data = ugly_midi.json_to_midi(sanitized_data)
+
+        # Create secure temporary file
+        fd, temp_midi_path = tempfile.mkstemp(suffix='.mid', prefix='midi_')
         os.close(fd)
 
-        # Use ugly_midi's save function instead of midi_file.save()
         ugly_midi.save_midi(midi_data, temp_midi_path)
 
         return send_file(temp_midi_path,
                          as_attachment=True,
                          download_name='score.mid',
                          mimetype='audio/midi')
+
     except Exception as e:
         logger.error(f"Error during MIDI conversion: {e}", exc_info=True)
-        return jsonify({'error': f'Failed to convert to MIDI: {str(e)}'}), 500
+        return jsonify({'error': 'Failed to convert to MIDI'}), 500
+
     finally:
         if temp_midi_path and os.path.exists(temp_midi_path):
             try:
                 os.unlink(temp_midi_path)
-            except Exception as cleanup_error:
-                logger.warning(
-                    f"Failed to clean up temp file: {cleanup_error}")
+            except Exception:
+                pass
 
 
 @app.route('/convert-to-json', methods=['POST'])
