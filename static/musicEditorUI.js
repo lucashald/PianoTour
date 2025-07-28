@@ -6,7 +6,7 @@
 // Imports
 // ===================================================================
 import { pianoState } from "./appState.js";
-import { getMeasures, addNoteToMeasure, removeNoteFromMeasure, updateNoteInMeasure, moveNoteBetweenMeasures, setTimeSignature } from './scoreWriter.js';
+import { getMeasures, addNoteToMeasure, removeNoteFromMeasure, updateNoteInMeasure, moveNoteBetweenMeasures, setTimeSignature, setTempo } from './scoreWriter.js';
 import {
     drawAll,
     scrollToMeasure,
@@ -450,14 +450,8 @@ export function initializeMusicEditor() {
     // Handle tempo changes
     if (target.id === 'tempo-input') {
         const newTempo = parseInt(target.value, 10);
-        if (!isNaN(newTempo) && newTempo >= 60 && newTempo <= 200) {
-            pianoState.tempo = newTempo;
-            saveToLocalStorage();
-            // Update the display
-            const tempoDisplay = document.getElementById('tempo-display');
-            if (tempoDisplay) {
-                tempoDisplay.textContent = newTempo;
-            }
+        if (!isNaN(newTempo) && newTempo >= 60 && newTempo <= 300) {
+            setTempo(newTempo);
         }
         return;
     }

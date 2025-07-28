@@ -69,14 +69,14 @@ export function setTimeSignature(numerator, denominator) {
 }
 
 
-  export function setTempo(tempo) {
-    if (!Number.isInteger(newTempo) || newTempo < 60 || newTempo > 200) {
+  export function setTempo(newTempo) {
+    if (!Number.isInteger(newTempo) || newTempo < 30 || newTempo > 300) {
         console.warn("setTempo: Invalid tempo provided");
         return false;
     }
 
    // Update the piano state
-  pianoState.timeSignature.tempo = tempo;
+  pianoState.tempo = newTempo;
 
   // Redraw the score with new time signature
   drawAll(getMeasures());
@@ -85,7 +85,7 @@ export function setTimeSignature(numerator, denominator) {
   saveToLocalStorage();
 
   // Log the change
-  console.log("Tempo signature set to:", tempo);
+  console.log("Tempo set to:", pianoState.timeSignature.tempo);
 
   return true;
 }

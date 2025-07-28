@@ -708,11 +708,6 @@ function handlePaletteDrop(endX, endY) {
     id: Date.now().toString(), // Generate a unique ID
   };
 
-  if (newNote.isRest) {
-    newNote.name = "R"; // Ensure rests have the correct name
-  }
-
-  // TODO: Handle chord creation for 'major' and 'minor' types
   if (paletteDragType === "major" || paletteDragType === "minor") {
     // For now, just add the root note
     console.log(

@@ -911,10 +911,10 @@ h4 {
 .palette-note {
     width: 60px;
     height: 45px;
-    background: #724E91;
+    background: #76B595;
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--border-radius-sm);
-    color: #FFFFFF;
+    color: #000;
     cursor: grab;
     display: flex;
     flex-direction: column;
@@ -928,9 +928,18 @@ h4 {
     overflow: hidden;
 }
 
+.palette-note[data-type="rest"] {
+    background: #76B595;
+    color: #000;
+}
+
+.palette-note[data-type="rest"]:hover {
+    background: #D88368;
+}
+
 /* Hover Effects */
 .palette-note:hover {
-    background: #9269b6;
+    background: #D88368;
     border-color: var(--primary-green);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
     transform: translateY(-2px);
@@ -992,18 +1001,6 @@ h4 {
     border-radius: 1px;
 }
 
-/* Rest Note Special Styling */
-.palette-note[data-type="rest"] {
-    background: linear-gradient(135deg, var(--text-muted), #6b7280) !important;
-    color: white !important;
-    border-color: var(--text-muted) !important;
-}
-
-.palette-note[data-type="rest"]:hover {
-    background: linear-gradient(135deg, #6b7280, var(--text-muted)) !important;
-    box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4) !important;
-}
-
 /* Drag Feedback Animation */
 .palette-note.dragging {
     opacity: 0.5;
@@ -1014,27 +1011,6 @@ h4 {
 .palette-note:focus-visible {
     outline: 2px solid var(--primary-green);
     outline-offset: 2px;
-}
-
-/* Enhanced musical note symbols */
-.palette-note[data-type="quarter"] {
-    font-size: 22px;
-}
-
-.palette-note[data-type="eighth"] {
-    font-size: 20px;
-}
-
-.palette-note[data-type="half"] {
-    font-size: 20px;
-}
-
-.palette-note[data-type="whole"] {
-    font-size: 18px;
-}
-
-.palette-note[data-type="rest"] {
-    font-size: 20px;
 }
 
 /* Responsive adjustments */

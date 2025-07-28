@@ -3203,7 +3203,6 @@ export const DURATION_THRESHOLDS = {
 };
 
 export const DURATIONS = [
-  // { key: 'w.', name: 'Dotted Whole', beatValue: 6 },
   { key: "w", name: "Whole", beatValue: 4 },
   { key: "h.", name: "Dotted Half", beatValue: 3 },
   { key: "h", name: "Half", beatValue: 2 },
@@ -3213,8 +3212,8 @@ export const DURATIONS = [
   { key: "8", name: "Eighth", beatValue: 0.5 },
   { key: "16.", name: "Dotted Sixteenth", beatValue: 0.375 },
   { key: "16", name: "Sixteenth", beatValue: 0.25 },
-  //{ key: '32.', name: 'Dotted Thirty-second', beatValue: 0.1875 },
-  //{ key: '32', name: 'Thirty-second', beatValue: 0.125 },
+  { key: '32.', name: 'Dotted Thirty-second', beatValue: 0.1875 },
+  { key: '32', name: 'Thirty-second', beatValue: 0.125 },
 ];
 
 // KEYS AND SCALES
