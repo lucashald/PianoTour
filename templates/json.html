@@ -1,0 +1,308 @@
+{% extends "index.html" %}
+
+{% block title %}Piano Tour - JSON Editor{% endblock %}
+
+{% block head_extra %}
+<!-- CodeMirror 5 CSS and JS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+
+<!-- Essential editing features -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+
+<!-- Search & Replace -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/search.min.js"></script>
+
+<!-- JSON Auto-Repair Library -->
+<script src="https://unpkg.com/jsonrepair@3/lib/umd/jsonrepair.js"></script>
+
+<style>
+    /* JSON Editor specific styles */
+    .json-editor-container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 15px;
+        background: var(--color-green-lightest, #76B595);
+        background: linear-gradient(135deg, #76B595 0%, #6F91A5 100%);
+        border-radius: 5px;
+        border: 1px solid var(--color-green-light, #499770);
+    }
+
+    .json-editor-controls {
+        margin-bottom: 15px;
+    }
+
+    .json-editor-controls h3 {
+        margin: 0 0 10px 0;
+        color: var(--color-green-darkest, #014221);
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .json-button-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+
+    .json-btn {
+        background: var(--color-blue-medium, #295570);
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        flex: 1;
+        min-width: 80px;
+        transition: all 0.2s ease;
+        border: 1px solid var(--color-blue-dark, #143E58);
+    }
+
+    .json-btn:hover {
+        background: var(--color-blue-dark, #143E58);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(20, 62, 88, 0.3);
+    }
+
+    .json-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 4px rgba(20, 62, 88, 0.3);
+    }
+
+    .json-btn.fix-button {
+        background: var(--color-green-medium, #297B51);
+        border-color: var(--color-green-dark, #116038);
+    }
+
+    .json-btn.fix-button:hover {
+        background: var(--color-green-dark, #116038);
+        box-shadow: 0 2px 8px rgba(17, 96, 56, 0.3);
+    }
+
+    .CodeMirror {
+        border: 2px solid var(--color-green-light, #499770);
+        border-radius: 6px;
+        height: 400px;
+        font-size: 13px;
+        flex: 1;
+        background: white;
+    }
+
+    .CodeMirror-focused {
+        border-color: var(--color-blue-medium, #295570);
+        box-shadow: 0 0 0 3px rgba(41, 85, 112, 0.1);
+    }
+
+    .json-output {
+        margin-top: 10px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 11px;
+        white-space: pre-wrap;
+        max-height: 120px;
+        overflow-y: auto;
+        border: 1px solid var(--color-green-light, #499770);
+        color: var(--color-green-darkest, #014221);
+    }
+
+    .json-output.error {
+        background: var(--color-peach-lightest, #FFBCA7);
+        color: var(--color-peach-darkest, #5E1701);
+        border-color: var(--color-peach-medium, #AF563A);
+    }
+
+    .json-output.success {
+        background: var(--color-olive-lightest, #BFE797);
+        color: var(--color-olive-darkest, #2B5401);
+        border-color: var(--color-olive-medium, #699E34);
+    }
+
+    .json-output.warning {
+        background: var(--color-muted-gold-lightest, #FFF6A7);
+        color: var(--color-muted-gold-darkest, #5D5301);
+        border-color: var(--color-muted-gold-medium, #AFA23A);
+    }
+
+    .json-shortcuts {
+        background: rgba(255, 255, 255, 0.8);
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        margin-top: 10px;
+        border: 1px solid var(--color-blue-lightest, #6F91A5);
+        backdrop-filter: blur(5px);
+    }
+
+    .json-shortcuts h4 {
+        margin: 0 0 6px 0;
+        font-size: 12px;
+        color: var(--color-blue-darkest, #04273C);
+        font-weight: 600;
+    }
+
+    .json-shortcuts div {
+        margin: 2px 0;
+        color: var(--color-blue-dark, #143E58);
+    }
+
+    .json-shortcuts strong {
+        color: var(--color-blue-darkest, #04273C);
+        font-weight: 600;
+    }
+
+    /* Integration with existing editor styles */
+    .piano-app__side-panel .json-editor-container {
+        height: calc(100vh - 100px);
+        overflow: hidden;
+    }
+
+    /* CodeMirror syntax highlighting customization */
+    .CodeMirror .cm-string {
+        color: var(--color-olive-dark, #497C16);
+    }
+
+    .CodeMirror .cm-number {
+        color: var(--color-gold-dark, #895718);
+    }
+
+    .CodeMirror .cm-property {
+        color: var(--color-blue-dark, #143E58);
+    }
+
+    .CodeMirror .cm-keyword {
+        color: var(--color-green-dark, #116038);
+        font-weight: 600;
+    }
+
+    .CodeMirror .cm-bracket {
+        color: var(--color-peach-medium, #AF563A);
+        font-weight: bold;
+    }
+
+    /* Bracket matching highlight */
+    .CodeMirror-matchingbracket {
+        background-color: var(--color-yellow-green-lightest, #ECF8A2);
+        color: var(--color-yellow-green-darkest, #4F5B01) !important;
+        font-weight: bold;
+    }
+
+    .CodeMirror-nonmatchingbracket {
+        background-color: var(--color-peach-lightest, #FFBCA7);
+        color: var(--color-peach-darkest, #5E1701) !important;
+    }
+
+    /* Search dialog styling */
+    .CodeMirror-dialog {
+        background: var(--color-green-lightest, #76B595);
+        border: 2px solid var(--color-green-medium, #297B51);
+        border-radius: 6px;
+    }
+
+    .CodeMirror-dialog input {
+        background: white;
+        border: 1px solid var(--color-green-light, #499770);
+        border-radius: 4px;
+        padding: 4px 8px;
+        color: var(--color-green-darkest, #014221);
+    }
+
+    .CodeMirror-dialog input:focus {
+        border-color: var(--color-blue-medium, #295570);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(41, 85, 112, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block editor %}
+<div class="json-editor-container">
+    <div class="json-editor-controls">
+        <h3>JSON Score Editor</h3>
+        
+    <div class="json-button-group">
+        <button class="json-btn" id="formatJSONBtn">Format</button>
+        <button class="json-btn" id="validateJSONBtn">Validate</button>
+        <button class="json-btn fix-button" id="autoFixJSONBtn">Auto-Fix</button>
+    </div>
+
+    <div class="json-button-group">
+        <button class="json-btn" id="loadCurrentScoreBtn">Load Current Score</button>
+        <button class="json-btn" id="applyToScoreBtn">Apply to Score</button>
+    </div>
+    
+    <textarea id="jsonEditor"></textarea>
+    
+    <div class="json-shortcuts">
+        <h4>Shortcuts</h4>
+        <div><strong>Ctrl+F</strong> Find</div>
+        <div><strong>Ctrl+H</strong> Replace</div>
+        <div><strong>Ctrl+Z</strong> Undo</div>
+    </div>
+    
+    <div id="jsonOutput" class="json-output">Ready! Load your current score or paste JSON to edit.</div>
+</div>
+{% endblock %}
+    {% block scripts %}
+    {{ super() }}
+    <script type="module">
+        console.log('🎼 JSON Editor initializing...');
+
+        // Wait for base piano tour initialization
+        async function initializeJSONEditor() {
+            try {
+                // Import Piano Tour modules
+                const { getMeasures, processAndSyncScore } = await import('{{ url_for("static", filename="scoreWriter.js") }}');
+                const { drawAll, setKeySignature } = await import('{{ url_for("static", filename="scoreRenderer.js") }}');
+                const { setTimeSignature, setTempo } = await import('{{ url_for("static", filename="scoreWriter.js") }}');
+                const { pianoState } = await import('{{ url_for("static", filename="appState.js") }}');
+
+                // Import and initialize JSON Editor
+                const { initializeJSONEditor } = await import('{{ url_for("static", filename="jsonEditor.js") }}');
+
+                // Pass Piano Tour modules to JSON Editor
+                await initializeJSONEditor({
+                    getMeasures,
+                    processAndSyncScore,
+                    drawAll,
+                    setKeySignature,
+                    setTimeSignature,
+                    setTempo,
+                    pianoState
+                });
+
+            } catch (error) {
+                console.error('❌ Error during JSON Editor initialization:', error);
+
+                // Show user-friendly error message
+                const editorContainer = document.querySelector('.json-editor-container');
+                if (editorContainer) {
+                    editorContainer.innerHTML = `
+                        <div style="color: var(--color-peach-darkest, #5E1701); padding: 20px; text-align: center;">
+                            <h3>⚠️ JSON Editor Failed to Load</h3>
+                            <p>Please refresh the page or check the browser console for details.</p>
+                            <button onclick="location.reload()" class="json-btn" style="margin-top: 10px; max-width: 150px;">
+                                Refresh Page
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Start initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeJSONEditor);
+        } else {
+            initializeJSONEditor();
+        }
+    </script>
+    {% endblock %}

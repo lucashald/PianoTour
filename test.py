@@ -75,6 +75,11 @@ def editor():
     return render_template('editor.html', show_side_panel=True)
 
 
+@app.route('/json')
+def json():
+    return render_template('json.html', show_side_panel=True)
+
+
 @app.route('/extras')
 def extras():
     return render_template('extras.html', show_side_panel=True)
