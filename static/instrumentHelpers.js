@@ -461,7 +461,6 @@ export function handlePointerMove(e) {
   if (!audioManager.isAudioReady() || !pianoState.isDragging) return; 
 
   e.preventDefault(); // Prevent default browser drag behavior
-  document.body.classList.add("no-scroll"); // temporarily add a no-scroll
   const foundKey = findKeyForPlayer(e.clientX, e.clientY);
 
   const isChordMode = pianoState.isMajorChordMode || pianoState.isMinorChordMode;
@@ -642,7 +641,6 @@ export function handleKeyPointerDown(e) {
 
   // Initialize drag state (now that audio is confirmed ready)
   pianoState.isDragging = true;
-  document.body.classList.add("no-scroll");
   pianoState.lastDraggedKey = null;
 
   let targetMidi = parseInt(keyEl.dataset.midi, 10);
@@ -687,7 +685,6 @@ export function handleKeyPointerDown(e) {
 
     const handleKeyPointerUp = () => {
       pianoState.isDragging = false;
-      document.body.classList.remove("no-scroll");
       stopAllDragChords();
 
       const heldTime = performance.now() - startTime;
@@ -721,7 +718,6 @@ export function handleKeyPointerDown(e) {
 
     const handleKeyPointerUp = () => {
       pianoState.isDragging = false;
-      document.body.classList.remove("no-scroll");
       stopAllDragNotes();
 
       stopKey(finalKeyEl);

@@ -227,6 +227,44 @@ class KeyboardAlignedSpectrum {
   }
 
   /**
+ * Checks if there's significant audio activity in the spectrum
+ * @returns {boolean} True if there's meaningful audio being rendered
+ */
+hasSignificantAudioActivity() {
+  if (!this.analyser || !this.isAnimating) {
+    return false;
+  }
+
+  // Get current FFT data
+  const fftSize = this.analyser.size;
+  const fftData = new Float32Array(fftSize);
+  this.analyser.getValue(fftData);
+
+  // Count how many frequency bins are above the drawing threshold
+  let activeBins = 0;
+  const threshold = this.config.drawingThreshold || 0.01;
+  const minDbThreshold = this.config.minDb || -90;
+  const maxDbThreshold = this.config.maxDb || -5;
+
+  for (let i = 0; i < fftSize; i++) {
+    const dbValue = fftData[i];
+    const normalizedMagnitude = Math.max(
+      0,
+      (dbValue - minDbThreshold) / (maxDbThreshold - minDbThreshold)
+    );
+    
+    if (normalizedMagnitude > threshold) {
+      activeBins++;
+    }
+  }
+
+  // Consider it "active" if more than a few bins are above threshold
+  // You can adjust this threshold based on your needs
+  const minimumActiveBins = 5;
+  return activeBins > minimumActiveBins;
+}
+
+  /**
    * Maps magnitude value to color based on color scheme
    * @param {number} magnitude - Normalized magnitude (0-1)
    * @param {string} colorScheme - Color scheme name
@@ -711,14 +749,36 @@ export function stopSpectrumVisualization() {
 
   console.log(`Spectrum stop requested (#${currentRequestId}), waiting for audio decay...`);
 
-  spectrumStopTimeout = setTimeout(() => {
-    if (currentRequestId === pendingStopRequests && spectrumVisualizer.instance.isAnimating) {
-      console.log(`🎵 Audio decay complete, stopping spectrum visualization (#${currentRequestId})`);
+  // Check if spectrum is actually rendering audio data
+  const checkForAudioActivity = () => {
+    if (currentRequestId !== pendingStopRequests) {
+      // A newer stop request has been made
+      return;
+    }
+
+    if (!spectrumVisualizer.instance.isAnimating) {
+      // Animation already stopped
+      spectrumStopTimeout = null;
+      pendingStopRequests = 0;
+      return;
+    }
+
+    // Check if there's actual audio activity
+    const hasAudioActivity = spectrumVisualizer.instance.hasSignificantAudioActivity();
+    
+    if (!hasAudioActivity) {
+      console.log(`🎵 Audio activity ceased, stopping spectrum visualization (#${currentRequestId})`);
       spectrumVisualizer.stop();
       spectrumStopTimeout = null;
       pendingStopRequests = 0;
+    } else {
+      // Still has audio activity, check again in 100ms
+      spectrumStopTimeout = setTimeout(checkForAudioActivity, 100);
     }
-  }, 1200);
+  };
+
+  // Start checking for audio activity with a small delay
+  spectrumStopTimeout = setTimeout(checkForAudioActivity, 200);
 }
 
 /**
