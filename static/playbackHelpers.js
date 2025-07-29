@@ -1,6 +1,5 @@
 // playbackHelpers.js
-// This file contains all functions related to audio playback using Tone.js,
-// now delegating core audio initialization to audioManager.js.
+// This file contains all functions related to audio playback using Tone.js.
 
 // ===================================================================
 // Imports
@@ -14,111 +13,91 @@ import {
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
   UNIFIED_CHORD_DEFINITIONS,
-  diatonicChordQualities,
-  chordDefinitions,
+  DIATONIC_CHORD_QUALITIES,
+  CHORD_DEFINITIONS,
   DURATION_THRESHOLDS,
   notesByMidiKeyAware,
+  getScaleNotes,
+  getPitchClass,
+  getInterval,
+  transposeNote,
+  getOctave,
+  getKeySignature,
+  DIATONIC_SCALES,
+  getChordByDegree,
 } from "./note-data.js";
 
-// Import UI painting functions (still needed as they are UI-specific)
+// Import UI painting functions
 import {
   paintChord,
   paintChordOnTheFly,
   getChord,
-} from "./instrumentHelpers.js"; // This might need adjustment if instrumentHelpers also calls startAudio directly
+} from "./instrumentHelpers.js";
 import { writeNote } from "./scoreWriter.js";
 
-// Import spectrum visualization functions (still handled here for now)
+// Import spectrum visualization functions - SIMPLIFIED
 import {
-  initializeSpectrum,
-  connectSpectrumToAudio,
   startSpectrumVisualization,
   stopSpectrumVisualization,
-  destroySpectrum,
 } from "./spectrum.js";
 
-// IMPORT audioManager for its core functions
-import audioManager from "./audioManager.js"; // <--- NEW IMPORT
-
-// Import MIDI functions (still handled here)
 import { handleMidiNoteOn, handleMidiNoteOff } from "./midi-controller.js";
 
-// ===================================================================
-// Module Variables
-// ===================================================================
-
-// Spectrum state tracking
-let spectrumInitialized = false;
-let spectrumActive = false;
+import audioManager from "./audioManager.js";
 
 // ===================================================================
-// Core Audio Functions (Refactored)
+// Core Audio Functions
 // ===================================================================
 
 /**
- * Ensures the Tone.js audio context is started and the sampler is loaded.
- * This function now delegates to audioManager.unlockAndExecute.
- * It does NOT directly start Tone.js or load samples.
+ * Initializes the Tone.js audio context, loads the sampler, removes the UI gate,
+ * and sets the application state to "unlocked". This is the single, authoritative
+ * function for making the app interactive.
  * @returns {Promise<boolean>} True if successful, false if an error occurred.
  */
 export async function startAudio() {
-  console.log("playbackHelpers: startAudio called, delegating to audioManager.unlockAndExecute");
+  // If the app is already unlocked, do nothing.
+  if (audioManager.isAudioReady()) return true;
 
-  // Define a dummy action that runs when audioManager confirms readiness.
-  // The actual "action" of playing a note is handled by trigger(), startKey(), etc.,
-  // which will be called AFTER unlockAndExecute resolves.
-  const dummyAction = () => {
-    console.log("playbackHelpers: audioManager reported ready!");
-    // At this point, Tone.js is started and the sampler is loaded.
-    pianoState.samplerReady = true; // Update local state here based on audioManager's success
-    initializeSpectrumVisualizer(); // Initialize spectrum now that audio context is active
-  };
-
-  // Use audioManager's unlockAndExecute. It will handle the Tone.start(),
-  // sampler loading, and ensuring the audio context is running.
-  const success = await audioManager.unlockAndExecute(dummyAction);
-
-  // Note: pianoState.isUnlocked status will be managed by audioManager's audioStatus
-  // For compatibility, you might set a derived state here,
-  // or refactor pianoState.isUnlocked to be tied directly to audioManager's isAudioReady.
-  pianoState.isUnlocked = audioManager.isAudioReady(); // Set based on audioManager's determined state
-
-  return success;
+  try {
+    // Audio initialization is now handled by audioManager.initializeAudio()
+    // This function will primarily be responsible for initiating that process.
+    // The actual starting of Tone.js context and sampler loading is in audioManager.
+    console.warn("startAudio() in playbackHelpers is deprecated. Use audioManager.unlockAndExecute() instead.");
+    return await audioManager.unlockAndExecute(() => { /* no-op, just ensure audio is ready */ });
+  } catch (error) {
+    console.error("Error during audio initialization through playbackHelpers.startAudio:", error);
+    return false; // Signal failure
+  }
 }
 
+// ===================================================================
+// Core Playback Functions
+// ===================================================================
 
 /**
  * Triggers or releases notes on the Tone.js sampler.
- * This function now assumes pianoState.sampler is available because startAudio
- * (via audioManager) ensures it.
  * @param {string|string[]} note - The note name(s) (e.g., "C4", ["C4", "E4", "G4"]).
  * @param {boolean} on - True to trigger attack, false to trigger release.
  * @param {number} [velocity=100] - MIDI velocity (1-127).
  */
 export function trigger(note, on, velocity = 100) {
-  // Check if audioManager's state indicates sampler is ready
-  if (!audioManager.isAudioReady() || !pianoState.sampler) {
-    console.warn("Audio not ready or sampler not initialized. Cannot trigger note:", note);
-    return;
-  }
+  if (!audioManager.isAudioReady()) return;
 
   if (on) {
     pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127);
-    startSpectrumIfReady();
+    startSpectrumVisualization(); // ✅ SIMPLIFIED
   } else {
     pianoState.sampler.triggerRelease(note);
+
+    // Check if any notes are still active
     const hasActiveNotes =
       Object.keys(pianoState.activeNotes).length > 0 ||
       Object.keys(pianoState.activeDiatonicChords).length > 0;
+
+    // Stop spectrum if no notes are active
     if (!hasActiveNotes) {
-      setTimeout(() => {
-        const stillHasActiveNotes =
-          Object.keys(pianoState.activeNotes).length > 0 ||
-          Object.keys(pianoState.activeDiatonicChords).length > 0;
-        if (!stillHasActiveNotes) {
-          stopSpectrumIfActive();
-        }
-      }, 100);
+      stopSpectrumVisualization(); // ✅ Let spectrum handle its own timing
     }
   }
 }
@@ -144,7 +123,6 @@ export function startKey(el, velocity = 100) {
   el.dataset.playing = "note";
   el.classList.add("pressed");
   trigger(noteName, true, velocity);
-
   const spelling = pianoState.keySignatureType === "b" ? "flat" : "sharp";
   pianoState.activeNotes[midi] = { el, spelling, startTime: performance.now() };
 }
@@ -160,7 +138,7 @@ export function stopKey(el) {
   if (!activeNote) return;
 
   const noteInfo = notesByMidiKeyAware(midi);
-  const noteNameToTrigger = noteInfo.name;
+  const noteNameToTrigger = noteInfo.name; // Use key-signature-aware name
 
   trigger(noteNameToTrigger, false);
   delete el.dataset.playing;
@@ -168,103 +146,10 @@ export function stopKey(el) {
   delete pianoState.activeNotes[midi];
 }
 
-// ===================================================================
-// NEW SPECTRUM HELPER FUNCTIONS (Adjusted connection to sampler)
-// ===================================================================
-
-/**
- * Initializes the spectrum visualizer
- */
-function initializeSpectrumVisualizer() {
-  // Only initialize if audioManager reports ready and Tone.js context is running
-  if (!audioManager.isAudioReady() || Tone.context.state !== 'running') {
-      console.warn("Skipping Spectrum initialization: Audio not ready or context not running.");
-      return;
-  }
-
-  try {
-    const spectrumContainer = document.getElementById("spectrum");
-    if (!spectrumContainer) {
-      console.log("Spectrum container not found - spectrum disabled");
-      return;
-    }
-
-    const spectrumOptions = {
-      fftSize: 4096,
-      smoothingTimeConstant: 0.8,
-      canvasHeight: 120,
-      backgroundColor: "#000000",
-      colorScheme: "blue fire",
-      showGrid: false,
-      showLabels: false,
-      minDb: -90,
-      maxDb: -5,
-      enableFrequencyGain: true,
-      debugMode: false,
-    };
-
-    initializeSpectrum(spectrumOptions);
-    spectrumInitialized = true;
-
-    // Connect to the sampler, which is now managed by audioManager and available in pianoState
-    if (pianoState.sampler) {
-      connectSpectrumToAudio(pianoState.sampler);
-      console.log("Spectrum connected to piano sampler");
-    } else {
-      console.warn("Cannot connect spectrum: pianoState.sampler is null.");
-    }
-  } catch (error) {
-    console.error("Error initializing spectrum:", error);
-    spectrumInitialized = false;
-  }
-}
-
-/**
- * Starts spectrum visualization when audio begins
- */
-export function startSpectrumIfReady() {
-  if (spectrumInitialized && !spectrumActive) {
-    startSpectrumVisualization();
-    spectrumActive = true;
-  }
-}
-
-/**
- * Stops spectrum visualization when audio ends
- */
-export function stopSpectrumIfActive() {
-  if (spectrumActive) {
-    stopSpectrumVisualization();
-    spectrumActive = false;
-  }
-}
-
-// ===================================================================
-// Diatonic Chord Playback (Unified)
-// ===================================================================
-
-/**
- * Unified function to play a diatonic chord based on a scale degree.
- * Works for both MIDI controller and keyboard/mouse inputs.
- * @param {number} degree - The scale degree (1-7).
- * @param {string|number} key - The unique identifier for this chord instance.
- * @param {boolean} [writeToScore=true] - Whether to prepare for score writing.
- */
 export function playDiatonicChord(degree, key, writeToScore = true) {
-  // This function now assumes audio is ready, or relies on the caller
-  // (e.g., handleKeyDown in instrumentHelpers) to ensure audio is unlocked
-  // via audioManager.unlockAndExecute before calling this.
-  if (!audioManager.isAudioReady() || !pianoState.sampler) {
-    console.warn("Audio not ready for chord playback. Cannot play diatonic chord.");
-    return;
-  }
-
-  const isInChordMode =
-    pianoState.isMajorChordMode || pianoState.isMinorChordMode;
+  const isInChordMode = pianoState.isMajorChordMode || pianoState.isMinorChordMode;
   const localMode = isInChordMode
-    ? pianoState.isMajorChordMode
-      ? "major"
-      : "minor"
+    ? pianoState.isMajorChordMode ? "major" : "minor"
     : "major";
   const spaceMidi = pianoState.keyMap[" "];
   if (!spaceMidi && !isInChordMode) return;
@@ -277,71 +162,58 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
     return;
   }
 
-  const qualityKey = diatonicChordQualities[localMode][degree];
+  const qualityKey = DIATONIC_CHORD_QUALITIES[localMode][degree];
   const chordDef = UNIFIED_CHORD_DEFINITIONS[qualityKey];
   if (!chordDef) {
     console.warn(`No chord definition found for qualityKey: ${qualityKey}`);
     return;
   }
 
-  const scale = Tonal.Scale.get(
-    `${Tonal.Note.pitchClass(localTonic)} ${localMode}`
-  );
-  if (!scale?.notes?.length) {
+  // REPLACED: Use our scale function instead of Tonal
+  const scaleNotes = getScaleNotes(getPitchClass(localTonic), localMode);
+  if (!scaleNotes?.length) {
     console.warn(`Could not get scale for ${localTonic} ${localMode}`);
     return;
   }
 
-  const rootPitchClassTonal = scale.notes[degree - 1];
-  const intervalToRoot = Tonal.Interval.distance(
-    Tonal.Note.pitchClass(localTonic),
-    rootPitchClassTonal
-  );
-  const actualRootNoteNameWithOctave = Tonal.Note.transpose(
-    localTonic,
-    intervalToRoot
-  );
-  const specificChordKey =
-    Tonal.Note.pitchClass(actualRootNoteNameWithOctave) +
-    (chordDef.suffix || "");
-  const predefinedChord = chordDefinitions[specificChordKey];
+  const rootPitchClass = scaleNotes[degree - 1];
+  
+  // REPLACED: Use our interval function
+  const intervalSemitones = getInterval(getPitchClass(localTonic), rootPitchClass);
+  
+  // REPLACED: Use our transpose function  
+  const actualRootNoteNameWithOctave = transposeNote(localTonic, intervalSemitones);
+  
+  const specificChordKey = getPitchClass(actualRootNoteNameWithOctave) + (chordDef.suffix || "");
+  const predefinedChord = CHORD_DEFINITIONS[specificChordKey];
   let notesForPlayback = [];
   let clefForPlayback = "treble";
   let chordNameForDisplay = predefinedChord?.displayName || specificChordKey;
 
-  if (
-    !predefinedChord ||
-    (!predefinedChord.treble?.length && !predefinedChord.bass?.length)
-  ) {
-    console.warn(
-      `Predefined chord not found for ${specificChordKey}. Deriving for playback.`
-    );
+  if (!predefinedChord || (!predefinedChord.treble?.length && !predefinedChord.bass?.length)) {
+    console.warn(`Predefined chord not found for ${specificChordKey}. Deriving for playback.`);
     const rootMidi = NOTES_BY_NAME[actualRootNoteNameWithOctave];
     if (rootMidi === undefined) return;
     notesForPlayback = chordDef.intervals
       .map((interval) => NOTES_BY_MIDI[rootMidi + interval]?.name)
       .filter(Boolean);
-    if (
-      notesForPlayback.length > 0 &&
-      Math.min(...notesForPlayback.map((n) => NOTES_BY_NAME[n])) < 60
-    ) {
+    if (notesForPlayback.length > 0 && 
+        Math.min(...notesForPlayback.map((n) => NOTES_BY_NAME[n])) < 60) {
       clefForPlayback = "bass";
     }
   } else {
-    const tonicOctave = Tonal.Note.octave(localTonic);
-    notesForPlayback =
-      tonicOctave >= 4 || !predefinedChord.bass.length
-        ? predefinedChord.treble
-        : predefinedChord.bass;
+    // REPLACED: Use our octave function
+    const tonicOctave = getOctave(localTonic);
+    notesForPlayback = tonicOctave >= 4 || !predefinedChord.bass.length
+      ? predefinedChord.treble
+      : predefinedChord.bass;
     if (!notesForPlayback.length) {
       notesForPlayback = predefinedChord.treble.length
         ? predefinedChord.treble
         : predefinedChord.bass;
     }
-    if (
-      notesForPlayback.length > 0 &&
-      Math.min(...notesForPlayback.map((n) => NOTES_BY_NAME[n])) < 60
-    ) {
+    if (notesForPlayback.length > 0 && 
+        Math.min(...notesForPlayback.map((n) => NOTES_BY_NAME[n])) < 60) {
       clefForPlayback = "bass";
     }
   }
@@ -350,21 +222,18 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
     console.warn(`No notes determined for playback for ${specificChordKey}.`);
     return;
   }
-  
+  // Play the chord
   trigger(notesForPlayback, true);
   paintChordOnTheFly({ notes: notesForPlayback });
 
-  if (spectrumInitialized) {
-    startSpectrumIfReady();
-  }
-
+  // Store chord data consistently for both input methods
   pianoState.activeDiatonicChords[key] = {
     key: specificChordKey,
     clef: clefForPlayback,
     displayName: chordNameForDisplay,
     notes: notesForPlayback,
     startTime: performance.now(),
-    writeToScore,
+    writeToScore, // Flag to determine if this should be written to score
   };
 }
 
@@ -376,10 +245,12 @@ export function stopDiatonicChord(key) {
   const chordData = pianoState.activeDiatonicChords[key];
   if (!chordData) return;
 
+  // Stop the audio
   if (chordData.notes?.length) {
     trigger(chordData.notes, false);
   } else {
-    const predefinedChord = chordDefinitions[chordData.key];
+    // Fallback to predefined chord lookup
+    const predefinedChord = CHORD_DEFINITIONS[chordData.key];
     if (predefinedChord) {
       let notesForRelease =
         chordData.clef === "bass" && predefinedChord.bass?.length
@@ -396,25 +267,18 @@ export function stopDiatonicChord(key) {
     }
   }
 
-  setTimeout(() => {
-    const hasActiveNotes =
-      Object.keys(pianoState.activeNotes).length > 0 ||
-      Object.keys(pianoState.activeDiatonicChords).length > 0;
-    if (!hasActiveNotes) {
-      stopSpectrumIfActive();
-    }
-  }, 100);
-
+  // Handle score writing if enabled
   if (chordData.writeToScore) {
     console.log("Writing chord to score:", chordData);
     const heldTime = performance.now() - chordData.startTime;
 
-    let duration = "q";
+    let duration = "q"; // Default to quarter note
     if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
     else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
     else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
     else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q.";
-    
+
+    // Use the notes directly from chord data instead of looking them up again
     if (chordData.notes && chordData.notes.length > 0) {
       console.log("About to write note:", {
         clef: chordData.clef,
@@ -433,6 +297,7 @@ export function stopDiatonicChord(key) {
     }
   }
 
+  // Handle visual repainting
   if (
     Object.keys(pianoState.activeDiatonicChords).length <= 1 &&
     (pianoState.isMajorChordMode || pianoState.isMinorChordMode)
@@ -463,21 +328,210 @@ export function playDiatonicChordFromUI(degree, inputSource) {
 export function stopDiatonicChordFromUI(inputSource) {
   stopDiatonicChord(inputSource);
 }
+export function triggerAttackRelease(note, duration = "q", velocity = 100, writeToScore = true, chordName = null) {
+  if (!audioManager.isAudioReady()) return;
 
-// ===================================================================
-// Cleanup Function
-// ===================================================================
+  const durationMs = DURATION_THRESHOLDS[duration] || DURATION_THRESHOLDS.q;
+  const notesArray = Array.isArray(note) ? note : [note];
 
-/**
- * Cleans up spectrum resources when the app is being destroyed
- */
-export function cleanupSpectrum() {
-  if (spectrumInitialized) {
-    destroySpectrum();
-    spectrumInitialized = false;
-    spectrumActive = false;
+  // Create a unique key for tracking this specific triggerAttackRelease call
+  const attackReleaseKey = `attackRelease_${Date.now()}_${Math.random()}`;
+
+  // Determine if this is a chord (multiple notes)
+  const isChord = notesArray.length > 1;
+
+  // Determine clef based on the lowest note
+  const lowestMidi = Math.min(...notesArray.map(n => NOTES_BY_NAME[n] || 60));
+  const clefForPlayback = lowestMidi < 60 ? "bass" : "treble";
+
+  // Generate display name if not provided
+  let displayName = chordName;
+  if (!displayName) {
+    if (isChord) {
+      const rootNote = notesArray[0];
+      const rootPitchClass = rootNote.replace(/\d+/, '');
+      displayName = rootPitchClass;
+    } else {
+      displayName = notesArray[0];
+    }
   }
+
+  console.log(`🎵 Starting triggerAttackRelease: ${displayName}, duration: ${duration} (${durationMs}ms)`);
+
+  // IMPROVEMENT 1: Use Tone.js triggerAttackRelease with proper duration conversion
+  // Make sure we're using seconds, not milliseconds
+  const durationInSeconds = durationMs / 1000;
+  pianoState.sampler.triggerAttackRelease(note, durationInSeconds, Tone.now(), velocity / 127);
+
+  // Start spectrum visualization when notes are played
+  startSpectrumVisualization();
+
+  // IMPROVEMENT 2: Paint chord visualization immediately for chords
+  if (isChord) {
+    paintChordOnTheFly({ notes: notesArray });
+  }
+
+  // Store chord data following the same pattern as playScaleChord
+  pianoState.activeDiatonicChords[attackReleaseKey] = {
+    notes: notesArray,
+    clef: clefForPlayback,
+    displayName: displayName,
+    startTime: performance.now(),
+    writeToScore: writeToScore,
+    isAttackRelease: true,
+    isChord: isChord
+  };
+
+  console.log(`📊 Active chords after adding: ${Object.keys(pianoState.activeDiatonicChords).length}`);
+
+  // IMPROVEMENT 3: Schedule cleanup to happen slightly AFTER the audio finishes
+  // Add a small buffer to ensure Tone.js has finished releasing
+  const cleanupDelay = durationMs + 50; // Add 50ms buffer
+
+  setTimeout(() => {
+    console.log(`🔇 triggerAttackRelease timeout fired for: ${displayName}`);
+
+    // Get the chord data for potential score writing
+    const chordData = pianoState.activeDiatonicChords[attackReleaseKey];
+
+    if (!chordData) {
+      console.warn(`⚠️ No chord data found for key: ${attackReleaseKey}`);
+      return;
+    }
+
+    // Handle score writing if enabled
+    if (chordData.writeToScore) {
+      console.log(`📝 Writing ${isChord ? 'chord' : 'note'} to score:`, displayName);
+
+      writeNote({
+        clef: chordData.clef,
+        duration: duration,
+        notes: chordData.notes,
+        chordName: chordData.displayName,
+      });
+    }
+
+    // Remove this specific attackRelease from tracking
+    delete pianoState.activeDiatonicChords[attackReleaseKey];
+    console.log(`📊 Active chords after removing: ${Object.keys(pianoState.activeDiatonicChords).length}`);
+
+    // IMPROVEMENT 4: Handle visual cleanup more aggressively for chords
+    if (isChord) {
+      // Clear chord highlights immediately
+      if (typeof clearChordHi === 'function') {
+        clearChordHi();
+      }
+
+      // Then restore after a brief moment
+      setTimeout(() => {
+        const remainingChords = Object.keys(pianoState.activeDiatonicChords).length;
+        console.log(`🎨 Checking visual cleanup, remaining chords: ${remainingChords}`);
+
+        if (remainingChords === 0 && (pianoState.isMajorChordMode || pianoState.isMinorChordMode)) {
+          console.log(`🎨 Restoring chord highlighting`);
+          paintChord();
+        }
+      }, 50); // Reduced delay
+    }
+
+    // IMPROVEMENT 5: More aggressive spectrum cleanup check
+    // Use a small delay to ensure all cleanup has happened
+    setTimeout(() => {
+      const hasActiveNotes =
+        Object.keys(pianoState.activeNotes).length > 0 ||
+        Object.keys(pianoState.activeDiatonicChords).length > 0;
+
+      console.log(`🔍 Final check for active notes/chords:`, {
+        activeNotes: Object.keys(pianoState.activeNotes).length,
+        activeDiatonicChords: Object.keys(pianoState.activeDiatonicChords).length,
+        hasActiveNotes
+      });
+
+      // Stop spectrum if no notes are active
+      if (!hasActiveNotes) {
+        console.log(`📊 Stopping spectrum visualization (final check)`);
+        stopSpectrumVisualization();
+      }
+    }, 10); // Small delay for final check
+
+  }, cleanupDelay); // Use the buffered cleanup delay
+
+  console.log(`⏰ Scheduled cleanup in ${cleanupDelay}ms for: ${displayName}`);
 }
 
-// Optional: Add window beforeunload event to clean up
-window.addEventListener("beforeunload", cleanupSpectrum);
+export function playScaleChord(degree, key, writeToScore = true, useBass = false) {
+  // Get chord directly from our new function
+  const chord = getChordByDegree(degree);
+  if (!chord) {
+    console.warn(`No chord found for scale degree ${degree}`);
+    return;
+  }
+
+  // Choose voicing based on useBass parameter
+  const notesForPlayback = useBass ? chord.bass : chord.treble;
+  const clefForPlayback = useBass ? "bass" : "treble";
+
+  if (!notesForPlayback || notesForPlayback.length === 0) {
+    console.warn(`No ${useBass ? 'bass' : 'treble'} notes found for chord ${chord.displayName}`);
+    return;
+  }
+
+  // Play the chord
+  trigger(notesForPlayback, true);
+  paintChordOnTheFly({ notes: notesForPlayback });
+
+  // Store chord data for release handling
+  pianoState.activeDiatonicChords[key] = {
+    chord: chord,
+    clef: clefForPlayback,
+    displayName: chord.displayName,
+    notes: notesForPlayback,
+    startTime: performance.now(),
+    writeToScore: writeToScore,
+  };
+
+  console.log(`Playing diatonic chord degree ${degree}: ${chord.displayName} (${useBass ? 'bass' : 'treble'})`);
+}
+
+/**
+ * Unified function to stop a diatonic chord and handle score writing.
+ * @param {string|number} key - The unique identifier used when the chord was played.
+ */
+export function stopScaleChord(key) {
+  const chordData = pianoState.activeDiatonicChords[key];
+  if (!chordData) return;
+
+  // Stop the audio
+  if (chordData.notes?.length) {
+    trigger(chordData.notes, false);
+  }
+
+  // Handle score writing if enabled
+  if (chordData.writeToScore) {
+    console.log("Writing chord to score:", chordData.displayName);
+    const heldTime = performance.now() - chordData.startTime;
+
+    let duration = "q"; // Default to quarter note
+    if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
+    else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
+    else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q.";
+
+    writeNote({
+      clef: chordData.clef,
+      duration: duration,
+      notes: chordData.notes,
+      chordName: chordData.displayName,
+    });
+  }
+
+  // Handle visual repainting
+  if (
+    Object.keys(pianoState.activeDiatonicChords).length <= 1 &&
+    (pianoState.isMajorChordMode || pianoState.isMinorChordMode)
+  ) {
+    paintChord();
+  }
+
+  delete pianoState.activeDiatonicChords[key];
+}

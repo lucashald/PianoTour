@@ -21,7 +21,12 @@ import {
   highlightSelectedNote,
   clearSelectedNoteHighlight,
 } from "./scoreHighlighter.js";
-import { saveToLocalStorage } from './ioHelpers.js';
+import { saveToLocalStorage } from "./ioHelpers.js";
+import { getNoteImagePath, NOTE_IMAGE_MAP  } from "./note-data.js";
+Object.values(NOTE_IMAGE_MAP).forEach(imagePath => {
+  const img = new Image();
+  img.src = imagePath;
+});
 // ===================================================================
 // Global Variables
 // ===================================================================
@@ -69,6 +74,8 @@ const DRAG_THRESHOLD = 5; // pixels
 // Staff position to note mappings
 // Positions are numbered from top (0) to bottom, including ledger lines
 const TREBLE_STAFF_POSITIONS = [
+  { position: -3, note: "E6", type: "ledger" },
+  { position: -2.5, note: "D6", type: "ledger-space" },
   { position: -2, note: "C6", type: "ledger" },
   { position: -1.5, note: "B5", type: "ledger-space" },
   { position: -1, note: "A5", type: "ledger" },
@@ -77,7 +84,7 @@ const TREBLE_STAFF_POSITIONS = [
   { position: 0.5, note: "E5", type: "space" },
   { position: 1, note: "D5", type: "line" },
   { position: 1.5, note: "C5", type: "space" },
-  { position: 2, note: "B4", type: "line" },
+  { position: 2, note: "B4", type: "line" }, // Middle Line
   { position: 2.5, note: "A4", type: "space" },
   { position: 3, note: "G4", type: "line" },
   { position: 3.5, note: "F4", type: "space" },
@@ -101,8 +108,8 @@ const BASS_STAFF_POSITIONS = [
   { position: 1.5, note: "E3", type: "space" },
   { position: 2, note: "D3", type: "line" },
   { position: 2.5, note: "C3", type: "space" },
-  { position: 3, note: "B2", type: "line" },
-  { position: 3.5, note: "A2", type: "space" },
+  { position: 3, note: "B2", type: "line" }, //middle line
+  { position: 3.5, note: "A2", type: "space" }, //
   { position: 4, note: "G2", type: "line" }, // Bottom line
   { position: 4.5, note: "F2", type: "space" },
   { position: 5, note: "E2", type: "ledger" },
@@ -138,9 +145,6 @@ function logNotePositions() {
     });
   }
 }
-// ===================================================================
-// Core Rendering & Interaction
-// ===================================================================
 function calibrateStaffPositions() {
   console.log("Calibrating staff positions...");
 
@@ -165,8 +169,15 @@ function calibrateStaffPositions() {
       `Bass staff: top=${BASS_STAFF_TOP_Y}, bottom=${BASS_STAFF_BOTTOM_Y}`
     );
   }
-}
 
+  // Log the vertical centering info
+  const scoreContainer = document.getElementById("score")?.parentElement;
+  const containerHeight = scoreContainer ? scoreContainer.clientHeight : 350;
+  const verticalOffset = Math.max(20, (containerHeight - 300) / 2);
+  console.log(
+    `Score vertical centering: container=${containerHeight}px, offset=${verticalOffset}px`
+  );
+}
 /**
  * Finds the nearest staff position (line or space) for a given Y coordinate
  * @param {number} y - Y coordinate
@@ -289,7 +300,6 @@ export function setKeySignature(keySignature) {
 
   return true;
 }
-
 export function drawAll(measures) {
   console.log("drawAll: START");
   const out = document.getElementById("score");
@@ -313,11 +323,21 @@ export function drawAll(measures) {
   }
 
   try {
+    // Calculate vertical centering
+    const scoreContainer = out.parentElement; // Should be .score-viewer__container
+    const containerHeight = scoreContainer ? scoreContainer.clientHeight : 350;
+    const scoreHeight = 300; // Height of the VexFlow score
+    const verticalOffset = Math.max(20, (containerHeight - scoreHeight) / 2);
+
+    console.log(
+      `drawAll: Centering score - Container height: ${containerHeight}, Score height: ${scoreHeight}, Vertical offset: ${verticalOffset}`
+    );
+
     vexFlowFactory = new Vex.Flow.Factory({
       renderer: {
         elementId: "score",
         width: measureWidth * measureCount + 20,
-        height: 300,
+        height: Math.max(scoreHeight, containerHeight), // Ensure renderer is tall enough
       },
     });
     vfContext = vexFlowFactory.getContext();
@@ -364,8 +384,10 @@ export function drawAll(measures) {
         }
       });
 
+      // Create system with vertical offset for centering
       const system = vexFlowFactory.System({
         x: currentX,
+        y: verticalOffset, // ADD THIS: Apply vertical centering
         width: measureWidth,
         spaceBetweenStaves: 10,
       });
@@ -378,15 +400,23 @@ export function drawAll(measures) {
       const staveTreble = system.addStave({ voices: [trebleVoice] });
       const staveBass = system.addStave({ voices: [bassVoice] });
       vexflowStaveMap[i] = { treble: staveTreble, bass: staveBass };
-
+      function formatTimeSignature() {
+        return `${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`;
+      }
+      function formatTempo() {
+        return pianoState.tempo;
+      }
       if (i === 0) {
-        staveTreble.addClef("treble").addTimeSignature("4/4");
-        staveBass.addClef("bass").addTimeSignature("4/4");
+        const timeSignature = formatTimeSignature();
+        const tempo = formatTempo();
+        staveTreble.addClef("treble").addTimeSignature(timeSignature);
+        staveBass.addClef("bass").addTimeSignature(timeSignature);
         system.addConnector("brace");
         system.addConnector("singleLeft");
         const keySignature = getCurrentVexFlowKeySignature();
         staveTreble.addKeySignature(keySignature);
         staveBass.addKeySignature(keySignature);
+        staveTreble.setTempo({ duration: 'q', bpm: pianoState.tempo }, -27);
       }
       if (i === measureCount - 1) {
         system.addConnector("boldDoubleRight");
@@ -420,24 +450,24 @@ export function drawAll(measures) {
     }
     // NEW: Restore all notes from the playback Set
     for (const noteKey of pianoState.currentPlaybackNotes) {
-      const [measureIndex, clef, noteId] = noteKey.split('-');
+      const [measureIndex, clef, noteId] = noteKey.split("-");
       const measureIdx = parseInt(measureIndex);
-      console.log(
-        `drawAll: Restoring playback highlight for note`,
-        { measureIndex: measureIdx, clef, noteId }
-      );
+      console.log(`drawAll: Restoring playback highlight for note`, {
+        measureIndex: measureIdx,
+        clef,
+        noteId,
+      });
       addPlaybackHighlight(measureIdx, clef, noteId, "#FFD700");
     }
 
     const scoreWrap = document.getElementById("scoreWrap");
-    if (scoreWrap) scoreWrap.scrollLeft = scoreWrap.scrollWidth;
+  scoreWrap.scrollLeft = scoreWrap.scrollWidth;
   } catch (e) {
     console.error("drawAll: VexFlow rendering error:", e);
   }
   calibrateStaffPositions();
-  console.log("drawAll: END");
+  console.log(`drawAll end: scroll position is ${scoreWrap?.scrollLeft}`);
 }
-
 /**
  * A safe redraw that preserves the current selection and all highlight states.
  */
@@ -465,6 +495,7 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
   // Mouse Down Listener
   scoreElement.addEventListener("mousedown", (event) => {
     if (event.button !== 0 || isPaletteDrag) return; // Only left-click, ignore if a palette drag is starting
+    event.preventDefault();
 
     const rect = scoreElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -491,9 +522,15 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
   scoreElement.addEventListener("mousemove", (event) => {
     if (!mouseDownInitialPos && !isPaletteDrag) return;
 
+    // Prevent text selection and other default behaviors during drag
+  if (isDraggingInitiated || isPaletteDrag) {
+    event.preventDefault();
+  }
+
     const rect = scoreElement.getBoundingClientRect();
     const currentX = event.clientX - rect.left;
     const currentY = event.clientY - rect.top;
+     console.log(`Drag coordinates: x=${currentX}, y=${currentY}`);
 
     // --- Drag Initiation for existing notes ---
     if (mouseDownInitialPos && !isPaletteDrag && !isDraggingInitiated) {
@@ -554,49 +591,58 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     }
   });
 
-  // Mouse Up Listener
-  scoreElement.addEventListener("mouseup", (event) => {
-    if (!mouseDownInitialPos || isPaletteDrag) return;
+// Mouse Up Listener - attached to document to catch releases outside score
+document.addEventListener("mouseup", (event) => {
+  if (!mouseDownInitialPos || isPaletteDrag) return;
 
-    const rect = scoreElement.getBoundingClientRect();
-    const endX = event.clientX - rect.left;
-    const endY = event.clientY - rect.top;
+  const scoreRect = scoreElement.getBoundingClientRect();
+  const isOnScore = (
+    event.clientX >= scoreRect.left &&
+    event.clientX <= scoreRect.right &&
+    event.clientY >= scoreRect.top &&
+    event.clientY <= scoreRect.bottom
+  );
 
-    if (isDraggingInitiated) {
-      console.log("enableScoreInteraction: Drag operation completed.");
-      completeDrag(endX, endY);
-    } else if (!hasMouseMovedSinceMousedown) {
-      // This was a click, not a drag.
-      if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
-        console.log(
-          "enableScoreInteraction: Pure click on EXISTING note detected."
-        );
-        onNoteClick(
-          mouseDownNoteTarget.measureIndex,
-          mouseDownNoteTarget.clef,
-          mouseDownNoteTarget.noteId
-        );
-      } else {
-        console.log(
-          "enableScoreInteraction: Pure click on measure background detected."
-        );
-        const measureIndex = detectMeasureClick(endX, endY);
-        if (measureIndex !== -1) {
-          onMeasureClick(measureIndex, false);
-        }
+  if (isOnScore && isDraggingInitiated) {
+    // Mouse released on score during drag - complete the drag
+    const endX = event.clientX - scoreRect.left;
+    const endY = event.clientY - scoreRect.top;
+    console.log("enableScoreInteraction: Drag operation completed.");
+    completeDrag(endX, endY);
+  } else if (isOnScore && !hasMouseMovedSinceMousedown) {
+    // Mouse released on score without moving - this was a click
+    const endX = event.clientX - scoreRect.left;
+    const endY = event.clientY - scoreRect.top;
+    
+    if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
+      console.log("enableScoreInteraction: Pure click on EXISTING note detected.");
+      onNoteClick(
+        mouseDownNoteTarget.measureIndex,
+        mouseDownNoteTarget.clef,
+        mouseDownNoteTarget.noteId
+      );
+    } else {
+      console.log("enableScoreInteraction: Pure click on measure background detected.");
+      const measureIndex = detectMeasureClick(endX, endY);
+      if (measureIndex !== -1) {
+        onMeasureClick(measureIndex, false);
       }
     }
+  } else if (!isOnScore && isDraggingInitiated) {
+    // Mouse released outside score during drag - cancel the drag
+    console.log("enableScoreInteraction: Drag canceled - mouse released outside score.");
+  }
 
-    // Reset all interaction state variables
-    mouseDownInitialPos = null;
-    mouseDownNoteTarget = null;
-    hasMouseMovedSinceMousedown = false;
-    isDragging = false;
-    isDraggingInitiated = false;
-    draggedNote = null;
-    scoreElement.style.cursor = "default";
-    clearDragPreview();
-  });
+  // Reset all interaction state variables
+  mouseDownInitialPos = null;
+  mouseDownNoteTarget = null;
+  hasMouseMovedSinceMousedown = false;
+  isDragging = false;
+  isDraggingInitiated = false;
+  draggedNote = null;
+  scoreElement.style.cursor = "default";
+  clearDragPreview();
+});
 
   // Palette Drag and Drop Listeners
   scoreElement.addEventListener("dragover", (event) => {
@@ -619,6 +665,7 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     }
   });
 }
+
 
 /**
  * Handles the drop event for items dragged from the palette.
@@ -655,11 +702,6 @@ function handlePaletteDrop(endX, endY) {
     id: Date.now().toString(), // Generate a unique ID
   };
 
-  if (newNote.isRest) {
-    newNote.name = "R"; // Ensure rests have the correct name
-  }
-
-  // TODO: Handle chord creation for 'major' and 'minor' types
   if (paletteDragType === "major" || paletteDragType === "minor") {
     // For now, just add the root note
     console.log(
@@ -671,46 +713,159 @@ function handlePaletteDrop(endX, endY) {
   addNoteToMeasure(targetMeasureIndex, newNote);
   console.log("handlePaletteDrop: Added new note to measure:", newNote);
 }
+//start of drag preview code
 
-/**
- * Updates the visual preview during drag to show where note will snap
- * @param {number} x - Current X position
- * @param {number} snapY - Y position where note will snap
- * @param {string} noteName - Name of the note it will snap to
- */
 function updateDragPreview(x, snapY, noteName) {
-  let preview = document.getElementById("drag-snap-preview");
+// Early exit if we're not actually dragging
+  if (!isDragging && !isPaletteDrag) {
+    clearDragPreview();
+    return;
+  }
 
+  let preview = document.getElementById("drag-snap-preview");
+  // Get the duration from the original note being dragged
+  const durationText = originalNoteData ? originalNoteData.duration : "q";
+  const imagePath = getNoteImagePath(durationText, noteName);
   if (!preview) {
-    // Create preview element if it doesn't exist
     preview = document.createElement("div");
     preview.id = "drag-snap-preview";
     preview.style.cssText = `
-            position: absolute;
-            background: rgba(59, 130, 246, 0.3);
-            border: 2px solid #3b82f6;
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-size: 12px;
-            color: #3b82f6;
-            font-weight: bold;
-            pointer-events: none;
-            z-index: 1000;
-            transition: top 0.1s ease-out;
-        `;
+      position: absolute;
+      pointer-events: none;
+      z-index: 1000;
+      transition: top 0.1s ease-out;
+    `;
     document.getElementById("score").appendChild(preview);
   }
 
-  // Position the preview
-  preview.style.left = `${x - 20}px`;
-  preview.style.top = `${snapY - 10}px`;
-  preview.textContent = noteName;
-  preview.style.display = "block";
+  const isOnLine = snapY % 10 === 0;
 
-  console.log(
-    `updateDragPreview: Showing preview for ${noteName} at Y=${snapY}`
-  );
+  
+  if (isOnLine) {
+    // Staff line - red line has higher z-index than note circle
+    preview.innerHTML = `
+      <div style="position: relative; width: 120px; height: 3px;">
+        <!-- Note circle with lower z-index -->
+        <div style="
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(255, 255, 255, 0.33);
+          border-radius: 50%;
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1;
+        ">
+          <img src="${imagePath}" alt="${durationText}" style="
+            width: 40px; 
+            height: 40px; 
+            object-fit: contain;
+          ">
+          <!-- Note name in bottom right -->
+          <div style="
+            position: absolute;
+            bottom: -2px;
+            right: -8px;
+            background: rgba(216, 131, 104, 0.9);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 1px 4px;
+            border-radius: 3px;
+            line-height: 1;
+          ">${noteName}</div>
+        </div>
+        
+        <!-- Red line with higher z-index -->
+        <div style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%; 
+          height: 3px; 
+          background: rgba(216, 131, 104, 0.9);
+          border-radius: 2px;
+          z-index: 2;
+        "></div>
+      </div>
+    `;
+  } else {
+    // Space - dashed line split around the note circle
+    preview.innerHTML = `
+      <div style="position: relative; width: 120px; height: 0px;">
+        <!-- Left dashed line -->
+        <div style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 36px; 
+          height: 0px; 
+          border-top: 3px dashed rgba(41, 123, 81, 0.8);
+          z-index: 1;
+        "></div>
+        
+        <!-- Right dashed line -->
+        <div style="
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 36px; 
+          height: 0px; 
+          border-top: 3px dashed rgba(41, 123, 81, 0.8);
+          z-index: 1;
+        "></div>
+        
+        <!-- Note circle with higher z-index -->
+        <div style="
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(255, 255, 255, 0.33);
+          border-radius: 50%;
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+        ">
+          <img src="${imagePath}" alt="${durationText}" style="
+            width: 40px; 
+            height: 40px; 
+            object-fit: contain;
+          ">
+          <!-- Note name in bottom right -->
+          <div style="
+            position: absolute;
+            bottom: -2px;
+            right: -8px;
+            background: rgba(41, 123, 81, 0.9);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 1px 4px;
+            border-radius: 3px;
+            line-height: 1;
+          ">${noteName}</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  preview.style.left = `${x - 60}px`;
+  preview.style.top = `${snapY - 1}px`;
+  preview.style.display = "block";
 }
+
+//end drag preview
+
+
+
 
 /**
  * Clears the drag preview element
@@ -1129,10 +1284,9 @@ function detectNoteClick(x, y) {
   );
   return null;
 }
-
 /**
  * Detects which measure was clicked or interacted with based on X, Y coordinates.
- * This function assumes a fixed measure width and a defined vertical range for the score area.
+ * This function assumes a fixed measure width and accounts for vertical centering.
  * @param {number} x - The X coordinate of the event (relative to the score element).
  * @param {number} y - The Y coordinate of the event (relative to the score element).
  * @returns {number} The measure index (0-indexed) if a measure is detected, or -1 if the coordinates are outside any measure's bounds.
@@ -1140,18 +1294,31 @@ function detectNoteClick(x, y) {
 function detectMeasureClick(x, y) {
   const measureWidth = 340;
 
-  // Use calibrated bounds if available, otherwise use default values.
-  const scoreTopY = TREBLE_STAFF_TOP_Y || 20;
-  const scoreBottomY = BASS_STAFF_BOTTOM_Y || 280;
+  // Calculate the current vertical offset (same logic as in drawAll)
+  const scoreContainer = document.getElementById("score")?.parentElement;
+  const containerHeight = scoreContainer ? scoreContainer.clientHeight : 350;
+  const scoreHeight = 300;
+  const verticalOffset = Math.max(20, (containerHeight - scoreHeight) / 2);
+
+  // Use calibrated bounds if available, otherwise use calculated values with offset
+  const scoreTopY = TREBLE_STAFF_TOP_Y || verticalOffset + 20;
+  const scoreBottomY = BASS_STAFF_BOTTOM_Y || verticalOffset + 280;
 
   // Define margins to allow for drops on ledger lines both above and below the staves.
   const topMargin = 50;
-  const bottomMargin = 50; // THE FIX: Added a margin for the bottom boundary.
+  const bottomMargin = 50;
 
   // Check if the drop is within the adjusted vertical bounds of the score.
   if (y < scoreTopY - topMargin || y > scoreBottomY + bottomMargin) {
+    console.log(
+      `detectMeasureClick: Y=${y} outside bounds (${scoreTopY - topMargin} to ${
+        scoreBottomY + bottomMargin
+      })`
+    );
     return -1; // Return -1 if the drop is outside the valid vertical area.
   }
+
+
 
   // Iterate through the stored X positions of each measure.
   for (let i = 0; i < measureXPositions.length; i++) {
@@ -1169,23 +1336,40 @@ function detectMeasureClick(x, y) {
  * It attempts to center the target measure within the scrollable area.
  * @param {number} measureIndex - The index of the measure to scroll to.
  */
-export function scrollToMeasure(measureIndex) {
-  console.log('scrollToMeasure called with index', measureIndex);
-  const scoreWrap = document.getElementById("scoreWrap"); // The HTML element acting as the scrollable container for the score.
-  const measureWidth = 340; // The fixed width of a single measure in pixels.
 
-  // Ensure the scrollable container exists and the target measure's X position is known.
-  if (scoreWrap && measureXPositions[measureIndex] !== undefined) {
-    // Calculate the target scroll position.
-    // This calculation aims to place the center of the target measure at the center of the scrollable viewport.
+
+export function scrollToMeasure(measureIndex) {
+  console.log("scrollToMeasure called with index", measureIndex);
+  const scoreWrap = document.getElementById("scoreWrap");
+  
+  // Add this safety check
+  if (!scoreWrap) {
+    console.warn(`scrollToMeasure: scoreWrap element not found, skipping scroll to measure ${measureIndex}`);
+    return;
+  }
+  
+  const measureWidth = 340;
+
+  if (measureXPositions[measureIndex] !== undefined) {
+    // Calculate the target scroll position
     const targetScrollLeft = Math.max(
-      0, // Ensures the scroll position does not go below zero (leftmost edge).
+      0,
       measureXPositions[measureIndex] -
         scoreWrap.clientWidth / 2 +
         measureWidth / 2
     );
 
-    // Apply the calculated scroll position with smooth animation.
+    // Check if we're already at the target scroll position
+    const currentScrollLeft = scoreWrap.scrollLeft;
+    const scrollTolerance = 10;
+    
+    console.log(`scrollToMeasure: Current scroll: ${currentScrollLeft}, Target scroll: ${targetScrollLeft}, Difference: ${Math.abs(currentScrollLeft - targetScrollLeft)}`);
+    
+    if (Math.abs(currentScrollLeft - targetScrollLeft) <= scrollTolerance) {
+      console.log(`scrollToMeasure: Already at measure ${measureIndex}, skipping scroll.`);
+      return;
+    }
+
     scoreWrap.scrollTo({
       left: targetScrollLeft,
       behavior: "smooth",
@@ -1193,10 +1377,14 @@ export function scrollToMeasure(measureIndex) {
     console.log(`scrollToMeasure: Scrolled to measure ${measureIndex}.`);
   } else {
     console.warn(
-      `scrollToMeasure: Cannot scroll to measure ${measureIndex}. Score wrapper element or measure position not found.`
+      `scrollToMeasure: Cannot scroll to measure ${measureIndex}. Measure position not found.`
     );
   }
 }
+
+
+// end scrolltomeasure function
+
 
 export function setPaletteDragState(isDragging, type, duration) {
   isPaletteDrag = isDragging;

@@ -6,12 +6,13 @@ FROM python:3.11-slim
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy the requirements file and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy your application code into the container
+# Copy ALL your application files first, including requirements.txt
+# and the new vendor/ugly_midi directory.
 COPY . .
+
+# Now that all files are in place, install the dependencies.
+# Pip will be able to find the local package.
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Tell Fly.io the app listens on port 8080
 EXPOSE 8080

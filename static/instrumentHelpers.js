@@ -1,39 +1,39 @@
 // instrumentHelpers.js
-// This file contains all core piano instrument logic, UI manipulation, and event handlers.
-// Audio unlocking is now exclusively handled by a single click/tap on the instrument,
-// deferring the attachment of all complex pointer/keyboard listeners until audio is ready.
 
 // ===================================================================
 // Imports
 // ===================================================================
 
-import { pianoState } from "./appState.js";
+import { pianoState } from "./appState.js"; 
 import {
-  // startAudio, // No longer directly used, as unlock is delegated
   trigger,
+  triggerAttackRelease, 
   startKey,
   stopKey,
   playDiatonicChord,
   stopDiatonicChord,
-} from "./playbackHelpers.js";
+  playScaleChord,
+  stopScaleChord,
+} from "./playbackHelpers.js"; 
 import {
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
   WHITE_KEY_WIDTH,
   BLACK_KEY_WIDTH,
   ALL_NOTE_INFO,
-  majorDiatonicLabels,
-  minorDiatonicLabels,
+  MAJOR_DIATONIC_LABELS,
+  MINOR_DIATONIC_LABELS,
   CHORD_STRUCTURES,
   DURATION_THRESHOLDS,
-  chordDefinitions,
+  CHORD_DEFINITIONS,
   notesByMidiKeyAware,
-} from "./note-data.js";
-import { writeNote } from "./scoreWriter.js";
-import { updateNowPlayingDisplay } from "./uiHelpers.js";
+} from "./note-data.js"; 
+import { writeNote } from "./scoreWriter.js"; 
+import { updateNowPlayingDisplay } from "./uiHelpers.js"; 
+import { addBasicKeyboardListeners, addAdvancedKeyboardListeners, addBasicInstrumentListeners, addAdvancedInstrumentListeners, addButtonListeners, addInstrumentDraggingListeners, setInstrumentDiv } from "./listenerManager.js"; 
 
 // NEW: Import audioManager for its core unlock functionality
-import audioManager from "./audioManager.js"; // <--- NEW IMPORT
+import audioManager from "./audioManager.js"; 
 
 // ===================================================================
 // Constants (derived from imported data)
@@ -105,7 +105,7 @@ function buildMap(baseIdx) {
     }
   }
   keyMap["h"] = keyMap[" "];
-  keyMap["g"] = keyMap["t"];
+  keyMap["g"] = keyMap[" "];
   return keyMap;
 }
 
@@ -274,8 +274,8 @@ function createDiatonicLabels() {
   const rootMidi = NOTES_BY_NAME[pianoState.scaleTonic];
   if (rootMidi === undefined) return;
   const map = pianoState.isMajorChordMode
-    ? majorDiatonicLabels
-    : minorDiatonicLabels;
+    ? MAJOR_DIATONIC_LABELS
+    : MINOR_DIATONIC_LABELS;
 
   // Only create labels for notes that exist on the piano
   map.intervals.forEach((interval, i) => {
@@ -300,7 +300,7 @@ function updateLabels() {
 }
 
 /** Clears single-note mode highlights from piano keys. */
-function clearHi() {
+export function clearHi() {
   pianoState.hi.forEach((m) =>
     pianoState.noteEls[m]?.classList.remove(
       "left-white",
@@ -339,7 +339,7 @@ function paint() {
 }
 
 /** Clears chord mode highlights from piano keys. */
-function clearChordHi() {
+export function clearChordHi() {
   pianoState.chordHi.forEach((m) =>
     pianoState.noteEls[m]?.classList.remove(
       "chord-root",
@@ -386,12 +386,12 @@ export function paintChordOnTheFly(chord) {
 // ===================================================================
 
 /** Handles window resize event. */
-function handleWindowResize() {
+export function handleWindowResize() {
   positionSlider();
 }
 
 /** Handles changes between single note and chord modes. */
-function handleChordModeChange() {
+export function handleChordModeChange() {
   clearHi();
   clearChordHi();
   const isChordMode =
@@ -445,44 +445,45 @@ function findKeyForSlider(mouseX, scale) {
  */
 function findKeyForPlayer(clientX, clientY) {
   const element = document.elementFromPoint(clientX, clientY);
-  
+
   if (element && element.classList.contains('key')) {
     const midi = parseInt(element.dataset.midi, 10);
     return NOTES_BY_MIDI[midi] || null;
   }
-  
+
   return null;
 }
 
 /** * Handles pointer move for click-and-drag functionality
  */
-function handlePointerMove(e) {
+export function handlePointerMove(e) {
   // Only process if audio is ready AND isDragging is true
   if (!audioManager.isAudioReady() || !pianoState.isDragging) return; 
-  
+
   e.preventDefault(); // Prevent default browser drag behavior
+  document.body.classList.add("no-scroll"); // temporarily add a no-scroll
   const foundKey = findKeyForPlayer(e.clientX, e.clientY);
-  
+
   const isChordMode = pianoState.isMajorChordMode || pianoState.isMinorChordMode;
-  
+
   if (isChordMode) {
     // Chord mode - drag functionality is not implemented, just return
     return;
-    
+
   } else {
     const currentlyTouchedKeys = new Set();
-    
+
     if (foundKey) {
       currentlyTouchedKeys.add(foundKey.midi);
     }
-    
+
     currentlyTouchedKeys.forEach(midi => {
       if (!pianoState.currentlyPlayingKeys.has(midi)) {
         const keyEl = pianoState.noteEls[midi];
         if (keyEl) {
           keyEl.classList.add("pressed", "drag-playing");
           keyEl.dataset.playing = "drag";
-          
+
           const noteInfo = notesByMidiKeyAware(midi);
           if (noteInfo) {
             trigger([noteInfo.name], true);
@@ -490,7 +491,7 @@ function handlePointerMove(e) {
         }
       }
     });
-    
+
     pianoState.currentlyPlayingKeys.forEach(midi => {
       if (!currentlyTouchedKeys.has(midi)) {
         const keyEl = pianoState.noteEls[midi];
@@ -504,13 +505,13 @@ function handlePointerMove(e) {
         }
       }
     });
-    
+
     pianoState.currentlyPlayingKeys = currentlyTouchedKeys;
   }
 }
 
 /** Handles the start of a drag event on the hand overlay (slider). */
-function startSliderDrag(e) {
+export function startSliderDrag(e) {
   // Only activate slider drag if audio is ready
   if (!audioManager.isAudioReady()) {
     console.warn("Audio not ready to start slider drag.");
@@ -592,7 +593,7 @@ function startSliderDrag(e) {
 /**
  * NEW: Stop all drag-playing notes
  */
-function stopAllDragNotes() {
+export function stopAllDragNotes() {
   pianoState.currentlyPlayingKeys.forEach((midi) => {
     const keyEl = pianoState.noteEls[midi];
     if (keyEl) {
@@ -610,7 +611,7 @@ function stopAllDragNotes() {
 /**
  * NEW: Stop all drag-playing chords
  */
-function stopAllDragChords() {
+export function stopAllDragChords() {
   pianoState.currentlyPlayingKeys.forEach((midi) => {
     const keyEl = pianoState.noteEls[midi];
     if (keyEl) {
@@ -627,7 +628,7 @@ function stopAllDragChords() {
  * This function no longer defers the action itself, but assumes audio is ready.
  * It will return early if audio is not ready.
  */
-function handleKeyPointerDown(e) {
+export function handleKeyPointerDown(e) {
   // Crucial: Only proceed if audio is already ready.
   // The initial unlock is now handled by the .instrument-panel__keyboard click listener.
   if (!audioManager.isAudioReady()) {
@@ -641,6 +642,7 @@ function handleKeyPointerDown(e) {
 
   // Initialize drag state (now that audio is confirmed ready)
   pianoState.isDragging = true;
+  document.body.classList.add("no-scroll");
   pianoState.lastDraggedKey = null;
 
   let targetMidi = parseInt(keyEl.dataset.midi, 10);
@@ -685,6 +687,7 @@ function handleKeyPointerDown(e) {
 
     const handleKeyPointerUp = () => {
       pianoState.isDragging = false;
+      document.body.classList.remove("no-scroll");
       stopAllDragChords();
 
       const heldTime = performance.now() - startTime;
@@ -718,6 +721,7 @@ function handleKeyPointerDown(e) {
 
     const handleKeyPointerUp = () => {
       pianoState.isDragging = false;
+      document.body.classList.remove("no-scroll");
       stopAllDragNotes();
 
       stopKey(finalKeyEl);
@@ -740,63 +744,166 @@ function handleKeyPointerDown(e) {
     };
     finalKeyEl.addEventListener("pointerup", handleKeyPointerUp, {
       once: true,
-    });
-    finalKeyEl.addEventListener("pointercancel", handleKeyPointerUp, {
-      once: true,
-    });
-  }
+      });
+         finalKeyEl.addEventListener("pointercancel", handleKeyPointerUp, {
+           once: true,
+         });
+       }
 
-  // Trigger initial move to handle the current position.
-  // This assumes handlePointerMove will respect pianoState.isDragging set above.
-  handlePointerMove(e);
+       // Trigger initial move to handle the current position.
+       // This assumes handlePointerMove will respect pianoState.isDragging set above.
+       handlePointerMove(e);
+      }
+
+
+      // ===================================================================
+      // Exported Functions
+      // ===================================================================
+
+      export function handleToggleLabelsChange(e) {
+       pianoState.toggleLabels = e.target.checked;
+       updateLabels();
+       const buttonElement = e.target.parentElement;
+
+       if (e.target.checked) {
+         buttonElement.classList.add("is-active");
+       } else {
+         buttonElement.classList.remove("is-active");
+       }
+      }
+
+      /** Handles cycling through the different playing modes. */
+      export function handleModeCycleClick(e) {
+       if (!pianoState.isMajorChordMode && !pianoState.isMinorChordMode) {
+         pianoState.isMajorChordMode = true;
+         e.target.textContent = "Major Chords";
+       } else if (pianoState.isMajorChordMode) {
+         pianoState.isMajorChordMode = false;
+         pianoState.isMinorChordMode = true;
+         e.target.textContent = "Minor Chords";
+       } else {
+         pianoState.isMinorChordMode = false;
+         e.target.textContent = "Single Note";
+       }
+       handleChordModeChange();
+      }
+// Define all listener functions.
+let instrumentDiv; // Module-level variable
+
+// Initial click function
+export function handleInitial(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  const keyEl = e.target.closest(".key");
+  if (!keyEl) {
+     console.log("Click was not on a piano key, ignoring");
+     return;
+   }
+
+   const midi = parseInt(keyEl.dataset.midi, 10); // midi value of pressed key.
+   const noteInfo = notesByMidiKeyAware(midi); // gets the note name based on the note value and key signature.
+   if (!noteInfo) {
+     console.log("Could not find note info for MIDI", midi);
+     return;
+   }
+
+   console.log("Initial click on key:", noteInfo.name);
+
+   // Store the note details for the deferred action
+   const clickedNoteDetails = {
+     midi: midi,
+     noteName: noteInfo.name,
+     clef: noteInfo.midi < 60 ? "bass" : "treble"
+   };
+
+   // Define the deferred action: play the note and write to score
+   const playNoteAndWriteToScore = () => {
+     console.log("Audio is ready! Playing note and writing to score:", clickedNoteDetails.noteName);
+
+     // Activate the more advanced listeners for future interactions
+     addAdvancedInstrumentListeners();
+     addInstrumentDraggingListeners();
+
+   // Play the clicked note.
+     triggerAttackRelease([clickedNoteDetails.noteName], "q");
+
+     // Write note to score
+       writeNote({
+         clef: clickedNoteDetails.clef,
+         duration: "q",
+         notes: [clickedNoteDetails.noteName],
+       });
+   }
+
+   // Call unlockAndExecute. It will run playNoteAndWriteToScore when audio is ready.
+   audioManager.unlockAndExecute(playNoteAndWriteToScore);
+   console.log("Calling unlock and execute with note play functionality");
+  
 }
 
 /**
- * Handles keydown events. This function now assumes audio is ready.
- * It will return early if audio is not ready.
- */
-function handleKeyDown(e) {
-  // Crucial: Only proceed if audio is already ready.
-  // The initial unlock is now handled by the .instrument-panel__keyboard click listener.
-  if (!audioManager.isAudioReady()) {
-    console.warn("Audio not ready for keyboard input.");
-    return;
-  }
+* Initializes the piano application. This is the main entry point.
+* This function now attaches the primary audio unlock listener.
+*/
+export function initializeInstrumentUI() {
+ instrumentDiv = document.getElementById("instrument");
+ if (!instrumentDiv) {
+   console.error("Element #instrument not found!");
+   return;
+ }
 
-  if (e.repeat) return;
-  const k = e.key.toLowerCase();
-  if (pianoState.held.has(k)) return;
+ setInstrumentDiv(instrumentDiv);
 
-  if (["1", "2", "3", "4", "5", "6", "7"].includes(e.key)) {
-    e.preventDefault();
-    pianoState.held.set(k, null);
-    playDiatonicChord(parseInt(e.key, 10), k);
-    if (pianoState.activeDiatonicChords[k]) {
-      pianoState.activeDiatonicChords[k].startTime = performance.now();
-    }
-  } else if (k === "z" || k === "x") {
-    e.preventDefault();
-    pianoState.held.set(k, null);
-    pianoState.activeRests[k] = {
-      startTime: performance.now(),
-      clef: k === "z" ? "bass" : "treble",
-    };
-    return;
-  } else if (pianoState.keyMap[k] !== undefined) {
-    e.preventDefault();
-    const baseMidi = pianoState.keyMap[k];
-    let targetMidi = baseMidi;
-    const nextNote = notesByMidiKeyAware(baseMidi + 1);
-    if (e.shiftKey && nextNote?.isBlack) {
-      targetMidi = baseMidi + 1;
-    }
-    const keyEl = pianoState.noteEls[targetMidi];
-    if (keyEl) {
-      pianoState.held.set(k, targetMidi);
-      keyEl.dataset.startTime = performance.now();
-      startKey(keyEl);
-    }
-  }
+ // Clear existing piano elements if re-initializing (e.g., after cleanup)
+ while (instrumentDiv.firstChild) {
+     instrumentDiv.removeChild(instrumentDiv.firstChild);
+ }
+ pianoState.noteEls = {}; // Clear old references
+
+ // Create SVG and key groups
+ pianoState.svg = document.createElementNS(NS, "svg");
+ pianoState.svg.setAttribute("viewBox", `0 0 ${TOTAL_SVG_WIDTH} 120`);
+ pianoState.gw = document.createElementNS(NS, "g");
+ pianoState.gb = document.createElementNS(NS, "g");
+ pianoState.svg.append(pianoState.gw, pianoState.gb);
+
+ // Create SVG key elements
+ allNotes.forEach((note) => {
+   const r = document.createElementNS(NS, "rect");
+   r.dataset.midi = note.midi;
+   r.setAttribute("x", note.x);
+   r.setAttribute("y", 0);
+   if (note.isBlack) {
+     r.setAttribute("width", BLACK_KEY_WIDTH);
+     r.setAttribute("height", 80);
+     r.setAttribute("class", "black key");
+     pianoState.gb.appendChild(r);
+   } else {
+     r.setAttribute("width", WHITE_KEY_WIDTH);
+     r.setAttribute("height", 120);
+     r.setAttribute("class", "white key");
+     pianoState.gw.appendChild(r);
+   }
+   pianoState.noteEls[note.midi] = r;
+ });
+
+ // Create overlay element
+ pianoState.overlay = document.createElement("div");
+ pianoState.overlay.id = "handOverlay";
+ instrumentDiv.append(pianoState.svg, pianoState.overlay);
+
+ // Set initial state and UI
+ pianoState.baseIdx = whiteNoteMidis.indexOf(NOTES_BY_NAME["F3"]);
+ pianoState.keyMap = buildMap(pianoState.baseIdx);
+ positionSlider();
+ updateLabels();
+ if (!audioManager.isAudioReady()) {
+   addBasicInstrumentListeners();
+   addBasicKeyboardListeners();
+ } else {
+   addAdvancedInstrumentListeners();
+ }
+ addButtonListeners();
 }
 
 function handleKeyUp(e) {
@@ -853,169 +960,4 @@ function handleKeyUp(e) {
   pianoState.held.delete(k);
   pianoState.held.delete(e.key);
 }
-
-/**
- * Activates instrument listeners for pointermove, pointerup, slider, and keyboard.
- * The primary pointerdown listener on the SVG is now handled directly within initializeInstrumentUI.
- */
-function activateInstrumentListeners() {
-  // pianoState.svg.addEventListener("pointerdown", handleKeyPointerDown); // Moved into initializeInstrumentUI
-  pianoState.svg.addEventListener("pointermove", handlePointerMove);
-  pianoState.svg.addEventListener("selectstart", (e) => e.preventDefault());
-  pianoState.svg.addEventListener("contextmenu", (e) => e.preventDefault());
-  pianoState.overlay.addEventListener("pointerdown", startSliderDrag);
-  
-  // Keydown/keyup listeners for computer keyboard
-  document.addEventListener("keydown", handleKeyDown);
-  document.addEventListener("keyup", handleKeyUp);
-
-  // Global pointer up to ensure drag state is cleared
-  document.addEventListener("pointerup", () => {
-    if (pianoState.isDragging) {
-      pianoState.isDragging = false;
-      stopAllDragNotes();
-      stopAllDragChords();
-    }
-  });
-
-  // Handle pointer leaving the piano area
-  pianoState.svg.addEventListener("pointerleave", () => {
-    if (pianoState.isDragging) {
-      stopAllDragNotes();
-      stopAllDragChords();
-    }
-  });
-}
-
-// REMOVED: async function unlock(e) { ... }
-// REMOVED: function handleControlsPointerDown(e) { ... }
-// REMOVED: function handleSpacebarUnlock(e) { ... }
-
-// ===================================================================
-// Exported Functions
-// ===================================================================
-
-export function handleToggleLabelsChange(e) {
-  pianoState.toggleLabels = e.target.checked;
-  updateLabels();
-  const buttonElement = e.target.parentElement;
-
-  if (e.target.checked) {
-    buttonElement.classList.add("is-active");
-  } else {
-    buttonElement.classList.remove("is-active");
-  }
-}
-
-/** Handles cycling through the different playing modes. */
-export function handleModeCycleClick(e) {
-  if (!pianoState.isMajorChordMode && !pianoState.isMinorChordMode) {
-    pianoState.isMajorChordMode = true;
-    e.target.textContent = "Major Chords";
-  } else if (pianoState.isMajorChordMode) {
-    pianoState.isMajorChordMode = false;
-    pianoState.isMinorChordMode = true;
-    e.target.textContent = "Minor Chords";
-  } else {
-    pianoState.isMinorChordMode = false;
-    e.target.textContent = "Single Note";
-  }
-  handleChordModeChange();
-}
-
-/**
- * Initializes the piano application. This is the main entry point.
- * This function now attaches the primary audio unlock listener.
- */
-export function initializeInstrumentUI() {
-  const instrumentDiv = document.getElementById("instrument");
-  if (!instrumentDiv) {
-    console.error("Element #instrument not found!");
-    return;
-  }
-
-  // Clear existing piano elements if re-initializing (e.g., after cleanup)
-  while (instrumentDiv.firstChild) {
-      instrumentDiv.removeChild(instrumentDiv.firstChild);
-  }
-  pianoState.noteEls = {}; // Clear old references
-
-  // Create SVG and key groups
-  pianoState.svg = document.createElementNS(NS, "svg");
-  pianoState.svg.setAttribute("viewBox", `0 0 ${TOTAL_SVG_WIDTH} 120`);
-  pianoState.gw = document.createElementNS(NS, "g");
-  pianoState.gb = document.createElementNS(NS, "g");
-  pianoState.svg.append(pianoState.gw, pianoState.gb);
-
-  // Create SVG key elements
-  allNotes.forEach((note) => {
-    const r = document.createElementNS(NS, "rect");
-    r.dataset.midi = note.midi;
-    r.setAttribute("x", note.x);
-    r.setAttribute("y", 0);
-    if (note.isBlack) {
-      r.setAttribute("width", BLACK_KEY_WIDTH);
-      r.setAttribute("height", 80);
-      r.setAttribute("class", "black key");
-      pianoState.gb.appendChild(r);
-    } else {
-      r.setAttribute("width", WHITE_KEY_WIDTH);
-      r.setAttribute("height", 120);
-      r.setAttribute("class", "white key");
-      pianoState.gw.appendChild(r);
-    }
-    pianoState.noteEls[note.midi] = r;
-  });
-
-  // Create overlay element
-  pianoState.overlay = document.createElement("div");
-  pianoState.overlay.id = "handOverlay";
-  instrumentDiv.append(pianoState.svg, pianoState.overlay);
-
-  // Set initial state and UI
-  pianoState.baseIdx = whiteNoteMidis.indexOf(NOTES_BY_NAME["F3"]);
-  pianoState.keyMap = buildMap(pianoState.baseIdx);
-  positionSlider();
-  updateLabels();
-
-  // ATTACH PRIMARY UNLOCK LISTENER HERE (using click/touchstart on the main instrument container)
-  // This listener calls unlockAndExecute, and its deferred action will attach the more complex
-  // pointerdown/move/up listeners to the individual keys once audio is ready.
-  const handleInitialInstrumentClick = (e) => {
-    e.preventDefault(); // Prevent default browser action for this initial click
-    console.log("Initial instrument click/tap detected. Attempting to unlock audio...");
-
-    // Define the deferred action: attach all specific piano interaction listeners
-    const attachFullInteractionListeners = () => {
-      console.log("Audio is ready! Attaching full instrument interaction listeners.");
-      // Now that audio is ready, attach the actual pointerdown listener to the SVG
-      // and activate other instrument listeners.
-      pianoState.svg.addEventListener("pointerdown", handleKeyPointerDown); // <--- ATTACHED HERE AFTER UNLOCK
-      activateInstrumentListeners(); // This sets up pointermove, pointerup, slider, and keyboard
-      // paint(); // Uncomment to have highlights on by default
-    };
-
-    // Call unlockAndExecute. It will run attachFullInteractionListeners when audio is ready.
-    audioManager.unlockAndExecute(attachFullInteractionListeners);
-    console.log("Calling unlock and execute");
-
-    // Remove these initial one-time listeners
-    instrumentDiv.removeEventListener("click", handleInitialInstrumentClick);
-    instrumentDiv.removeEventListener("touchstart", handleInitialInstrumentClick);
-  };
-
-  // Attach the one-time click/touchstart listeners to the main instrument container
-  instrumentDiv.addEventListener("click", handleInitialInstrumentClick, { once: true });
-  instrumentDiv.addEventListener("touchstart", handleInitialInstrumentClick, { once: true, passive: false });
-
-  // Other UI listeners that were already conditional
-  document
-    .getElementById("toggleLabelsCheckbox")
-    ?.addEventListener("change", handleToggleLabelsChange);
-  document
-    .getElementById("mode-cycle-btn")
-    ?.addEventListener("click", handleModeCycleClick);
-  window.addEventListener("resize", handleWindowResize);
-
-  console.log("Piano instrument UI initialized.");
-}
+;

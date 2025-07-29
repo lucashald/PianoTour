@@ -17,3 +17,22 @@
 <!-- This input is not a visible button -->
 <input type="file" id="file-loader-input" style="display: none" accept=".json, .mid, .midi" />
 {% endblock %}
+
+{% block scripts %}
+<script type="module">
+  import { exportMidi, initializeFileHandlers } from '/static/ioHelpers.js';
+
+  // Initialize file handlers when the page loads
+  document.addEventListener('DOMContentLoaded', () => {
+    
+    // Add event listener for the export MIDI button
+    document.getElementById('export-midi-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('instrument')?.focus();
+      exportMidi();
+    });
+    
+    console.log("Extras page initialized with MIDI export functionality.");
+  });
+</script>
+{% endblock %}

@@ -61,6 +61,11 @@
   box-sizing: border-box;
 }
 
+body.no-scroll {
+  overflow: hidden;
+  padding-right: var(--scrollbar-width);
+}
+
 body {
   font-family: Arial, sans-serif;
   background: linear-gradient(135deg, var(--color-blue-darkest) 0%, var(--color-blue-medium) 50%, var(--color-blue-lightest) 100%);
@@ -68,6 +73,131 @@ body {
   min-height: 100vh;
 }
 
+body {
+  scrollbar-gutter: stable both-edges;
+}
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.control-row:last-child {
+  margin-bottom: 0;
+}
+
+.control-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+/* Time Signature Controls */
+.time-signature-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-signature-input {
+  width: 50px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.time-signature-input:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+
+.time-signature-separator {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--color-text-secondary);
+  margin: 0 4px;
+}
+
+.time-signature-select {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.time-signature-select:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+
+/* Tempo Controls */
+.tempo-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tempo-input {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tempo-input:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+
+.tempo-label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Measure Controls */
+.measure-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.measure-input {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.measure-input:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
 /* ==========================================================================
    2. Main Application Layout
    - Defines the overall structure and centering for the app.
@@ -131,7 +261,12 @@ h4 {
    3. Component Block Styles
    - Defines the layout for each major section of the UI.
    ========================================================================== */
-
+#score {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
 /* Score Viewer Block */
 .score-viewer {
   width: 100%;
@@ -142,10 +277,8 @@ h4 {
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
   padding: var(--spacing-unit);
-  
   flex: 1 1 auto;
   overflow-y: auto;
-
   display: flex;
   justify-content: center;
 }
@@ -174,7 +307,7 @@ h4 {
 
 .instrument-panel__spectrum {
   min-height: var(--min-height-spectrum);
-  background-color: #04273C;
+  background-color: #000;
   border-radius: var(--border-radius);
 }
 
@@ -778,10 +911,10 @@ h4 {
 .palette-note {
     width: 60px;
     height: 45px;
-    background: #724E91;
+    background: #76B595;
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--border-radius-sm);
-    color: #FFFFFF;
+    color: #000;
     cursor: grab;
     display: flex;
     flex-direction: column;
@@ -795,9 +928,18 @@ h4 {
     overflow: hidden;
 }
 
+.palette-note[data-type="rest"] {
+    background: #76B595;
+    color: #000;
+}
+
+.palette-note[data-type="rest"]:hover {
+    background: #D88368;
+}
+
 /* Hover Effects */
 .palette-note:hover {
-    background: #9269b6;
+    background: #D88368;
     border-color: var(--primary-green);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
     transform: translateY(-2px);
@@ -859,18 +1001,6 @@ h4 {
     border-radius: 1px;
 }
 
-/* Rest Note Special Styling */
-.palette-note[data-type="rest"] {
-    background: linear-gradient(135deg, var(--text-muted), #6b7280) !important;
-    color: white !important;
-    border-color: var(--text-muted) !important;
-}
-
-.palette-note[data-type="rest"]:hover {
-    background: linear-gradient(135deg, #6b7280, var(--text-muted)) !important;
-    box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4) !important;
-}
-
 /* Drag Feedback Animation */
 .palette-note.dragging {
     opacity: 0.5;
@@ -881,27 +1011,6 @@ h4 {
 .palette-note:focus-visible {
     outline: 2px solid var(--primary-green);
     outline-offset: 2px;
-}
-
-/* Enhanced musical note symbols */
-.palette-note[data-type="quarter"] {
-    font-size: 22px;
-}
-
-.palette-note[data-type="eighth"] {
-    font-size: 20px;
-}
-
-.palette-note[data-type="half"] {
-    font-size: 20px;
-}
-
-.palette-note[data-type="whole"] {
-    font-size: 18px;
-}
-
-.palette-note[data-type="rest"] {
-    font-size: 20px;
 }
 
 /* Responsive adjustments */

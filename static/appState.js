@@ -17,6 +17,7 @@ export const pianoState = {
     // Musical State (Instrument-specific)
     keySignature: 'C',
     keySignatureType: '#', // Enharmonic preference
+    isMinorKey: false,
     tempo: 120,
     timeSignature: {
         numerator: 4,

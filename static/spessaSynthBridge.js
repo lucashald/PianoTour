@@ -7,8 +7,8 @@ import {
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
   UNIFIED_CHORD_DEFINITIONS,
-  diatonicChordQualities,
-  chordDefinitions,
+  DIATONIC_CHORD_QUALITIES,
+  CHORD_DEFINITIONS,
   DURATION_THRESHOLDS,
   notesByMidiKeyAware,
 } from "./note-data.js";
@@ -207,7 +207,7 @@ function playDiatonicChord(degree, key, writeToScore = true) {
   const scale = window.Tonal.Scale.get(`${window.Tonal.Note.pitchClass(localTonic)} ${localMode}`);
   if (!scale?.notes?.length) return;
 
-  const qualityKey = diatonicChordQualities[localMode][degree];
+  const qualityKey = DIATONIC_CHORD_QUALITIES[localMode][degree];
   const chordDef = UNIFIED_CHORD_DEFINITIONS[qualityKey];
   if (!chordDef) return;
 
@@ -215,7 +215,7 @@ function playDiatonicChord(degree, key, writeToScore = true) {
   const intervalToRoot = window.Tonal.Interval.distance(window.Tonal.Note.pitchClass(localTonic), rootPitchClass);
   const actualRootNote = window.Tonal.Note.transpose(localTonic, intervalToRoot);
   const specificChordKey = window.Tonal.Note.pitchClass(actualRootNote) + (chordDef.suffix || "");
-  const predefinedChord = chordDefinitions[specificChordKey];
+  const predefinedChord = CHORD_DEFINITIONS[specificChordKey];
 
   let notesForPlayback = [];
   let clefForPlayback = "treble";

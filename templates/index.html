@@ -15,7 +15,6 @@
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
     {% block head_extra %}{% endblock %}
   </head>
   <body id="page-instrument">
@@ -87,36 +86,37 @@
             <a href="/" class="btn btn--info"><span>Close Editor</span></a>
             {% else %}
             <a href="/editor" class="btn btn--info"><span>Open Editor</span></a>
-            {% endif %} {% if request.path == '/' %}
-            <a href="/print" class="btn btn--info"><span>Print</span></a>
-            <a href="/cello" class="btn btn--info"><span>Cello</span></a>
-            <a href="/sax" class="btn btn--info"><span>Sax</span></a>
-            <a href="/guitar" class="btn btn--info"><span>Guitar</span></a>
-            {% else %}
-            <a href="/" class="btn btn--info"><span>Piano</span></a>
             {% endif %}
-            <a href="/extras" class="btn btn--info"><span>Extras</span></a>
+            <a href="/print" class="btn btn--info"><span>Print</span></a>
+            {% if request.path != '/' %}<a href="/" class="btn btn--info"><span>Piano</span></a>{% endif %}
+
+            
+            {% if request.path != '/cello' %}<a href="/cello" class="btn btn--info"><span>Cello</span></a>{% endif %}
+            {% if request.path != '/sax' %}<a href="/sax" class="btn btn--info"><span>Sax</span></a>{% endif %}
+            {% if request.path != '/guitar' %}<a href="/guitar" class="btn btn--info"><span>Guitar</span></a>{% endif %}
+            {% if request.path != '/extras' %}<a href="/extras" class="btn btn--info"><span>Extras</span></a>{% endif %}
           </div>
 
           <div class="main-controls__chord-interface hidden" id="chordButtons">
-            <div id="chordGroupsContainer"></div>
+            <div id="CHORD_GROUPSContainer"></div>
           </div>
         </nav>
       </main>
     </div>
 
     <script type="module">
+      // --- All your common JavaScript from the original file goes here ---
       console.log("Main script execution started.");
-
+      // Calculate scrollbar width and set it as a CSS variable
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.setProperty('--scrollbar-width', `${scrollbarWidth}px`);
       // --- COMMON IMPORTS (for base template) ---
       import {
         initializeInstrumentUI,
         handleToggleLabelsChange,
         handleModeCycleClick,
       } from '{{ url_for("static", filename="instrumentHelpers.js") }}';
-      import {
-        startAudio, // playbackHelpers.js will now call audioManager.unlockAndExecute
-      } from '{{ url_for("static", filename="playbackHelpers.js") }}';
+      // REMOVED: import { startAudio } from '{{ url_for("static", filename="playbackHelpers.js") }}'; // No longer needed, audioManager handles this
       import {
         getMeasures,
         resetScore,
@@ -140,9 +140,9 @@
         handleMidiNoteOn,
         handleMidiNoteOff,
       } from '{{ url_for("static", filename="midi-controller.js") }}';
-      
-      // NEW: Import audioManager itself to ensure its initialization is called
-      import audioManager from '{{ url_for("static", filename="audioManager.js") }}'; // <--- NEW IMPORT
+      // NEW: Import audioManager
+      import audioManager from '{{ url_for("static", filename="audioManager.js") }}';
+
 
       // Store initialization state globally so child scripts can check it
       window.pianoTourInitState = {
@@ -167,14 +167,17 @@
         // Set proper initial dimensions BEFORE any content loads
         setInitialDimensions();
 
+        // NEW: Initialize audioManager early, before any user interaction might trigger it
+        audioManager.initializeAudioManager();
+        console.log("✅ AudioManager initialized.");
+
+
         // Initialize lightweight components immediately
-        // Call audioManager's top-level initialization first
-        audioManager.initializeAudioManager(); // <--- NEW: Initialize audioManager
-        initializeInstrumentUI(); // Instrument UI will now handle its own event listeners for unlock
+        initializeInstrumentUI();
         initializePlayer();
         initializeFileHandlers();
 
-        // Set up event handlers (lightweight) - Simplified setupEventHandlers
+        // Set up event handlers (lightweight)
         setupEventHandlers();
 
         // Show loading state for score
@@ -196,8 +199,10 @@
       }
 
       function setInitialDimensions() {
+        // Set proper CSS custom properties for consistent sizing
         const root = document.documentElement;
 
+        // Calculate viewport-based dimensions
         const vw = Math.max(
           document.documentElement.clientWidth || 0,
           window.innerWidth || 0
@@ -207,6 +212,7 @@
           window.innerHeight || 0
         );
 
+        // Set minimum dimensions to prevent layout shift
         root.style.setProperty(
           "--score-min-width",
           Math.min(vw * 0.9, 1100) + "px"
@@ -243,11 +249,11 @@
         console.log("⚡ Starting heavy component initialization...");
 
         try {
+          // Load score from localStorage asynchronously
           await loadScoreFromStorage();
 
-          // setupUnlockSystem is now much simpler/removed from here.
-          // MIDI initialization is now independent of a single 'unlock' function.
-          // It's handled below if audio is ready.
+          // Initialize unlock functionality (now uses audioManager)
+          setupUnlockSystem();
 
           // Mark heavy initialization complete
           window.pianoTourInitState.heavyInitialized = true;
@@ -269,19 +275,24 @@
         }
 
         try {
+          // Show loading indicator
           updateLoadingMessage("🔄 Loading saved score...");
 
+          // Parse in chunks to avoid blocking
           const savedData = await parseJSONAsync(savedScoreJSON);
 
+          // Process score data
           const measures = Array.isArray(savedData)
             ? savedData
             : savedData.measures;
 
           if (processAndSyncScore(measures)) {
+            // Apply metadata if available
             if (!Array.isArray(savedData)) {
               applyScoreMetadata(savedData);
             }
 
+            // Re-render with loaded data
             updateLoadingMessage("🎨 Rendering score...");
             await renderScoreAsync(getMeasures());
 
@@ -297,9 +308,11 @@
         }
       }
 
+      // Asynchronous JSON parsing to prevent blocking
       function parseJSONAsync(jsonString) {
         return new Promise((resolve, reject) => {
           try {
+            // Use setTimeout to yield control back to browser
             setTimeout(() => {
               try {
                 const result = JSON.parse(jsonString);
@@ -314,6 +327,7 @@
         });
       }
 
+      // Asynchronous score rendering
       function renderScoreAsync(measures) {
         return new Promise((resolve) => {
           requestAnimationFrame(() => {
@@ -322,7 +336,7 @@
               resolve();
             } catch (error) {
               console.error("Render error:", error);
-              resolve();
+              resolve(); // Don't fail completely
             }
           });
         });
@@ -363,27 +377,48 @@
         }
       }
 
-      // setupUnlockSystem is effectively replaced by how audioManager works now
-      // and how instrumentHelpers.js now triggers unlock on key press.
-      // MIDI initialization will now happen when audioManager dispatches 'audioReady'.
+      // REVISED: setupUnlockSystem to use audioManager for MIDI initialization
       function setupUnlockSystem() {
-        // This function is largely deprecated as audio unlock is now handled
-        // directly by user interaction with piano keys via audioManager.unlockAndExecute.
-        // We will now listen for the 'audioReady' event to trigger MIDI init.
-        console.log("setupUnlockSystem: Deprecated, relying on audioReady event for MIDI init.");
+        pianoState.unlock = async () => {
+          // No longer using pianoState.midiInitialized as a direct gate for audio unlock
+          // audioManager handles the core audio unlock, and MIDI setup can follow that.
+          
+          console.log("🔓 Attempting to unlock audio and initialize MIDI via audioManager...");
+          
+          const success = await audioManager.unlockAndExecute(() => {
+            // This deferred action runs AFTER audio context is running and sampler is loaded
+            if (!pianoState.midiInitialized) { // Check midiInitialized here, after audio is confirmed ready
+              setMidiCallbacks({
+                onNoteOn: handleMidiNoteOn,
+                onNoteOff: handleMidiNoteOff,
+              });
+              initMidi();
+              pianoState.midiInitialized = true;
+              console.log("🎵 MIDI systems initialized.");
+            }
+          });
+
+          if (success) {
+            console.log("✅ Audio and MIDI systems are now live (or were already).");
+          } else {
+            console.warn("❌ Failed to initialize audio/MIDI system.");
+          }
+        };
       }
 
 
       function setupEventHandlers() {
+        // Debounced resize handler to prevent layout thrashing
         let resizeTimeout;
         window.addEventListener("resize", () => {
           clearTimeout(resizeTimeout);
           resizeTimeout = setTimeout(() => {
             console.log("📏 Handling resize...");
             drawAll(getMeasures());
-          }, 150);
+          }, 150); // 150ms debounce
         });
 
+        // Set up other event handlers
         const eventHandlers = [
           { id: "clearScoreBtn", event: "click", handler: handleClearScore },
           { id: "undo-btn", event: "click", handler: handleUndo },
@@ -415,26 +450,14 @@
             element.addEventListener(event, (e) => {
               e.preventDefault();
               handler(e);
+              // Refocus instrument after any action
               document.getElementById("instrument")?.focus();
             });
           }
         });
-        
-        // NEW: Listen for audioReady event to initialize MIDI
-        window.addEventListener('audioReady', () => {
-            if (!pianoState.midiInitialized) {
-                console.log("🎵 audioReady event received. Initializing MIDI.");
-                setMidiCallbacks({
-                    onNoteOn: handleMidiNoteOn,
-                    onNoteOff: handleMidiNoteOff,
-                });
-                initMidi();
-                pianoState.midiInitialized = true;
-                console.log("MIDI systems are now live.");
-            }
-        });
       }
 
+      // Event handler functions
       function handleClearScore(e) {
         resetScore();
       }

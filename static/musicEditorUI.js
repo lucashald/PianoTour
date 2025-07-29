@@ -6,7 +6,7 @@
 // Imports
 // ===================================================================
 import { pianoState } from "./appState.js";
-import { getMeasures, addNoteToMeasure, removeNoteFromMeasure, updateNoteInMeasure, moveNoteBetweenMeasures } from './scoreWriter.js';
+import { getMeasures, addNoteToMeasure, removeNoteFromMeasure, updateNoteInMeasure, moveNoteBetweenMeasures, setTimeSignature, setTempo } from './scoreWriter.js';
 import {
     drawAll,
     scrollToMeasure,
@@ -18,6 +18,7 @@ import {
     highlightSelectedNote,
     clearSelectedNoteHighlight,
 } from './scoreHighlighter.js';
+import { getChordByDegree } from "./chordHelpers.js";
 
 // ===================================================================
 // Internal State
@@ -445,41 +446,74 @@ export function initializeMusicEditor() {
     });
 
     editorContainer.addEventListener('change', (event) => {
-        const target = event.target;
-        const measures = getMeasures();
-        const currentMeasure = measures[editorSelectedMeasureIndex];
-        if (!currentMeasure || editorSelectedNoteId === null) return;
-        const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
-        if (!selectedNote) return;
-
-        if (selectedNote.isRest) {
-            if (target.id === 'editorDurationDropdown') {
-                updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
-            }
-            renderNoteEditBox();
-            return;
+    const target = event.target;
+    
+    // Handle tempo changes
+    if (target.id === 'tempo-input') {
+        const newTempo = parseInt(target.value, 10);
+        if (!isNaN(newTempo) && newTempo >= 60 && newTempo <= 300) {
+            setTempo(newTempo);
         }
+        return;
+    }
+    
+    // Handle time signature changes
+    if (target.id === 'time-signature-numerator' || target.id === 'time-signature-denominator') {
+        const numerator = parseInt(document.getElementById('time-signature-numerator').value, 10);
+        const denominator = parseInt(document.getElementById('time-signature-denominator').value, 10);
+        
+        if (!isNaN(numerator) && !isNaN(denominator) && numerator >= 1 && denominator >= 2) {
+            setTimeSignature(numerator, denominator);
+        }
+        return;
+    }
+    
+    // Handle measure navigation
+    if (target.id === 'editorNumberInput') {
+        const newMeasureNum = parseInt(target.value, 10);
+        if (!isNaN(newMeasureNum) && newMeasureNum >= 1) {
+            changeMeasure(newMeasureNum - 1);
+        }
+        return;
+    }
+    
+    // Handle chord note changes
+    if (target.matches('.chord-note-letter, .chord-note-accidental, .chord-note-octave')) {
+        updateChordFromUI();
+        return;
+    }
+    
+    // Handle note editing - existing logic
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure || editorSelectedNoteId === null) return;
+    
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote) return;
 
-        if (['editorNoteLetter', 'editorAccidentalDropdown', 'editorOctaveDropdown'].includes(target.id)) {
-            let newLetter = document.getElementById('editorNoteLetter').value;
-            if (newLetter === 'R') {
-                updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
-            } else {
-                let newAccidental = document.getElementById('editorAccidentalDropdown').value;
-                let newOctave = document.getElementById('editorOctaveDropdown').value;
-                updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: `${newLetter}${newAccidental}${newOctave}`, isRest: false });
-            }
-        } else if (target.id === 'editorDurationDropdown') {
+    if (selectedNote.isRest) {
+        if (target.id === 'editorDurationDropdown') {
             updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
-        } else if (target.id === 'editorNumberInput') {
-            const newMeasureNum = parseInt(target.value, 10);
-            if (!isNaN(newMeasureNum) && newMeasureNum >= 1) changeMeasure(newMeasureNum - 1);
-        } else if (target.matches('.chord-note-letter, .chord-note-accidental, .chord-note-octave')) {
-            updateChordFromUI();
-            return;
         }
         renderNoteEditBox();
-    });
+        return;
+    }
+
+    if (['editorNoteLetter', 'editorAccidentalDropdown', 'editorOctaveDropdown'].includes(target.id)) {
+        let newLetter = document.getElementById('editorNoteLetter').value;
+        if (newLetter === 'R') {
+            updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
+        } else {
+            let newAccidental = document.getElementById('editorAccidentalDropdown').value;
+            let newOctave = document.getElementById('editorOctaveDropdown').value;
+            updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: `${newLetter}${newAccidental}${newOctave}`, isRest: false });
+        }
+    } else if (target.id === 'editorDurationDropdown') {
+        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
+    }
+    
+    renderNoteEditBox();
+});
 
     document.addEventListener('noteDropped', (event) => {
         // Fix: Use insertBeforeNoteId instead of insertPosition

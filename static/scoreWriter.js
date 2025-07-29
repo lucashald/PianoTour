@@ -4,9 +4,9 @@
 // ===================================================================
 // Imports
 // ===================================================================
-
-import { NOTES_BY_NAME } from './note-data.js'; // Needed for note name to MIDI mapping for sorting and internal consistency
-import { drawAll } from './scoreRenderer.js';
+import { pianoState } from "./appState.js";
+import { NOTES_BY_NAME, identifyChordStrict } from './note-data.js'; // Needed for note name to MIDI mapping for sorting and internal consistency
+import { drawAll, scrollToMeasure } from './scoreRenderer.js';
 import { updateNowPlayingDisplay } from './uiHelpers.js';
 import { saveToLocalStorage } from './ioHelpers.js';
 
@@ -17,7 +17,7 @@ import { saveToLocalStorage } from './ioHelpers.js';
 const BEAT_VALUES = { q: 1, h: 2, w: 4, '8': 0.5, '16': 0.25, '32': 0.125,
 'q.': 1.5, 'h.': 3, 'w.': 6, '8.': 0.75, '16.': 0.375, '32.': 0.1875 };
 const AUTOSAVE_KEY = 'autosavedScore';
-const MEASURE_CAPACITY_BEATS = 4; // Assuming 4/4 time signature for measure capacity
+const MEASURE_CAPACITY_BEATS = pianoState.timeSignature.numerator;
 
 // ===================================================================
 // Internal State
@@ -35,6 +35,60 @@ const MAX_HISTORY = 20;
 // ===================================================================
 // Helper Functions
 // ===================================================================
+
+/**
+ * Sets the time signature and redraws the score.
+ * @param {number} numerator - The top number of the time signature (beats per measure)
+ * @param {number} denominator - The bottom number of the time signature (note value that gets the beat)
+ */
+export function setTimeSignature(numerator, denominator) {
+  if (!Number.isInteger(numerator) || numerator <= 0) {
+    console.warn("setTimeSignature: Invalid numerator provided");
+    return false;
+  }
+  
+  if (!Number.isInteger(denominator) || denominator <= 0) {
+    console.warn("setTimeSignature: Invalid denominator provided");
+    return false;
+  }
+
+  // Update the piano state
+  pianoState.timeSignature.numerator = numerator;
+  pianoState.timeSignature.denominator = denominator;
+
+  // Redraw the score with new time signature
+  drawAll(getMeasures());
+  
+  // Save to localStorage to persist the change
+  saveToLocalStorage();
+
+  // Log the change
+  console.log(`Time signature set to: ${numerator}/${denominator}`);
+
+  return true;
+}
+
+
+  export function setTempo(newTempo) {
+    if (!Number.isInteger(newTempo) || newTempo < 30 || newTempo > 300) {
+        console.warn("setTempo: Invalid tempo provided");
+        return false;
+    }
+
+   // Update the piano state
+  pianoState.tempo = newTempo;
+
+  // Redraw the score with new time signature
+  drawAll(getMeasures());
+  
+  // Save to localStorage to persist the change
+  saveToLocalStorage();
+
+  // Log the change
+  console.log("Tempo set to:", pianoState.timeSignature.tempo);
+
+  return true;
+}
 
 /**
 * Calculates the total beats for treble and bass clefs within a given measure.
@@ -137,10 +191,29 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
 
     const existingNote = measuresData[measureIndex][noteIndex];
 
-    // If the name is being changed, strip the chordName
-    if (newNoteData.name && newNoteData.name !== existingNote.name) {
-        newNoteData = { ...newNoteData, chordName: undefined };
+// If the name is being changed, strip the chordName
+if (newNoteData.name && newNoteData.name !== existingNote.name) {
+    console.log('Note Data changed');
+    let identifiedChord = undefined;
+    
+    // Parse the name - could be single note "C4" or chord "(C4 E4 G4)"
+    if (newNoteData.name.startsWith('(') && newNoteData.name.endsWith(')')) {
+        console.log('chord detected');
+        // It's a chord - extract the note names
+        const noteNames = newNoteData.name
+            .slice(1, -1) // Remove parentheses
+            .split(' ');  // Split by spaces
+        
+        identifiedChord = identifyChordStrict(noteNames) || undefined;
+        console.log('chord identified as', identifiedChord);
     }
+    // If it's a single note, don't try to identify a chord
+    
+    newNoteData = { 
+        ...newNoteData, 
+        chordName: identifiedChord 
+    };
+}
 
     // Create a temporary copy to test for overflow
     const tempMeasure = JSON.parse(JSON.stringify(measuresData[measureIndex]));
