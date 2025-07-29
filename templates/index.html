@@ -6,13 +6,13 @@
     <title>{% block title %}Interactive Piano Studio{% endblock %}</title>
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='pianostyles.css') }}"
+      href="{{ url_for('static', filename='css/pianostyles.css') }}"
     />
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='editor.css') }}"
+      href="{{ url_for('static', filename='css/editor.css') }}"
     />
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='/images/favicon.ico') }}" />
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
     {% block head_extra %}{% endblock %}
@@ -38,7 +38,7 @@
           <h1 class="piano-app__header-title">Piano Tour</h1>
         </header>
 
-        {% block player %} {% include '_player.html' %} {% endblock %} {% block
+        {% block player %} {% include 'partials/_player.html' %} {% endblock %} {% block
         palette %}{% endblock %}
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
         <section class="score-viewer">
@@ -49,7 +49,7 @@
 
         <section class="instrument-panel">
           {% block spectrum %} {% if not hide_spectrum %} {% include
-          '_spectrum.html' %} {% endif %} {% endblock %}
+          'partials/_spectrum.html' %} {% endif %} {% endblock %}
           <div class="instrument-panel__keyboard" id="instrument"></div>
         </section>
 
@@ -65,7 +65,7 @@
             <button id="key-signature-btn" class="btn btn--info">
               Key Signature
             </button>
-            {% block filehandler %} {% include '_filehandler.html' %} {%
+            {% block filehandler %} {% include 'partials/_filehandler.html' %} {%
             endblock %}
           </div>
 
@@ -104,7 +104,7 @@
       </main>
     </div>
 
-    <script type="module">
+ <script type="module">
       // --- All your common JavaScript from the original file goes here ---
       console.log("Main script execution started.");
       // Calculate scrollbar width and set it as a CSS variable
@@ -115,34 +115,33 @@
         initializeInstrumentUI,
         handleToggleLabelsChange,
         handleModeCycleClick,
-      } from '{{ url_for("static", filename="instrumentHelpers.js") }}';
-      // REMOVED: import { startAudio } from '{{ url_for("static", filename="playbackHelpers.js") }}'; // No longer needed, audioManager handles this
+      } from '{{ url_for("static", filename="js/instrument/instrumentHelpers.js") }}';
+      // REMOVED: import { startAudio } from '{{ url_for("static", filename="js/instrument/playbackHelpers.js") }}'; // No longer needed, audioManager handles this
       import {
         getMeasures,
         resetScore,
         processAndSyncScore,
         undoLastWrite,
-      } from '{{ url_for("static", filename="scoreWriter.js") }}';
+      } from '{{ url_for("static", filename="js/score/scoreWriter.js") }}';
       import {
         drawAll,
         setKeySignature,
-      } from '{{ url_for("static", filename="scoreRenderer.js") }}';
-      import { initializeFileHandlers } from '{{ url_for("static", filename="ioHelpers.js") }}';
+      } from '{{ url_for("static", filename="js/score/scoreRenderer.js") }}';
+      import { initializeFileHandlers } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
       import {
         handleChordDisplayToggle,
         handleKeySignatureClick,
-      } from '{{ url_for("static", filename="uiHelpers.js") }}';
-      import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
-      import { initializePlayer } from '{{ url_for("static", filename="scorePlayback.js") }}';
+      } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
+      import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+      import { initializePlayer } from '{{ url_for("static", filename="js/score/scorePlayback.js") }}';
       import {
         initMidi,
         setMidiCallbacks,
         handleMidiNoteOn,
         handleMidiNoteOff,
-      } from '{{ url_for("static", filename="midi-controller.js") }}';
+      } from '{{ url_for("static", filename="js/instrument/midi-controller.js") }}';
       // NEW: Import audioManager
-      import audioManager from '{{ url_for("static", filename="audioManager.js") }}';
-
+      import audioManager from '{{ url_for("static", filename="js/core/audioManager.js") }}';
 
       // Store initialization state globally so child scripts can check it
       window.pianoTourInitState = {

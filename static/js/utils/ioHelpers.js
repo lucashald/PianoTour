@@ -1,11 +1,10 @@
 // ioHelpers.js - File loading and UI interaction only
 
-import { pianoState } from './appState.js';
-import { getMeasures, processAndSyncScore } from './scoreWriter.js';
-import { drawAll, setKeySignature } from './scoreRenderer.js';
-import { setTimeSignature, setTempo } from './scoreWriter.js';
-import { updateUI } from './uiHelpers.js';
-import { scoreManager } from './scoreManager.js';
+import { pianoState } from '../core/appState.js';
+import { scoreManager } from '../score/scoreManager.js';
+import { drawAll, setKeySignature } from '../score/scoreRenderer.js';
+import { getMeasures, processAndSyncScore, setTempo, setTimeSignature } from '../score/scoreWriter.js';
+import { updateUI } from '../ui/uiHelpers.js';
 
 // Progress tracking UI elements
 let progressModal = null;

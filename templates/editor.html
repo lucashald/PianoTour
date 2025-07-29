@@ -167,7 +167,7 @@
 {% endblock %}
 
 {% block palette %}
-    {% include '_palette.html' %}
+    {% include 'partials/_palette.html' %}
 {% endblock %}
 
 {% block scripts %}
@@ -198,8 +198,8 @@
             console.log('📦 Loading editor modules...');
             
             // Import editor modules
-            const { initializeMusicEditor } = await import('{{ url_for("static", filename="musicEditorUI.js") }}');
-            const { setPaletteDragState } = await import('{{ url_for("static", filename="scoreRenderer.js") }}');
+const { initializeMusicEditor } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
+const { setPaletteDragState } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
             
             console.log('✓ Modules loaded, initializing editor...');
             

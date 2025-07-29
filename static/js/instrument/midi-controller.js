@@ -1,27 +1,27 @@
-// ===================================================================
+// midi-controller.js
 // Imports
 // ===================================================================
 
 // Import the centralized state object
-import { pianoState } from "./appState.js";
+import { pianoState } from "../core/appState.js";
 
 // Import playback functions
 import {
-  startKey,
-  stopKey,
   playDiatonicChord,
+  startKey,
   stopDiatonicChord,
+  stopKey,
 } from "./playbackHelpers.js";
 
 // Import musical data and constants
 import {
-  NOTES_BY_MIDI,
   DURATION_THRESHOLDS,
+  NOTES_BY_MIDI,
   notesByMidiKeyAware,
-} from "./note-data.js";
+} from "../core/note-data.js";
 
 // Import score writing function
-import { writeNote } from "./scoreWriter.js";
+import { writeNote } from "../score/scoreWriter.js";
 
 // Global variable to store the MIDIAccess object once granted.
 let midiAccess = null;
@@ -528,7 +528,7 @@ export function monitorMidiState() {
 }
 
 // ===================================================================
-// 4. Integration helper for base.html
+// 4. Integration helper
 // ===================================================================
 
 /**

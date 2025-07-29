@@ -2,10 +2,9 @@
 // Note identification quiz functionality
 
 // Import note data and playback functions
-import { NOTES_BY_MIDI } from './note-data.js';
-import { trigger, startAudio } from './playbackHelpers.js';
-import { pianoState } from './appState.js';
-import { initMidi, setMidiCallbacks } from './midi-controller.js';
+import { NOTES_BY_MIDI } from '../core/note-data.js';
+import { initMidi, setMidiCallbacks } from '../instrument/midi-controller.js';
+import { startAudio, trigger } from '../instrument/playbackHelpers.js';
 
 const { Factory, StaveConnector, EasyScore, System } = Vex.Flow;
 

@@ -2,8 +2,8 @@
     <body id="page-instrument">
         <head>
     <link href="{{ url_for('static', filename='style.min.css') }}" rel='stylesheet'>
-    <link href="{{ url_for('static', filename='pianostyles.css') }}" rel='stylesheet'>
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+    <link href="{{ url_for('static', filename='/css/pianostyles.css') }}" rel='stylesheet'>
+    <link rel="icon" href="{{ url_for('static', filename='/images/favicon.ico') }}" />
     </head>
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <audio id="unlock-audio" preload="auto" style="display: none">
@@ -32,7 +32,7 @@
             <button id="mode-cycle-btn" class="btn">Single Note</button>
             <button id="key-signature-btn" class="btn">Key Signature</button>
 
-            {% block filehandler %} {% include '_filehandler.html' %} {%
+            {% block filehandler %} {% include 'partials/_filehandler.html' %} {%
             endblock %}
           </div>
 
@@ -124,7 +124,7 @@
         handleChordDisplayToggle,
         handleKeySignatureClick,
       } from '{{ url_for("static", filename="uiHelpers.js") }}';
-      import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
+      import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
       import {
         initMidi,
         setMidiCallbacks,

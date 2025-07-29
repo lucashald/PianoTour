@@ -1,12 +1,11 @@
 // audioManager.js - Enhanced with unlock status persistence
 
-import { pianoState } from "./appState.js";
 import {
-  initializeSpectrum,
   connectSpectrumToAudio,
-  startSpectrumVisualization,
-  stopSpectrumVisualization,
-} from './spectrum.js';
+  initializeSpectrum,
+  startSpectrumVisualization
+} from '../ui/spectrum.js';
+import { pianoState } from "./appState.js";
 
 // ===================================================================
 // Audio Unlock Status Persistence (Internal)

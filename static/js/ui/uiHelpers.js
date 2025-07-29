@@ -5,12 +5,12 @@
 // Imports
 // ===================================================================
 
-import { CHORD_DEFINITIONS, CHORD_GROUPS, DURATION_THRESHOLDS } from './note-data.js';
-import { writeNote } from './scoreWriter.js';
-import { trigger } from './playbackHelpers.js';
-import { pianoState } from './appState.js';
-import { setKeySignature } from './scoreRenderer.js';
-import audioManager from './audioManager.js';
+import { pianoState } from '../core/appState.js';
+import audioManager from '../core/audioManager.js';
+import { CHORD_DEFINITIONS, CHORD_GROUPS, DURATION_THRESHOLDS } from '../core/note-data.js';
+import { trigger } from '../instrument/playbackHelpers.js';
+import { setKeySignature } from '../score/scoreRenderer.js';
+import { writeNote } from '../score/scoreWriter.js';
 
 // ===================================================================
 // UI Update Functions

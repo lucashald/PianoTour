@@ -259,15 +259,14 @@
         // Wait for base piano tour initialization
         async function initializeJSONEditor() {
             try {
-                // Import Piano Tour modules
-                const { getMeasures, processAndSyncScore } = await import('{{ url_for("static", filename="scoreWriter.js") }}');
-                const { drawAll, setKeySignature } = await import('{{ url_for("static", filename="scoreRenderer.js") }}');
-                const { setTimeSignature, setTempo } = await import('{{ url_for("static", filename="scoreWriter.js") }}');
-                const { pianoState } = await import('{{ url_for("static", filename="appState.js") }}');
-                
-                // Import and initialize JSON Editor
-                const { initializeJSONEditor } = await import('{{ url_for("static", filename="jsonEditor.js") }}');
+// Import Piano Tour modules
+const { getMeasures, processAndSyncScore } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
+const { drawAll, setKeySignature } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
+const { setTimeSignature, setTempo } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
+const { pianoState } = await import('{{ url_for("static", filename="js/core/appState.js") }}');
 
+// Import and initialize JSON Editor
+const { initializeJSONEditor } = await import('{{ url_for("static", filename="js/editor/jsonEditor.js") }}');
                 // Pass Piano Tour modules to JSON Editor
                 await initializeJSONEditor({
                     getMeasures,

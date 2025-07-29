@@ -1,4 +1,4 @@
-// THIS FILE IS TOO LONG TO OUTPUT IN CANVAS OR CHAT. IF YOU NEED TO CHANGE IT, TELL THE USER
+// note-data.js
 
 import { pianoState } from "./appState.js";
 
@@ -190,11 +190,9 @@ export function getNoteImagePath(duration, noteName) {
 
 // Export the core note data and key dimensions
 export {
-  NOTES_BY_MIDI,
+  ALL_NOTE_INFO, BLACK_KEY_WIDTH, NOTES_BY_MIDI,
   NOTES_BY_NAME,
-  WHITE_KEY_WIDTH,
-  BLACK_KEY_WIDTH,
-  ALL_NOTE_INFO,
+  WHITE_KEY_WIDTH
 };
 
 // CHORDS

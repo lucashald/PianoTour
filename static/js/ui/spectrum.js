@@ -6,12 +6,12 @@
 // Imports
 // ===================================================================
 
-import { pianoState } from "./appState.js";
+import { pianoState } from "../core/appState.js";
 import {
   ALL_NOTE_INFO,
-  WHITE_KEY_WIDTH,
   BLACK_KEY_WIDTH,
-} from "./note-data.js";
+  WHITE_KEY_WIDTH,
+} from "../core/note-data.js";
 
 // ===================================================================
 // Class Definition: KeyboardAlignedSpectrum

@@ -2,20 +2,20 @@
 // This bridges your existing piano code to the SpessaSynth audio engine.
 // It provides the same interface as playbackHelpers.js but uses SpessaSynth.
 
-import { pianoState } from "./appState.js";
-import {
-  NOTES_BY_MIDI,
-  NOTES_BY_NAME,
-  UNIFIED_CHORD_DEFINITIONS,
-  DIATONIC_CHORD_QUALITIES,
-  CHORD_DEFINITIONS,
-  DURATION_THRESHOLDS,
-  notesByMidiKeyAware,
-} from "./note-data.js";
+import { pianoState } from "../core/appState.js";
 import {
   paintChord,
   paintChordOnTheFly,
 } from "./instrumentHelpers.js";
+import {
+  CHORD_DEFINITIONS,
+  DIATONIC_CHORD_QUALITIES,
+  DURATION_THRESHOLDS,
+  NOTES_BY_MIDI,
+  NOTES_BY_NAME,
+  notesByMidiKeyAware,
+  UNIFIED_CHORD_DEFINITIONS,
+} from "./note-data.js";
 import { writeNote } from "./scoreWriter.js";
 
 // ===================================================================
@@ -388,30 +388,15 @@ const getSequencer = () => spessaSequencer;
 // ===================================================================
 
 export {
-  // Core audio functions
-  startAudio,
-  trigger,
-  startKey,
-  stopKey,
-
-  // Chord functions
-  playDiatonicChord,
-  stopDiatonicChord,
-  playDiatonicChordFromUI,
-  stopDiatonicChordFromUI,
-
+  changeProgram, getSequencer, getSynth, handleMidiNoteOff,
   // MIDI event handlers
   handleMidiNoteOn,
-  handleMidiNoteOff,
-
   // Utility functions
   isReady,
-  getSynth,
-  getSequencer,
-  stopAllNotes,
-  changeProgram,
-  setupInstrumentPrograms,
-  testSpessaSynth
+  // Chord functions
+  playDiatonicChord, playDiatonicChordFromUI, setupInstrumentPrograms,
+  // Core audio functions
+  startAudio, startKey, stopAllNotes, stopDiatonicChord, stopDiatonicChordFromUI, stopKey, testSpessaSynth, trigger
 };
 
 // Expose functions to the console for easier debugging

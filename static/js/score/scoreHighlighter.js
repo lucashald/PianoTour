@@ -4,14 +4,13 @@
 // INDIVIDUAL NOTE HIGHLIGHTING
 // ===================================================================
 
-import { pianoState } from "./appState.js";
-import { getMeasures } from "./scoreWriter.js";
+import { pianoState } from "../core/appState.js";
 import {
+  getMeasureXPositions,
   getVexFlowNoteMap,
   getVexflowIndexByNoteId,
-  getMeasureXPositions,
 } from "./scoreRenderer.js";
-import { updateNowPlayingDisplay } from "./uiHelpers.js";
+import { getMeasures } from "./scoreWriter.js";
 
 export function highlightSelectedNote(measureIndex, clef, noteId) {
   console.log(

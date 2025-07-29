@@ -2,9 +2,7 @@
 // Simplified score renderer optimized for printing
 // Creates multi-system layout with line breaks every 3 measures
 
-import { getMeasures } from './scoreWriter.js';
-import { pianoState } from './appState.js';
-import { getCurrentVexFlowKeySignature } from './note-data.js';
+import { getCurrentVexFlowKeySignature } from '../core/note-data.js';
 
 // Configuration
 const MEASURES_PER_SYSTEM = 3;

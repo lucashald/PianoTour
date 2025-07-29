@@ -1,22 +1,22 @@
 // listenerManager.js
-import { pianoState } from "./appState.js";
-import { 
+import { pianoState } from "../core/appState.js";
+import {
   handleInitial,
   handleKeyPointerDown,
-  handlePointerMove,
-  startSliderDrag,
-  handleToggleLabelsChange,
   handleModeCycleClick,
+  handlePointerMove,
+  handleToggleLabelsChange,
   handleWindowResize,
-  stopAllDragNotes,
-  stopAllDragChords
-} from "./instrumentHelpers.js";
+  startSliderDrag,
+  stopAllDragChords,
+  stopAllDragNotes
+} from "../instrument/instrumentHelpers.js";
 
-import { 
+import {
+  handleInitialKeyboard,
   handleKeyDown,
   handleKeyUp,
-  handleInitialKeyboard,
-} from "./keyboardHelpers.js";
+} from "../instrument/keyboardHelpers.js";
 
 // Module-level variable to store instrumentDiv reference
 let instrumentDiv;

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Interactive Piano Studio{% endblock %}</title>
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='/images/favicon.ico') }}" />
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
@@ -25,7 +25,7 @@
           <h1 class="page-title">Piano Tour</h1>
         </div>
 
-        {% block player %} {% include '_player.html' %} {% endblock %} {# This
+        {% block player %} {% include 'partials/_player.html' %} {% endblock %} {# This
         block is now an empty placeholder. #} {% block palette %}{% endblock %}
 
         <div class="score-container">
@@ -48,7 +48,7 @@
             <button id="mode-cycle-btn" class="btn">Single Note</button>
             <button id="key-signature-btn" class="btn">Key Signature</button>
 
-            {% block filehandler %} {% include '_filehandler.html' %} {%
+            {% block filehandler %} {% include 'partials/_filehandler.html' %} {%
             endblock %}
           </div>
 
@@ -140,7 +140,7 @@
         handleChordDisplayToggle,
         handleKeySignatureClick,
       } from '{{ url_for("static", filename="uiHelpers.js") }}';
-      import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
+      import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
       import { initializePlayer } from '{{ url_for("static", filename="scorePlayback.js") }}';
       import {
         initMidi,

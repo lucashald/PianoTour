@@ -1,24 +1,22 @@
-// musicEditorUI.js
+// scoreEditor.js
 // This module handles the interactive UI for editing notes within a measure.
 // REFACTORED to use the new BEM HTML structure.
 
 // ===================================================================
 // Imports
 // ===================================================================
-import { pianoState } from "./appState.js";
-import { getMeasures, addNoteToMeasure, removeNoteFromMeasure, updateNoteInMeasure, moveNoteBetweenMeasures, setTimeSignature, setTempo } from './scoreWriter.js';
+import { pianoState } from "../core/appState.js";
+import { ALL_NOTE_INFO, DURATIONS, NOTES_BY_NAME } from '../core/note-data.js';
 import {
-    drawAll,
-    scrollToMeasure,
-    enableScoreInteraction,
-} from './scoreRenderer.js';
-import { DURATIONS, ALL_NOTE_INFO, NOTES_BY_NAME } from './note-data.js';
-import {
+    clearSelectedNoteHighlight,
     highlightSelectedMeasure,
     highlightSelectedNote,
-    clearSelectedNoteHighlight,
-} from './scoreHighlighter.js';
-import { getChordByDegree } from "./chordHelpers.js";
+} from '../score/scoreHighlighter.js';
+import {
+    enableScoreInteraction,
+    scrollToMeasure
+} from '../score/scoreRenderer.js';
+import { addNoteToMeasure, getMeasures, moveNoteBetweenMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, updateNoteInMeasure } from '../score/scoreWriter.js';
 
 // ===================================================================
 // Internal State
@@ -588,5 +586,5 @@ export function initializeMusicEditor() {
             octaveDropdown.appendChild(option);
         }
     }
-    console.log("✓ musicEditorUI.js initialized successfully");
+    console.log("✓ scoreEditor.js initialized successfully");
 }

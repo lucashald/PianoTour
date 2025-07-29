@@ -1,37 +1,25 @@
 // keyboardHelpers.js
+import { pianoState } from "../core/appState.js";
+import audioManager from "../core/audioManager.js";
 import {
-  NOTES_BY_MIDI,
-  NOTES_BY_NAME,
-  WHITE_KEY_WIDTH,
-  BLACK_KEY_WIDTH,
-  ALL_NOTE_INFO,
-  MAJOR_DIATONIC_LABELS,
-  MINOR_DIATONIC_LABELS,
-  CHORD_STRUCTURES,
   DURATION_THRESHOLDS,
-  CHORD_DEFINITIONS,
-  notesByMidiKeyAware,
-  getKeySignature,
-  DIATONIC_SCALES,
   getChordByDegree,
-} from "./note-data.js";
-import { writeNote } from "./scoreWriter.js"; 
-import { updateNowPlayingDisplay } from "./uiHelpers.js"; 
-import { pianoState } from "./appState.js"; 
-import {
-  trigger,
-  triggerAttackRelease, 
-  startKey,
-  stopKey,
-} from "./playbackHelpers.js";
+  notesByMidiKeyAware
+} from "../core/note-data.js";
+import { writeNote } from "../score/scoreWriter.js";
+import { addAdvancedKeyboardListeners, addInstrumentDraggingListeners } from "../ui/listenerManager.js";
 import {
   clearChordHi,
   clearHi,
-  paintChordOnTheFly,
   paintChord,
+  paintChordOnTheFly,
 } from "./instrumentHelpers.js";
-import audioManager from "./audioManager.js";
-import { addBasicKeyboardListeners, addAdvancedKeyboardListeners, addBasicInstrumentListeners, addAdvancedInstrumentListeners, addButtonListeners, addInstrumentDraggingListeners } from "./listenerManager.js";
+import {
+  startKey,
+  stopKey,
+  trigger,
+  triggerAttackRelease,
+} from "./playbackHelpers.js";
 /**
  * Get a chord based on the current key signature and scale degree
  * @param {number} [degree=1] - Scale degree (1-7), defaults to 1 (tonic)

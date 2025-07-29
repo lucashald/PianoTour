@@ -6,44 +6,40 @@
 // ===================================================================
 
 // Import the centralized state object
-import { pianoState } from "./appState.js";
+import { pianoState } from "../core/appState.js";
 
 // Import musical data and constants
 import {
+  CHORD_DEFINITIONS,
+  DIATONIC_CHORD_QUALITIES,
+  DURATION_THRESHOLDS,
+  getChordByDegree,
+  getInterval,
+  getOctave,
+  getPitchClass,
+  getScaleNotes,
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
-  UNIFIED_CHORD_DEFINITIONS,
-  DIATONIC_CHORD_QUALITIES,
-  CHORD_DEFINITIONS,
-  DURATION_THRESHOLDS,
   notesByMidiKeyAware,
-  getScaleNotes,
-  getPitchClass,
-  getInterval,
   transposeNote,
-  getOctave,
-  getKeySignature,
-  DIATONIC_SCALES,
-  getChordByDegree,
-} from "./note-data.js";
+  UNIFIED_CHORD_DEFINITIONS
+} from "../core/note-data.js";
 
 // Import UI painting functions
+import { writeNote } from "../score/scoreWriter.js";
 import {
   paintChord,
-  paintChordOnTheFly,
-  getChord,
+  paintChordOnTheFly
 } from "./instrumentHelpers.js";
-import { writeNote } from "./scoreWriter.js";
 
 // Import spectrum visualization functions - SIMPLIFIED
 import {
   startSpectrumVisualization,
   stopSpectrumVisualization,
-} from "./spectrum.js";
+} from "../ui/spectrum.js";
 
-import { handleMidiNoteOn, handleMidiNoteOff } from "./midi-controller.js";
 
-import audioManager from "./audioManager.js";
+import audioManager from "../core/audioManager.js";
 
 // ===================================================================
 // Core Audio Functions

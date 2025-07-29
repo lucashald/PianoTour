@@ -4,12 +4,11 @@
 // ===================================================================
 // Imports
 // ===================================================================
-import { pianoState } from "./appState.js";
-import { NOTES_BY_NAME, identifyChordStrict } from './note-data.js'; // Needed for note name to MIDI mapping for sorting and internal consistency
-import { drawAll, scrollToMeasure } from './scoreRenderer.js';
-import { updateNowPlayingDisplay } from './uiHelpers.js';
-import { saveToLocalStorage } from './ioHelpers.js';
-
+import { pianoState } from "../core/appState.js";
+import { NOTES_BY_NAME, identifyChordStrict } from '../core/note-data.js'; // Needed for note name to MIDI mapping for sorting and internal consistency
+import { updateNowPlayingDisplay } from '../ui/uiHelpers.js';
+import { saveToLocalStorage } from '../utils/ioHelpers.js';
+import { drawAll } from './scoreRenderer.js';
 // ===================================================================
 // Constants
 // ===================================================================

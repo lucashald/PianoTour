@@ -4,19 +4,19 @@
 // Imports
 // ===================================================================
 
-import { pianoState } from "./appState.js";
-import { trigger } from "./playbackHelpers.js";
-import { NOTES_BY_NAME } from "./note-data.js";
-import { getMeasures } from "./scoreWriter.js";
-import { safeRedraw, scrollToMeasure, getVexflowIndexByNoteId } from "./scoreRenderer.js";
+import { pianoState } from "../core/appState.js";
+import audioManager, { startSpectrumIfReady } from "../core/audioManager.js";
+import { NOTES_BY_NAME } from "../core/note-data.js";
+import { trigger } from "../instrument/playbackHelpers.js";
+import { stopSpectrumVisualization } from "../ui/spectrum.js";
+import { updateNowPlayingDisplay } from "../ui/uiHelpers.js";
 import {
   addPlaybackHighlight,
   clearAllHighlights,
   setVexFlowNoteStyle,
 } from "./scoreHighlighter.js";
-import { updateNowPlayingDisplay } from "./uiHelpers.js";
-import audioManager, { startSpectrumIfReady } from "./audioManager.js";
-import { startSpectrumVisualization, stopSpectrumVisualization } from "./spectrum.js";
+import { getVexflowIndexByNoteId, safeRedraw, scrollToMeasure } from "./scoreRenderer.js";
+import { getMeasures } from "./scoreWriter.js";
 // ===================================================================
 // Constants
 // ===================================================================

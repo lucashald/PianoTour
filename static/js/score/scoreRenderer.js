@@ -2,27 +2,23 @@
 // This module handles rendering the musical score using VexFlow.
 // Simplified: Direct styling for selected note/measure/playback, no stored original styles.
 
-import { getMeasures, addNoteToMeasure } from "./scoreWriter.js"; // Updated import
+import { pianoState } from "../core/appState.js"; // ADD THIS LINE
 import {
-  NOTES_BY_MIDI,
-  NOTES_BY_NAME,
   ALL_NOTE_INFO,
-  KEY_SIGNATURES,
   getCurrentVexFlowKeySignature,
-} from "./note-data.js";
-import { pianoState } from "./appState.js"; // ADD THIS LINE
+  getNoteImagePath,
+  KEY_SIGNATURES,
+  NOTE_IMAGE_MAP,
+  NOTES_BY_NAME
+} from "../core/note-data.js";
+import { saveToLocalStorage } from "../utils/ioHelpers.js";
 import {
   addPlaybackHighlight,
-  clearPlaybackHighlight,
-  clearAllHighlights,
-  highlightSelectedMeasure,
   clearMeasureHighlight,
-  resetAllNoteStyles,
-  highlightSelectedNote,
-  clearSelectedNoteHighlight,
+  highlightSelectedMeasure,
+  highlightSelectedNote
 } from "./scoreHighlighter.js";
-import { saveToLocalStorage } from "./ioHelpers.js";
-import { getNoteImagePath, NOTE_IMAGE_MAP  } from "./note-data.js";
+import { addNoteToMeasure, getMeasures } from "./scoreWriter.js"; // Updated import
 Object.values(NOTE_IMAGE_MAP).forEach(imagePath => {
   const img = new Image();
   img.src = imagePath;
