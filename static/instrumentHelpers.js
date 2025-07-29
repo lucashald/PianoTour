@@ -822,13 +822,7 @@ export function handleInitial(e) {
 
    // Play the clicked note.
      triggerAttackRelease([clickedNoteDetails.noteName], "q");
-
-     // Write note to score
-       writeNote({
-         clef: clickedNoteDetails.clef,
-         duration: "q",
-         notes: [clickedNoteDetails.noteName],
-       });
+     
    }
 
    // Call unlockAndExecute. It will run playNoteAndWriteToScore when audio is ready.
