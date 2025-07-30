@@ -112,6 +112,11 @@ def sax():
     """Guitar instrument route"""
     return render_template('sax.html', instrument='sax')
 
+@app.route('/drums')
+def drums():
+    """Drums instrument route"""
+    return render_template('drums.html')
+
 
 @app.route('/player')
 def player():
