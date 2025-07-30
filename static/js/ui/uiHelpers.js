@@ -7,7 +7,7 @@
 
 import { pianoState } from '../core/appState.js';
 import audioManager from '../core/audioManager.js';
-import { CHORD_DEFINITIONS, CHORD_GROUPS, DURATION_THRESHOLDS } from '../core/note-data.js';
+import { CHORD_DEFINITIONS, CHORD_GROUPS, DURATION_THRESHOLDS, getKeySignature } from '../core/note-data.js';
 import { trigger } from '../instrument/playbackHelpers.js';
 import { setKeySignature } from '../score/scoreRenderer.js';
 import { writeNote } from '../score/scoreWriter.js';
@@ -209,11 +209,17 @@ export function updateUI(message, options = {}) {
     // Always update the now playing display with the message
     updateNowPlayingDisplay(message);
 
+    // Always update the minor/major key button text
+    const minorKeyText = document.getElementById('minor-key-text');
+    if (minorKeyText) {
+        minorKeyText.textContent = pianoState.isMinorKey ? "Minor" : "Major";
+    }
+
     // Handle key signature button update if requested
     if (options.updateKeySignature) {
         const keySignatureButton = document.getElementById('key-signature-btn');
         if (keySignatureButton) {
-            keySignatureButton.textContent = `Key: ${pianoState.keySignature}`;
+            keySignatureButton.textContent = getKeySignature();
         } else {
             console.warn('Key signature button (#key-signature-btn) not found for UI update');
         }
@@ -240,4 +246,12 @@ export function handleKeySignatureClick(e) {
             regenerateChords: true
         });
     }
+}
+
+export function toggleIsMinorKey() {
+    pianoState.isMinorKey = !pianoState.isMinorKey;
+    updateUI(getKeySignature(), {
+        updateKeySignature: true,
+        regenerateChords: true
+    });
 }

@@ -2,6 +2,10 @@
 
 {% block title %}PianoTour - Interactive Cello Studio{% endblock %}
 
+{% block toggles %}
+    {% include 'partials/_toggles.html' %}
+{% endblock %}
+
 {% block scripts %}
 <script type="module">
     import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';

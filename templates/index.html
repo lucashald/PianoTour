@@ -59,25 +59,23 @@
               Clear Score
             </button>
             <button id="undo-btn" class="btn btn--danger">Undo</button>
-            <button id="mode-cycle-btn" class="btn btn--info">
-              Single Note
-            </button>
             <button id="key-signature-btn" class="btn btn--info">
               Key Signature
             </button>
+            <label class="btn btn--toggle">
+  <input
+    type="checkbox"
+    id="is-minor-key-btn"
+    class="hidden-input"
+  />
+  <span id="minor-key-text">Major</span>
+</label>
             {% block filehandler %} {% include 'partials/_filehandler.html' %} {%
             endblock %}
           </div>
 
           <div class="main-controls__button-row">
-            <label class="btn btn--toggle">
-              <input
-                type="checkbox"
-                id="toggleLabelsCheckbox"
-                class="hidden-input"
-              />
-              <span>Label Keys</span>
-            </label>
+            {% block toggles %}{% endblock %}
             <button id="chord-display-toggle" class="btn btn--toggle">
               <span>Show Chords</span>
             </button>
@@ -425,11 +423,6 @@
             id: "toggleLabelsCheckbox",
             event: "change",
             handler: handleToggleLabelsChange,
-          },
-          {
-            id: "mode-cycle-btn",
-            event: "click",
-            handler: handleModeCycleClick,
           },
           {
             id: "chord-display-toggle",

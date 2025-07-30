@@ -834,6 +834,12 @@ export const CHORD_DEFINITIONS = {
     bass: ["E3", "G#3", "B3"],
     displayName: "E Major",
   },
+  "Fb": {
+  notes: ["Fb", "Ab", "Cb"],
+  treble: ["Fb4", "Ab4", "Cb5"],
+  bass: ["Fb3", "Ab3", "Cb4"],
+  displayName: "Fb Major",
+},
   Emaj7: {
     notes: ["E", "G#", "B", "D#"],
     treble: ["E4", "G#4", "B4", "D#5"],
@@ -881,6 +887,12 @@ export const CHORD_DEFINITIONS = {
     treble: ["E4", "G4", "Bb4"],
     bass: ["E3", "G3", "Bb3"],
     displayName: "E Diminished",
+  },
+    "B#dim": {
+    notes: ["B#", "G", "A#"],
+    treble: ["B#4", "G4", "A#4"],
+    bass: ["B#3", "G3", "A#3"],
+    displayName: "B# Diminished",
   },
   Edim7: {
     notes: ["E", "G", "Bb", "Db"],
@@ -962,6 +974,12 @@ export const CHORD_DEFINITIONS = {
     bass: ["F2", "Ab2", "C3"],
     displayName: "F Minor",
   },
+    "E#m": {
+    notes: ["E#", "G#", "C"],
+    treble: ["E#4", "G#4", "C5"],
+    bass: ["E#2", "G#2", "C3"],
+    displayName: "E# Minor",
+  },
   Fmin7: {
     notes: ["F", "Ab", "C", "Eb"],
     treble: ["F4", "Ab4", "C5", "Eb5"],
@@ -985,6 +1003,12 @@ export const CHORD_DEFINITIONS = {
     treble: ["F4", "Ab4", "Cb5"],
     bass: ["F3", "Ab3", "Cb4"],
     displayName: "F Diminished",
+  },
+    "E#dim": {
+    notes: ["E#", "G#", "B"],
+    treble: ["E#4", "G#4", "B4"],
+    bass: ["E#3", "Ab3", "B4"],
+    displayName: "E# Diminished",
   },
   Fdim7: {
     notes: ["F", "Ab", "Cb", "Ebb"],
@@ -1874,6 +1898,12 @@ export const CHORD_DEFINITIONS = {
     bass: ["B2", "D#3", "F#3"],
     displayName: "B Major",
   },
+"Cb": {
+  notes: ["Cb", "Eb", "Gb"],
+  treble: ["Cb5", "Eb5", "Gb5"],
+  bass: ["Cb3", "Eb3", "Gb3"],
+  displayName: "Cb Major",
+},
   Bmaj7: {
     notes: ["B", "D#", "F#", "A#"],
     treble: ["B4", "D#5", "F#5", "A#5"],
@@ -3585,6 +3615,7 @@ const keySignatures = [
       "Fm",
       "F minor",
       "F Minor",
+      "E#m",
       "A flat",
       "A flat Major",
       "A flat major",
@@ -3811,25 +3842,25 @@ export function transposeNote(noteName, semitones) {
 
 export function getKeySignature() {
   const keySignature = pianoState.keySignature;
-  const isMinor = pianoState.isMinorChordMode;
+  const isMinor = pianoState.isMinorKey;
 
   // Map minor keys to their relative majors
   const minorToRelativeMajor = {
-    A: "C", // A minor → C major (0 sharps/flats)
-    E: "G", // E minor → G major (1 sharp)
-    B: "D", // B minor → D major (2 sharps)
+    "A": "C", // A minor → C major (0 sharps/flats)
+    "E": "G", // E minor → G major (1 sharp)
+    "B": "D", // B minor → D major (2 sharps)
     "F#": "A", // F# minor → A major (3 sharps)
     "C#": "E", // C# minor → E major (4 sharps)
     "G#": "B", // G# minor → B major (5 sharps)
     "D#": "F#", // D# minor → F# major (6 sharps)
     "A#": "C#", // A# minor → C# major (7 sharps)
-    D: "F", // D minor → F major (1 flat)
-    G: "Bb", // G minor → Bb major (2 flats)
-    C: "Eb", // C minor → Eb major (3 flats)
-    F: "Ab", // F minor → Ab major (4 flats)
-    Bb: "Db", // Bb minor → Db major (5 flats)
-    Eb: "Gb", // Eb minor → Gb major (6 flats)
-    Ab: "Cb", // Ab minor → Cb major (7 flats)
+    "D": "F", // D minor → F major (1 flat)
+    "G": "Bb", // G minor → Bb major (2 flats)
+    "C": "Eb", // C minor → Eb major (3 flats)
+    "F": "Ab", // F minor → Ab major (4 flats)
+    "Bb": "Db", // Bb minor → Db major (5 flats)
+    "Eb": "Gb", // Eb minor → Gb major (6 flats)
+    "Ab": "Cb", // Ab minor → Cb major (7 flats)
   };
 
   const majorToRelativeMinor = {
