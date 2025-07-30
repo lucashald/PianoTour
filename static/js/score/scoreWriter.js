@@ -16,7 +16,6 @@ import { drawAll } from './scoreRenderer.js';
 const BEAT_VALUES = { q: 1, h: 2, w: 4, '8': 0.5, '16': 0.25, '32': 0.125,
 'q.': 1.5, 'h.': 3, 'w.': 6, '8.': 0.75, '16.': 0.375, '32.': 0.1875 };
 const AUTOSAVE_KEY = 'autosavedScore';
-const MEASURE_CAPACITY_BEATS = pianoState.timeSignature.numerator;
 
 // ===================================================================
 // Internal State
@@ -223,7 +222,7 @@ if (newNoteData.name && newNoteData.name !== existingNote.name) {
     const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
 
     // Check for overflow
-    if (trebleBeats > MEASURE_CAPACITY_BEATS || bassBeats > MEASURE_CAPACITY_BEATS) {
+    if (trebleBeats > pianoState.timeSignature.numerator || bassBeats > pianoState.timeSignature.numerator) {
         return false; // Overflow would occur
     }
 
@@ -306,7 +305,7 @@ export function writeNote(obj) {
 
     // If adding the new note would overflow the measure for its specific clef,
     // advance to the next measure for both staves.
-    if (currentBeatsForClef + beats > MEASURE_CAPACITY_BEATS) {
+    if (currentBeatsForClef + beats > pianoState.timeSignature.numerator) {
         // Only advance if the current measure has any notes in it.
         // This prevents creating empty measures if the first note already overflows.
         if (measuresData[currentIndex] && (measuresData[currentIndex].length > 0 || currentTrebleBeats > 0 || currentBassBeats > 0)) {
@@ -408,7 +407,7 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
 
     // Handle overflow by creating new measure
     let finalMeasureIndex = measureIndex;
-    if (trebleBeats > MEASURE_CAPACITY_BEATS || bassBeats > MEASURE_CAPACITY_BEATS) {
+    if (trebleBeats > pianoState.timeSignature.numerator || bassBeats > pianoState.timeSignature.numerator) {
         console.warn(`addNoteToMeasure: Adding note to measure ${measureIndex} would cause overflow. Creating new measure.`);
         finalMeasureIndex = measuresData.length;
         measuresData[finalMeasureIndex] = [noteData];
@@ -497,7 +496,7 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
     tempMeasure[noteIndex] = updatedTempNote;
     const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
 
-    if (trebleBeats > MEASURE_CAPACITY_BEATS || bassBeats > MEASURE_CAPACITY_BEATS) {
+    if (trebleBeats > pianoState.timeSignature.numerator || bassBeats > pianoState.timeSignature.numerator) {
         console.warn(`Update to note with ID ${noteId} at measure ${measureIndex} would cause measure overflow. Operation cancelled.`);
         updateNowPlayingDisplay("Error: Update would overflow measure!");
         setTimeout(() => updateNowPlayingDisplay(""), 3000);

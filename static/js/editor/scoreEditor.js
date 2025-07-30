@@ -462,6 +462,7 @@ export function initializeMusicEditor() {
         
         if (!isNaN(numerator) && !isNaN(denominator) && numerator >= 1 && denominator >= 2) {
             setTimeSignature(numerator, denominator);
+            console.log("Setting time signature", numerator, denominator)
         }
         return;
     }
