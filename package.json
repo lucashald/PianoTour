@@ -1,8 +1,8 @@
 {
-  "name": "your-project-name",
+  "name": "Piano Tour",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.py",
   "type": "commonjs",
   "scripts": {
     "test": "jest",

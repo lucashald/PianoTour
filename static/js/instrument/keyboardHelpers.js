@@ -81,7 +81,8 @@ const ALL_HANDLED_KEYS = {
 
 export function handleKeyDown(e) {
   if (!audioManager.isAudioReady()) {
-    console.warn("Audio not ready for keyboard input.");
+    console.warn("Audio not ready for direct key interaction. Attempting to re-unlock...");
+    handleInitialKeyboard(e);
     return;
   }
 

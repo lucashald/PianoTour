@@ -18,7 +18,7 @@ import {
   WHITE_KEY_WIDTH
 } from "../core/note-data.js";
 import { writeNote } from "../score/scoreWriter.js";
-import { addAdvancedInstrumentListeners, addBasicInstrumentListeners, addBasicKeyboardListeners, addButtonListeners, addInstrumentDraggingListeners, setInstrumentDiv } from "../ui/listenerManager.js";
+import { addAdvancedInstrumentListeners, addBasicInstrumentListeners, addButtonListeners, addInstrumentDraggingListeners, setInstrumentDiv } from "../ui/listenerManager.js";
 import {
   startKey,
   stopDiatonicChord,
@@ -623,10 +623,10 @@ export function stopAllDragChords() {
  * It will return early if audio is not ready.
  */
 export function handleKeyPointerDown(e) {
-  // Crucial: Only proceed if audio is already ready.
-  // The initial unlock is now handled by the .instrument-panel__keyboard click listener.
+  // Only proceed if audio is already ready.
   if (!audioManager.isAudioReady()) {
-    console.warn("Audio not ready for direct key interaction.");
+    console.warn("Audio not ready for direct key interaction. Attempting to re-unlock...");
+    handleInitial(e);
     return;
   }
 
@@ -884,7 +884,6 @@ export function initializeInstrumentUI() {
  updateLabels();
  if (!audioManager.isAudioReady()) {
    addBasicInstrumentListeners();
-   addBasicKeyboardListeners();
  } else {
    addAdvancedInstrumentListeners();
  }
