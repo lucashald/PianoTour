@@ -13,8 +13,7 @@ from jsonschema import validate
 app = Flask(__name__)
 
 # Define your preferred canonical domain
-CANONICAL_DOMAIN = "www.pianotour.com"  # Or "www.pianotour.com"
-
+CANONICAL_DOMAIN = "www.pianotour.com"
 
 @app.before_request
 def redirect_to_canonical():
