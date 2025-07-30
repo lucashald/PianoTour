@@ -66,7 +66,7 @@ const VALID_DURATIONS = {
  * It's responsible for parsing the JSON and performing heavy data processing.
  */
 const workerScriptContent = `
-    // Valid durations with beat values (in 4/4 time)
+    // Valid durations with beat values (normalized to quarter note beats)
     const VALID_DURATIONS = {
         'w': { name: 'Whole', beatValue: 4 },
         'h.': { name: 'Dotted Half', beatValue: 3 },
@@ -83,8 +83,21 @@ const workerScriptContent = `
 
     // Validation utilities within worker
     function isValidNoteName(name) {
-        const notePattern = /^[A-G][#b]?[0-9]$/;
-        return typeof name === 'string' && notePattern.test(name);
+        if (typeof name !== 'string') return false;
+        
+        // Handle chord notation: (D4 F#4) or (B1 F#2 B2 F#3 B3 B3)
+        if (name.startsWith('(') && name.endsWith(')')) {
+            const noteNames = name.slice(1, -1).split(' ').filter(n => n.trim());
+            // All individual notes in the chord must be valid, and we need at least one note
+            return noteNames.length > 0 && noteNames.every(noteName => {
+                const singleNotePattern = /^[A-G][#b]?[0-9]$/;
+                return singleNotePattern.test(noteName.trim());
+            });
+        }
+        
+        // Handle single note: C4, F#4, etc.
+        const singleNotePattern = /^[A-G][#b]?[0-9]$/;
+        return singleNotePattern.test(name);
     }
 
     function isValidDuration(duration) {
@@ -103,11 +116,14 @@ const workerScriptContent = `
         return typeof timeSignature.numerator === 'number' && 
                typeof timeSignature.denominator === 'number' &&
                timeSignature.numerator > 0 && 
-               timeSignature.denominator > 0;
+               timeSignature.denominator > 0 &&
+               timeSignature.numerator <= 32 && 
+               timeSignature.denominator <= 32;
     }
 
     function calculateBeatsPerMeasure(timeSignature) {
         // Calculate how many quarter note beats per measure
+        // e.g., 4/4 = 4 beats, 3/4 = 3 beats, 6/8 = 3 beats, 12/8 = 6 beats
         return (timeSignature.numerator * 4) / timeSignature.denominator;
     }
 
@@ -119,7 +135,28 @@ const workerScriptContent = `
                 totalBeats += duration.beatValue;
             }
         }
-        return { totalBeats, isValid: totalBeats <= beatsPerMeasure };
+        
+        // Allow slight tolerance for floating point precision
+        const tolerance = 0.001;
+        return { 
+            totalBeats: Math.round(totalBeats * 1000) / 1000, // Round to 3 decimal places
+            isValid: totalBeats <= beatsPerMeasure + tolerance,
+            overflow: Math.max(0, totalBeats - beatsPerMeasure)
+        };
+    }
+
+    function findBestDurationForBeats(beats) {
+        // Find the best duration that fits within the beat count
+        const tolerance = 0.001;
+        const sortedDurations = Object.entries(VALID_DURATIONS)
+            .sort((a, b) => b[1].beatValue - a[1].beatValue); // Sort by beat value, descending
+
+        for (const [duration, info] of sortedDurations) {
+            if (info.beatValue <= beats + tolerance) {
+                return duration;
+            }
+        }
+        return '32'; // Fallback to thirty-second note
     }
 
     function splitMeasureIfNeeded(measure, beatsPerMeasure, measureIndex) {
@@ -129,10 +166,11 @@ const workerScriptContent = `
             return [measure]; // No splitting needed
         }
 
-        // Split the measure
+        // Split the measure into valid chunks
         const measures = [];
         let currentMeasure = [];
         let currentBeats = 0;
+        const tolerance = 0.001;
 
         for (let i = 0; i < measure.length; i++) {
             const note = measure[i];
@@ -140,15 +178,16 @@ const workerScriptContent = `
             const noteBeats = duration ? duration.beatValue : 1; // Default to quarter note
 
             // If adding this note would exceed the limit, start a new measure
-            if (currentBeats + noteBeats > beatsPerMeasure && currentMeasure.length > 0) {
-                // Fill remainder with rest if needed
+            if (currentBeats + noteBeats > beatsPerMeasure + tolerance && currentMeasure.length > 0) {
+                // Fill remainder with rest if there's a significant gap
                 const remainingBeats = beatsPerMeasure - currentBeats;
-                if (remainingBeats > 0) {
+                if (remainingBeats > 0.1) { // Only add rest if gap is meaningful
                     const restDuration = findBestDurationForBeats(remainingBeats);
+                    const restNote = currentMeasure.find(n => n.clef) || note; // Get clef from existing note
                     currentMeasure.push({
-                        id: \`auto-rest-\${measureIndex}-\${measures.length}\`,
-                        name: note.clef === 'bass' ? 'D3' : 'B4',
-                        clef: note.clef,
+                        id: \`auto-rest-\${measureIndex}-\${measures.length}-\${Date.now()}\`,
+                        name: restNote.clef === 'bass' ? 'D3' : 'B4',
+                        clef: restNote.clef || 'treble',
                         duration: restDuration,
                         measure: measureIndex + measures.length,
                         isRest: true,
@@ -160,6 +199,7 @@ const workerScriptContent = `
                 currentBeats = 0;
             }
 
+            // Add the note to current measure
             currentMeasure.push({
                 ...note,
                 measure: measureIndex + measures.length
@@ -167,16 +207,16 @@ const workerScriptContent = `
             currentBeats += noteBeats;
         }
 
-        // Add final measure
+        // Handle the final measure
         if (currentMeasure.length > 0) {
             const remainingBeats = beatsPerMeasure - currentBeats;
-            if (remainingBeats > 0) {
+            if (remainingBeats > 0.1) { // Only add rest if gap is meaningful
                 const lastNote = currentMeasure[currentMeasure.length - 1];
                 const restDuration = findBestDurationForBeats(remainingBeats);
                 currentMeasure.push({
-                    id: \`auto-rest-\${measureIndex}-final\`,
+                    id: \`auto-rest-\${measureIndex}-final-\${Date.now()}\`,
                     name: lastNote.clef === 'bass' ? 'D3' : 'B4',
-                    clef: lastNote.clef,
+                    clef: lastNote.clef || 'treble',
                     duration: restDuration,
                     measure: measureIndex + measures.length,
                     isRest: true,
@@ -189,19 +229,6 @@ const workerScriptContent = `
         return measures.length > 0 ? measures : [[]];
     }
 
-    function findBestDurationForBeats(beats) {
-        // Find the best duration that fits within the beat count
-        const sortedDurations = Object.entries(VALID_DURATIONS)
-            .sort((a, b) => b[1].beatValue - a[1].beatValue); // Sort by beat value, descending
-
-        for (const [duration, info] of sortedDurations) {
-            if (info.beatValue <= beats) {
-                return duration;
-            }
-        }
-        return '32'; // Fallback to thirty-second note
-    }
-
     function validateNote(note, measureIndex, noteIndex) {
         const errors = [];
         
@@ -210,14 +237,78 @@ const workerScriptContent = `
             return { isValid: false, errors, note: null };
         }
 
+        // Handle note name validation and correction
+        let correctedName = note.name;
+        let nameChanged = false;
+        
+        if (!isValidNoteName(note.name)) {
+            // Provide better fallback based on clef
+            correctedName = note.clef === 'bass' ? 'D3' : 'B4';
+            nameChanged = true;
+            
+            // Provide specific error messages for different types of invalid names
+            if (typeof note.name === 'string') {
+                if (note.name.startsWith('(') && note.name.endsWith(')')) {
+                    errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid chord notation '\${note.name}' - check note names within parentheses\`);
+                } else {
+                    errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid note name '\${note.name}' corrected to '\${correctedName}'\`);
+                }
+            } else {
+                errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Note name must be a string, got \${typeof note.name}\`);
+            }
+        }
+
+        // Handle duration validation and correction
+        let correctedDuration = note.duration;
+        let durationChanged = false;
+        
+        if (!isValidDuration(note.duration)) {
+            durationChanged = true;
+            
+            // Special handling for dotted whole notes
+            if (note.duration === 'w.') {
+                correctedDuration = 'w'; // Convert dotted whole to whole note
+                errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Dotted whole note 'w.' converted to 'w' (VexFlow doesn't support dotted whole notes)\`);
+            } 
+            // Handle old-style rest durations
+            else if (typeof note.duration === 'string' && note.duration.endsWith('r')) {
+                const baseDuration = note.duration.slice(0, -1);
+                if (isValidDuration(baseDuration)) {
+                    correctedDuration = baseDuration;
+                    errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Old rest duration '\${note.duration}' converted to '\${correctedDuration}' with isRest: true\`);
+                } else {
+                    correctedDuration = 'q';
+                    errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid rest duration '\${note.duration}' corrected to '\${correctedDuration}'\`);
+                }
+            }
+            // Handle other invalid durations
+            else {
+                correctedDuration = 'q'; // Default fallback
+                errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid duration '\${note.duration}' corrected to '\${correctedDuration}'\`);
+            }
+        }
+
+        // Handle clef validation
+        let correctedClef = note.clef;
+        if (!isValidClef(note.clef)) {
+            correctedClef = 'treble';
+            errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid clef '\${note.clef}' corrected to '\${correctedClef}'\`);
+        }
+
+        // Handle rest flag - for old-style rest durations, force isRest to true
+        let correctedIsRest = typeof note.isRest === 'boolean' ? note.isRest : false;
+        if (typeof note.duration === 'string' && note.duration.endsWith('r')) {
+            correctedIsRest = true;
+        }
+
         const validatedNote = {
             id: note.id || \`note-\${measureIndex}-\${noteIndex}-\${Date.now()}\`,
-            name: isValidNoteName(note.name) ? note.name : (note.clef === 'bass' ? 'D3' : 'B4'),
-            clef: isValidClef(note.clef) ? note.clef : 'treble',
-            duration: isValidDuration(note.duration) ? note.duration : 'q',
+            name: correctedName,
+            clef: correctedClef,
+            duration: correctedDuration,
             measure: typeof note.measure === 'number' ? note.measure : measureIndex,
-            isRest: typeof note.isRest === 'boolean' ? note.isRest : false,
-            chordName: note.isRest ? 'Rest' : (note.chordName || undefined),
+            isRest: correctedIsRest,
+            chordName: correctedIsRest ? 'Rest' : (note.chordName || undefined),
             midiNumber: typeof note.midiNumber === 'number' ? note.midiNumber : null,
             stemDirection: typeof note.stemDirection === 'number' ? note.stemDirection : null,
         };
@@ -227,22 +318,65 @@ const workerScriptContent = `
             delete validatedNote.chordName;
         }
 
-        // Warn about corrections made
-        if (note.name !== validatedNote.name) {
-            errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid note name '\${note.name}' corrected to '\${validatedNote.name}'\`);
-        }
-        if (note.clef !== validatedNote.clef) {
-            errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid clef '\${note.clef}' corrected to '\${validatedNote.clef}'\`);
-        }
-        if (note.duration !== validatedNote.duration) {
-            errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid duration '\${note.duration}' corrected to '\${validatedNote.duration}'\`);
-        }
-        // Special validation for old-style rest durations
-        if (note.duration && note.duration.endsWith('r') && note.duration !== validatedNote.duration) {
-            errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Old rest duration '\${note.duration}' converted to '\${validatedNote.duration}' with isRest: true\`);
+        // Clean up null/undefined values
+        Object.keys(validatedNote).forEach(key => {
+            if (validatedNote[key] === null || validatedNote[key] === undefined) {
+                if (key !== 'midiNumber' && key !== 'stemDirection' && key !== 'chordName') {
+                    delete validatedNote[key];
+                }
+            }
+        });
+
+        return { 
+            isValid: errors.length === 0, 
+            errors, 
+            note: validatedNote,
+            corrected: nameChanged || durationChanged
+        };
+    }
+
+    function validateMeasure(measure, measureIndex, beatsPerMeasure) {
+        if (!Array.isArray(measure)) {
+            return {
+                isValid: false,
+                errors: [\`Measure \${measureIndex} is not an array\`],
+                validatedMeasure: [],
+                needsSplit: false
+            };
         }
 
-        return { isValid: errors.length === 0, errors, note: validatedNote };
+        const validatedNotes = [];
+        const errors = [];
+        let hasCorrections = false;
+
+        // Validate each note
+        for (let j = 0; j < measure.length; j++) {
+            const validation = validateNote(measure[j], measureIndex, j);
+            errors.push(...validation.errors);
+            if (validation.corrected) {
+                hasCorrections = true;
+            }
+            if (validation.note) {
+                validatedNotes.push(validation.note);
+            }
+        }
+
+        // Check beat count
+        const beatValidation = validateMeasureBeats(validatedNotes, beatsPerMeasure);
+        const needsSplit = !beatValidation.isValid;
+
+        if (needsSplit) {
+            errors.push(\`Measure \${measureIndex}: Contains \${beatValidation.totalBeats} beats, exceeds limit of \${beatsPerMeasure} beats\`);
+        }
+
+        return {
+            isValid: errors.length === 0 && !needsSplit,
+            errors,
+            validatedMeasure: validatedNotes,
+            needsSplit,
+            hasCorrections,
+            totalBeats: beatValidation.totalBeats
+        };
     }
 
     self.onmessage = (event) => {
@@ -253,7 +387,7 @@ const workerScriptContent = `
                 // Initial progress report
                 self.postMessage({ 
                     type: 'progress', 
-                    payload: { current: 0, total: 5, message: \`Parsing \${fileName}...\`, scoreId } 
+                    payload: { current: 0, total: 6, message: \`Parsing \${fileName}...\`, scoreId } 
                 });
 
                 const loadedData = JSON.parse(fileContent);
@@ -265,15 +399,10 @@ const workerScriptContent = `
 
                 self.postMessage({ 
                     type: 'progress', 
-                    payload: { current: 1, total: 5, message: 'Validating score structure...', scoreId } 
+                    payload: { current: 1, total: 6, message: 'Validating metadata...', scoreId } 
                 });
 
-                const totalMeasures = rawMeasuresData.length;
-                let processedMeasures = [];
-                const validationErrors = [];
-                const processingChunkSize = 50;
-
-                // Default metadata with validation
+                // Default metadata with enhanced validation
                 const defaultMetadata = {
                     keySignature: 'C',
                     tempo: 120,
@@ -284,12 +413,18 @@ const workerScriptContent = `
                 };
 
                 const metadata = {
-                    keySignature: typeof loadedData.keySignature === 'string' ? loadedData.keySignature : defaultMetadata.keySignature,
-                    tempo: typeof loadedData.tempo === 'number' && loadedData.tempo > 0 ? loadedData.tempo : defaultMetadata.tempo,
-                    timeSignature: validateTimeSignature(loadedData.timeSignature) ? loadedData.timeSignature : defaultMetadata.timeSignature,
-                    instrument: typeof loadedData.instrument === 'string' ? loadedData.instrument : defaultMetadata.instrument,
-                    midiChannel: typeof loadedData.midiChannel === 'number' ? loadedData.midiChannel : defaultMetadata.midiChannel,
-                    isMinorChordMode: typeof loadedData.isMinorChordMode === 'boolean' ? loadedData.isMinorChordMode : defaultMetadata.isMinorChordMode,
+                    keySignature: typeof loadedData.keySignature === 'string' && loadedData.keySignature.length > 0 
+                        ? loadedData.keySignature : defaultMetadata.keySignature,
+                    tempo: typeof loadedData.tempo === 'number' && loadedData.tempo >= 20 && loadedData.tempo <= 300 
+                        ? loadedData.tempo : defaultMetadata.tempo,
+                    timeSignature: validateTimeSignature(loadedData.timeSignature) 
+                        ? loadedData.timeSignature : defaultMetadata.timeSignature,
+                    instrument: typeof loadedData.instrument === 'string' && loadedData.instrument.length > 0 
+                        ? loadedData.instrument : defaultMetadata.instrument,
+                    midiChannel: typeof loadedData.midiChannel === 'number' && loadedData.midiChannel >= 0 && loadedData.midiChannel <= 15 
+                        ? loadedData.midiChannel : defaultMetadata.midiChannel,
+                    isMinorChordMode: typeof loadedData.isMinorChordMode === 'boolean' 
+                        ? loadedData.isMinorChordMode : defaultMetadata.isMinorChordMode,
                 };
 
                 // Calculate beats per measure based on time signature
@@ -297,89 +432,97 @@ const workerScriptContent = `
 
                 self.postMessage({ 
                     type: 'progress', 
-                    payload: { current: 2, total: 5, message: 'Processing and validating measures...', scoreId } 
+                    payload: { current: 2, total: 6, message: \`Processing \${rawMeasuresData.length} measures...\`, scoreId } 
                 });
+
+                const totalMeasures = rawMeasuresData.length;
+                let processedMeasures = [];
+                const validationErrors = [];
+                const processingChunkSize = Math.max(10, Math.floor(totalMeasures / 20)); // Dynamic chunk size
+                let correctionCount = 0;
+                let splitCount = 0;
 
                 // Process and validate each measure
                 for (let i = 0; i < totalMeasures; i++) {
                     const measure = rawMeasuresData[i];
+                    const measureValidation = validateMeasure(measure, i, beatsPerMeasure);
                     
-                    if (!Array.isArray(measure)) {
-                        validationErrors.push(\`Measure \${i} is not an array. Adding empty measure.\`);
-                        processedMeasures.push([]);
-                        continue;
+                    validationErrors.push(...measureValidation.errors);
+                    if (measureValidation.hasCorrections) {
+                        correctionCount++;
                     }
 
-                    const validatedMeasure = [];
-                    const measureIssues = [];
-
-                    // Validate each note in the measure
-                    for (let j = 0; j < measure.length; j++) {
-                        const validation = validateNote(measure[j], i, j);
-                        validationErrors.push(...validation.errors);
-                        if (validation.note) {
-                            validatedMeasure.push(validation.note);
+                    if (measureValidation.validatedMeasure.length > 0) {
+                        if (measureValidation.needsSplit) {
+                            const splitMeasures = splitMeasureIfNeeded(measureValidation.validatedMeasure, beatsPerMeasure, i);
+                            if (splitMeasures.length > 1) {
+                                splitCount++;
+                                validationErrors.push(\`Measure \${i}: Split into \${splitMeasures.length} measures due to beat overflow\`);
+                            }
+                            processedMeasures.push(...splitMeasures);
+                        } else {
+                            processedMeasures.push(measureValidation.validatedMeasure);
                         }
-                    }
-
-                    // Check if measure needs to be split due to too many beats
-                    if (validatedMeasure.length > 0) {
-                        const splitMeasures = splitMeasureIfNeeded(validatedMeasure, beatsPerMeasure, i);
-                        if (splitMeasures.length > 1) {
-                            validationErrors.push(\`Measure \${i}: Split into \${splitMeasures.length} measures due to exceeding \${beatsPerMeasure} beats\`);
-                        }
-                        processedMeasures.push(...splitMeasures);
                     } else {
-                        // Empty measure - add a whole rest
+                        // Empty measure - add a whole rest or appropriate rest for time signature
+                        const restDuration = beatsPerMeasure >= 4 ? 'w' : beatsPerMeasure >= 2 ? 'h' : 'q';
                         processedMeasures.push([{
-                            id: \`rest-\${i}-0\`,
+                            id: \`rest-\${i}-0-\${Date.now()}\`,
                             name: 'B4',
                             clef: 'treble',
-                            duration: 'w',
+                            duration: restDuration,
                             measure: i,
                             isRest: true,
                             chordName: 'Rest'
                         }]);
-                        validationErrors.push(\`Measure \${i}: Empty measure, added whole rest\`);
+                        validationErrors.push(\`Measure \${i}: Empty measure, added \${VALID_DURATIONS[restDuration].name.toLowerCase()} rest\`);
                     }
 
-                    // Report progress
+                    // Report progress more frequently for large files
                     if ((i + 1) % processingChunkSize === 0 || (i + 1) === totalMeasures) {
+                        const progressPercent = ((i + 1) / totalMeasures) * 2; // Scale to 0-2 for step 2-4
                         self.postMessage({ 
                             type: 'progress', 
                             payload: { 
-                                current: 2 + ((i + 1) / totalMeasures), 
-                                total: 5, 
-                                message: 'Processing and validating measures...', 
+                                current: 2 + progressPercent, 
+                                total: 6, 
+                                message: \`Processing measures... (\${i + 1}/\${totalMeasures})\`, 
                                 scoreId 
                             } 
                         });
                     }
                 }
 
-                // Final validation - ensure all measures have proper beat counts
+                // Update measure indices and final validation
                 self.postMessage({ 
                     type: 'progress', 
-                    payload: { current: 4, total: 5, message: 'Final validation...', scoreId } 
+                    payload: { current: 5, total: 6, message: 'Finalizing and indexing...', scoreId } 
                 });
 
                 // Update measure indices to be sequential after splitting
                 let measureIndex = 0;
                 processedMeasures = processedMeasures.map(measure => {
-                    return measure.map(note => ({
+                    const updatedMeasure = measure.map(note => ({
                         ...note,
                         measure: measureIndex
                     }));
-                }).map(measure => {
                     measureIndex++;
-                    return measure;
+                    return updatedMeasure;
                 });
 
                 // Final progress update
                 self.postMessage({ 
                     type: 'progress', 
-                    payload: { current: 5, total: 5, message: 'Finalizing score...', scoreId } 
+                    payload: { current: 6, total: 6, message: 'Processing complete!', scoreId } 
                 });
+
+                // Add summary to validation errors
+                if (correctionCount > 0 || splitCount > 0) {
+                    const summaryParts = [];
+                    if (correctionCount > 0) summaryParts.push(\`\${correctionCount} measures corrected\`);
+                    if (splitCount > 0) summaryParts.push(\`\${splitCount} measures split\`);
+                    validationErrors.unshift(\`Processing Summary: \${summaryParts.join(', ')}\`);
+                }
 
                 // Send processed data back
                 self.postMessage({
@@ -389,7 +532,14 @@ const workerScriptContent = `
                         measures: processedMeasures,
                         metadata,
                         validationErrors,
-                        originalSize: fileContent.length
+                        originalSize: fileContent.length,
+                        stats: {
+                            originalMeasures: totalMeasures,
+                            finalMeasures: processedMeasures.length,
+                            correctionCount,
+                            splitCount,
+                            beatsPerMeasure
+                        }
                     }
                 });
 
