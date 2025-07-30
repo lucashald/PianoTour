@@ -219,7 +219,7 @@ export function updateUI(message, options = {}) {
     if (options.updateKeySignature) {
         const keySignatureButton = document.getElementById('key-signature-btn');
         if (keySignatureButton) {
-            keySignatureButton.textContent = getKeySignature();
+            keySignatureButton.textContent = `Key: ${getKeySignature()}`;
         } else {
             console.warn('Key signature button (#key-signature-btn) not found for UI update');
         }
@@ -241,7 +241,7 @@ export function handleKeySignatureClick(e) {
 
     // Use the new setKeySignature function (but it won't update the button)
     if (setKeySignature(nextKey)) {
-        updateUI(`Key: ${pianoState.keySignature}`, {
+        updateUI(`Key: ${getKeySignature()}`, {
             updateKeySignature: true,
             regenerateChords: true
         });
@@ -250,8 +250,8 @@ export function handleKeySignatureClick(e) {
 
 export function toggleIsMinorKey() {
     pianoState.isMinorKey = !pianoState.isMinorKey;
-    updateUI(getKeySignature(), {
+    updateUI(`Key: ${getKeySignature()}`, {
         updateKeySignature: true,
-        regenerateChords: true
+        regenerateChords: false
     });
 }
