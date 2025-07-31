@@ -93,7 +93,7 @@ export function drawAll(measures) {
                     keys: vexflowKeys,
                     duration: isRest ? `${duration}r` : duration, // VexFlow rests need 'r' suffix
                     stem_direction: vexflowStemDirection,
-                    note_head_type: vexflowNotehead // Set in constructor
+                    type: vexflowNotehead // Set in constructor
                 });
 
                 // Apply modifiers/articulations from DRUM_INSTRUMENT_MAP
@@ -173,8 +173,6 @@ export function drawAll(measures) {
         vexFlowFactory.draw(); // This draws all staves and voices managed by the factory.
         console.log("drumRenderer drawAll: VexFlow drawing complete.");
 
-        calibrateStaffPositions(); // Calibrate after drawing is complete
-
         // --- Restore playback highlights only ---
         // (No logic for currentSelectedMeasure or currentSelectedNote, as interactive editing is removed)
         for (const noteKey of drumsState.currentPlaybackNotes) {
@@ -188,9 +186,7 @@ export function drawAll(measures) {
         }
 
         const scoreWrap = document.getElementById("drums-score-wrap");
-        if (scoreWrap) {
             scoreWrap.scrollLeft = scoreWrap.scrollWidth;
-        }
     } catch (e) {
         console.error("drumRenderer drawAll: VexFlow rendering error:", e, e.stack);
     }
