@@ -15,7 +15,7 @@ import {
   clearAllHighlights,
   setVexFlowNoteStyle,
 } from "./drumsScoreHighlighter.js";
-import { getVexflowIndexByNoteId, safeRedraw, scrollToMeasure } from "./drumRenderer.js";
+import { getVexflowIndexByNoteId, drawAll, scrollToMeasure } from "./drumRenderer.js";
 import { getDrumMeasures } from "./drumsScoreWriter.js";
 // ===================================================================
 // Constants
@@ -418,7 +418,7 @@ export function stopPlayback() {
 
   // Ensure all highlight rectangles are removed from the score
   clearAllHighlights();
-  safeRedraw();
+  drawAll();
 }
 
 export function initializeDrumsPlayer() {

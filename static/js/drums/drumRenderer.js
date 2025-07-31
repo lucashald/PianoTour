@@ -3,15 +3,6 @@
 // Simplified: Only focuses on rendering and playback highlighting, no interactive editing.
 
 import { drumsState } from "../core/appState.js";
-// Removed getNoteImagePath as drag preview is removed
-import { saveToLocalStorage } from "../utils/ioHelpers.js"; // This is not used directly in renderer, can be removed if not needed elsewhere
-import {
-    addPlaybackHighlight,
-    // clearMeasureHighlight, // Removed as measure selection is gone
-    // highlightSelectedMeasure, // Removed as measure selection is gone
-    // highlightSelectedNote, // Removed as note selection is gone
-    setVexFlowNoteStyle // Still used for playback highlighting
-} from "./drumsScoreHighlighter.js";
 import { getDrumMeasures } from "./drumsScoreWriter.js";
 import { DRUM_INSTRUMENT_MAP, DRUM_Y_POSITIONS_MAP } from "../core/drum-data.js"; // Keep DRUM_INSTRUMENT_MAP for rendering
 
@@ -28,67 +19,6 @@ let vexflowStaveMap = []; // Stores VexFlow.Stave objects per measure
 let vfContext = null; // VexFlow rendering context
 let vexFlowFactory = null; // VexFlow Factory instance
 let vexflowIndexByNoteId = {}; // Maps note.id to its VexFlow index within a measure
-
-// --- Removed Drag and Drop State ---
-// let draggedNote = null;
-// let dragStartPosition = null;
-// let isDragging = false;
-// let originalNoteData = null;
-// let originalVexFlowNoteBBox = null;
-// let isPaletteDrag = false;
-// let paletteDragType = null;
-// let selectedDuration = "q";
-// let mouseDownInitialPos = null;
-// let mouseDownNoteTarget = null;
-// let hasMouseMovedSinceMousedown = false;
-// const DRAG_THRESHOLD = 5;
-
-// Dynamic Y-calibration variables (still relevant for initial layout if needed)
-let STAFF_LINE_SPACING_ACTUAL = null;
-let STAFF_TOP_Y = null;
-let STAFF_BOTTOM_Y = null;
-
-// ===================================================================
-// Helper Functions (Calibrations)
-// ===================================================================
-
-/**
- * Calibrates the single percussion staff's vertical positions after rendering.
- * This is primarily for informational logging and potential future use, not direct editing.
- */
-function calibrateStaffPositions() {
-    console.log("drumRenderer calibrateStaffPositions: Calibrating drum staff positions...");
-
-    const firstStave = vexflowStaveMap[0]; // Assuming all staves have consistent vertical positions
-
-    if (firstStave) {
-        STAFF_TOP_Y = firstStave.getYForLine(0);
-        STAFF_BOTTOM_Y = firstStave.getYForLine(4); // VexFlow lines 0-4
-        const staffHeight = STAFF_BOTTOM_Y - STAFF_TOP_Y;
-        STAFF_LINE_SPACING_ACTUAL = staffHeight / 4; // 5 lines = 4 spaces
-        console.log(
-            `drumRenderer calibrateStaffPositions: Drum staff: top=${STAFF_TOP_Y}, bottom=${STAFF_BOTTOM_Y}, spacing=${STAFF_LINE_SPACING_ACTUAL}`
-        );
-    } else {
-        console.warn("drumRenderer calibrateStaffPositions: No staves found to calibrate.");
-    }
-
-    const scoreContainer = document.getElementById("drums-score")?.parentElement;
-    const containerHeight = scoreContainer ? scoreContainer.clientHeight : 350;
-    const scoreHeight = 120; // Expected height for a single percussion staff
-    const verticalOffset = Math.max(20, (containerHeight - scoreHeight) / 2);
-    console.log(
-        `drumRenderer calibrateStaffPositions: Centering score - Container height: ${containerHeight}, Score height: ${scoreHeight}, Vertical offset: ${verticalOffset}`
-    );
-}
-
-/**
- * setKeySignature is not applicable to drum notation.
- */
-export function setKeySignature(keySignature) {
-    console.warn("drumRenderer setKeySignature: Key signatures are not applicable to drum notation.");
-    return false;
-}
 
 // ===================================================================
 // Core Rendering Function
@@ -255,7 +185,6 @@ export function drawAll(measures) {
                 clef: 'percussion', // Always pass 'percussion' for drum notes
                 noteId,
             });
-            addPlaybackHighlight(measureIdx, 'percussion', noteId, "#FFD700");
         }
 
         const scoreWrap = document.getElementById("drums-score-wrap");
@@ -317,8 +246,6 @@ export function scrollToMeasure(measureIndex) {
     }
 }
 
-// Removed setPaletteDragState as palette drag is removed
-// Removed enableScoreInteraction as all interaction is removed
 
 // --- Getters for external modules (kept for playback/debugging if needed) ---
 export function getVexFlowNoteMap() {
@@ -339,5 +266,3 @@ export function getVexFlowFactory() {
 export function getVexflowIndexByNoteId() {
     return vexflowIndexByNoteId;
 }
-
-console.log("✓ drumRenderer.js loaded successfully (stripped for no editing features)");
