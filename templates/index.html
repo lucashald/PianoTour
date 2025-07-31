@@ -52,6 +52,7 @@
         <section class="instrument-panel">
           {% block spectrum %} {% if not hide_spectrum %} {% include
           'partials/_spectrum.html' %} {% endif %} {% endblock %}
+          <div id="handOverlay" class="hidden"></div>
           <div class="instrument-panel__keyboard" id="instrument"></div>
         </section>
 

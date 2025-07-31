@@ -46,9 +46,10 @@ export function addAdvancedKeyboardListeners() {
   document.addEventListener("keydown", handleKeyDown);
   document.addEventListener("keyup", handleKeyUp);
   document.removeEventListener("keydown", handleInitialKeyboard);
-  if (pianoState.overlay) {
-    pianoState.overlay.addEventListener("pointerdown", startSliderDrag);
-  }
+if (pianoState.overlay) {
+  pianoState.overlay.addEventListener("pointerdown", startSliderDrag);
+  pianoState.overlay.classList.remove("hidden"); // Add this line
+}
 }
 
 /**

@@ -293,6 +293,18 @@ h4 {
   display: inline-block;
 }
 
+/* In your editor.css or relevant stylesheet */
+.drums-score-viewer__container {
+    overflow-x: auto; /* Allow horizontal scrolling */
+    white-space: nowrap; /* Prevent inline-block elements from wrapping */
+    margin: 1rem 0; /* Example margin */
+}
+
+/* Ensure the content itself does not wrap */
+.drums-score-viewer__content {
+    display: inline-block; /* Make it respect width calculation and allow nowrap from parent */
+}
+
 /* Instrument & Spectrum Panel Block */
 .instrument-panel {
   width: 100%;

@@ -60,6 +60,7 @@ const flattenerKeys = new Set([
   "g",
 ]);
 
+pianoState.overlay = document.getElementById("handOverlay");
 // ===================================================================
 // Music Theory & Data Processing Helpers (Instrument-specific)
 // ===================================================================
@@ -212,6 +213,7 @@ function drawLabelOnKey(midi, labelText) {
  * Positions the hand overlay (slider) based on current piano mode.
  */
 function positionSlider() {
+  if (!pianoState.overlay) return;
   const svgRect = pianoState.svg.getBoundingClientRect();
   if (svgRect.width === 0) return;
   const scale = svgRect.width / TOTAL_SVG_WIDTH;
@@ -379,6 +381,7 @@ export function paintChordOnTheFly(chord) {
 // ===================================================================
 // Event Handlers (Enhanced with Click-and-Drag)
 // ===================================================================
+
 
 /** Handles window resize event. */
 export function handleWindowResize() {
@@ -872,10 +875,8 @@ export function initializeInstrumentUI() {
    pianoState.noteEls[note.midi] = r;
  });
 
- // Create overlay element
- pianoState.overlay = document.createElement("div");
- pianoState.overlay.id = "handOverlay";
- instrumentDiv.append(pianoState.svg, pianoState.overlay);
+
+instrumentDiv.append(pianoState.svg);
 
  // Set initial state and UI
  pianoState.baseIdx = whiteNoteMidis.indexOf(NOTES_BY_NAME["F3"]);

@@ -443,22 +443,4 @@ export function initializeDrumsPlayer() {
           console.warn("Could not start audio for playback. Please ensure user interaction has occurred.");
       }
     });
-
-  // Stop Playback Button
-  document.getElementById("stop-score-btn")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    document.getElementById("instrument")?.focus();
-    stopPlayback();
-  });
-
-  // Connect MIDI Button
-  document
-    .getElementById("connect-midi-btn")
-    ?.addEventListener("click", (e) => {
-      e.preventDefault();
-      document.getElementById("instrument")?.focus();
-      // Removed direct call to drumsState.unlock() as audioManager handles unlocking.
-      // A simple call to unlockAndExecute with a no-op function is sufficient to trigger unlock on click.
-      audioManager.unlockAndExecute(() => { console.log("MIDI connection audio unlocked."); });
-    });
 }
