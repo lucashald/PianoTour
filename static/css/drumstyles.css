@@ -5,7 +5,7 @@
         grid-template-columns: repeat(4, 1fr); /* 4 columns */
         gap: 10px; /* Space between switches */
         padding: 10px;
-        background-color: #666; /* Match the drum-controls__section background */
+        background-color: #04273C; /* Match the drum-controls__section background */
         border-radius: 8px;
         box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
       }
@@ -67,32 +67,74 @@
         line-height: 1.2;
       }
 
-      /* Color assignments for drum rows (matching previous request) */
-      .drum-step-button:nth-child(1),
-      .drum-step-button:nth-child(2),
-      .drum-step-button:nth-child(3),
-      .drum-step-button:nth-child(4) {
-        background-color: #e74c3c;
-      } /* Red */
-      .drum-step-button:nth-child(5),
-      .drum-step-button:nth-child(6),
-      .drum-step-button:nth-child(7),
-      .drum-step-button:nth-child(8) {
-        background-color: #e67e22;
-      } /* Orange */
-      .drum-step-button:nth-child(9),
-      .drum-step-button:nth-child(10),
-      .drum-step-button:nth-child(11),
-      .drum-step-button:nth-child(12) {
-        background-color: #f1c40f;
-      } /* Yellow */
-      .drum-step-button:nth-child(13),
-      .drum-step-button:nth-child(14),
-      .drum-step-button:nth-child(15),
-      .drum-step-button:nth-child(16) {
-        background-color: #ecf0f1;
-        color: #333;
-      } /* Light Gray (White) */
+/* Color assignments for drum rows (20 elements with specific colors) */
+
+/* First 5 Red elements: 2 buttons, 1 button, 2 buttons */
+.drum-step-button:nth-child(1),
+.drum-step-button:nth-child(2) {
+  background-color: #E60000;
+}
+.drum-step-button:nth-child(3),
+.drum-step-button:nth-child(4),
+.drum-step-button:nth-child(5) {
+  background-color: #CC0000;
+}
+
+/* Next 5 Orange elements: transitioning through provided colors */
+.drum-step-button:nth-child(6) {
+  background-color: #FF6600; /* Brightest orange */
+}
+.drum-step-button:nth-child(7) {
+  background-color: #E65C00;
+}
+.drum-step-button:nth-child(8),
+.drum-step-button:nth-child(9),
+.drum-step-button:nth-child(10) {
+  background-color: #CC5200;
+}
+
+/* Next 5 Yellow elements: all the same */
+.drum-step-button:nth-child(11),
+.drum-step-button:nth-child(12),
+.drum-step-button:nth-child(13),
+.drum-step-button:nth-child(14),
+.drum-step-button:nth-child(15) {
+  background-color: #f1c40f;
+}
+
+/* Next 4 Pale yellow/cream to beige elements (with black text) */
+.drum-step-button:nth-child(16) {
+  background-color: #F0EAD6; /* Very light yellow/beige (from original image) */
+  color: black;
+}
+.drum-step-button:nth-child(17) {
+  background-color: #E8E5D9; /* Slightly paler beige */
+  color: black;
+}
+.drum-step-button:nth-child(18) {
+  background-color: #E0E0D0; /* Paler beige */
+  color: black;
+}
+.drum-step-button:nth-child(19) {
+  background-color: #D8D8C7; /* Even paler beige */
+  color: black;
+}
+
+/* The very last element is pure white (with black text) */
+.drum-step-button:nth-child(20) {
+  background-color: #FFFFFF; /* Pure White */
+  color: black;
+}
+
+/* The very last element is pure white (with black text) */
+.drum-step-button:nth-child(21), 
+.drum-step-button:nth-child(22),
+.drum-step-button:nth-child(23),
+.drum-step-button:nth-child(24),
+.drum-step-button:nth-child(25) {
+  background-color: #666; /* Pure White */
+  color: #FFFFFF;
+}
 
       /* Existing styles to possibly adjust for better integration */
       .drum-controls__section-title {

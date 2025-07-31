@@ -37,22 +37,37 @@ import {
 
 const DRUM_SAMPLE_BASE_URL = "/static/samples/drums/";
 
-// Using note names as keys (following audioManager.js pattern)
 const DRUM_SAMPLE_URLS = {
-    "C2": "kick.wav",           // Kick (MIDI 36)
-    "D2": "snare.wav",          // Snare (MIDI 38)
-    "F#2": "hi-hat.wav",        // Hi-hat closed (MIDI 42)
-    "A#2": "open-hat.wav",      // Hi-hat open (MIDI 46)
-    "C#3": "crash.wav",         // Crash (MIDI 49)
-    "D#3": "ride.wav",          // Ride (MIDI 51)
-    "C3": "high-tom.wav",       // Tom high (MIDI 48)
-    "A2": "low-tom.wav",        // Tom low (MIDI 45)
-    "B1": "kick.wav",           // Kick 2 (MIDI 35) - Mapped to the same kick as MIDI 36
-    "E2": "snare.wav",          // Snare 2 (MIDI 40) - Mapped to the same snare as MIDI 38
-    "D3": "high-tom.wav",       // Tom mid (MIDI 50) - Mapped to high-tom as no specific "mid-tom" file was provided
-    "D#2": "clap.wav",          // Clap 2 (MIDI 39)
-    "G3": "cymbal.wav",
-    "G#3": "cowbell.wav",
+    // Kicks
+    "C2": "kick.wav",              // Kick (MIDI 36 - Acoustic Bass Drum)
+    "B1": "BOXKICK.wav",           // Bass Kick (MIDI 35 - Acoustic Bass Drum alternative)
+
+    // Snares
+    "D2": "snare.wav",             // Snare (MIDI 38 - Acoustic Snare)
+    "C#2": "sidestick.wav",         // Stick (MIDI 37 - Side Stick/Rimshot - often near snare)
+    "F2": "rim.wav",               // Rimshot (MIDI 40 - Electric Snare, commonly used for rimshot)
+
+    // Hi-Hats
+    "F#2": "hi-hat.wav",           // Hi-Hat Closed (MIDI 42) - Using 'hi-hat.wav' as provided
+    "A#2": "open-hat.wav",         // Hi-Hat Open (MIDI 46)
+
+    // Toms
+    "A2": "low-tom.wav",           // Low Tom (MIDI 45) - Using 'low-tom.wav' as provided
+    "B2": "MIDTOM.wav",            // Mid Tom (MIDI 47) - **Corrected to MIDTOM.wav**
+    "C3": "high-tom.wav",          // High Tom (MIDI 48) - Using 'high-tom.wav' as provided
+
+    // Cymbals
+    "C#3": "crash.wav",            // Crash (MIDI 49)
+    "D#3": "ride.wav",             // Ride (MIDI 51)
+    "G3": "cymbal.wav",            // General Cymbal (MIDI 55)
+
+    // Hand Percussion / Other
+    "D#2": "clap.wav",             // Clap (MIDI 39 - Hand Clap)
+    "G#3": "cowbell.wav",          // Cowbell (MIDI 56)
+    "A#3": "conga.wav",            // Conga (MIDI 62 - High Conga) - Using 'conga.wav' as provided
+    "F#3": "BONGOLO.wav",          // Low Bongo (MIDI 61)
+    "G#4": "BONGOHI.wav",          // High Bongo (MIDI 60)
+    "A4": "claves.wav",            // Claves (MIDI 75)
 };
 
 // Mapping from MIDI numbers to note names for drum triggering

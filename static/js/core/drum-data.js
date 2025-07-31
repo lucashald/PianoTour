@@ -18,11 +18,10 @@ const { StaveNote, Stem, Annotation, Articulation, Stroke } = Vex.Flow;
  */
 // core/drum-data.js
 
-// Using General MIDI Standard for common drum sounds where applicable
 export const DRUM_INSTRUMENT_MAP = {
   "kick": {
     name: "Kick Drum",
-    keys: ["F/3"], // VexFlow key for rendering (bass clef F3)
+    keys: ["F/4"], // VexFlow key for rendering (bass clef F3)
     notehead: "x",
     stemDirection: 1, // Down
     midi: 36, // General MIDI Standard for Kick Drum 1 (Acoustic Bass Drum)
@@ -30,7 +29,7 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "snare": {
     name: "Snare Drum",
-    keys: ["C/4"], // VexFlow key for rendering (bass clef C4)
+    keys: ["C/5"],
     notehead: "x",
     stemDirection: 1,
     midi: 38, // General MIDI Standard for Acoustic Snare
@@ -38,7 +37,7 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "hihat-closed": {
     name: "Closed Hi-Hat",
-    keys: ["C/5"], // VexFlow key for rendering (treble clef C5)
+    keys: ["G#/5"], // VexFlow key for rendering (treble clef C5)
     notehead: "x",
     stemDirection: -1, // Up
     modifiers: [], // Articulation for closed hi-hat
@@ -47,7 +46,7 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "hihat-open": {
     name: "Open Hi-Hat",
-    keys: ["C/5"],
+    keys: ["G/5"],
     notehead: "x",
     stemDirection: -1,
     modifiers: [], // Articulation for open hi-hat
@@ -56,7 +55,7 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "crash": {
     name: "Crash Cymbal",
-    keys: ["C/6"], // Typically above staff, C6 is common for Crash 1
+    keys: ["A/5"], // Typically above staff, C6 is common for Crash 1
     notehead: "x",
     stemDirection: -1,
     midi: 49, // General MIDI Standard for Crash Cymbal 1
@@ -72,19 +71,19 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "tom-high": {
     name: "High Tom",
-    keys: ["G/4"], // Often on G4
+    keys: ["E/5"],
     notehead: "x",
     stemDirection: -1,
     midi: 48, // General MIDI Standard for High Tom
-    filename: "tom-high.wav", // Path to your cleaned high tom sample
+    filename: "high-tom.wav", // Path to your cleaned high tom sample
   },
   "tom-low": {
     name: "Low Tom",
-    keys: ["E/4"], // Often on E4 or D4
+    keys: ["A/4"], // Often on E4 or D4
     notehead: "x",
     stemDirection: 1,
     midi: 45, // General MIDI Standard for Low Tom
-    filename: "tom-low.wav", // Path to your cleaned low tom sample
+    filename: "low-tom.wav", // Path to your cleaned low tom sample
   },
   "clap": {
     name: "Clap",
@@ -96,7 +95,7 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "cowbell": {
     name: "Cowbell",
-    keys: ["F#/4"], // A common position for cowbell
+    keys: ["E/5"], // A common position for cowbell
     notehead: "x",
     stemDirection: 1,
     midi: 56, // Cowbell
@@ -118,12 +117,12 @@ export const DRUM_INSTRUMENT_MAP = {
     midi: 82, // Shaker (or other percussion if more specific is needed)
     filename: "shaker.wav", // Path to your cleaned shaker sample
   },
-    "cymbal": {
+  "cymbal": {
     name: "Cymbal",
-    keys: ["G/3"],
+    keys: ["B/5"],
     notehead: "x",
     stemDirection: -1,
-    midi: 55,
+    midi: 55, // Ride Cymbal 2, or a general crash/cymbal sound
     filename: "cymbal.wav",
   },
   "rest": {
@@ -132,7 +131,63 @@ export const DRUM_INSTRUMENT_MAP = {
     notehead: "r", // Not directly used as a notehead, but indicates a rest.
     stemDirection: 0,
     midi: null, // Rests do not have a MIDI number
-  }
+  },
+  "bass-kick": {
+    name: "Bass Kick",
+    keys: ["E/4"], // Lower than standard kick to differentiate, if needed
+    notehead: "x",
+    stemDirection: 1,
+    midi: 35, // Acoustic Bass Drum (lower octave alternative)
+    filename: "BOXKICK.wav",
+  },
+  "sidestick": {
+    name: "Stick",
+    keys: ["C/6"], // Often placed high on the staff
+    notehead: "x",
+    stemDirection: -1,
+    midi: 37, // Side Stick
+    filename: "sidestick.wav",
+  },
+  "rimshot": {
+    name: "Rimshot",
+    keys: ["C/4"], // Same as snare, but can be differentiated with modifiers
+    notehead: "x",
+    stemDirection: 1,
+    midi: 40, // Electric Snare (often used for rimshot if no specific rimshot MIDI)
+    filename: "rim.wav",
+  },
+  "tom-mid": {
+    name: "Mid Tom",
+    keys: ["D/5"], // Between low and high tom
+    notehead: "x",
+    stemDirection: -1,
+    midi: 47, // Low-Mid Tom
+    filename: "MIDTOM.wav",
+  },
+  "bongo-low": {
+    name: "Low Bongo",
+    keys: ["A/3"], // Low percussion
+    notehead: "x",
+    stemDirection: 1,
+    midi: 61, // Low Bongo
+    filename: "BONGOLO.wav",
+  },
+  "bongo-high": {
+    name: "High Bongo",
+    keys: ["C/4"], // High percussion
+    notehead: "x",
+    stemDirection: 1,
+    midi: 60, // High Bongo
+    filename: "BONGOHI.wav",
+  },
+  "claves": {
+    name: "Claves",
+    keys: ["G/4"], // Common position for claves
+    notehead: "x",
+    stemDirection: 1,
+    midi: 75, // Claves
+    filename: "claves.wav",
+  },
 };
 
 /**
