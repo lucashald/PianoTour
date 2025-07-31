@@ -6,7 +6,7 @@
 // ===================================================================
 import { drumsState } from "../core/appState.js";
 import { updateNowPlayingDisplay } from '../ui/uiHelpers.js';
-import { saveToLocalStorage } from '../utils/ioHelpers.js';
+// import { saveToLocalStorage } from '../utils/ioHelpers.js'; // This import is no longer needed if saveDrums handles it directly
 import { drawAll as drawAllDrums } from './drumRenderer.js';
 import { DRUM_INSTRUMENT_MAP } from '../core/drum-data.js';
 
@@ -15,15 +15,15 @@ import { DRUM_INSTRUMENT_MAP } from '../core/drum-data.js';
 // ===================================================================
 
 const BEAT_VALUES = {
-  w: 4, "w.": 6,          // Whole, Dotted Whole
-  h: 2, "h.": 3,          // Half, Dotted Half
-  q: 1, "q.": 1.5,        // Quarter, Dotted Quarter
-  "8": 0.5, "8.": 0.75,   // Eighth, Dotted Eighth
-  "16": 0.25, "16.": 0.375, // Sixteenth, Dotted Sixteenth
-  "32": 0.125, "32.": 0.1875 // Thirty-second, Dotted Thirty-second
+    w: 4, "w.": 6,          // Whole, Dotted Whole
+    h: 2, "h.": 3,          // Half, Dotted Half
+    q: 1, "q.": 1.5,        // Quarter, Dotted Quarter
+    "8": 0.5, "8.": 0.75,   // Eighth, Dotted Eighth
+    "16": 0.25, "16.": 0.375, // Sixteenth, Dotted Sixteenth
+    "32": 0.125, "32.": 0.1875 // Thirty-second, Dotted Thirty-second
 };
 
-const AUTOSAVE_KEY = 'autosavedDrumScore';
+export const AUTOSAVE_KEY = 'autosavedDrumScore'; // Exported for external use
 const MAX_HISTORY = 20;
 
 // ===================================================================
@@ -88,7 +88,7 @@ function durationToBeats(duration) {
 /**
  * Gets the maximum beats allowed per measure based on time signature.
  * @returns {number} Maximum beats per measure.
- */
+*/
 function getMaxBeatsPerMeasure() {
     return drumsState.timeSignature.numerator;
 }
@@ -165,8 +165,8 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
         // If explicitMeasureIndex is provided (e.g., for `addDrumMeasure` or drag/drop to a specific measure), use it.
         // Otherwise, use the internally tracked `currentIndex`.
         const actualTargetMeasureIndex = (explicitMeasureIndex !== undefined && explicitMeasureIndex !== null)
-                                       ? explicitMeasureIndex
-                                       : currentIndex;
+                                        ? explicitMeasureIndex
+                                        : currentIndex;
         console.log(`Actual measure index for operation: ${actualTargetMeasureIndex}`);
 
 
@@ -244,8 +244,6 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
 
         // Check for measure overflow
         if (totalBeatsAfterInsert > maxBeats) {
-            console.warn(`doAddNote: Adding note would cause overflow (${totalBeatsAfterInsert} > ${maxBeats}). Creating new measure.`);
-
             // Create new measure at the end
             const newMeasureIndex = measuresData.length;
             noteToInsert.measure = newMeasureIndex; // Update the measure property of the note
@@ -257,9 +255,6 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
 
             console.log(`New measure created at index ${newMeasureIndex}.`);
             console.log(`Updated global state: currentIndex=${currentIndex}, currentDrumBeats=${currentDrumBeats}`);
-
-            updateNowPlayingDisplay(`Measure ${actualTargetMeasureIndex + 1} overflowed. New note added to measure ${newMeasureIndex + 1}.`);
-            console.log(`--- doAddNote Call End (Overflow handled) ---`);
             return true;
         } else {
             // No overflow, insert into existing measure
@@ -278,6 +273,7 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
             }
 
             updateNowPlayingDisplay(noteToInsert.drumInstrument);
+            handleSideEffects();
             console.log(`--- doAddNote Call End (Note added to existing measure) ---`);
             return true;
         }
@@ -419,7 +415,8 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
 function handleSideEffects() {
     try {
         drawAllDrums(measuresData);
-        saveToLocalStorage(AUTOSAVE_KEY, measuresData);
+        // saveToLocalStorage(AUTOSAVE_KEY, measuresData); // This was the old way, now saveDrums will be called explicitly
+        saveDrums(); // Call the new saveDrums function
     } catch (error) {
         console.error('handleSideEffects: Error handling side effects', error);
     }
@@ -450,8 +447,8 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
         handleSideEffects();
         // Determine the actual measure where the note was placed for the return value
         const actualMeasureIndex = (measureIndex !== undefined && measureIndex !== null)
-                                   ? measureIndex
-                                   : currentIndex;
+                                    ? measureIndex
+                                    : currentIndex;
         console.log(`addNoteToMeasure: Success. Current beats: ${currentDrumBeats}. Actual measure index where note was placed: ${actualMeasureIndex}`);
         return { noteId: noteData.id, measureIndex: actualMeasureIndex };
     } else {
@@ -568,7 +565,7 @@ export function undoLastWrite() {
         updateNowPlayingDisplay('Undid last action');
         console.log('undoLastWrite: Success');
     } else if (history.length === 1) {
-        resetScore(); // If only one state, reset to initial empty state
+        resetDrumScore(); // If only one state, reset to initial empty state
         updateNowPlayingDisplay('Score reset');
         console.log('undoLastWrite: Score reset (only one state in history)');
     } else {
@@ -580,8 +577,8 @@ export function undoLastWrite() {
 /**
  * Resets the entire score.
  */
-export function resetScore() {
-    console.log('resetScore: Resetting score');
+export function resetDrumScore() {
+    console.log('resetDrumScore: Resetting score');
     
     measuresData = [];
     currentIndex = 0;
@@ -596,7 +593,7 @@ export function resetScore() {
     updateNowPlayingDisplay('');
     drawAllDrums(measuresData);
     
-    console.log('resetScore: Complete');
+    console.log('resetDrumScore: Complete');
 }
 
 /**
@@ -655,6 +652,23 @@ export function getDrumMeasures() {
 export function getCurrentDrumMeasureIndex() {
     return currentIndex;
 }
+
+/**
+ * Saves the current drum score to local storage.
+ * This function is now the dedicated way to save drum scores.
+ */
+export function saveDrums() {
+    console.log("Attempting to save drum score to local storage...");
+    try {
+        const drumScoreToSave = getDrumMeasures(); // Get the current drum measures data
+        const drumScoreJSON = JSON.stringify(drumScoreToSave); // Convert to JSON string
+        localStorage.setItem(AUTOSAVE_KEY, drumScoreJSON); // Save using the defined key
+        console.log("✅ Drum score saved successfully to local storage.");
+    } catch (error) {
+        console.error("❌ Error saving drum score to local storage:", error);
+    }
+}
+
 
 // ===================================================================
 // Event Listeners (These remain the same, as they dispatch, not directly call)

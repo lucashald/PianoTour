@@ -258,6 +258,8 @@
       import { drumsState } from '{{ url_for("static", filename="js/core/appState.js") }}';
       import {
         getDrumMeasures,
+        AUTOSAVE_KEY,
+        resetDrumScore,
         processAndSyncScore as processAndSyncDrumScore,
       } from '{{ url_for("static", filename="js/drums/drumsScoreWriter.js") }}';
       import { drawAll as drawAllDrums } from '{{ url_for("static", filename="js/drums/drumRenderer.js") }}';
@@ -411,6 +413,7 @@
 
       async function loadScoreFromStorage() {
         const savedScoreJSON = localStorage.getItem("autosavedScore");
+        
         if (!savedScoreJSON) {
           console.log("📝 No saved piano score found");
           return;
@@ -438,7 +441,7 @@
       }
 
       async function loadDrumScoreFromStorage() {
-        const savedDrumScoreJSON = localStorage.getItem("autosavedDrumScore");
+        const savedDrumScoreJSON = localStorage.getItem(AUTOSAVE_KEY);
         if (!savedDrumScoreJSON) {
           console.log("📝 No saved drum score found");
           return;
@@ -624,7 +627,7 @@
       function setupDrumEventHandlers() {
         document
           .getElementById("clear-drum-score-btn")
-          .addEventListener("click", handleClearDrumScore);
+          .addEventListener("click", resetDrumScore);
         document
           .getElementById("undo-drum-btn")
           .addEventListener("click", handleUndoDrum);
@@ -639,11 +642,6 @@
         // This function performs undo for BOTH piano and drum scores.
         undoLastWrite(); // Piano
         undoDrumLastWrite(); // Drum
-      }
-
-      // Drum-specific handlers
-      function handleClearDrumScore() {
-        resetDrumScore();
       }
 
       function handleUndoDrum() {
