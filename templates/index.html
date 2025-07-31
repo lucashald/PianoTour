@@ -12,7 +12,10 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/editor.css') }}"
     />
-    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/favicon.ico') }}"
+    />
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
     {% block head_extra %}{% endblock %}
@@ -28,18 +31,17 @@
     <div class="piano-app">
       {% if show_side_panel %}
       <aside class="piano-app__side-panel">
-        {% block editor %}{% endblock %}
-        {% block extras %}{% endblock %}
+        {% block editor %}{% endblock %} {% block extras %}{% endblock %}
       </aside>
-      {% endif %} 
+      {% endif %}
 
       <main class="piano-app__content-area">
         <header class="piano-app__header">
           <h1 class="piano-app__header-title">Piano Tour</h1>
         </header>
 
-        {% block player %} {% include 'partials/_player.html' %} {% endblock %} {% block
-        palette %}{% endblock %}
+        {% block player %} {% include 'partials/_player.html' %} {% endblock %}
+        {% block palette %}{% endblock %}
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
         <section class="score-viewer">
           <div class="score-viewer__container" id="scoreWrap">
@@ -50,6 +52,7 @@
         <section class="instrument-panel">
           {% block spectrum %} {% if not hide_spectrum %} {% include
           'partials/_spectrum.html' %} {% endif %} {% endblock %}
+          <div id="handOverlay" class="hidden"></div>
           <div class="instrument-panel__keyboard" id="instrument"></div>
         </section>
 
@@ -59,25 +62,23 @@
               Clear Score
             </button>
             <button id="undo-btn" class="btn btn--danger">Undo</button>
-            <button id="mode-cycle-btn" class="btn btn--info">
-              Single Note
-            </button>
             <button id="key-signature-btn" class="btn btn--info">
               Key Signature
             </button>
-            {% block filehandler %} {% include 'partials/_filehandler.html' %} {%
-            endblock %}
-          </div>
-
-          <div class="main-controls__button-row">
             <label class="btn btn--toggle">
               <input
                 type="checkbox"
-                id="toggleLabelsCheckbox"
+                id="is-minor-key-btn"
                 class="hidden-input"
               />
-              <span>Label Keys</span>
+              <span id="minor-key-text">Major</span>
             </label>
+            {% block filehandler %} {% include 'partials/_filehandler.html' %}
+            {% endblock %}
+          </div>
+
+          <div class="main-controls__button-row">
+            {% block toggles %}{% endblock %}
             <button id="chord-display-toggle" class="btn btn--toggle">
               <span>Show Chords</span>
             </button>
@@ -88,13 +89,25 @@
             <a href="/editor" class="btn btn--info"><span>Open Editor</span></a>
             {% endif %}
             <a href="/print" class="btn btn--info"><span>Print</span></a>
-            {% if request.path != '/' %}<a href="/" class="btn btn--info"><span>Piano</span></a>{% endif %}
-
-            
-            {% if request.path != '/cello' %}<a href="/cello" class="btn btn--info"><span>Cello</span></a>{% endif %}
-            {% if request.path != '/sax' %}<a href="/sax" class="btn btn--info"><span>Sax</span></a>{% endif %}
-            {% if request.path != '/guitar' %}<a href="/guitar" class="btn btn--info"><span>Guitar</span></a>{% endif %}
-            {% if request.path != '/extras' %}<a href="/extras" class="btn btn--info"><span>Extras</span></a>{% endif %}
+            {% if request.path != '/' %}<a href="/" class="btn btn--info"
+              ><span>Piano</span></a
+            >{% endif %} {% if request.path != '/cello' %}<a
+              href="/cello"
+              class="btn btn--info"
+              ><span>Cello</span></a
+            >{% endif %} {% if request.path != '/sax' %}<a
+              href="/sax"
+              class="btn btn--info"
+              ><span>Sax</span></a
+            >{% endif %} {% if request.path != '/guitar' %}<a
+              href="/guitar"
+              class="btn btn--info"
+              ><span>Guitar</span></a
+            >{% endif %} {% if request.path != '/extras' %}<a
+              href="/extras"
+              class="btn btn--info"
+              ><span>Extras</span></a
+            >{% endif %}
           </div>
 
           <div class="main-controls__chord-interface hidden" id="chordButtons">
@@ -104,12 +117,16 @@
       </main>
     </div>
 
- <script type="module">
+    <script type="module">
       // --- All your common JavaScript from the original file goes here ---
       console.log("Main script execution started.");
       // Calculate scrollbar width and set it as a CSS variable
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      document.documentElement.style.setProperty('--scrollbar-width', `${scrollbarWidth}px`);
+      const scrollbarWidth =
+        window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.setProperty(
+        "--scrollbar-width",
+        `${scrollbarWidth}px`
+      );
       // --- COMMON IMPORTS (for base template) ---
       import {
         initializeInstrumentUI,
@@ -131,6 +148,7 @@
       import {
         handleChordDisplayToggle,
         handleKeySignatureClick,
+        updateUI,
       } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
       import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
       import { initializePlayer } from '{{ url_for("static", filename="js/score/scorePlayback.js") }}';
@@ -170,7 +188,6 @@
         audioManager.initializeAudioManager();
         console.log("✅ AudioManager initialized.");
 
-
         // Initialize lightweight components immediately
         initializeInstrumentUI();
         initializePlayer();
@@ -189,6 +206,10 @@
         } catch (e) {
           console.error("Initial render error:", e);
         }
+
+        updateUI("Click any piano key to begin", {
+          updateKeySignature: true,
+        });
 
         // Mark base as initialized
         window.pianoTourInitState.baseInitialized = true;
@@ -381,12 +402,15 @@
         pianoState.unlock = async () => {
           // No longer using pianoState.midiInitialized as a direct gate for audio unlock
           // audioManager handles the core audio unlock, and MIDI setup can follow that.
-          
-          console.log("🔓 Attempting to unlock audio and initialize MIDI via audioManager...");
-          
+
+          console.log(
+            "🔓 Attempting to unlock audio and initialize MIDI via audioManager..."
+          );
+
           const success = await audioManager.unlockAndExecute(() => {
             // This deferred action runs AFTER audio context is running and sampler is loaded
-            if (!pianoState.midiInitialized) { // Check midiInitialized here, after audio is confirmed ready
+            if (!pianoState.midiInitialized) {
+              // Check midiInitialized here, after audio is confirmed ready
               setMidiCallbacks({
                 onNoteOn: handleMidiNoteOn,
                 onNoteOff: handleMidiNoteOff,
@@ -398,13 +422,14 @@
           });
 
           if (success) {
-            console.log("✅ Audio and MIDI systems are now live (or were already).");
+            console.log(
+              "✅ Audio and MIDI systems are now live (or were already)."
+            );
           } else {
             console.warn("❌ Failed to initialize audio/MIDI system.");
           }
         };
       }
-
 
       function setupEventHandlers() {
         // Debounced resize handler to prevent layout thrashing
@@ -425,11 +450,6 @@
             id: "toggleLabelsCheckbox",
             event: "change",
             handler: handleToggleLabelsChange,
-          },
-          {
-            id: "mode-cycle-btn",
-            event: "click",
-            handler: handleModeCycleClick,
           },
           {
             id: "chord-display-toggle",

@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Interactive Piano Studio with Drums{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/pianostyles.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/drumstyles.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/favicon.ico') }}"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
+    {% block head_extra %}{% endblock %}
+    
+  </head>
+  <body id="page-instrument">
+    <audio id="unlock-audio" preload="auto" style="display: none">
+      <source
+        src="{{ url_for('static', filename='silence.mp3') }}"
+        type="audio/mpeg"
+      />
+    </audio>
+
+    <div class="piano-app">
+      {% if show_side_panel %}
+      <aside class="piano-app__side-panel">
+        {% block editor %}{% endblock %} {% block extras %}{% endblock %}
+      </aside>
+      {% endif %}
+
+      <main class="piano-app__content-area">
+        <header class="piano-app__header">
+          <h1 class="piano-app__header-title">Piano Tour</h1>
+        </header>
+        <button
+          id="play-drums-score-btn"
+          class="btn btn--primary playback-controls__button"
+        >
+          ▶ Play
+        </button>
+
+        <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
+
+        <section class="score-viewer">
+          <div class="score-viewer__container" id="scoreWrap">
+            <div class="score-viewer__content" id="score"></div>
+          </div>
+        </section>
+
+        <section class="instrument-panel">
+          {% block spectrum %} {% if not hide_spectrum %} {% include
+          'partials/_spectrum.html' %} {% endif %} {% endblock %}
+          <div class="instrument-panel__keyboard" id="instrument"></div>
+        </section>
+
+        <section class="score-viewer">
+          <div class="drums-score-viewer__container" id="drums-score-wrap">
+            <div class="drums-score-viewer__content" id="drums-score"></div>
+          </div>
+        </section>
+
+        
+    <div class="drum-controls">
+
+      <div class="drum-controls__section">
+        <h4 class="drum-controls__section-title">Drum Instruments & Duration</h4>
+        <div class="drum-switches-container" id="drumButtonContainer">
+          <div class="drum-step-button" data-drum="kick">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Kick</span>
+          </div>
+          <div class="drum-step-button" data-drum="snare">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Snare</span>
+          </div>
+          <div class="drum-step-button" data-drum="tom-high">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">High Tom</span>
+          </div>
+          <div class="drum-step-button" data-drum="tom-low">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Low Tom</span>
+          </div>
+
+          <div class="drum-step-button" data-drum="hihat-closed">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Hi-Hat</span>
+          </div>
+          <div class="drum-step-button" data-drum="hihat-open">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Open Hat</span>
+          </div>
+          <div class="drum-step-button" data-drum="crash">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Crash</span>
+          </div>
+          <div class="drum-step-button" data-drum="ride">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Ride</span>
+          </div>
+
+          <div class="drum-step-button" data-drum="clap">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Clap</span>
+          </div>
+          <div class="drum-step-button" data-drum="cowbell">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Cowbell</span>
+          </div>
+          <div class="drum-step-button" data-drum="conga">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Conga</span>
+          </div>
+          <div class="drum-step-button" data-drum="cymbal">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Cymbal</span>
+          </div>
+
+          <div class="drum-step-button" data-duration="16" id="drum-sixteenth-btn-new">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">16th</span>
+          </div>
+          <div class="drum-step-button" data-duration="8" id="drum-eighth-btn-new">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">8th</span>
+          </div>
+          <div class="drum-step-button" data-duration="q" id="drum-quarter-btn-new">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Quarter</span>
+          </div>
+          <div class="drum-step-button" data-duration="h" id="drum-half-btn-new">
+            <div class="indicator"></div>
+            <span class="drum-step-button-label">Half</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="drum-controls__section">
+        <div class="drum-controls__button-row drum-controls__button-row--centered">
+
+
+        </div>
+      </div>
+    </div>
+
+        <nav class="main-controls">
+          <div class="main-controls__button-row">
+            <button id="clearScoreBtn" class="btn btn--danger">
+              Clear Piano Score
+            </button>
+            <button id="clear-drum-score-btn" class="btn btn--danger">
+            Clear Drum Score
+          </button>
+            <button id="undo-btn" class="btn btn--danger">Undo Piano</button>
+                      <button id="undo-drum-btn" class="btn btn--danger">
+            Undo Drum
+          </button>
+            <button id="key-signature-btn" class="btn btn--info">
+              Key Signature
+            </button>
+            <label class="btn btn--toggle">
+              <input
+                type="checkbox"
+                id="is-minor-key-btn"
+                class="hidden-input"
+              />
+              <span id="minor-key-text">Major</span>
+            </label>
+          </div>
+
+          <div class="main-controls__button-row">
+            {% block toggles %}{% endblock %}
+            {% if request.path != '/' %}<a href="/" class="btn btn--info"
+              ><span>Piano</span></a
+            >{% endif %} {% if request.path != '/cello' %}<a
+              href="/cello"
+              class="btn btn--info"
+              ><span>Cello</span></a
+            >{% endif %} {% if request.path != '/sax' %}<a
+              href="/sax"
+              class="btn btn--info"
+              ><span>Sax</span></a
+            >{% endif %} {% if request.path != '/guitar' %}<a
+              href="/guitar"
+              class="btn btn--info"
+              ><span>Guitar</span></a
+            >{% endif %} {% if request.path != '/extras' %}<a
+              href="/extras"
+              class="btn btn--info"
+              ><span>Extras</span></a
+            >{% endif %}
+            <div
+              class="main-controls__chord-interface hidden"
+              id="chordButtons"
+            >
+              <div id="CHORD_GROUPSContainer"></div>
+            </div>
+          </div>
+        </nav>
+      </main>
+    </div>
+
+
+
+
+    <script type="module">
+      // --- All your common JavaScript from the original file goes here ---
+      console.log("Main script execution started.");
+      // Calculate scrollbar width and set it as a CSS variable
+      const scrollbarWidth =
+        window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.setProperty(
+        "--scrollbar-width",
+        `${scrollbarWidth}px`
+      );
+
+      // --- PIANO IMPORTS ---
+      import {
+        initializeInstrumentUI,
+        handleToggleLabelsChange,
+        handleModeCycleClick,
+      } from '{{ url_for("static", filename="js/instrument/instrumentHelpers.js") }}';
+      import {
+        getMeasures,
+        resetScore,
+        processAndSyncScore,
+        undoLastWrite,
+      } from '{{ url_for("static", filename="js/score/scoreWriter.js") }}';
+      import {
+        drawAll,
+        setKeySignature,
+      } from '{{ url_for("static", filename="js/score/scoreRenderer.js") }}';
+      import { initializeFileHandlers } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
+      import {
+        handleChordDisplayToggle,
+        handleKeySignatureClick,
+        updateUI,
+      } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
+      import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+      import { initializePlayer } from '{{ url_for("static", filename="js/score/scorePlayback.js") }}';
+      import {
+        initMidi,
+        setMidiCallbacks,
+        handleMidiNoteOn,
+        handleMidiNoteOff,
+      } from '{{ url_for("static", filename="js/instrument/midi-controller.js") }}';
+      import audioManager from '{{ url_for("static", filename="js/core/audioManager.js") }}';
+
+      // --- DRUM IMPORTS ---
+      import { drumsState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+      import {
+        getDrumMeasures,
+        AUTOSAVE_KEY,
+        resetDrumScore,
+        processAndSyncScore as processAndSyncDrumScore,
+      } from '{{ url_for("static", filename="js/drums/drumsScoreWriter.js") }}';
+      import { drawAll as drawAllDrums } from '{{ url_for("static", filename="js/drums/drumRenderer.js") }}';
+
+      // NEW: Import the drumAudio module
+      import {
+        initializeDrumAudioModule,
+        handleDrumPlayback, // Now handled by drumAudio.js
+      } from '{{ url_for("static", filename="js/drums/drumAudio.js") }}';
+
+      document.addEventListener("DOMContentLoaded", () => {
+        // Moved setupDrumPlaybackButton and setupDrumControls into initializeDrumAudioModule
+        // initializeDrumAudioModule now encapsulates all drum-related listeners and setup
+        initializeDrumAudioModule();
+        initializeImmediateUI();
+
+        // PHASE 2: Defer heavy operations to next tick
+        setTimeout(() => {
+          initializeHeavyComponents();
+        }, 0);
+
+        // Attach click listeners to the new drum buttons
+        document.querySelectorAll(".drum-step-button").forEach((button) => {
+          button.addEventListener("click", function () {
+            // Determine if it's a drum instrument or a duration button
+            const drumType = this.dataset.drum;
+            const durationType = this.dataset.duration;
+
+            if (drumType) {
+              console.log(`Drum button clicked: ${drumType}`);
+              // You'll need to dispatch a custom event or call a function
+              // that your drum scoring logic can listen to.
+              document.dispatchEvent(
+                new CustomEvent("drumInstrumentSelected", {
+                  detail: drumType,
+                })
+              );
+            } else if (durationType) {
+              // Toggle the 'active' class for visual feedback for duration buttons only
+              this.classList.toggle("active");
+              console.log(`Duration button clicked: ${durationType}`);
+              // You'll need to dispatch a custom event or call a function
+              // that your drum scoring logic can listen to.
+              // Also, ensure only one duration button is active at a time.
+              document
+                .querySelectorAll(".drum-step-button[data-duration]")
+                .forEach((durBtn) => {
+                  if (durBtn !== this) {
+                    durBtn.classList.remove("active");
+                  }
+                });
+              document.dispatchEvent(
+                new CustomEvent("drumDurationSelected", {
+                  detail: durationType,
+                })
+              );
+            }
+          });
+        });
+        // Set initial active state for a duration button (e.g., Quarter)
+        const initialDurationButton = document.querySelector(
+          '.drum-step-button[data-duration="q"]'
+        );
+        if (initialDurationButton) {
+          initialDurationButton.classList.add("active");
+        }
+      });
+
+      // Removed old setupDrumPlaybackButton and handleDrumPlayback from here
+      // These are now managed within drumAudio.js
+
+      // Removed old setupDrumControls function from here
+      // Its functionality is now integrated into initializeDrumAudioModule
+
+      function initializeImmediateUI() {
+        setInitialDimensions();
+        audioManager.initializeAudioManager();
+        console.log("✅ AudioManager initialized.");
+        initializeInstrumentUI();
+        initializePlayer();
+        initializeFileHandlers();
+        setupEventHandlers();
+        setupDrumEventHandlers(); // New function for drum-specific event handlers
+        showLoadingScore();
+        showLoadingDrumScore();
+        try {
+          drawAll([]); // Piano score
+          drawAllDrums([]); // Drum score
+          console.log("✅ Initial layout established for both scores");
+        } catch (e) {
+          console.error("Initial render error:", e);
+        }
+        updateUI("Click any piano key to begin", { updateKeySignature: true });
+        document.dispatchEvent(new CustomEvent("pianoTourBaseReady"));
+      }
+
+      function setInitialDimensions() {
+        const root = document.documentElement;
+        const vw = Math.max(
+          document.documentElement.clientWidth || 0,
+          window.innerWidth || 0
+        );
+        const vh = Math.max(
+          document.documentElement.clientHeight || 0,
+          window.innerHeight || 0
+        );
+        root.style.setProperty("--score-min-width", Math.min(vw * 0.9, 1100) + "px");
+        root.style.setProperty("--score-min-height", "400px");
+        root.style.setProperty(
+          "--instrument-min-width",
+          Math.min(vw * 0.9, 1040) + "px"
+        );
+        root.style.setProperty("--instrument-min-height", "120px");
+        console.log("📐 Initial dimensions set");
+      }
+
+      function showLoadingScore() {
+        const scoreElement = document.getElementById("score");
+        if (scoreElement) {
+          scoreElement.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; min-height: 200px; color: #666; font-style: italic;">
+            <span>🎼 Loading your piano score...</span>
+          </div>
+          `;
+        }
+      }
+
+      function showLoadingDrumScore() {
+        const drumScoreElement = document.getElementById("drums-score");
+        if (drumScoreElement) {
+          drumScoreElement.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; min-height: 200px; color: #666; font-style: italic;">
+            <span>🥁 Loading your drum score...</span>
+          </div>
+          `;
+        }
+      }
+
+      async function initializeHeavyComponents() {
+        console.log("⚡ Starting heavy component initialization...");
+        try {
+          await loadScoreFromStorage();
+          await loadDrumScoreFromStorage();
+          setupUnlockSystem();
+          document.dispatchEvent(new CustomEvent("pianoTourHeavyReady"));
+          console.log("✅ Heavy components initialized");
+        } catch (error) {
+          console.error("❌ Error in heavy initialization:", error);
+        }
+      }
+
+      async function loadScoreFromStorage() {
+        const savedScoreJSON = localStorage.getItem("autosavedScore");
+        
+        if (!savedScoreJSON) {
+          console.log("📝 No saved piano score found");
+          return;
+        }
+        try {
+          updateLoadingMessage("🔄 Loading saved piano score...");
+          const savedData = await parseJSONAsync(savedScoreJSON);
+          const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+          if (processAndSyncScore(measures)) {
+            if (!Array.isArray(savedData)) {
+              applyScoreMetadata(savedData);
+            }
+            updateLoadingMessage("🎨 Rendering piano score...");
+            await renderScoreAsync(getMeasures());
+            console.log("✅ Piano score loaded successfully");
+          } else {
+            localStorage.removeItem("autosavedScore");
+            console.log("⚠️ Invalid piano score data, cleared");
+          }
+        } catch (e) {
+          console.error("❌ Failed to load piano score:", e);
+          localStorage.removeItem("autosavedScore");
+          updateLoadingMessage("❌ Error loading piano score");
+        }
+      }
+
+      async function loadDrumScoreFromStorage() {
+        const savedDrumScoreJSON = localStorage.getItem(AUTOSAVE_KEY);
+        if (!savedDrumScoreJSON) {
+          console.log("📝 No saved drum score found");
+          return;
+        }
+        try {
+          updateDrumLoadingMessage("🔄 Loading saved drum score...");
+          const savedData = await parseJSONAsync(savedDrumScoreJSON);
+          const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+          if (processAndSyncDrumScore(measures)) {
+            if (!Array.isArray(savedData)) {
+              applyDrumScoreMetadata(savedData);
+            }
+            updateDrumLoadingMessage("🎨 Rendering drum score...");
+            await renderDrumScoreAsync(getDrumMeasures());
+            console.log("✅ Drum score loaded successfully");
+          } else {
+            localStorage.removeItem("autosavedDrumScore");
+            console.log("⚠️ Invalid drum score data, cleared");
+          }
+        } catch (e) {
+          console.error("❌ Failed to load drum score:", e);
+          localStorage.removeItem("autosavedDrumScore");
+          updateDrumLoadingMessage("❌ Error loading drum score");
+        }
+      }
+
+      function parseJSONAsync(jsonString) {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            try {
+              const result = JSON.parse(jsonString);
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          }, 0);
+        });
+      }
+
+      function renderScoreAsync(measures) {
+        return new Promise((resolve) => {
+          requestAnimationFrame(() => {
+            try {
+              drawAll(measures);
+              resolve();
+            } catch (error) {
+              console.error("Piano render error:", error);
+              resolve();
+            }
+          });
+        });
+      }
+
+      function renderDrumScoreAsync(measures) {
+        return new Promise((resolve) => {
+          requestAnimationFrame(() => {
+            try {
+              drawAllDrums(measures);
+              resolve();
+            } catch (error) {
+              console.error("Drum render error:", error);
+              resolve();
+            }
+          });
+        });
+      }
+
+      function applyScoreMetadata(savedData) {
+        const keySignature = savedData.keySignature || "C";
+        const isMinorChordMode = savedData.isMinorChordMode || false;
+        const title = savedData.isMinorChordMode || null;
+        setKeySignature(keySignature);
+        pianoState.isMinorChordMode = isMinorChordMode;
+        console.log(
+          `🎹 Applied piano metadata: ${keySignature}, Minor: ${isMinorChordMode}`
+        );
+        if (title) {
+          console.log(`📄 Piano score title: ${title}`);
+        }
+      }
+
+      function applyDrumScoreMetadata(savedData) {
+        const keySignature = savedData.keySignature || "C";
+        const isMinorChordMode = savedData.isMinorChordMode || false;
+        const title = savedData.title || null;
+        drumsState.isMinorChordMode = isMinorChordMode;
+        console.log(
+          `🥁 Applied drum metadata: ${keySignature}, Minor: ${isMinorChordMode}`
+        );
+        if (title) {
+          console.log(`📄 Drum score title: ${title}`);
+        }
+      }
+
+      function updateLoadingMessage(message) {
+        const scoreElement = document.getElementById("score");
+        if (scoreElement && scoreElement.innerHTML.includes("Loading")) {
+          scoreElement.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; min-height: 200px; color: #666; font-style: italic;">
+            <span>${message}</span>
+          </div>
+          `;
+        }
+      }
+
+      function updateDrumLoadingMessage(message) {
+        const drumScoreElement = document.getElementById("drums-score");
+        if (drumScoreElement && drumScoreElement.innerHTML.includes("Loading")) {
+          drumScoreElement.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; min-height: 200px; color: #666; font-style: italic;">
+            <span>${message}</span>
+          </div>
+          `;
+        }
+      }
+
+      function setupUnlockSystem() {
+        pianoState.unlock = async () => {
+          console.log(
+            "🔓 Attempting to unlock audio and initialize MIDI via audioManager..."
+          );
+          const success = await audioManager.unlockAndExecute(() => {
+            if (!pianoState.midiInitialized) {
+              setMidiCallbacks({
+                onNoteOn: handleMidiNoteOn,
+                onNoteOff: handleMidiNoteOff,
+              });
+              initMidi();
+              pianoState.midiInitialized = true;
+              console.log("🎵 MIDI systems initialized.");
+            }
+          });
+          if (success) {
+            console.log("✅ Audio and MIDI systems are now live (or were already).");
+          } else {
+            console.warn("❌ Failed to initialize audio/MIDI system.");
+          }
+        };
+      }
+
+      function setupEventHandlers() {
+        let resizeTimeout;
+        window.addEventListener("resize", () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            console.log("📏 Handling resize...");
+            drawAll(getMeasures()); // Piano resize
+            drawAllDrums(getDrumMeasures()); // Drum resize
+          }, 150);
+        });
+        const eventHandlers = [
+          { id: "clearScoreBtn", event: "click", handler: handleClearScore },
+          { id: "undo-btn", event: "click", handler: handleUndo },
+          {
+            id: "toggleLabelsCheckbox",
+            event: "change",
+            handler: handleToggleLabelsChange,
+          },
+          {
+            id: "chord-display-toggle",
+            event: "click",
+            handler: handleChordDisplayToggle,
+          },
+          {
+            id: "key-signature-btn",
+            event: "click",
+            handler: handleKeySignatureClick,
+          },
+        ];
+        eventHandlers.forEach(({ id, event, handler }) => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.addEventListener(event, (e) => {
+              e.preventDefault();
+              handler(e);
+              document.getElementById("instrument")?.focus();
+            });
+          }
+        });
+      }
+
+      // New function to handle drum-specific event listeners
+      function setupDrumEventHandlers() {
+        document
+          .getElementById("clear-drum-score-btn")
+          .addEventListener("click", resetDrumScore);
+        document
+          .getElementById("undo-drum-btn")
+          .addEventListener("click", handleUndoDrum);
+      }
+
+      function handleClearScore(e) {
+        // This function clears BOTH piano and drum scores.
+        resetScore(); // Piano
+      }
+
+      function handleUndo(e) {
+        // This function performs undo for BOTH piano and drum scores.
+        undoLastWrite(); // Piano
+        undoDrumLastWrite(); // Drum
+      }
+
+      function handleUndoDrum() {
+        undoDrumLastWrite();
+      }
+    </script>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

@@ -112,6 +112,11 @@ def sax():
     """Guitar instrument route"""
     return render_template('sax.html', instrument='sax')
 
+@app.route('/drums')
+def drums():
+    """Drums instrument route"""
+    return render_template('drums.html')
+
 
 @app.route('/player')
 def player():
@@ -221,68 +226,110 @@ import jsonschema
 from jsonschema import validate
 
 # More permissive schema that allows ugly_midi to handle missing/invalid data
+# Updated schema to accept full object with metadata + measures
 SONG_DATA_SCHEMA = {
-    "type": "array",
-    "maxItems": 1000,
-    "items": {
-        "type": "array",
-        "maxItems": 100,
-        "items": {
+    "type": "object",
+    "properties": {
+        "keySignature": {
+            "type": "string",
+            "maxLength": 10
+        },
+        "tempo": {
+            "type": "number",
+            "minimum": 20,
+            "maximum": 300
+        },
+        "timeSignature": {
             "type": "object",
             "properties": {
-                "name": {
-                    "type": "string",
-                    "maxLength": 50
-                },  # More generous
-                "clef": {
-                    "type": "string",
-                    "maxLength": 20
-                },  # Allow invalid clefs
-                "duration": {
-                    "type": "string",
-                    "maxLength": 10
-                },
-                "isRest": {
-                    "type": "boolean"
-                },
-                "velocity": {
-                    "type": ["integer", "string"],
-                    "minimum": 0,
-                    "maximum": 127
-                },
-                "measure": {
-                    "type": ["integer", "string"],
-                    "minimum": 0
-                },
-                "id": {
-                    "type": "string",
-                    "maxLength": 100
-                }  # Allow IDs
+                "numerator": {"type": "integer", "minimum": 1, "maximum": 32},
+                "denominator": {"type": "integer", "minimum": 1, "maximum": 32}
             },
-            "required":
-            [],  # Don't require any fields - let ugly_midi handle defaults
-            "additionalProperties":
-            True  # Allow extra fields that ugly_midi might ignore
+            "required": ["numerator", "denominator"]
+        },
+        "instrument": {
+            "type": "string",
+            "maxLength": 50
+        },
+        "midiChannel": {
+            "type": ["integer", "string"],
+            "minimum": 0,
+            "maximum": 15
+        },
+        "isMinorChordMode": {
+            "type": "boolean"
+        },
+        "measures": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+                "type": "array",
+                "maxItems": 100,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "maxLength": 50
+                        },
+                        "clef": {
+                            "type": "string",
+                            "maxLength": 20
+                        },
+                        "duration": {
+                            "type": "string",
+                            "maxLength": 10
+                        },
+                        "isRest": {
+                            "type": "boolean"
+                        },
+                        "velocity": {
+                            "type": ["integer", "string"],
+                            "minimum": 0,
+                            "maximum": 127
+                        },
+                        "measure": {
+                            "type": ["integer", "string"],
+                            "minimum": 0
+                        },
+                        "id": {
+                            "type": "string",
+                            "maxLength": 100
+                        }
+                    },
+                    "required": [],
+                    "additionalProperties": True
+                }
+            }
         }
-    }
+    },
+    "required": ["measures"],
+    "additionalProperties": True
 }
 
 
 def sanitize_for_ugly_midi(song_data):
     """
-    Light sanitization that prevents obvious attacks while preserving ugly_midi's flexibility
+    Sanitize full object structure with metadata + measures
     """
-    if not isinstance(song_data, list):
-        raise ValueError("Song data must be an array of measures")
+    if not isinstance(song_data, dict):
+        raise ValueError("Song data must be an object with metadata and measures")
+    
+    if "measures" not in song_data:
+        raise ValueError("Song data must contain a 'measures' array")
+    
+    measures = song_data["measures"]
+    if not isinstance(measures, list):
+        raise ValueError("Measures must be an array")
 
-    sanitized = []
-    for measure_idx, measure in enumerate(song_data[:1000]):  # Limit measures
+    # Sanitize the measures array (keeping your existing logic)
+    sanitized_measures = []
+    for measure_idx, measure in enumerate(measures[:1000]):  # Limit measures
         if not isinstance(measure, list):
             continue
 
         sanitized_measure = []
-        for note_idx, note in enumerate(
-                measure[:100]):  # Limit notes per measure
+        for note_idx, note in enumerate(measure[:100]):  # Limit notes per measure
             if not isinstance(note, dict):
                 continue
 
@@ -300,9 +347,21 @@ def sanitize_for_ugly_midi(song_data):
                 # Ignore complex objects/arrays to prevent injection
 
             sanitized_measure.append(sanitized_note)
-        sanitized.append(sanitized_measure)
+        sanitized_measures.append(sanitized_measure)
 
-    return sanitized
+    # Create the sanitized object with metadata preserved
+    sanitized_data = {
+        "measures": sanitized_measures,
+        # Preserve metadata fields with basic sanitization
+        "keySignature": str(song_data.get("keySignature", "C"))[:10],
+        "tempo": max(20, min(300, float(song_data.get("tempo", 120)))),
+        "timeSignature": song_data.get("timeSignature", {"numerator": 4, "denominator": 4}),
+        "instrument": str(song_data.get("instrument", "piano"))[:50],
+        "midiChannel": int(song_data.get("midiChannel", 0)),
+        "isMinorChordMode": bool(song_data.get("isMinorChordMode", False))
+    }
+
+    return sanitized_data
 
 
 @app.route('/convert-to-midi', methods=['POST'])
@@ -311,12 +370,16 @@ def convert_to_midi():
     try:
         # Check content type
         if not request.is_json:
-            return jsonify({'error':
-                            'Content-Type must be application/json'}), 400
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
 
         song_data = request.get_json()
         if not song_data:
             return jsonify({'error': 'No song data provided'}), 400
+
+        # Add debug logging
+        logger.info(f"Received object with keys: {list(song_data.keys()) if isinstance(song_data, dict) else 'Not a dict'}")
+        if isinstance(song_data, dict) and 'measures' in song_data:
+            logger.info(f"Found {len(song_data['measures'])} measures")
 
         # Check size limits
         if len(str(song_data)) > 1024 * 1024:  # 1MB limit
@@ -326,16 +389,18 @@ def convert_to_midi():
         try:
             validate(instance=song_data, schema=SONG_DATA_SCHEMA)
         except jsonschema.exceptions.ValidationError as e:
-            return jsonify({'error':
-                            f'Invalid song data format: {str(e)}'}), 400
+            logger.error(f"Schema validation failed: {str(e)}")
+            return jsonify({'error': f'Invalid song data format: {str(e)}'}), 400
 
         # Sanitize input
         try:
             sanitized_data = sanitize_for_ugly_midi(song_data)
         except ValueError as e:
+            logger.error(f"Sanitization failed: {str(e)}")
             return jsonify({'error': str(e)}), 400
 
-        # Process with ugly_midi
+        # Process with ugly_midi - you may need to pass just the measures or the full object
+        # depending on what your ugly_midi library expects
         midi_data = ugly_midi.json_to_midi(sanitized_data)
 
         # Create secure temporary file

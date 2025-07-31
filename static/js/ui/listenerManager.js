@@ -18,6 +18,8 @@ import {
   handleKeyUp,
 } from "../instrument/keyboardHelpers.js";
 
+import { toggleIsMinorKey } from "../ui/uiHelpers.js";
+
 // Module-level variable to store instrumentDiv reference
 let instrumentDiv;
 
@@ -28,6 +30,7 @@ let instrumentDiv;
 export function setInstrumentDiv(div) {
   instrumentDiv = div;
 }
+
 
 /**
  * Adds basic keyboard listeners for initial audio unlock
@@ -43,6 +46,10 @@ export function addAdvancedKeyboardListeners() {
   document.addEventListener("keydown", handleKeyDown);
   document.addEventListener("keyup", handleKeyUp);
   document.removeEventListener("keydown", handleInitialKeyboard);
+if (pianoState.overlay) {
+  pianoState.overlay.addEventListener("pointerdown", startSliderDrag);
+  pianoState.overlay.classList.remove("hidden"); // Add this line
+}
 }
 
 /**
@@ -54,12 +61,17 @@ export function addBasicInstrumentListeners() {
     return;
   }
 
-  instrumentDiv.addEventListener("pointerdown", handleInitial, { 
-    once: true, 
-    passive: false 
-  });
-  instrumentDiv.addEventListener("click", handleInitial, { 
-    once: true 
+  // Get all piano key elements only
+  const pianoKeys = instrumentDiv.querySelectorAll('rect[data-midi]');
+  
+  pianoKeys.forEach(key => {
+    key.addEventListener("pointerdown", handleInitial, { 
+      once: true, 
+      passive: false 
+    });
+    key.addEventListener("click", handleInitial, { 
+      once: true 
+    });
   });
 }
 
@@ -76,12 +88,15 @@ export function addAdvancedInstrumentListeners() {
   pianoState.svg.addEventListener("pointermove", handlePointerMove);
   pianoState.svg.addEventListener("selectstart", (e) => e.preventDefault());
   pianoState.svg.addEventListener("contextmenu", (e) => e.preventDefault());
-  pianoState.overlay.addEventListener("pointerdown", startSliderDrag);
 
-  // Remove the initial one-time listeners
-  instrumentDiv.removeEventListener("click", handleInitial);
-  instrumentDiv.removeEventListener("pointerdown", handleInitial);
-  instrumentDiv.removeEventListener("touchstart", handleInitial);
+  // Remove the initial one-time listeners from piano keys only
+  const pianoKeys = instrumentDiv.querySelectorAll('rect[data-midi]');
+  
+  pianoKeys.forEach(key => {
+    key.removeEventListener("click", handleInitial);
+    key.removeEventListener("pointerdown", handleInitial);
+    key.removeEventListener("touchstart", handleInitial);
+  });
 }
 
 /**
@@ -94,6 +109,9 @@ export function addButtonListeners() {
   document
     .getElementById("mode-cycle-btn")
     ?.addEventListener("click", handleModeCycleClick);
+    document
+    .getElementById("is-minor-key-btn")
+    ?.addEventListener("click", toggleIsMinorKey);
   window.addEventListener("resize", handleWindowResize);
 
   console.log("Piano instrument UI initialized.");
@@ -107,7 +125,6 @@ export function addInstrumentDraggingListeners() {
   document.addEventListener("pointerup", () => {
     if (pianoState.isDragging) {
       pianoState.isDragging = false;
-      document.body.classList.remove("no-scroll");
       stopAllDragNotes();
       stopAllDragChords();
     }
@@ -117,7 +134,6 @@ export function addInstrumentDraggingListeners() {
   pianoState.svg.addEventListener("pointerleave", () => {
     if (pianoState.isDragging) {
       pianoState.isDragging = false;
-      document.body.classList.remove("no-scroll");
       stopAllDragNotes();
       stopAllDragChords();
     }

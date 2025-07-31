@@ -4,7 +4,6 @@ test-logs/
 test-results/
 tests/
 node_modules/
-static/samples/
 static/soundfonts/
 
 # Files to ignore

@@ -356,10 +356,14 @@ async function applyProcessedScore(processedScore) {
     }
 }
 
-// Load MIDI file (simpler since we don't have complex validation needs)
+// Load MIDI file with scoreManager processing (same as JSON files)
 async function loadMidiFile(file) {
     const formData = new FormData();
     formData.append('midiFile', file);
+    
+    // Show progress for all MIDI files since they need more processing
+    showProgressModal();
+    updateProgress(0, 1, 'Converting MIDI file...', 'Server processing');
    
     try {
         const response = await fetch('/convert-to-json', {
@@ -368,40 +372,119 @@ async function loadMidiFile(file) {
         });
        
         if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            
+            // Handle specific server errors gracefully
             if (response.status === 500) {
-                throw new Error(`Server error: ${response.status}`);
+                console.error('Server error during MIDI conversion:', errorData);
+                throw new Error('The MIDI file could not be processed. It may be too complex or corrupted.');
+            } else if (response.status === 413) {
+                throw new Error('The MIDI file is too large to process.');
+            } else if (response.status === 400) {
+                throw new Error(errorData.error || 'The MIDI file format is not supported.');
             }
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Server error: ${response.status}`);
+            
+            throw new Error(errorData.error || `Server error (${response.status}). Please try again.`);
         }
 
         const jsonDataFromServer = await response.json();
-        console.log("Raw server response:", jsonDataFromServer);
+        console.log("MIDI conversion successful, processing through scoreManager...");
+        
+        updateProgress(0.3, 1, 'Processing converted data...', 'Running validation');
 
-        // Set time signature if available in MIDI data
-        if (jsonDataFromServer.timeSignature) {
-            const ts = jsonDataFromServer.timeSignature;
-            if (!setTimeSignature(ts.numerator, ts.denominator)) {
-                console.warn('Failed to set time signature from MIDI, using default 4/4');
-                setTimeSignature(4, 4);
+        // Convert the raw server response to the format expected by scoreManager
+        const scoreDataForManager = {
+            keySignature: jsonDataFromServer.keySignature || 'C',
+            tempo: jsonDataFromServer.tempo || 120,
+            timeSignature: jsonDataFromServer.timeSignature || { numerator: 4, denominator: 4 },
+            instrument: jsonDataFromServer.instrument || 'piano',
+            midiChannel: jsonDataFromServer.midiChannel || 0,
+            isMinorChordMode: jsonDataFromServer.isMinorChordMode || false,
+            measures: Array.isArray(jsonDataFromServer) ? jsonDataFromServer : jsonDataFromServer.measures || []
+        };
+
+        // Process through scoreManager (same as JSON files)
+        const processedScore = await scoreManager.processScore(JSON.stringify(scoreDataForManager), {
+            fileName: file.name.replace('.mid', '.json'), // Treat as JSON for processing
+            onProgress: (current, total, message) => {
+                // Map scoreManager progress to 30-90% of total progress
+                const adjustedCurrent = 0.3 + (current / total) * 0.6;
+                updateProgress(adjustedCurrent, 1, message, `Processing measure ${current} of ${total}`);
             }
-        } else {
-            // Ensure we have a valid time signature set
-            setTimeSignature(4, 4);
-        }
+        });
 
-        if (processAndSyncScore(jsonDataFromServer)) {
-            drawAll(getMeasures());
-            console.log("MIDI file loaded successfully.");
+        updateProgress(0.9, 1, 'Applying to score...', 'Almost done');
+
+        // Apply the processed score using the same logic as JSON files
+        await applyProcessedScore(processedScore);
+        
+        // Handle validation issues like JSON files
+        if (processedScore.validationErrors && processedScore.validationErrors.length > 0) {
+            console.warn('MIDI validation warnings:', processedScore.validationErrors);
+            setTimeout(hideProgressModal, 3000); // Show issues for 3 seconds
         } else {
-            throw new Error("Could not process the converted MIDI data");
+            hideProgressModal();
         }
+        
+        console.log("MIDI file processed successfully through scoreManager.");
+        
     } catch (error) {
-        if (error.message.includes('fetch')) {
-            throw new Error('Server exploded');
-        }
-        throw error;
+        console.error('MIDI loading failed:', error);
+        hideProgressModal();
+        
+        // Show user-friendly error message
+        const userMessage = getUserFriendlyMidiError(error, file);
+        alert(userMessage);
+        
+        // Don't re-throw - just log and show message
+        return false;
+        
     }
+}
+
+// Generate user-friendly error messages for MIDI
+function getUserFriendlyMidiError(error, file) {
+    const fileName = file ? file.name : 'MIDI file';
+    const fileSize = file ? `(${Math.round(file.size / 1024)}KB)` : '';
+    
+    let message = `Failed to load ${fileName} ${fileSize}\n\n`;
+    
+    if (error.message.includes('too many ticks') || error.message.includes('Too many ticks')) {
+        message += 'This MIDI file has too many musical elements in individual measures.\n\n';
+        message += 'This often happens with:\n';
+        message += '• MIDI files with many simultaneous notes\n';
+        message += '• Very complex orchestral arrangements\n';
+        message += '• Files with extremely short note values\n\n';
+        message += 'Try using a simpler MIDI file or one with fewer simultaneous parts.';
+        
+    } else if (error.message.includes('validation') || error.message.includes('measures')) {
+        message += 'The MIDI file structure is too complex for the current system.\n\n';
+        message += 'Try:\n';
+        message += '• Using a MIDI with simpler notation\n';
+        message += '• Reducing the number of tracks before export\n';
+        message += '• Using a shorter musical piece';
+        
+    } else if (error.message.includes('too large')) {
+        message += 'This MIDI file is too large to process.\n\n';
+        message += 'Try using a smaller MIDI file (under 5MB).';
+        
+    } else if (error.message.includes('format') || error.message.includes('corrupted')) {
+        message += 'The MIDI file appears to be corrupted or in an unsupported format.\n\n';
+        message += 'Try:\n';
+        message += '• Re-exporting the MIDI from your music software\n';
+        message += '• Using Standard MIDI File format\n';
+        message += '• Checking the file isn\'t corrupted';
+        
+    } else if (error.message.includes('Server') || error.message.includes('server')) {
+        message += 'There was a server error processing the MIDI file.\n\n';
+        message += 'Please try again in a moment, or try a different MIDI file.';
+        
+    } else {
+        message += `Error: ${error.message}\n\n`;
+        message += 'The MIDI file could not be loaded. Please try a different file.';
+    }
+    
+    return message;
 }
 
 // Save current score to JSON file
