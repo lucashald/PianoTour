@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Interactive Piano Studio{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/pianostyles.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/favicon.ico') }}"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
+    {% block head %}{% endblock %}
+  </head>
+  <body id="page-instrument">
+    <audio id="unlock-audio" preload="auto" style="display: none">
+      <source
+        src="{{ url_for('static', filename='silence.mp3') }}"
+        type="audio/mpeg"
+      />
+    </audio>
+
+    <div class="piano-app">
+      {% if show_side_panel %}
+      <aside class="piano-app__side-panel">
+        {% block editor %}{% endblock %} {% block extras %}{% endblock %}
+      </aside>
+      {% endif %}
+
+      <main class="piano-app__content-area">
+        <header class="piano-app__header">
+          <h1 class="piano-app__header-title">Piano Tour</h1>
+        </header>
+
+        {% block player %} {% include 'partials/_player.html' %} {% endblock %}
+        {% block palette %}{% endblock %}
+        
+        <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
+        <section class="score-viewer">
+          <div class="score-viewer__container" id="scoreWrap">
+            <div class="score-viewer__content" id="score"></div>
+          </div>
+        </section>
+        <div class="outer-instrument-wrapper">
+        <section class="instrument-panel">
+          {% block spectrum %} {% if not hide_spectrum %} {% include
+          'partials/_spectrum.html' %} {% endif %} {% endblock %}
+          <div id="handOverlay" class="hidden"></div>
+          <div class="instrument-panel__keyboard" id="instrument"></div>
+          {% block content %}{% endblock %}
+        </section>
+        </div>
+        <nav class="main-controls">
+          <div class="main-controls__button-row">
+            <button id="clearScoreBtn" class="btn btn--danger">
+              Clear Score
+            </button>
+            <button id="undo-btn" class="btn btn--danger">Undo</button>
+            <button id="key-signature-btn" class="btn btn--info">
+              Key Signature
+            </button>
+            <label class="btn btn--toggle">
+              <input
+                type="checkbox"
+                id="is-minor-key-btn"
+                class="hidden-input"
+              />
+              <span id="minor-key-text">Major</span>
+            </label>
+            {% block filehandler %} {% include 'partials/_filehandler.html' %}
+            {% endblock %}
+          </div>
+
+          <div class="main-controls__button-row">
+            {% block toggles %}{% endblock %}
+            <button id="chord-display-toggle" class="btn btn--toggle">
+              <span>Show Chords</span>
+            </button>
+
+            {% if request.path == '/editor' %}
+            <a href="/" class="btn btn--info"><span>Close Editor</span></a>
+            {% else %}
+            <a href="/editor" class="btn btn--info"><span>Open Editor</span></a>
+            {% endif %}
+            <a href="/print" class="btn btn--info"><span>Print</span></a>
+            {% if request.path != '/' %}<a href="/" class="btn btn--info"
+              ><span>Piano</span></a
+            >{% endif %} {% if request.path != '/cello' %}<a
+              href="/cello"
+              class="btn btn--info"
+              ><span>Cello</span></a
+            >{% endif %} {% if request.path != '/sax' %}<a
+              href="/sax"
+              class="btn btn--info"
+              ><span>Sax</span></a
+            >{% endif %} {% if request.path != '/guitar' %}<a
+              href="/guitar"
+              class="btn btn--info"
+              ><span>Guitar</span></a
+            >{% endif %} {% if request.path != '/extras' %}<a
+              href="/extras"
+              class="btn btn--info"
+              ><span>Extras</span></a
+            >{% endif %}
+          </div>
+
+          <div class="main-controls__chord-interface hidden" id="chordButtons">
+            <div id="CHORD_GROUPSContainer"></div>
+          </div>
+        </nav>
+      </main>
+    </div>
+
+    <script type="module">
+      // --- All your common JavaScript from the original file goes here ---
+      console.log("Main script execution started.");
+      // Calculate scrollbar width and set it as a CSS variable
+      const scrollbarWidth =
+        window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.setProperty(
+        "--scrollbar-width",
+        `${scrollbarWidth}px`
+      );
+      // --- COMMON IMPORTS (for base template) ---
+      import {
+        initializeInstrumentUI,
+        handleToggleLabelsChange,
+        handleModeCycleClick,
+      } from '{{ url_for("static", filename="js/instrument/instrumentHelpers.js") }}';
+      // REMOVED: import { startAudio } from '{{ url_for("static", filename="js/instrument/playbackHelpers.js") }}'; // No longer needed, audioManager handles this
+      import {
+        getMeasures,
+        resetScore,
+        processAndSyncScore,
+        undoLastWrite,
+      } from '{{ url_for("static", filename="js/score/scoreWriter.js") }}';
+      import {
+        drawAll,
+        setKeySignature,
+      } from '{{ url_for("static", filename="js/score/scoreRenderer.js") }}';
+      import { initializeFileHandlers } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
+      import {
+        handleChordDisplayToggle,
+        handleKeySignatureClick,
+        updateUI,
+      } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
+      import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+      import { initializePlayer } from '{{ url_for("static", filename="js/score/scorePlayback.js") }}';
+      import {
+        initMidi,
+        setMidiCallbacks,
+        handleMidiNoteOn,
+        handleMidiNoteOff,
+      } from '{{ url_for("static", filename="js/instrument/midi-controller.js") }}';
+      // NEW: Import audioManager
+      import audioManager from '{{ url_for("static", filename="js/core/audioManager.js") }}';
+      
+
+      // Store initialization state globally so child scripts can check it
+      window.pianoTourInitState = {
+        baseInitialized: false,
+        heavyInitialized: false,
+      };
+
+      // --- COMMON DOM READY & EVENT LISTENERS (for base template) ---
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("🚀 Starting optimized initialization...");
+
+        // PHASE 1: Immediate UI setup (no blocking operations)
+        initializeImmediateUI();
+
+        // PHASE 2: Defer heavy operations to next tick
+        setTimeout(() => {
+          initializeHeavyComponents();
+        }, 0);
+      });
+
+      function initializeImmediateUI() {
+        // Set proper initial dimensions BEFORE any content loads
+        setInitialDimensions();
+
+        // NEW: Initialize audioManager early, before any user interaction might trigger it
+        audioManager.initializeAudioManager();
+        console.log("✅ AudioManager initialized.");
+
+        // Initialize lightweight components immediately
+        initializeInstrumentUI();
+        initializePlayer();
+        initializeFileHandlers();
+
+        // Set up event handlers (lightweight)
+        setupEventHandlers();
+
+        // Show loading state for score
+        showLoadingScore();
+
+        // Quick initial render with empty score to establish layout
+        try {
+          drawAll([]); // Empty score - fast render
+          console.log("✅ Initial layout established");
+        } catch (e) {
+          console.error("Initial render error:", e);
+        }
+
+        updateUI("Click any piano key to begin", {
+          updateKeySignature: true,
+        });
+
+        // Mark base as initialized
+        window.pianoTourInitState.baseInitialized = true;
+
+        // Dispatch custom event for child scripts
+        document.dispatchEvent(new CustomEvent("pianoTourBaseReady"));
+      }
+
+      function setInitialDimensions() {
+        // Set proper CSS custom properties for consistent sizing
+        const root = document.documentElement;
+
+        // Calculate viewport-based dimensions
+        const vw = Math.max(
+          document.documentElement.clientWidth || 0,
+          window.innerWidth || 0
+        );
+        const vh = Math.max(
+          document.documentElement.clientHeight || 0,
+          window.innerHeight || 0
+        );
+
+        // Set minimum dimensions to prevent layout shift
+        root.style.setProperty(
+          "--score-min-width",
+          Math.min(vw * 0.9, 1100) + "px"
+        );
+        root.style.setProperty("--score-min-height", "400px");
+        root.style.setProperty(
+          "--instrument-min-width",
+          Math.min(vw * 0.9, 1040) + "px"
+        );
+        root.style.setProperty("--instrument-min-height", "120px");
+
+        console.log("📐 Initial dimensions set");
+      }
+
+      function showLoadingScore() {
+        const scoreElement = document.getElementById("score");
+        if (scoreElement) {
+          scoreElement.innerHTML = `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            color: #666;
+            font-style: italic;
+          ">
+            <span>🎼 Loading your score...</span>
+          </div>
+        `;
+        }
+      }
+
+      async function initializeHeavyComponents() {
+        console.log("⚡ Starting heavy component initialization...");
+
+        try {
+          // Load score from localStorage asynchronously
+          await loadScoreFromStorage();
+
+          // Initialize unlock functionality (now uses audioManager)
+          setupUnlockSystem();
+
+          // Mark heavy initialization complete
+          window.pianoTourInitState.heavyInitialized = true;
+
+          // Dispatch event for child scripts
+          document.dispatchEvent(new CustomEvent("pianoTourHeavyReady"));
+
+          console.log("✅ Heavy components initialized");
+        } catch (error) {
+          console.error("❌ Error in heavy initialization:", error);
+        }
+      }
+
+      async function loadScoreFromStorage() {
+        const savedScoreJSON = localStorage.getItem("autosavedScore");
+        if (!savedScoreJSON) {
+          console.log("📝 No saved score found");
+          return;
+        }
+
+        try {
+          // Show loading indicator
+          updateLoadingMessage("🔄 Loading saved score...");
+
+          // Parse in chunks to avoid blocking
+          const savedData = await parseJSONAsync(savedScoreJSON);
+
+          // Process score data
+          const measures = Array.isArray(savedData)
+            ? savedData
+            : savedData.measures;
+
+          if (processAndSyncScore(measures)) {
+            // Apply metadata if available
+            if (!Array.isArray(savedData)) {
+              applyScoreMetadata(savedData);
+            }
+
+            // Re-render with loaded data
+            updateLoadingMessage("🎨 Rendering score...");
+            await renderScoreAsync(getMeasures());
+
+            console.log("✅ Score loaded successfully");
+          } else {
+            localStorage.removeItem("autosavedScore");
+            console.log("⚠️ Invalid score data, cleared");
+          }
+        } catch (e) {
+          console.error("❌ Failed to load score:", e);
+          localStorage.removeItem("autosavedScore");
+          updateLoadingMessage("❌ Error loading score");
+        }
+      }
+
+      // Asynchronous JSON parsing to prevent blocking
+      function parseJSONAsync(jsonString) {
+        return new Promise((resolve, reject) => {
+          try {
+            // Use setTimeout to yield control back to browser
+            setTimeout(() => {
+              try {
+                const result = JSON.parse(jsonString);
+                resolve(result);
+              } catch (error) {
+                reject(error);
+              }
+            }, 0);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      }
+
+      // Asynchronous score rendering
+      function renderScoreAsync(measures) {
+        return new Promise((resolve) => {
+          requestAnimationFrame(() => {
+            try {
+              drawAll(measures);
+              resolve();
+            } catch (error) {
+              console.error("Render error:", error);
+              resolve(); // Don't fail completely
+            }
+          });
+        });
+      }
+
+      function applyScoreMetadata(savedData) {
+        const keySignature = savedData.keySignature || "C";
+        const isMinorChordMode = savedData.isMinorChordMode || false;
+        const title = savedData.title || null;
+
+        setKeySignature(keySignature);
+        pianoState.isMinorChordMode = isMinorChordMode;
+
+        console.log(
+          `🎹 Applied metadata: ${keySignature}, Minor: ${isMinorChordMode}`
+        );
+
+        if (title) {
+          console.log(`📄 Score title: ${title}`);
+        }
+      }
+
+      function updateLoadingMessage(message) {
+        const scoreElement = document.getElementById("score");
+        if (scoreElement && scoreElement.innerHTML.includes("Loading")) {
+          scoreElement.innerHTML = `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            color: #666;
+            font-style: italic;
+          ">
+            <span>${message}</span>
+          </div>
+        `;
+        }
+      }
+
+      // REVISED: setupUnlockSystem to use audioManager for MIDI initialization
+      function setupUnlockSystem() {
+        pianoState.unlock = async () => {
+          // No longer using pianoState.midiInitialized as a direct gate for audio unlock
+          // audioManager handles the core audio unlock, and MIDI setup can follow that.
+
+          console.log(
+            "🔓 Attempting to unlock audio and initialize MIDI via audioManager..."
+          );
+
+          const success = await audioManager.unlockAndExecute(() => {
+            // This deferred action runs AFTER audio context is running and sampler is loaded
+            if (!pianoState.midiInitialized) {
+              // Check midiInitialized here, after audio is confirmed ready
+              setMidiCallbacks({
+                onNoteOn: handleMidiNoteOn,
+                onNoteOff: handleMidiNoteOff,
+              });
+              initMidi();
+              pianoState.midiInitialized = true;
+              console.log("🎵 MIDI systems initialized.");
+            }
+          });
+
+          if (success) {
+            console.log(
+              "✅ Audio and MIDI systems are now live (or were already)."
+            );
+          } else {
+            console.warn("❌ Failed to initialize audio/MIDI system.");
+          }
+        };
+      }
+
+      function setupEventHandlers() {
+        // Debounced resize handler to prevent layout thrashing
+        let resizeTimeout;
+        window.addEventListener("resize", () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            console.log("📏 Handling resize...");
+            drawAll(getMeasures());
+          }, 150); // 150ms debounce
+        });
+
+        // Set up other event handlers
+        const eventHandlers = [
+          { id: "clearScoreBtn", event: "click", handler: handleClearScore },
+          { id: "undo-btn", event: "click", handler: handleUndo },
+          {
+            id: "toggleLabelsCheckbox",
+            event: "change",
+            handler: handleToggleLabelsChange,
+          },
+          {
+            id: "chord-display-toggle",
+            event: "click",
+            handler: handleChordDisplayToggle,
+          },
+          {
+            id: "key-signature-btn",
+            event: "click",
+            handler: handleKeySignatureClick,
+          },
+        ];
+
+        eventHandlers.forEach(({ id, event, handler }) => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.addEventListener(event, (e) => {
+              e.preventDefault();
+              handler(e);
+              // Refocus instrument after any action
+              document.getElementById("instrument")?.focus();
+            });
+          }
+        });
+      }
+
+      // Event handler functions
+      function handleClearScore(e) {
+        resetScore();
+      }
+
+      function handleUndo(e) {
+        undoLastWrite();
+      }
+    </script>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

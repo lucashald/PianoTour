@@ -1,6 +1,19 @@
-{% extends "index.html" %}
+{% extends "guitarIndex.html" %}
 
 {% block title %}PianoTour - Interactive Guitar Studio{% endblock %}
+
+{% block head %}
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/guitar.css') }}"    />
+      <script type="module" src="{{ url_for('static', filename='js/instrument/guitarInstrument.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div id="guitar-fretboard"></div>
+<div id="chord-palette"></div>
+<div id="guitar-controls"></div>
+{% endblock %}
 
 {% block toggles %}
     {% include 'partials/_toggles.html' %}
@@ -10,10 +23,11 @@
 <script type="module">
     import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
     import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
-
+    import { initializeGuitar, initializeChordPalette, initializeGuitarControls } from '{{ url_for("static", filename="js/instrument/guitarInstrument.js") }}';
     const templateInstrument = '{{ instrument }}' || 'guitar';
     pianoState.instrument = templateInstrument;
     console.log("Set instrument to:", templateInstrument);
     addBasicKeyboardListeners();
+    const guitar = initializeGuitar('#guitar-fretboard');
 </script>
 {% endblock %}

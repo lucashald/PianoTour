@@ -1,7 +1,12 @@
 {% extends "index.html" %}
 
 {% block title %}Piano Tour - Editor{% endblock %}
-
+{% block head %}
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/editor.css') }}"
+    />
+{% endblock %}
 {% block editor %}
 <!-- Editor Panel Content -->
 <div id="editorContainer">
