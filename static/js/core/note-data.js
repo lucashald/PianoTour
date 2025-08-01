@@ -3987,3 +3987,47 @@ export function getChordByDegree(degree = 1) {
   console.warn(`Chord ${chordName} not found in CHORD_DEFINITIONS`);
   return null;
 }
+
+/**
+ * Splits an array of notes between bass and treble clefs for optimal notation display
+ * @param {string[]} noteNames - Array of note names (e.g., ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'])
+ * @returns {Array} Array of clef objects with notes grouped by clef
+ */
+export function splitNotesIntoClefs(noteNames) {
+  // Split point - notes at or above C4 (MIDI 60) go to treble, below go to bass
+  const SPLIT_POINT = 60; // C4
+  
+  const bassNotes = [];
+  const trebleNotes = [];
+  
+  noteNames.forEach(noteName => {
+    const midiNumber = NOTES_BY_NAME[noteName];
+    if (midiNumber !== undefined) {
+      if (midiNumber < SPLIT_POINT) {
+        bassNotes.push(noteName);
+      } else {
+        trebleNotes.push(noteName);
+      }
+    }
+  });
+  
+  const result = [];
+  
+  // Add bass clef group if it has notes
+  if (bassNotes.length > 0) {
+    result.push({
+      clef: 'bass',
+      notes: bassNotes
+    });
+  }
+  
+  // Add treble clef group if it has notes
+  if (trebleNotes.length > 0) {
+    result.push({
+      clef: 'treble', 
+      notes: trebleNotes
+    });
+  }
+  
+  return result;
+}

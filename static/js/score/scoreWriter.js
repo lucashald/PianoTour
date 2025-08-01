@@ -614,3 +614,90 @@ export function getMeasures() {
     console.log('getMeasures called. Returning measuresData:', measuresData);
     return measuresData;
 }
+
+/**
+ * Ensures both bass and treble clefs are at the same position by adding rests to whichever is behind
+ * This allows simultaneous notes in different clefs to align properly
+ */
+export function fillRests() {
+  console.log('fillRests called. Current beats - Treble:', currentTrebleBeats, 'Bass:', currentBassBeats);
+  
+  // If they're already equal, no rests needed
+  if (currentTrebleBeats === currentBassBeats) {
+    console.log('fillRests: Clefs already aligned, no rests needed');
+    return;
+  }
+  
+  // Determine which clef is behind and by how much
+  const beatDifference = Math.abs(currentTrebleBeats - currentBassBeats);
+  const isBassBehind = currentBassBeats < currentTrebleBeats;
+  
+  console.log(`fillRests: ${isBassBehind ? 'Bass' : 'Treble'} clef is behind by ${beatDifference} beats`);
+  
+  // Convert beat difference to duration
+  // Handle common beat values - extend this as needed
+  let restDuration;
+  if (beatDifference === 4) restDuration = 'w';
+  else if (beatDifference === 3) restDuration = 'h.';
+  else if (beatDifference === 2) restDuration = 'h';
+  else if (beatDifference === 1.5) restDuration = 'q.';
+  else if (beatDifference === 1) restDuration = 'q';
+  else if (beatDifference === 0.75) restDuration = '8.';
+  else if (beatDifference === 0.5) restDuration = '8';
+  else if (beatDifference === 0.375) restDuration = '16.';
+  else if (beatDifference === 0.25) restDuration = '16';
+  else if (beatDifference === 0.1875) restDuration = '32.';
+  else if (beatDifference === 0.125) restDuration = '32';
+  else {
+    // For complex differences, use multiple quarter note rests
+    console.warn(`fillRests: Complex beat difference ${beatDifference}, using multiple quarter rests`);
+    const numQuarterRests = Math.floor(beatDifference);
+    const remainder = beatDifference - numQuarterRests;
+    
+    // Add the whole note rests first
+    for (let i = 0; i < numQuarterRests; i++) {
+      writeNote({
+        clef: isBassBehind ? "bass" : "treble",
+        duration: "q",
+        notes: [isBassBehind ? "D3" : "B4"],
+        chordName: "Rest",
+        isRest: true
+      });
+    }
+    
+    // Handle remainder if any
+    if (remainder > 0) {
+      let remainderDuration;
+      if (remainder === 0.5) remainderDuration = '8';
+      else if (remainder === 0.75) remainderDuration = '8.';
+      else if (remainder === 0.25) remainderDuration = '16';
+      else if (remainder === 0.375) remainderDuration = '16.';
+      else if (remainder === 0.125) remainderDuration = '32';
+      else if (remainder === 0.1875) remainderDuration = '32.';
+      else {
+        console.warn(`fillRests: Unusual remainder ${remainder}, skipping`);
+        return;
+      }
+      
+      writeNote({
+        clef: isBassBehind ? "bass" : "treble",
+        duration: remainderDuration,
+        notes: [isBassBehind ? "D3" : "B4"],
+        chordName: "Rest",
+        isRest: true
+      });
+    }
+    return;
+  }
+  
+  // Add the rest to catch up the behind clef
+  writeNote({
+    clef: isBassBehind ? "bass" : "treble",
+    duration: restDuration,
+    notes: [isBassBehind ? "D3" : "B4"], // Standard rest positions
+    chordName: "Rest",
+    isRest: true
+  });
+  
+  console.log(`fillRests: Added ${restDuration} rest to ${isBassBehind ? 'bass' : 'treble'} clef`);
+}
