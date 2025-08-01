@@ -1,5 +1,5 @@
 /* guitarInstrument.css */
-
+/* this wrapper is slightly redundant but we set the background color here */
 .outer-instrument-wrapper {
   background: #04273C;
     flex-grow: 1;
@@ -8,8 +8,10 @@
   align-items: center; /* Horizontally centers all direct children */
   padding: calc(var(--spacing-unit) * 2);
   gap: calc(var(--spacing-unit) * 1.5);
+  width: 100%;
+  max-width: 1200px;
 }
-/* General Styles */
+/* General Styles - guitar wrapper is the same size as its parent but it doesn't have the background color */
 .guitar-wrapper {
   display: flex;
   align-items: center;
