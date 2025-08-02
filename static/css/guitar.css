@@ -329,3 +329,44 @@
   border-radius: 8px;
   background: white;
 }
+
+.string-button-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.string-button.muted {
+  opacity: 0.5;
+  text-decoration: line-through;
+  color: #666;
+}
+
+.mute-button {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mute-button:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+.mute-button.active {
+  background: #d32f2f;
+  color: white;
+  border-color: #d32f2f;
+}
+
+.guitar-string.muted {
+  opacity: 0.3;
+  filter: grayscale(100%);
+}

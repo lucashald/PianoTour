@@ -1,18 +1,9 @@
 // guitarUI.js - Guitar-specific UI components
 import { handleInitialGuitar } from '../instrument/guitarInstrument.js';
 import {
-  ALL_NOTE_INFO,
-  BLACK_KEY_WIDTH,
-  CHORD_STRUCTURES,
-  DURATION_THRESHOLDS,
-  MAJOR_DIATONIC_LABELS,
-  MINOR_DIATONIC_LABELS,
-  NOTES_BY_MIDI,
-  NOTES_BY_NAME,
-  notesByMidiKeyAware,
-  WHITE_KEY_WIDTH,
   getChordByDegree
 } from "../core/note-data.js";
+import audioManager from "../core/audioManager.js";
 
 // ===================================================================
 // Helper Functions
@@ -60,15 +51,32 @@ export function createChordPalette(guitarInstance = window.guitarInstance) {
 function createChordButton(chord, guitarInstance) {
   const button = document.createElement('button');
   button.textContent = chord.displayName;
-  button.className = 'btn btn--compact';
+  button.className = 'btn btn--compact palette-button';
 
-  button.addEventListener('click', () => {
-    if (chord.frets) {
-      guitarInstance.setChord(chord.frets);
-      // Auto-strum after setting chord
-      setTimeout(() => guitarInstance.strum(), 100);
-    }
-  });
+  // Check audio state and add appropriate listener
+  if (!audioManager.isAudioReady()) {
+    // Audio not ready - use handleInitialGuitar
+    button.addEventListener('click', (e) => {
+      if (chord.frets && guitarInstance) {
+        guitarInstance.setChord(chord.frets);
+        const notes = guitarInstance.getCurrentNotes();
+        
+        handleInitialGuitar(e, {
+          type: 'palette',
+          chord: chord,
+          notes: notes
+        });
+      }
+    });
+  } else {
+    // Audio ready - use direct functionality
+    button.addEventListener('click', () => {
+      if (chord.frets) {
+        guitarInstance.setChord(chord.frets);
+        setTimeout(() => guitarInstance.strum(), 100);
+      }
+    });
+  }
 
   return button;
 }
@@ -76,32 +84,66 @@ function createChordButton(chord, guitarInstance) {
 // ===================================================================
 // Guitar Controls
 // ===================================================================
-
 export function createGuitarControls(guitarInstance) {
-  const controls = document.createElement('div');
-  controls.className = 'guitar-controls';
+  const container = document.querySelector('#guitar-controls');
 
-  // Strum Down button - works like strum area
+    if (!container) {
+    console.error('Chord palette container not found: #chord-palette');
+    return null;
+  }
+
+  if (!guitarInstance) {
+    console.error('Guitar instance not found');
+    return null;
+  }
+
+  // Clear existing content
+  container.innerHTML = '';
+
+  // Strum Down button
   const strumDown = document.createElement('button');
   strumDown.innerHTML = '↓ Strum Down';
-  strumDown.className = 'btn btn--secondary';
+  strumDown.className = 'btn btn--secondary strum-control-button';
   
-  strumDown.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    guitarInstance.strum('down');
-  });
-
-  // Strum Up button - works like strum area
+  // Strum Up button
   const strumUp = document.createElement('button');
   strumUp.innerHTML = '↑ Strum Up';
-  strumUp.className = 'btn btn--secondary';
-  
-  strumUp.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    guitarInstance.strum('up');
-  });
+  strumUp.className = 'btn btn--secondary strum-control-button';
 
-  // Clear chord button
+  // Check audio state and add appropriate listeners
+  if (!audioManager.isAudioReady()) {
+    // Audio not ready - use handleInitialGuitar
+    strumDown.addEventListener('click', (e) => {
+      const notes = guitarInstance ? guitarInstance.getCurrentNotes() : ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
+      handleInitialGuitar(e, {
+        type: 'strum',
+        direction: 'down',
+        notes: notes
+      });
+    });
+    
+    strumUp.addEventListener('click', (e) => {
+      const notes = guitarInstance ? guitarInstance.getCurrentNotes() : ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
+      handleInitialGuitar(e, {
+        type: 'strum',
+        direction: 'up',
+        notes: notes
+      });
+    });
+  } else {
+    // Audio ready - use direct functionality
+    strumDown.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      guitarInstance.strum('down');
+    });
+    
+    strumUp.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      guitarInstance.strum('up');
+    });
+  }
+
+  // Clear chord button (doesn't need audio)
   const clearChord = document.createElement('button');
   clearChord.innerHTML = 'Clear Chord';
   clearChord.className = 'btn btn--danger';
@@ -109,11 +151,11 @@ export function createGuitarControls(guitarInstance) {
     guitarInstance.setChord([0, 0, 0, 0, 0, 0]);
   });
 
-  controls.appendChild(strumDown);
-  controls.appendChild(strumUp);
-  controls.appendChild(clearChord);
+  container.appendChild(strumDown);
+  container.appendChild(strumUp);
+  container.appendChild(clearChord);
 
-  return controls;
+  return container;
 }
 
 // ===================================================================

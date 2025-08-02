@@ -218,17 +218,29 @@ class GuitarInstrument {
     return labelsContainer;
   }
 
-  createStringButton(stringNum) {
-    const button = document.createElement('button');
-    button.className = `string-button string-${stringNum}`;
-    button.innerHTML = `${stringNum} - ${this.getStringNote(stringNum)}`;
-
-    // Only add visual hover effects, no functionality listeners yet
-    button.addEventListener('mouseenter', () => button.classList.add('hover'));
-    button.addEventListener('mouseleave', () => button.classList.remove('hover'));
-
-    return button;
-  }
+createStringButton(stringNum) {
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'string-button-container';
+  
+  const button = document.createElement('button');
+  button.className = `string-button string-${stringNum}`;
+  button.innerHTML = `${stringNum} - ${this.getStringNote(stringNum)}`;
+  
+  // Create mute toggle button
+  const muteButton = document.createElement('button');
+  muteButton.className = `mute-button mute-${stringNum}`;
+  muteButton.innerHTML = 'M';
+  muteButton.title = `Toggle mute for string ${stringNum}`;
+  
+  // Add visual hover effects
+  button.addEventListener('mouseenter', () => button.classList.add('hover'));
+  button.addEventListener('mouseleave', () => button.classList.remove('hover'));
+  
+  buttonContainer.appendChild(button);
+  buttonContainer.appendChild(muteButton);
+  
+  return buttonContainer;
+}
 
   // NEW: Setup basic listeners for audio unlock (called after elements are created)
   setupBasicAudioUnlockListeners() {
@@ -253,6 +265,8 @@ class GuitarInstrument {
   // Set up listeners that don't make sound (safe to call immediately)
   setupSilentEventListeners() {
     // Fretboard clicking for finger positioning - these don't make sound
+    this.setupMuteListeners();
+
     this.fretboardElement.addEventListener('click', (e) => {
       const target = e.target.closest('.fret-position');
       if (target) {
@@ -274,42 +288,55 @@ class GuitarInstrument {
   }
 
   // Set up listeners that DO make sound (call only after audio is ready)
-  setupAudioEventListeners() {
-    console.log('🎸 Setting up audio event listeners...');
-    
-    // String button mousedown/mouseup for playing and timing
-    this.stringLabelsContainer.addEventListener('mousedown', (e) => {
-      if (e.target.classList.contains('string-button')) {
-        e.target.classList.add('active');
-        const stringNum = parseInt(e.target.classList[1].split('-')[1]);
-        this.startStringButtonPress(stringNum);
-        this.pluckString(stringNum); // Start the note
-      }
-    });
+setupAudioEventListeners() {
+  console.log('🎸 Setting up audio event listeners...');
+  
+  // String button mousedown/mouseup for playing and timing
+  this.stringLabelsContainer.addEventListener('mousedown', (e) => {
+    if (e.target.classList.contains('string-button')) {
+      e.target.classList.add('active');
+      const stringNum = parseInt(e.target.classList[1].split('-')[1]);
+      this.startStringButtonPress(stringNum);
+      this.pluckString(stringNum); // Start the note
+    }
+  });
 
-    this.stringLabelsContainer.addEventListener('mouseup', (e) => {
-      if (e.target.classList.contains('string-button')) {
-        e.target.classList.remove('active');
-        const stringNum = parseInt(e.target.classList[1].split('-')[1]);
-        this.endStringButtonPress(stringNum);
-        this.stopString(stringNum); // Stop the note
-      }
-    });
+  this.stringLabelsContainer.addEventListener('mouseup', (e) => {
+    if (e.target.classList.contains('string-button')) {
+      e.target.classList.remove('active');
+      const stringNum = parseInt(e.target.classList[1].split('-')[1]);
+      this.endStringButtonPress(stringNum);
+      this.stopString(stringNum); // Stop the note
+    }
+  });
 
-    // Prevent context menu on right click to allow proper mouse events
-    this.stringLabelsContainer.addEventListener('contextmenu', (e) => {
+  // Prevent context menu on right click to allow proper mouse events
+  this.stringLabelsContainer.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+
+  // Strum area mousedown/mouseup
+  this.strumArea.addEventListener('mousedown', () => this.startStrum('down'));
+  this.strumArea.addEventListener('mouseup', () => this.endStrum());
+
+  // Prevent context menu on strum area
+  this.strumArea.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+}
+
+// Define setupMuteListeners as its own separate method
+setupMuteListeners() {
+  const muteButtons = this.stringLabelsContainer.querySelectorAll('.mute-button');
+  muteButtons.forEach(button => {
+    const stringNum = parseInt(button.className.match(/mute-(\d+)/)[1]);
+    button.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
+      this.toggleStringMute(stringNum);
     });
-
-    // Strum area mousedown/mouseup
-    this.strumArea.addEventListener('mousedown', () => this.startStrum('down'));
-    this.strumArea.addEventListener('mouseup', () => this.endStrum());
-
-    // Prevent context menu on strum area
-    this.strumArea.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-    });
-  }
+  });
+}
 
   // NEW: Start string button press with timing
   startStringButtonPress(stringNum) {
@@ -350,7 +377,6 @@ class GuitarInstrument {
     
     this.clearFingerPosition(stringNum);
     guitarState.currentFrets[stringIndex] = fret;
-console.log("zz string index , fret", stringIndex, fret)
     if (fret > 0) {
       this.showFingerPosition(stringNum, fret);
     }
@@ -390,13 +416,26 @@ console.log("zz string index , fret", stringIndex, fret)
     return midiToNoteName(noteMidi);
   }
 
-  updateStringLabel(stringNum) {
-    const button = this.stringLabelsContainer.querySelector(`.string-button.string-${stringNum}`);
+updateStringLabel(stringNum) {
+  const container = this.stringLabelsContainer.querySelector(`.string-button-container:has(.string-${stringNum})`);
+  if (container) {
+    const button = container.querySelector(`.string-button.string-${stringNum}`);
+    const muteButton = container.querySelector(`.mute-button.mute-${stringNum}`);
+    const stringIndex = stringNum - 1;
+    const isMuted = guitarState.mutedStrings[stringIndex];
+    
     if (button) {
-      const note = this.getStringNote(stringNum);
+      const note = isMuted ? 'X' : this.getStringNote(stringNum);
       button.innerHTML = `${stringNum} - ${note}`;
+      button.classList.toggle('muted', isMuted);
+    }
+    
+    if (muteButton) {
+      muteButton.classList.toggle('active', isMuted);
+      muteButton.innerHTML = isMuted ? 'X' : 'M';
     }
   }
+}
 
   updateStringLabels() {
     for (let i = 1; i <= STRING_COUNT; i++) {
@@ -475,8 +514,6 @@ console.log("zz string index , fret", stringIndex, fret)
     // Split notes between clefs
     const clefGroups = splitNotesIntoClefs(this.activeStrum.notes);
     const identifiedChord = identifyChord(this.activeStrum.notes, false);
-    console.log ("zz The notes are", this.activeStrum.notes);
-    console.log ("zz guitar state", guitarState.currentFrets);
     // Make sure both clefs are aligned before writing
     fillRests();
     
@@ -514,11 +551,14 @@ console.log("zz string index , fret", stringIndex, fret)
    */
 setChord(fretData) {
   let fretArray;
+  let muteArray = [false, false, false, false, false, false];
   
-  // Check if input is a string or array and handle accordingly
   if (typeof fretData === 'string') {
-    fretArray = fretData.split('').map(fret => {
-      if (fret === 'x') return 0; // muted string - will be set to open for now
+    fretArray = fretData.split('').map((fret, index) => {
+      if (fret === 'x' || fret === 'X') {
+        muteArray[index] = true;
+        return 0; // Set to open but will be muted
+      }
       return parseInt(fret, 10);
     });
   } else if (Array.isArray(fretData)) {
@@ -529,12 +569,20 @@ setChord(fretData) {
   }
 
   const reversedArray = [...fretArray].reverse();
+  const reversedMuteArray = [...muteArray].reverse();
+  
   reversedArray.forEach((fret, index) => {
     if (fret !== null && fret !== undefined) {
-      const stringNum = index + 1; // Correctly maps array index to string number
+      const stringNum = index + 1;
       this.setFret(stringNum, fret);
+      
+      // Set mute state
+      const stringIndex = stringNum - 1;
+      guitarState.mutedStrings[stringIndex] = reversedMuteArray[index];
     }
   });
+  
+  this.updateStringLabels();
 }
 
   getCurrentNotes() {
@@ -547,65 +595,63 @@ setChord(fretData) {
     return notes;
   }
 }
-
-
-// NEW: Audio unlock functions (similar to piano)
-export function handleInitialGuitar(e) {
+export function handleInitialGuitar(e, actionData = null) {
   e.stopPropagation();
   e.preventDefault();
   
-  // Check if click was on a string button or strum area
-  const stringButton = e.target.closest(".string-button");
-  const strumArea = e.target.closest(".strum-area");
-  
-  if (!stringButton && !strumArea) {
-    console.log("Click was not on a guitar string button or strum area, ignoring");
-    return;
-  }
-
   console.log('🎸 Initial guitar interaction for audio unlock...');
 
   // Store the click details for the deferred action
   let clickedDetails = null;
   
-  if (stringButton) {
-    const stringNum = parseInt(stringButton.classList[1].split('-')[1]);
-    const note = window.guitarInstance ? window.guitarInstance.getStringNote(stringNum) : 'E4';
-    clickedDetails = {
-      type: 'string',
-      stringNum: stringNum,
-      notes: [note] // Convert to array for consistent handling
-    };
-  } else if (strumArea) {
-    const notes = window.guitarInstance ? window.guitarInstance.getCurrentNotes() : ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
-    clickedDetails = {
-      type: 'strum',
-      notes: notes
-    };
+  // If actionData is provided, use it directly
+  if (actionData) {
+    clickedDetails = actionData;
+  } else {
+    // Otherwise, detect from DOM elements (existing logic)
+    const stringButton = e.target.closest(".string-button");
+    const strumArea = e.target.closest(".strum-area");
+    
+    if (!stringButton && !strumArea) {
+      console.log("Click was not on a guitar interactive element, ignoring");
+      return;
+    }
+    
+    if (stringButton) {
+      const stringNum = parseInt(stringButton.classList[1].split('-')[1]);
+      const note = window.guitarInstance ? window.guitarInstance.getStringNote(stringNum) : 'E4';
+      clickedDetails = {
+        type: 'string',
+        stringNum: stringNum,
+        notes: [note]
+      };
+    } else if (strumArea) {
+      const notes = window.guitarInstance ? window.guitarInstance.getCurrentNotes() : ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
+      clickedDetails = {
+        type: 'strum',
+        direction: 'down',
+        notes: notes
+      };
+    }
   }
 
-  // Define the deferred action: play what was clicked and write to score
+  // Rest of the function remains the same...
   const playGuitarAndWriteToScore = () => {
     console.log('🎸 Audio is ready! Playing guitar and writing to score:', clickedDetails);
 
-    // Activate the more advanced listeners for future interactions
     addAdvancedGuitarListeners();
 
-    // Use splitNotesIntoClefs to determine proper clef assignment
+    const identifiedChord = identifyChord(clickedDetails.notes);
     const clefGroups = splitNotesIntoClefs(clickedDetails.notes);
 
-    // Play the clicked element
     if (clickedDetails.type === 'string') {
-      // Single note - play immediately, don't let triggerAttackRelease write to score
-      triggerAttackRelease(clickedDetails.notes, "q", 100, false); // writeToScore = false
+      triggerAttackRelease(clickedDetails.notes, "q", 100, false);
       
-      // Highlight the string that was clicked
       if (window.guitarInstance) {
         window.guitarInstance.highlightString(clickedDetails.stringNum);
       }
       
-      // Write to score manually using proper clef
-      const group = clefGroups[0]; // Single note will have one clef group
+      const group = clefGroups[0];
       writeNote({
         clef: group.clef,
         duration: "q",
@@ -613,18 +659,14 @@ export function handleInitialGuitar(e) {
         chordName: group.notes[0],
       });
       
-    } else if (clickedDetails.type === 'strum') {
-      // Strum - play with delay between strings, don't let triggerAttackRelease write to score
+    } else if (clickedDetails.type === 'strum' || clickedDetails.type === 'palette') {
       clickedDetails.notes.forEach((note, index) => {
-        setTimeout(() => triggerAttackRelease([note], "q", 100, false), index * 10); // writeToScore = false
+        setTimeout(() => triggerAttackRelease([note], "q", 100, false), index * 10);
       });
       
-      // Highlight all strings that are being strummed
       if (window.guitarInstance) {
-        // Highlight strings 6 to 1 (down strum) with the same timing as the audio
-        const strings = [6, 5, 4, 3, 2, 1];
+        const strings = clickedDetails.direction === 'up' ? [1, 2, 3, 4, 5, 6] : [6, 5, 4, 3, 2, 1];
         strings.forEach((stringNum, index) => {
-          // Only highlight strings that aren't muted
           const stringIndex = stringNum - 1;
           if (!guitarState.mutedStrings[stringIndex]) {
             setTimeout(() => {
@@ -634,20 +676,18 @@ export function handleInitialGuitar(e) {
         });
       }
       
-      // Write to score manually using proper clef splitting
       fillRests();
       clefGroups.forEach(group => {
         writeNote({
           clef: group.clef,
           duration: "q",
           notes: group.notes,
-          chordName: group.notes.length === 1 ? group.notes[0] : `Guitar Strum (${group.clef})`,
+          chordName: identifiedChord,
         });
       });
     }
   };
 
-  // Call unlockAndExecute
   audioManager.unlockAndExecute(playGuitarAndWriteToScore);
   console.log('🎸 Calling unlock and execute with guitar functionality');
 }
@@ -689,6 +729,8 @@ export function addAdvancedGuitarListeners() {
     
     // Add advanced listeners
     window.guitarInstance.setupAudioEventListeners();
+    createGuitarControls();
+    createChordPalette();
   }
   
   console.log('🎸 Advanced listeners activated, basic listeners removed');
