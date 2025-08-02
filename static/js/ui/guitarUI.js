@@ -73,7 +73,7 @@ function createChordButton(chord, guitarInstance) {
     button.addEventListener('click', () => {
       if (chord.frets) {
         guitarInstance.setChord(chord.frets);
-        setTimeout(() => guitarInstance.strum(), 100);
+        setTimeout(() => guitarInstance.strum(), 250);
       }
     });
   }
