@@ -11,6 +11,7 @@ import { CHORD_DEFINITIONS, CHORD_GROUPS, DURATION_THRESHOLDS, getKeySignature }
 import { trigger } from '../instrument/playbackHelpers.js';
 import { setKeySignature } from '../score/scoreRenderer.js';
 import { writeNote } from '../score/scoreWriter.js';
+import { createChordDiagrams, createChordPalette } from './guitarUI.js';
 
 // ===================================================================
 // UI Update Functions
@@ -228,6 +229,8 @@ export function updateUI(message, options = {}) {
     // Regenerate chord buttons if requested
     if (options.regenerateChords) {
         generateChordButtons();
+        createChordDiagrams('.chord-container');
+        createChordPalette();
     }
 }
 
@@ -252,6 +255,6 @@ export function toggleIsMinorKey() {
     pianoState.isMinorKey = !pianoState.isMinorKey;
     updateUI(`Key: ${getKeySignature()}`, {
         updateKeySignature: true,
-        regenerateChords: false
+        regenerateChords: true
     });
 }

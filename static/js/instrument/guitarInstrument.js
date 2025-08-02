@@ -1,8 +1,8 @@
 // guitarInstrument.js - Virtual Guitar Integration for Piano Tour
 import { pianoState } from "../core/appState.js";
-import { createChordPalette, createGuitarControls, createRegeneratePaletteButton } from "../ui/guitarUI.js";
+import { createChordPalette, createGuitarControls } from "../ui/guitarUI.js";
 import audioManager from "../core/audioManager.js";
-import { NOTES_BY_NAME, DURATION_THRESHOLDS, splitNotesIntoClefs } from "../core/note-data.js";
+import { NOTES_BY_NAME, DURATION_THRESHOLDS, splitNotesIntoClefs, identifyChord } from "../core/note-data.js";
 import { trigger, triggerAttackRelease } from "./playbackHelpers.js";
 import { writeNote, fillRests } from "../score/scoreWriter.js";
 
@@ -11,39 +11,6 @@ console.log('🎸 Loading guitarInstrument.js module...');
 // Guitar-specific constants
 const FRET_COUNT = 20;
 const STRING_COUNT = 6;
-
-/**
- * Initialize chord palette
- * @param {string} containerSelector - Where to render the palette
- * @param {GuitarInstrument} guitarInstance - Guitar to connect to (optional)
- * @returns {HTMLElement|null} Chord palette element
- */
-export function initializeChordPalette(containerSelector, guitarInstance = window.guitarInstance) {
-    console.log('🎵 Initializing Chord Palette...');
-    
-    const container = document.querySelector(containerSelector);
-    if (!container) {
-        console.error(`Chord palette container not found: ${containerSelector}`);
-        return null;
-    }
-
-    // Create wrapper for palette and controls
-    const wrapper = document.createElement('div');
-    wrapper.className = 'chord-palette-wrapper';
-
-    // Create and append chord palette
-    const chordPalette = createChordPalette(guitarInstance);
-    wrapper.appendChild(chordPalette);
-    
-    // Create and append regenerate button
-    const regenerateButton = createRegeneratePaletteButton(guitarInstance, chordPalette);
-    wrapper.appendChild(regenerateButton);
-    
-    container.appendChild(wrapper);
-    
-    console.log('✅ Chord palette initialized');
-    return chordPalette;
-}
 
 /**
  * Initialize guitar controls
@@ -77,6 +44,7 @@ const GUITAR_TUNING = [
   45, // A2           - STRING 5
   40  // E2 (low E)  - STRING 6, thickest
 ];
+
 
 console.log('🎸 Guitar tuning loaded:', GUITAR_TUNING);
 
@@ -379,9 +347,10 @@ class GuitarInstrument {
 
   setFret(stringNum, fret) {
     const stringIndex = stringNum - 1;
+    
     this.clearFingerPosition(stringNum);
     guitarState.currentFrets[stringIndex] = fret;
-
+console.log("zz string index , fret", stringIndex, fret)
     if (fret > 0) {
       this.showFingerPosition(stringNum, fret);
     }
@@ -505,7 +474,9 @@ class GuitarInstrument {
 
     // Split notes between clefs
     const clefGroups = splitNotesIntoClefs(this.activeStrum.notes);
-    
+    const identifiedChord = identifyChord(this.activeStrum.notes, false);
+    console.log ("zz The notes are", this.activeStrum.notes);
+    console.log ("zz guitar state", guitarState.currentFrets);
     // Make sure both clefs are aligned before writing
     fillRests();
     
@@ -515,7 +486,7 @@ class GuitarInstrument {
         clef: group.clef,
         duration,
         notes: group.notes,
-        chordName: group.notes.length === 1 ? group.notes[0] : `Guitar Strum (${group.clef})`,
+        chordName: identifiedChord,
       });
     });
 
@@ -541,16 +512,30 @@ class GuitarInstrument {
    * e.g., A C major chord would be `[0, 1, 0, 2, 3, 0]` for strings E, B, G, D, A, E.
    * @param {number[]} fretArray - An array of fret numbers for each string, from 1 to 6.
    */
-  setChord(fretArray) {
-
-    // Use a new mapping to ensure frets are set correctly from string 1 to 6
-    fretArray.forEach((fret, index) => {
-      if (fret !== null && fret !== undefined) {
-        const stringNum = index + 1; // Correctly maps array index to string number
-        this.setFret(stringNum, fret);
-      }
+setChord(fretData) {
+  let fretArray;
+  
+  // Check if input is a string or array and handle accordingly
+  if (typeof fretData === 'string') {
+    fretArray = fretData.split('').map(fret => {
+      if (fret === 'x') return 0; // muted string - will be set to open for now
+      return parseInt(fret, 10);
     });
+  } else if (Array.isArray(fretData)) {
+    fretArray = fretData;
+  } else {
+    console.error('setChord expects a string or array');
+    return;
   }
+
+  const reversedArray = [...fretArray].reverse();
+  reversedArray.forEach((fret, index) => {
+    if (fret !== null && fret !== undefined) {
+      const stringNum = index + 1; // Correctly maps array index to string number
+      this.setFret(stringNum, fret);
+    }
+  });
+}
 
   getCurrentNotes() {
     const notes = [];

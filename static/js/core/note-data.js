@@ -4438,7 +4438,6 @@ export function identifyChordFlexible(notes) {
   if (!notes || notes.length === 0) return null;
   
   const normalized = notes
-    .map(normalizeToSharps)                // Convert flats to sharps (keep octaves)
     .map(note => note.replace(/\d+/g, '')) // THEN remove octaves  
     .filter(note => note !== null)        // Remove any invalid notes
     .sort();                              // Sort alphabetically
@@ -4787,28 +4786,25 @@ export function identifyGuitarChord(notes) {
  * @param {boolean} allowDuplicates - If false, removes duplicate pitch classes (good for guitar)
  * @returns {string|null} - Chord display name or null if no match
  */
-export function identifyChordFlexibleEnhanced(notes, allowDuplicates = true) {
+export function identifyChord(notes, allowDuplicates = true) {
   if (!notes || notes.length === 0) return null;
   
-  let normalized = notes
-    .map(normalizeToSharps)                // Convert flats to sharps (keep octaves)
-    .map(note => note.replace(/\d+/g, '')) // THEN remove octaves  
-    .filter(note => note !== null);       // Remove any invalid notes
-  
+  // Remove octaves but keep everything else as-is
+  let pitchClasses = notes.map(note => note.replace(/\d+/g, ''));
+
   // Remove duplicates if requested (useful for guitar chords)
   if (!allowDuplicates) {
-    normalized = normalized.filter((note, index, arr) => arr.indexOf(note) === index);
+    pitchClasses = [...new Set(pitchClasses)]; // Also use Set for deduplication
   }
   
-  normalized = normalized.sort();          // Sort alphabetically
-  
-  if (normalized.length === 0) return null;
-  
-  // Search chord definitions for a match
+  // Search chord definitions for exact match
   for (const [symbol, chord] of Object.entries(CHORD_DEFINITIONS)) {
-    const chordNotes = chord.notes.slice().sort(); // Sort chord notes too
+    // Compare using Set - order doesn't matter
+    const pitchSet = new Set(pitchClasses);
+    const chordSet = new Set(chord.notes);
     
-    if (arraysEqual(normalized, chordNotes)) {
+    if (pitchSet.size === chordSet.size && 
+        [...pitchSet].every(note => chordSet.has(note))) {
       return chord.displayName;
     }
   }

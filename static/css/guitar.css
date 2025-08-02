@@ -315,3 +315,17 @@
 .guitar-string-container.active {
     animation: stringGlow 1.4s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
+
+.chord-diagrams-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  
+}
+
+.chord-diagram-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+}

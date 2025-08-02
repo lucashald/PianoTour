@@ -389,6 +389,23 @@ h4 {
     margin-bottom: var(--spacing-unit);
 }
 
+/* Playback Controls Block */
+.guitar-controls {
+    width: 100%;
+    max-width: var(--max-width-main);
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-unit);
+    margin-bottom: var(--spacing-unit);
+}
+
+#chord-palette {
+    width: 100%;
+    max-width: var(--max-width-main);
+    display: flex;
+    justify-content: center;
+}
+
 /* ==========================================================================
    4. Element & Component Styles
    - Defines the appearance of buttons and other small elements.
