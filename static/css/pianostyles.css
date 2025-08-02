@@ -1103,3 +1103,139 @@ h4 {
     -webkit-touch-callout: default !important;
     touch-action: auto !important;
 }
+
+ .volume-control {
+    width: 100%;
+    max-width: var(--max-width-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-unit);
+    margin-bottom: var(--spacing-unit);
+}
+
+        .volume-icon {
+            width: 40px;
+            height: 40px;
+            fill: var(--color-text-secondary);
+            flex-shrink: 0;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .volume-icon:hover {
+            fill: var(--color-primary);
+            background-color: var(--color-blue-dark);
+        }
+        
+        .volume-slider {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 20px;
+            cursor: pointer;
+            outline: none;
+            border-radius: 8px;
+            background: linear-gradient(to right, 
+                var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 75%), 
+                var(--color-blue-dark) var(--value-percent, 75%)
+            );
+        }
+
+        /* WebKit browsers (Chrome, Safari, Edge) */
+        .volume-slider::-webkit-slider-track {
+            background: transparent;
+            border: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 24px;
+            width: 24px;
+            margin-top: -2px;
+            border-radius: 50%;
+            background: var(--color-text-primary);
+            border: 3px solid var(--color-green-medium);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        /* Firefox */
+        .volume-slider::-moz-range-track {
+           background: transparent;
+           border: none;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--color-text-primary);
+            border: 3px solid var(--color-green-medium);
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            border-color: inherit;
+        }
+        
+        /* Hover & Active States */
+        .volume-slider:hover::-webkit-slider-thumb {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        .volume-slider:active::-webkit-slider-thumb {
+            transform: scale(1.2);
+        }
+        .volume-slider:hover::-moz-range-thumb {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        .volume-slider:active::-moz-range-thumb {
+            transform: scale(1.2);
+        }
+
+        /* Focus states - Outline removed */
+        .volume-slider:focus {
+            outline: none;
+        }
+        
+        .volume-value {
+            min-width: 40px;
+            text-align: right;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            transition: color 0.3s ease;
+        }
+
+        /* Muted state */
+        .volume-control.muted .volume-slider {
+            --track-fill-color: var(--color-danger);
+        }
+        
+        /* Muted Thumb - Background changed to make it solid */
+        .volume-control.muted .volume-slider::-webkit-slider-thumb {
+            background: var(--color-danger);
+            border-color: var(--color-danger);
+        }
+        .volume-control.muted .volume-slider::-moz-range-thumb {
+            background: var(--color-danger);
+            border-color: var(--color-danger);
+        }
+        .volume-control.muted .volume-icon {
+            fill: var(--color-danger);
+        }
+
+        /* Touch-friendly improvements */
+        @media (pointer: coarse) {
+            .volume-slider { height: 20px; }
+            .volume-slider::-webkit-slider-thumb { height: 24px; width: 24px; margin-top: -2px; }
+            .volume-slider::-moz-range-thumb { height: 24px; width: 24px; }
+            .volume-icon { width: 32px; height: 32px; padding: 12px; }
+        }
+		
+		.volume-icon:focus {
+    outline: none;
+}

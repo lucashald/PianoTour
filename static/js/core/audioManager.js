@@ -278,9 +278,9 @@ async function initializeAudio() {
         ]);
 
         // --- Success Path ---
-        clearTimeout(timeoutId); // Clear the timeout
+        clearTimeout(timeoutId);
         setAudioStatus('ready');
-        // We don't call markAudioAsUnlocked() in this debug version to ensure it runs fresh every time.
+        initializeAudioControls();
         processDeferredAction();
 
         const instrument = document.getElementById("instrument");
@@ -464,6 +464,41 @@ export async function unlockAndExecute(newAction, replaceExisting = true) {
   }
 
   return success;
+}
+
+export function initializeAudioControls() {
+  const volumeSlider = document.getElementById('volumeSlider'); // Changed from 'volumeControl'
+  
+  if (volumeSlider) {
+    // Convert 0-100 range to dB range (-20 to 0)
+    function percentToDb(percent) {
+      if (percent === 0) return -Infinity; // Complete silence
+      return (percent / 100) * 20 - 20; // Maps 100% to 0dB, 1% to -19.8dB
+    }
+    
+    function dbToPercent(db) {
+      if (db === -Infinity) return 0;
+      return Math.max(0, Math.min(100, (db + 20) / 20 * 100));
+    }
+
+    // Restore saved volume on load
+    const savedVolume = localStorage.getItem('piano-volume') || '75';
+    volumeSlider.value = savedVolume;
+    const dbValue = percentToDb(parseFloat(savedVolume));
+    Tone.Destination.volume.value = dbValue;
+
+    // Handle volume changes
+    volumeSlider.addEventListener('input', (e) => {
+      const percent = parseFloat(e.target.value);
+      const dbValue = percentToDb(percent);
+      Tone.Destination.volume.value = dbValue;
+      
+      // Save volume setting
+      localStorage.setItem('piano-volume', percent.toString());
+      
+      console.log(`Global volume set to: ${percent}% (${dbValue.toFixed(1)} dB)`);
+    });
+  }
 }
 
 // ===================================================================
