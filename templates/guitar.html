@@ -13,6 +13,7 @@
 <div id="guitar-fretboard"></div>
 <div id="chord-palette"></div>
 <div id="guitar-controls"></div>
+<div id="chord-container" class="chord-section"></div>
 {% endblock %}
 
 {% block toggles %}
@@ -22,12 +23,40 @@
 {% block scripts %}
 <script type="module">
     import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+    import { identifyChordFlexibleEnhanced } from '{{ url_for("static", filename="js/core/note-data.js") }}';
     import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
     import { initializeGuitar, initializeChordPalette, initializeGuitarControls } from '{{ url_for("static", filename="js/instrument/guitarInstrument.js") }}';
+        import { 
+            getChordFrets, 
+            getChordObject, 
+            ChordDiagramRenderer 
+        } from '{{ url_for("static", filename="js/instrument/guitarChords.js") }}';
     const templateInstrument = '{{ instrument }}' || 'guitar';
+    
     pianoState.instrument = templateInstrument;
     console.log("Set instrument to:", templateInstrument);
     addBasicKeyboardListeners();
     const guitar = initializeGuitar('#guitar-fretboard');
+    initializeChordPalette('#chord-palette', guitar);
+    initializeGuitarControls('#guitar-controls', guitar);
+
+        
+        // Now you can use them
+        // Backward compatible usage
+        const cMajorFrets = getChordFrets('C'); // [null, 3, 2, 0, 1, 0]
+        console.log('C Major frets:', cMajorFrets);
+        
+        // New enhanced usage
+        const cMajorChord = getChordObject('C');
+        const allPositions = cMajorChord.positions; // Array of all fingering options
+        console.log('C Major chord object:', cMajorChord);
+        console.log('All positions:', allPositions);
+        
+        // Render chord diagram
+        const renderer = new ChordDiagramRenderer(document.getElementById('chord-container'));
+        renderer.renderChord(cMajorChord, 0); // Render first position
+
+        const guitarChordName = identifyChordFlexibleEnhanced(["E2", "B2", "E3", "G3", "B3", "E4"], false);
+        console.log(guitarChordName)
 </script>
 {% endblock %}

@@ -1,77 +1,39 @@
 // guitarUI.js - Guitar-specific UI components
-import { CHORD_GROUPS, getChordFrets } from '../instrument/guitarChords.js';
+import { handleInitialGuitar } from '../instrument/guitarInstrument.js';
+import {
+  ALL_NOTE_INFO,
+  BLACK_KEY_WIDTH,
+  CHORD_STRUCTURES,
+  DURATION_THRESHOLDS,
+  MAJOR_DIATONIC_LABELS,
+  MINOR_DIATONIC_LABELS,
+  NOTES_BY_MIDI,
+  NOTES_BY_NAME,
+  notesByMidiKeyAware,
+  WHITE_KEY_WIDTH,
+  getChordByDegree
+} from "../core/note-data.js";
 
 export function createChordPalette(guitarInstance) {
   const palette = document.createElement('div');
   palette.className = 'guitar-chord-palette';
-  palette.style.cssText = `
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 16px;
-    background: #f5f5f5;
-    border-radius: 8px;
-    margin-bottom: 16px;
-  `;
 
-  Object.entries(CHORD_GROUPS).forEach(([groupName, chords]) => {
-    const group = createChordGroup(groupName, chords, guitarInstance);
-    palette.appendChild(group);
-  });
+  // Create buttons for degrees 1-7
+  for (let degree = 1; degree <= 7; degree++) {
+    const chord = getChordByDegree(degree);
+    if (chord) {
+      const button = createChordButton(chord, guitarInstance);
+      palette.appendChild(button);
+    }
+  }
 
   return palette;
 }
 
-function createChordGroup(groupName, chords, guitarInstance) {
-  const group = document.createElement('div');
-  group.className = 'chord-group';
-  group.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  `;
-
-  const label = document.createElement('h4');
-  label.textContent = groupName;
-  label.style.cssText = `
-    margin: 0 0 8px 0;
-    font-size: 12px;
-    color: #666;
-    text-transform: uppercase;
-  `;
-  group.appendChild(label);
-
-  const buttonContainer = document.createElement('div');
-  buttonContainer.style.cssText = `
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-  `;
-
-  chords.forEach(chord => {
-    const button = createChordButton(chord, guitarInstance);
-    buttonContainer.appendChild(button);
-  });
-
-  group.appendChild(buttonContainer);
-  return group;
-}
-
-function createChordButton(chordName, guitarInstance) {
+function createChordButton(chord, guitarInstance) {
   const button = document.createElement('button');
-  button.textContent = chordName;
-  button.className = 'guitar-chord-btn';
-  button.style.cssText = `
-    padding: 8px 12px;
-    background: linear-gradient(to bottom, #fff, #e0e0e0);
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
-    transition: all 0.1s ease;
-    min-width: 40px;
-  `;
+  button.textContent = chord.displayName;
+  button.className = 'gbtn btn--compact';
 
   button.addEventListener('mousedown', () => {
     button.style.transform = 'translateY(2px)';
@@ -83,12 +45,39 @@ function createChordButton(chordName, guitarInstance) {
     button.style.boxShadow = 'none';
   });
 
+button.addEventListener('click', () => {
+  if (chord.frets) {
+    // Convert frets string "x32010" to array [null, 3, 2, 0, 1, 0]
+    const fretsArray = chord.frets.split('').map(fret => {
+      if (fret === 'x') return null; // muted string - will be skipped by setChord
+      return parseInt(fret, 10);
+    });
+    
+    guitarInstance.setChord(fretsArray);
+    // Auto-strum after setting chord
+    setTimeout(() => guitarInstance.strum(), 100);
+  }
+});
+
+  return button;
+}
+
+export function createRegeneratePaletteButton(guitarInstance, paletteElement) {
+  const button = document.createElement('button');
+  button.innerHTML = 'Regenerate Chords';
+  button.className = 'btn btn--primary';
+  
   button.addEventListener('click', () => {
-    const frets = getChordFrets(chordName);
-    if (frets) {
-      guitarInstance.setChord(frets);
-      // Auto-strum after setting chord
-      setTimeout(() => guitarInstance.strum(), 100);
+    // Clear existing palette
+    paletteElement.innerHTML = '';
+    
+    // Regenerate buttons for degrees 1-7
+    for (let degree = 1; degree <= 7; degree++) {
+      const chord = getChordByDegree(degree);
+      if (chord) {
+        const chordButton = createChordButton(chord, guitarInstance);
+        paletteElement.appendChild(chordButton);
+      }
     }
   });
 
@@ -98,26 +87,50 @@ function createChordButton(chordName, guitarInstance) {
 export function createGuitarControls(guitarInstance) {
   const controls = document.createElement('div');
   controls.className = 'guitar-controls';
-  controls.style.cssText = `
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    padding: 12px;
-    background: #f0f0f0;
-    border-radius: 8px;
-    margin-bottom: 16px;
-  `;
 
-  // Strum buttons
+  // Strum Down button - works like strum area
   const strumDown = document.createElement('button');
   strumDown.innerHTML = '↓ Strum Down';
   strumDown.className = 'btn btn--secondary';
-  strumDown.addEventListener('click', () => guitarInstance.strum('down'));
+  
+  strumDown.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    strumDown.style.transform = 'translateY(2px)';
+    strumDown.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.2)';
+    guitarInstance.strum('down');
+  });
 
+  strumDown.addEventListener('mouseup', () => {
+    strumDown.style.transform = 'translateY(0)';
+    strumDown.style.boxShadow = 'none';
+  });
+
+  strumDown.addEventListener('mouseleave', () => {
+    strumDown.style.transform = 'translateY(0)';
+    strumDown.style.boxShadow = 'none';
+  });
+
+  // Strum Up button - works like strum area
   const strumUp = document.createElement('button');
   strumUp.innerHTML = '↑ Strum Up';
   strumUp.className = 'btn btn--secondary';
-  strumUp.addEventListener('click', () => guitarInstance.strum('up'));
+  
+  strumUp.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    strumUp.style.transform = 'translateY(2px)';
+    strumUp.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.2)';
+    guitarInstance.strum('up');
+  });
+
+  strumUp.addEventListener('mouseup', () => {
+    strumUp.style.transform = 'translateY(0)';
+    strumUp.style.boxShadow = 'none';
+  });
+
+  strumUp.addEventListener('mouseleave', () => {
+    strumUp.style.transform = 'translateY(0)';
+    strumUp.style.boxShadow = 'none';
+  });
 
   // Clear chord button
   const clearChord = document.createElement('button');

@@ -1,6 +1,6 @@
 // guitarInstrument.js - Virtual Guitar Integration for Piano Tour
 import { pianoState } from "../core/appState.js";
-import { createChordPalette, createGuitarControls } from "../ui/guitarUI.js";
+import { createChordPalette, createGuitarControls, createRegeneratePaletteButton } from "../ui/guitarUI.js";
 import audioManager from "../core/audioManager.js";
 import { NOTES_BY_NAME, DURATION_THRESHOLDS, splitNotesIntoClefs } from "../core/note-data.js";
 import { trigger, triggerAttackRelease } from "./playbackHelpers.js";
@@ -27,9 +27,19 @@ export function initializeChordPalette(containerSelector, guitarInstance = windo
         return null;
     }
 
+    // Create wrapper for palette and controls
+    const wrapper = document.createElement('div');
+    wrapper.className = 'chord-palette-wrapper';
+
     // Create and append chord palette
     const chordPalette = createChordPalette(guitarInstance);
-    container.appendChild(chordPalette);
+    wrapper.appendChild(chordPalette);
+    
+    // Create and append regenerate button
+    const regenerateButton = createRegeneratePaletteButton(guitarInstance, chordPalette);
+    wrapper.appendChild(regenerateButton);
+    
+    container.appendChild(wrapper);
     
     console.log('✅ Chord palette initialized');
     return chordPalette;
@@ -101,6 +111,7 @@ class GuitarInstrument {
     // NEW: Timing tracking for score writing
     this.activeStrings = {}; // Track individual string timing
     this.activeStrum = null; // Track strum timing
+    this.playingStrings = {}; // Track which strings are currently playing audio
 
     this.init();
   }
@@ -298,20 +309,13 @@ class GuitarInstrument {
   setupAudioEventListeners() {
     console.log('🎸 Setting up audio event listeners...');
     
-    // String buttons - these make sound
-    this.stringLabelsContainer.addEventListener('click', (e) => {
-      if (e.target.classList.contains('string-button')) {
-        const stringNum = parseInt(e.target.classList[1].split('-')[1]);
-        this.pluckString(stringNum);
-      }
-    });
-
-    // String button mousedown/mouseup for timing (only after audio is ready)
+    // String button mousedown/mouseup for playing and timing
     this.stringLabelsContainer.addEventListener('mousedown', (e) => {
       if (e.target.classList.contains('string-button')) {
         e.target.classList.add('active');
         const stringNum = parseInt(e.target.classList[1].split('-')[1]);
         this.startStringButtonPress(stringNum);
+        this.pluckString(stringNum); // Start the note
       }
     });
 
@@ -320,11 +324,23 @@ class GuitarInstrument {
         e.target.classList.remove('active');
         const stringNum = parseInt(e.target.classList[1].split('-')[1]);
         this.endStringButtonPress(stringNum);
+        this.stopString(stringNum); // Stop the note
       }
     });
 
-    // Strum area - this makes sound
-    this.strumArea.addEventListener('click', () => this.strum('down'));
+    // Prevent context menu on right click to allow proper mouse events
+    this.stringLabelsContainer.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    // Strum area mousedown/mouseup
+    this.strumArea.addEventListener('mousedown', () => this.startStrum('down'));
+    this.strumArea.addEventListener('mouseup', () => this.endStrum());
+
+    // Prevent context menu on strum area
+    this.strumArea.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
   }
 
   // NEW: Start string button press with timing
@@ -335,30 +351,31 @@ class GuitarInstrument {
       note: note
     };
   }
-// Enhanced endStringButtonPress method
-endStringButtonPress(stringNum) {
-  const activeString = this.activeStrings[stringNum];
-  if (!activeString) return;
 
-  const heldTime = performance.now() - activeString.startTime;
-  let duration = "q";
-  if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-  else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+  // Enhanced endStringButtonPress method
+  endStringButtonPress(stringNum) {
+    const activeString = this.activeStrings[stringNum];
+    if (!activeString) return;
 
-  // Use the same clef splitting logic for consistency
-  const clefGroups = splitNotesIntoClefs([activeString.note]);
-  
-  // Since it's a single note, there will only be one clef group
-  const group = clefGroups[0];
-  writeNote({
-    clef: group.clef,
-    duration,
-    notes: group.notes,
-    chordName: activeString.note,
-  });
+    const heldTime = performance.now() - activeString.startTime;
+    let duration = "q";
+    if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
+    else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
 
-  delete this.activeStrings[stringNum];
-}
+    // Use the same clef splitting logic for consistency
+    const clefGroups = splitNotesIntoClefs([activeString.note]);
+    
+    // Since it's a single note, there will only be one clef group
+    const group = clefGroups[0];
+    writeNote({
+      clef: group.clef,
+      duration,
+      notes: group.notes,
+      chordName: activeString.note,
+    });
+
+    delete this.activeStrings[stringNum];
+  }
 
   setFret(stringNum, fret) {
     const stringIndex = stringNum - 1;
@@ -369,13 +386,6 @@ endStringButtonPress(stringNum) {
       this.showFingerPosition(stringNum, fret);
     }
     this.updateStringLabel(stringNum);
-    //if (!this.isPlayingChord) {
-      // Only auto-pluck if audio is ready (for fret changes)
-      // temporarily removing the pluck function call from fret changes.
-      //if (audioManager.isAudioReady()) {
-        //this.pluckString(stringNum);
-      //}
-    //}
   }
 
   clearFingerPosition(stringNum) {
@@ -425,7 +435,7 @@ endStringButtonPress(stringNum) {
     }
   }
 
-  // Enhanced pluckString method
+  // Updated pluckString method - starts the note
   pluckString(stringNum) {
     const stringIndex = stringNum - 1;
     if (guitarState.mutedStrings[stringIndex]) {
@@ -435,75 +445,89 @@ endStringButtonPress(stringNum) {
     const note = this.getStringNote(stringNum);
     if (audioManager.isAudioReady()) {
       trigger([note], true);
-
-      if (!guitarState.sustainMode) {
-        setTimeout(() => trigger([note], false), 250);
-      }
-    } else {
-      console.warn('⚠️ Audio manager not ready');
+      this.playingStrings[stringNum] = note; // Track that this string is playing
     }
     this.highlightString(stringNum);
+  }
+
+  // NEW: Stop a specific string
+  stopString(stringNum) {
+    if (this.playingStrings[stringNum]) {
+      const note = this.playingStrings[stringNum];
+      trigger([note], false);
+      delete this.playingStrings[stringNum];
+    }
   }
 
   highlightString(stringNum) {
     const stringElement = this.stringElements[stringNum];
     if (stringElement) {
       stringElement.classList.add('active');
-      setTimeout(() => stringElement.classList.remove('active'), 1200);
+      setTimeout(() => stringElement.classList.remove('active'), 1400);
     }
   }
 
-  // Enhanced strum method - UPDATE THIS in your guitar class
-strum(direction = 'down') {
-  if (!audioManager.isAudioReady()) {
-    console.warn('⚠️ Audio manager not ready for strum');
-    return;
+  // NEW: Start strum method
+  startStrum(direction = 'down') {0
+    if (!audioManager.isAudioReady()) {
+      return;
+    }
+
+    // Track strum timing
+    this.activeStrum = {
+      startTime: performance.now(),
+      notes: this.getCurrentNotes(),
+      direction: direction
+    };
+
+    const strumDelay = 10;
+    const strings = direction === 'down' ? [6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6];
+
+    // Start all strings in the strum
+    strings.forEach((stringNum, index) => {
+      setTimeout(() => this.pluckString(stringNum), index * strumDelay);
+    });
   }
 
-  // Track strum timing
-  this.activeStrum = {
-    startTime: performance.now(),
-    notes: this.getCurrentNotes()
-  };
+  // NEW: End strum method
+  endStrum() {
+    if (!this.activeStrum) return;
 
-  const strumDelay = 10;
-  const strings = direction === 'down' ? [6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6];
-
-  strings.forEach((stringNum, index) => {
-    setTimeout(() => this.pluckString(stringNum), index * strumDelay);
-  });
-
-  // Auto-finish strum after reasonable time
-  setTimeout(() => this.finishStrum(), 1000);
-}
-
-// Enhanced finishStrum method - UPDATE THIS in your guitar class  
-finishStrum() {
-  if (!this.activeStrum) return;
-
-  const heldTime = performance.now() - this.activeStrum.startTime;
-  let duration = "q";
-  if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-  else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
-
-  // Split notes between clefs
-  const clefGroups = splitNotesIntoClefs(this.activeStrum.notes);
-  
-  // NEW: Make sure both clefs are aligned before writing
-  fillRests();
-  
-  // Write each clef group as a separate entry (now they'll be aligned!)
-  clefGroups.forEach(group => {
-    writeNote({
-      clef: group.clef,
-      duration,
-      notes: group.notes,
-      chordName: group.notes.length === 1 ? group.notes[0] : `Guitar Strum (${group.clef})`,
+    // Stop all currently playing strings
+    Object.keys(this.playingStrings).forEach(stringNum => {
+      this.stopString(parseInt(stringNum));
     });
-  });
 
-  this.activeStrum = null;
-}
+    const heldTime = performance.now() - this.activeStrum.startTime;
+    let duration = "q";
+    if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
+    else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+
+    // Split notes between clefs
+    const clefGroups = splitNotesIntoClefs(this.activeStrum.notes);
+    
+    // Make sure both clefs are aligned before writing
+    fillRests();
+    
+    // Write each clef group as a separate entry
+    clefGroups.forEach(group => {
+      writeNote({
+        clef: group.clef,
+        duration,
+        notes: group.notes,
+        chordName: group.notes.length === 1 ? group.notes[0] : `Guitar Strum (${group.clef})`,
+      });
+    });
+
+    this.activeStrum = null;
+  }
+
+  // Legacy strum method for backward compatibility
+  strum(direction = 'down') {
+    this.startStrum(direction);
+    // Auto-end after a quarter note duration for legacy calls
+    setTimeout(() => this.endStrum(), 1400);
+  }
 
   toggleStringMute(stringNum) {
     const stringIndex = stringNum - 1;
@@ -518,7 +542,6 @@ finishStrum() {
    * @param {number[]} fretArray - An array of fret numbers for each string, from 1 to 6.
    */
   setChord(fretArray) {
-    this.isPlayingChord = true;
 
     // Use a new mapping to ensure frets are set correctly from string 1 to 6
     fretArray.forEach((fret, index) => {
@@ -527,9 +550,6 @@ finishStrum() {
         this.setFret(stringNum, fret);
       }
     });
-
-    this.isPlayingChord = false;
-    setTimeout(() => this.strum('down'), 100);
   }
 
   getCurrentNotes() {
@@ -542,6 +562,7 @@ finishStrum() {
     return notes;
   }
 }
+
 
 // NEW: Audio unlock functions (similar to piano)
 export function handleInitialGuitar(e) {
@@ -593,6 +614,11 @@ export function handleInitialGuitar(e) {
       // Single note - play immediately, don't let triggerAttackRelease write to score
       triggerAttackRelease(clickedDetails.notes, "q", 100, false); // writeToScore = false
       
+      // Highlight the string that was clicked
+      if (window.guitarInstance) {
+        window.guitarInstance.highlightString(clickedDetails.stringNum);
+      }
+      
       // Write to score manually using proper clef
       const group = clefGroups[0]; // Single note will have one clef group
       writeNote({
@@ -607,6 +633,21 @@ export function handleInitialGuitar(e) {
       clickedDetails.notes.forEach((note, index) => {
         setTimeout(() => triggerAttackRelease([note], "q", 100, false), index * 10); // writeToScore = false
       });
+      
+      // Highlight all strings that are being strummed
+      if (window.guitarInstance) {
+        // Highlight strings 6 to 1 (down strum) with the same timing as the audio
+        const strings = [6, 5, 4, 3, 2, 1];
+        strings.forEach((stringNum, index) => {
+          // Only highlight strings that aren't muted
+          const stringIndex = stringNum - 1;
+          if (!guitarState.mutedStrings[stringIndex]) {
+            setTimeout(() => {
+              window.guitarInstance.highlightString(stringNum);
+            }, index * 10);
+          }
+        });
+      }
       
       // Write to score manually using proper clef splitting
       fillRests();

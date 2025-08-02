@@ -18,5 +18,9 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jest-junit": "^16.0.0"
+  },
+  "dependencies": {
+    "@tombatossals/chords-db": "^0.5.1",
+    "@tombatossals/react-chords": "^0.2.10"
   }
 }

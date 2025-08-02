@@ -1,0 +1,2526 @@
+const fs = require('fs');
+
+// You'll need to install the chords-db package first:
+// npm install @tombatossals/chords-db
+
+// Import the chord database
+const chordsDb = require('@tombatossals/chords-db/lib/guitar.json');
+
+// CHORDS
+const CHORD_DEFINITIONS = {
+  // C Chords
+  C: {
+    notes: ["C", "E", "G"],
+    treble: ["C4", "E4", "G4"],
+    bass: ["C3", "E3", "G3"],
+    displayName: "C Major",
+  },
+  Cmaj7: {
+    notes: ["C", "E", "G", "B"],
+    treble: ["C4", "E4", "G4", "B4"],
+    bass: ["C2", "E2", "G2", "B2"],
+    displayName: "C Major 7th",
+  },
+  Cmaj6: {
+    notes: ["C", "E", "G", "A"],
+    treble: ["C4", "E4", "G4", "A4"],
+    bass: ["C2", "E2", "G2", "A2"],
+    displayName: "C Major 6th",
+  },
+  Cmaj9: {
+    notes: ["C", "E", "G", "B", "D"],
+    treble: ["C4", "E4", "G4", "B4", "D5"],
+    bass: ["C2", "E2", "G2", "B2", "D3"],
+    displayName: "C Major 9th",
+  },
+  Cm: {
+    notes: ["C", "Eb", "G"],
+    treble: ["C4", "Eb4", "G4"],
+    bass: ["C3", "Eb3", "G3"],
+    displayName: "C Minor",
+  },
+  Cmin7: {
+    notes: ["C", "Eb", "G", "Bb"],
+    treble: ["C4", "Eb4", "G4", "Bb4"],
+    bass: ["C2", "Eb2", "G2", "Bb2"],
+    displayName: "C Minor 7th",
+  },
+  Cmin6: {
+    notes: ["C", "Eb", "G", "A"],
+    treble: ["C4", "Eb4", "G4", "A4"],
+    bass: ["C2", "Eb2", "G2", "A2"],
+    displayName: "C Minor 6th",
+  },
+  Cmin9: {
+    notes: ["C", "Eb", "G", "Bb", "D"],
+    treble: ["C4", "Eb4", "G4", "Bb4", "D5"],
+    bass: ["C2", "Eb2", "G2", "Bb2", "D3"],
+    displayName: "C Minor 9th",
+  },
+  Cdim: {
+    notes: ["C", "Eb", "Gb"],
+    treble: ["C4", "Eb4", "Gb4"],
+    bass: ["C3", "Eb3", "Gb3"],
+    displayName: "C Diminished",
+  },
+  Cdim7: {
+    notes: ["C", "Eb", "Gb", "Bbb"],
+    treble: ["C4", "Eb4", "Gb4", "Bbb4"],
+    bass: ["C3", "Eb3", "Gb3", "Bbb3"],
+    displayName: "C Diminished 7th",
+  },
+  Cm7b5: {
+    notes: ["C", "Eb", "Gb", "Bb"],
+    treble: ["C4", "Eb4", "Gb4", "Bb4"],
+    bass: ["C3", "Eb3", "Gb3", "Bb3"],
+    displayName: "C Half-Diminished 7th",
+  },
+  Caug: {
+    notes: ["C", "E", "G#"],
+    treble: ["C4", "E4", "G#4"],
+    bass: ["C3", "E3", "G#3"],
+    displayName: "C Augmented",
+  },
+  Caug7: {
+    notes: ["C", "E", "G#", "Bb"],
+    treble: ["C4", "E4", "G#4", "Bb4"],
+    bass: ["C2", "E2", "G#2", "Bb2"],
+    displayName: "C Augmented 7th",
+  },
+  C7: {
+    notes: ["C", "E", "G", "Bb"],
+    treble: ["C4", "E4", "G4", "Bb4"],
+    bass: ["C2", "E2", "G2", "Bb2"],
+    displayName: "C Dominant 7th",
+  },
+  C9: {
+    notes: ["C", "E", "G", "Bb", "D"],
+    treble: ["C4", "E4", "G4", "Bb4", "D5"],
+    bass: ["C2", "E2", "G2", "Bb2", "D3"],
+    displayName: "C Dominant 9th",
+  },
+  Csus4: {
+    notes: ["C", "F", "G"],
+    treble: ["C4", "F4", "G4"],
+    bass: ["C3", "F3", "G3"],
+    displayName: "C Suspended 4th",
+  },
+  Csus2: {
+    notes: ["C", "D", "G"],
+    treble: ["C4", "D4", "G4"],
+    bass: ["C3", "D3", "G3"],
+    displayName: "C Suspended 2nd",
+  },
+
+  // C# Chords
+  "C#": {
+    notes: ["C#", "E#", "G#"],
+    treble: ["C#4", "E#4", "G#4"],
+    bass: ["C#3", "E#3", "G#3"],
+    displayName: "C# Major",
+  },
+  "C#alt": {  // Alternative spelling
+  notes: ["C#", "F", "G#"],
+  treble: ["C#4", "F4", "G#4"],
+  bass: ["C#3", "F3", "G#3"],
+  displayName: "C# Major",
+},
+  "C#maj7": {
+    notes: ["C#", "E#", "G#", "B#"],
+    treble: ["C#4", "E#4", "G#4", "B#4"],
+    bass: ["C#2", "E#2", "G#2", "B#2"],
+    displayName: "C# Major 7th",
+  },
+  "C#maj6": {
+    notes: ["C#", "E#", "G#", "A#"],
+    treble: ["C#4", "E#4", "G#4", "A#4"],
+    bass: ["C#2", "E#2", "G#2", "A#2"],
+    displayName: "C# Major 6th",
+  },
+  "C#maj9": {
+    notes: ["C#", "E#", "G#", "B#", "D#"],
+    treble: ["C#4", "E#4", "G#4", "B#4", "D#5"],
+    bass: ["C#2", "E#2", "G#2", "B#2", "D#3"],
+    displayName: "C# Major 9th",
+  },
+  "C#m": {
+    notes: ["C#", "E", "G#"],
+    treble: ["C#4", "E4", "G#4"],
+    bass: ["C#3", "E3", "G#3"],
+    displayName: "C# Minor",
+  },
+  "C#min7": {
+    notes: ["C#", "E", "G#", "B"],
+    treble: ["C#4", "E4", "G#4", "B4"],
+    bass: ["C#2", "E2", "G#2", "B2"],
+    displayName: "C# Minor 7th",
+  },
+  "C#min6": {
+    notes: ["C#", "E", "G#", "A#"],
+    treble: ["C#4", "E4", "G#4", "A#4"],
+    bass: ["C#2", "E2", "G#2", "A#2"],
+    displayName: "C# Minor 6th",
+  },
+  "C#min9": {
+    notes: ["C#", "E", "G#", "B", "D#"],
+    treble: ["C#4", "E4", "G#4", "B4", "D#5"],
+    bass: ["C#2", "E2", "G#2", "B2", "D#3"],
+    displayName: "C# Minor 9th",
+  },
+  "C#dim": {
+    notes: ["C#", "E", "G"],
+    treble: ["C#4", "E4", "G4"],
+    bass: ["C#3", "E3", "G3"],
+    displayName: "C# Diminished",
+  },
+  "C#dim7": {
+    notes: ["C#", "E", "G", "Bb"],
+    treble: ["C#4", "E4", "G4", "Bb4"],
+    bass: ["C#3", "E3", "G3", "Bb3"],
+    displayName: "C# Diminished 7th",
+  },
+  "C#m7b5": {
+    notes: ["C#", "E", "G", "B"],
+    treble: ["C#4", "E4", "G4", "B4"],
+    bass: ["C#3", "E3", "G3", "B3"],
+    displayName: "C# Half-Diminished 7th",
+  },
+  "C#aug": {
+    notes: ["C#", "E#", "G##"],
+    treble: ["C#4", "E#4", "G##4"],
+    bass: ["C#3", "E#3", "G##3"],
+    displayName: "C# Augmented",
+  },
+  "C#aug7": {
+    notes: ["C#", "E#", "G##", "B"],
+    treble: ["C#4", "E#4", "G##4", "B4"],
+    bass: ["C#2", "E#2", "G##2", "B2"],
+    displayName: "C# Augmented 7th",
+  },
+  "C#7": {
+    notes: ["C#", "E#", "G#", "B"],
+    treble: ["C#4", "E#4", "G#4", "B4"],
+    bass: ["C#2", "E#2", "G#2", "B2"],
+    displayName: "C# Dominant 7th",
+  },
+  "C#9": {
+    notes: ["C#", "E#", "G#", "B", "D#"],
+    treble: ["C#4", "E#4", "G#4", "B4", "D#5"],
+    bass: ["C#2", "E#2", "G#2", "B2", "D#3"],
+    displayName: "C# Dominant 9th",
+  },
+  "C#sus4": {
+    notes: ["C#", "F#", "G#"],
+    treble: ["C#4", "F#4", "G#4"],
+    bass: ["C#3", "F#3", "G#3"],
+    displayName: "C# Suspended 4th",
+  },
+  "C#sus2": {
+    notes: ["C#", "D#", "G#"],
+    treble: ["C#4", "D#4", "G#4"],
+    bass: ["C#3", "D#3", "G#3"],
+    displayName: "C# Suspended 2nd",
+  },
+
+  // Db Chords
+  Db: {
+    notes: ["Db", "F", "Ab"],
+    treble: ["Db4", "F4", "Ab4"],
+    bass: ["Db3", "F3", "Ab3"],
+    displayName: "Db Major",
+  },
+  Dbmaj7: {
+    notes: ["Db", "F", "Ab", "C"],
+    treble: ["Db4", "F4", "Ab4", "C5"],
+    bass: ["Db2", "F2", "Ab2", "C3"],
+    displayName: "Db Major 7th",
+  },
+  Dbmaj6: {
+    notes: ["Db", "F", "Ab", "Bb"],
+    treble: ["Db4", "F4", "Ab4", "Bb4"],
+    bass: ["Db2", "F2", "Ab2", "Bb2"],
+    displayName: "Db Major 6th",
+  },
+  Dbmaj9: {
+    notes: ["Db", "F", "Ab", "C", "Eb"],
+    treble: ["Db4", "F4", "Ab4", "C5", "Eb5"],
+    bass: ["Db2", "F2", "Ab2", "C3", "Eb3"],
+    displayName: "Db Major 9th",
+  },
+  Dbm: {
+    notes: ["Db", "Fb", "Ab"],
+    treble: ["Db4", "Fb4", "Ab4"],
+    bass: ["Db3", "Fb3", "Ab3"],
+    displayName: "Db Minor",
+  },
+  Dbmin7: {
+    notes: ["Db", "Fb", "Ab", "Cb"],
+    treble: ["Db4", "Fb4", "Ab4", "Cb5"],
+    bass: ["Db2", "Fb2", "Ab2", "Cb3"],
+    displayName: "Db Minor 7th",
+  },
+  Dbmin6: {
+    notes: ["Db", "Fb", "Ab", "Bb"],
+    treble: ["Db4", "Fb4", "Ab4", "Bb4"],
+    bass: ["Db2", "Fb2", "Ab2", "Bb2"],
+    displayName: "Db Minor 6th",
+  },
+  Dbmin9: {
+    notes: ["Db", "Fb", "Ab", "Cb", "Eb"],
+    treble: ["Db4", "Fb4", "Ab4", "Cb5", "Eb5"],
+    bass: ["Db2", "Fb2", "Ab2", "Cb2", "Eb3"],
+    displayName: "Db Minor 9th",
+  },
+  Dbdim: {
+    notes: ["Db", "Fb", "Abb"],
+    treble: ["Db4", "Fb4", "Abb4"],
+    bass: ["Db3", "Fb3", "Abb3"],
+    displayName: "Db Diminished",
+  },
+  Dbdim7: {
+    notes: ["Db", "Fb", "Abb", "Cbb"],
+    treble: ["Db4", "Fb4", "Abb4", "Cbb5"],
+    bass: ["Db3", "Fb3", "Abb3", "Cbb4"],
+    displayName: "Db Diminished 7th",
+  },
+  Dbm7b5: {
+    notes: ["Db", "Fb", "Abb", "Cb"],
+    treble: ["Db4", "Fb4", "Abb4", "Cb5"],
+    bass: ["Db3", "Fb3", "Abb4", "Cb4"],
+    displayName: "Db Half-Diminished 7th",
+  },
+  Dbaug: {
+    notes: ["Db", "F", "A"],
+    treble: ["Db4", "F4", "A4"],
+    bass: ["Db3", "F3", "A3"],
+    displayName: "Db Augmented",
+  },
+  Dbaug7: {
+    notes: ["Db", "F", "A", "Cb"],
+    treble: ["Db4", "F4", "A4", "Cb5"],
+    bass: ["Db2", "F2", "A2", "Cb3"],
+    displayName: "Db Augmented 7th",
+  },
+  Db7: {
+    notes: ["Db", "F", "Ab", "Cb"],
+    treble: ["Db4", "F4", "Ab4", "Cb5"],
+    bass: ["Db2", "F2", "Ab2", "Cb3"],
+    displayName: "Db Dominant 7th",
+  },
+  Db9: {
+    notes: ["Db", "F", "Ab", "Cb", "Eb"],
+    treble: ["Db4", "F4", "Ab4", "Cb5", "Eb5"],
+    bass: ["Db2", "F2", "Ab2", "Cb3", "Eb3"],
+    displayName: "Db Dominant 9th",
+  },
+  Dbsus4: {
+    notes: ["Db", "Gb", "Ab"],
+    treble: ["Db4", "Gb4", "Ab4"],
+    bass: ["Db3", "Gb3", "Ab3"],
+    displayName: "Db Suspended 4th",
+  },
+  Dbsus2: {
+    notes: ["Db", "Eb", "Ab"],
+    treble: ["Db4", "Eb4", "Ab4"],
+    bass: ["Db3", "Eb3", "Ab3"],
+    displayName: "Db Suspended 2nd",
+  },
+
+  // D Chords
+  D: {
+    notes: ["D", "F#", "A"],
+    treble: ["D4", "F#4", "A4"],
+    bass: ["D3", "F#3", "A3"],
+    displayName: "D Major",
+  },
+  Dmaj7: {
+    notes: ["D", "F#", "A", "C#"],
+    treble: ["D4", "F#4", "A4", "C#5"],
+    bass: ["D2", "F#2", "A2", "C#3"],
+    displayName: "D Major 7th",
+  },
+  Dmaj6: {
+    notes: ["D", "F#", "A", "B"],
+    treble: ["D4", "F#4", "A4", "B4"],
+    bass: ["D2", "F#2", "A2", "B2"],
+    displayName: "D Major 6th",
+  },
+  Dmaj9: {
+    notes: ["D", "F#", "A", "C#", "E"],
+    treble: ["D4", "F#4", "A4", "C#5", "E5"],
+    bass: ["D2", "F#2", "A2", "C#3", "E3"],
+    displayName: "D Major 9th",
+  },
+  Dm: {
+    notes: ["D", "F", "A"],
+    treble: ["D4", "F4", "A4"],
+    bass: ["D3", "F3", "A3"],
+    displayName: "D Minor",
+  },
+  Dmin7: {
+    notes: ["D", "F", "A", "C"],
+    treble: ["D4", "F4", "A4", "C5"],
+    bass: ["D2", "F2", "A2", "C3"],
+    displayName: "D Minor 7th",
+  },
+  Dmin6: {
+    notes: ["D", "F", "A", "B"],
+    treble: ["D4", "F4", "A4", "B4"],
+    bass: ["D2", "F2", "A2", "B2"],
+    displayName: "D Minor 6th",
+  },
+  Dmin9: {
+    notes: ["D", "F", "A", "C", "E"],
+    treble: ["D4", "F4", "A4", "C5", "E5"],
+    bass: ["D2", "F2", "A2", "C3", "E3"],
+    displayName: "D Minor 9th",
+  },
+  Ddim: {
+    notes: ["D", "F", "Ab"],
+    treble: ["D4", "F4", "Ab4"],
+    bass: ["D3", "F3", "Ab3"],
+    displayName: "D Diminished",
+  },
+  Ddim7: {
+    notes: ["D", "F", "Ab", "Cb"],
+    treble: ["D4", "F4", "Ab4", "Cb5"],
+    bass: ["D3", "F3", "Ab3", "Cb4"],
+    displayName: "D Diminished 7th",
+  },
+  Dm7b5: {
+    notes: ["D", "F", "Ab", "C"],
+    treble: ["D4", "F4", "Ab4", "C5"],
+    bass: ["D3", "F3", "Ab3", "C4"],
+    displayName: "D Half-Diminished 7th",
+  },
+  Daug: {
+    notes: ["D", "F#", "A#"],
+    treble: ["D4", "F#4", "A#4"],
+    bass: ["D3", "F#3", "A#3"],
+    displayName: "D Augmented",
+  },
+  Daug7: {
+    notes: ["D", "F#", "A#", "C"],
+    treble: ["D4", "F#4", "A#4", "C5"],
+    bass: ["D2", "F#2", "A#2", "C3"],
+    displayName: "D Augmented 7th",
+  },
+  D7: {
+    notes: ["D", "F#", "A", "C"],
+    treble: ["D4", "F#4", "A4", "C5"],
+    bass: ["D2", "F#2", "A2", "C3"],
+    displayName: "D Dominant 7th",
+  },
+  D9: {
+    notes: ["D", "F#", "A", "C", "E"],
+    treble: ["D4", "F#4", "A4", "C5", "E5"],
+    bass: ["D2", "F#2", "A2", "C3", "E3"],
+    displayName: "D Dominant 9th",
+  },
+  Dsus4: {
+    notes: ["D", "G", "A"],
+    treble: ["D4", "G4", "A4"],
+    bass: ["D3", "G3", "A3"],
+    displayName: "D Suspended 4th",
+  },
+  Dsus2: {
+    notes: ["D", "E", "A"],
+    treble: ["D4", "E4", "A4"],
+    bass: ["D3", "E3", "A3"],
+    displayName: "D Suspended 2nd",
+  },
+
+  // D# Chords
+  "D#": {
+    notes: ["D#", "F##", "A#"],
+    treble: ["D#4", "F##4", "A#4"],
+    bass: ["D#3", "F##3", "A#3"],
+    displayName: "D# Major",
+  },
+  "D#maj7": {
+    notes: ["D#", "F##", "A#", "C##"],
+    treble: ["D#4", "F##4", "A#4", "C##5"],
+    bass: ["D#2", "F##2", "A#2", "C##3"],
+    displayName: "D# Major 7th",
+  },
+  "D#maj6": {
+    notes: ["D#", "F##", "A#", "B#"],
+    treble: ["D#4", "F##4", "A#4", "B#4"],
+    bass: ["D#2", "F##2", "A#2", "B#2"],
+    displayName: "D# Major 6th",
+  },
+  "D#maj9": {
+    notes: ["D#", "F##", "A#", "C##", "E#"],
+    treble: ["D#4", "F##4", "A#4", "C##5", "E#5"],
+    bass: ["D#2", "F##2", "A#2", "C##3", "E#3"],
+    displayName: "D# Major 9th",
+  },
+  "D#m": {
+    notes: ["D#", "F#", "A#"],
+    treble: ["D#4", "F#4", "A#4"],
+    bass: ["D#3", "F#3", "A#3"],
+    displayName: "D# Minor",
+  },
+  "D#min7": {
+    notes: ["D#", "F#", "A#", "C#"],
+    treble: ["D#4", "F#4", "A#4", "C#5"],
+    bass: ["D#2", "F#2", "A#2", "C#3"],
+    displayName: "D# Minor 7th",
+  },
+  "D#min6": {
+    notes: ["D#", "F#", "A#", "B#"],
+    treble: ["D#4", "F#4", "A#4", "B#4"],
+    bass: ["D#2", "F#2", "A#2", "B#2"],
+    displayName: "D# Minor 6th",
+  },
+  "D#min9": {
+    notes: ["D#", "F#", "A#", "C#", "E#"],
+    treble: ["D#4", "F#4", "A#4", "C#5", "E#5"],
+    bass: ["D#2", "F#2", "A#2", "C#3", "E#3"],
+    displayName: "D# Minor 9th",
+  },
+  "D#dim": {
+    notes: ["D#", "F#", "A"],
+    treble: ["D#4", "F#4", "A4"],
+    bass: ["D#3", "F#3", "A3"],
+    displayName: "D# Diminished",
+  },
+  "D#dim7": {
+    notes: ["D#", "F#", "A", "C"],
+    treble: ["D#4", "F#4", "A4", "C5"],
+    bass: ["D#3", "F#3", "A3", "C4"],
+    displayName: "D# Diminished 7th",
+  },
+  "D#m7b5": {
+    notes: ["D#", "F#", "A", "C#"],
+    treble: ["D#4", "F#4", "A4", "C#5"],
+    bass: ["D#3", "F#3", "A3", "C#4"],
+    displayName: "D# Half-Diminished 7th",
+  },
+  "D#aug": {
+    notes: ["D#", "F##", "A##"],
+    treble: ["D#4", "F##4", "A##4"],
+    bass: ["D#3", "F##3", "A##3"],
+    displayName: "D# Augmented",
+  },
+  "D#aug7": {
+    notes: ["D#", "F##", "A##", "C#"],
+    treble: ["D#4", "F##4", "A##4", "C#5"],
+    bass: ["D#2", "F##2", "A##2", "C#3"],
+    displayName: "D# Augmented 7th",
+  },
+  "D#7": {
+    notes: ["D#", "F##", "A#", "C#"],
+    treble: ["D#4", "F##4", "A#4", "C#5"],
+    bass: ["D#2", "F##2", "A#2", "C#3"],
+    displayName: "D# Dominant 7th",
+  },
+  "D#9": {
+    notes: ["D#", "F##", "A#", "C#", "E#"],
+    treble: ["D#4", "F##4", "A#4", "C#5", "E#5"],
+    bass: ["D#2", "F##2", "A#2", "C#3", "E#3"],
+    displayName: "D# Dominant 9th",
+  },
+  "D#sus4": {
+    notes: ["D#", "G#", "A#"],
+    treble: ["D#4", "G#4", "A#4"],
+    bass: ["D#3", "G#3", "A#3"],
+    displayName: "D# Suspended 4th",
+  },
+  "D#sus2": {
+    notes: ["D#", "E#", "A#"],
+    treble: ["D#4", "E#4", "A#4"],
+    bass: ["D#3", "E#3", "A#3"],
+    displayName: "D# Suspended 2nd",
+  },
+
+  // Eb Chords
+  Eb: {
+    notes: ["Eb", "G", "Bb"],
+    treble: ["Eb4", "G4", "Bb4"],
+    bass: ["Eb3", "G3", "Bb3"],
+    displayName: "Eb Major",
+  },
+  Ebmaj7: {
+    notes: ["Eb", "G", "Bb", "D"],
+    treble: ["Eb4", "G4", "Bb4", "D5"],
+    bass: ["Eb2", "G2", "Bb2", "D3"],
+    displayName: "Eb Major 7th",
+  },
+  Ebmaj6: {
+    notes: ["Eb", "G", "Bb", "C"],
+    treble: ["Eb4", "G4", "Bb4", "C5"],
+    bass: ["Eb2", "G2", "Bb2", "C3"],
+    displayName: "Eb Major 6th",
+  },
+  Ebmaj9: {
+    notes: ["Eb", "G", "Bb", "D", "F"],
+    treble: ["Eb4", "G4", "Bb4", "D5", "F5"],
+    bass: ["Eb2", "G2", "Bb2", "D3", "F3"],
+    displayName: "Eb Major 9th",
+  },
+  Ebm: {
+    notes: ["Eb", "Gb", "Bb"],
+    treble: ["Eb4", "Gb4", "Bb4"],
+    bass: ["Eb3", "Gb3", "Bb3"],
+    displayName: "Eb Minor",
+  },
+  Ebmin7: {
+    notes: ["Eb", "Gb", "Bb", "Db"],
+    treble: ["Eb4", "Gb4", "Bb4", "Db5"],
+    bass: ["Eb2", "Gb2", "Bb2", "Db3"],
+    displayName: "Eb Minor 7th",
+  },
+  Ebmin6: {
+    notes: ["Eb", "Gb", "Bb", "C"],
+    treble: ["Eb4", "Gb4", "Bb4", "C5"],
+    bass: ["Eb2", "Gb2", "Bb2", "C3"],
+    displayName: "Eb Minor 6th",
+  },
+  Ebmin9: {
+    notes: ["Eb", "Gb", "Bb", "Db", "F"],
+    treble: ["Eb4", "Gb4", "Bb4", "Db5", "F5"],
+    bass: ["Eb2", "Gb2", "Bb2", "Db3", "F3"],
+    displayName: "Eb Minor 9th",
+  },
+  Ebdim: {
+    notes: ["Eb", "Gb", "Bbb"],
+    treble: ["Eb4", "Gb4", "Bbb4"],
+    bass: ["Eb3", "Gb3", "Bbb3"],
+    displayName: "Eb Diminished",
+  },
+  Ebdim7: {
+    notes: ["Eb", "Gb", "Bbb", "Dbb"],
+    treble: ["Eb4", "Gb4", "Bbb4", "Dbb5"],
+    bass: ["Eb3", "Gb3", "Bbb3", "Dbb4"],
+    displayName: "Eb Diminished 7th",
+  },
+  Ebm7b5: {
+    notes: ["Eb", "Gb", "Bbb", "Db"],
+    treble: ["Eb4", "Gb4", "Bbb4", "Db5"],
+    bass: ["Eb3", "Gb3", "Bbb3", "Db4"],
+    displayName: "Eb Half-Diminished 7th",
+  },
+  Ebaug: {
+    notes: ["Eb", "G", "B"],
+    treble: ["Eb4", "G4", "B4"],
+    bass: ["Eb3", "G3", "B3"],
+    displayName: "Eb Augmented",
+  },
+  Ebaug7: {
+    notes: ["Eb", "G", "B", "Db"],
+    treble: ["Eb4", "G4", "B4", "Db5"],
+    bass: ["Eb2", "G2", "B2", "Db3"],
+    displayName: "Eb Augmented 7th",
+  },
+  Eb7: {
+    notes: ["Eb", "G", "Bb", "Db"],
+    treble: ["Eb4", "G4", "Bb4", "Db5"],
+    bass: ["Eb2", "G2", "Bb2", "Db3"],
+    displayName: "Eb Dominant 7th",
+  },
+  Eb9: {
+    notes: ["Eb", "G", "Bb", "Db", "F"],
+    treble: ["Eb4", "G4", "Bb4", "Db5", "F5"],
+    bass: ["Eb2", "G2", "Bb2", "Db3", "F3"],
+    displayName: "Eb Dominant 9th",
+  },
+  Ebsus4: {
+    notes: ["Eb", "Ab", "Bb"],
+    treble: ["Eb4", "Ab4", "Bb4"],
+    bass: ["Eb3", "Ab3", "Bb3"],
+    displayName: "Eb Suspended 4th",
+  },
+  Ebsus2: {
+    notes: ["Eb", "F", "Bb"],
+    treble: ["Eb4", "F4", "Bb4"],
+    bass: ["Eb3", "F3", "Bb3"],
+    displayName: "Eb Suspended 2nd",
+  },
+
+  // E Chords
+  E: {
+    notes: ["E", "G#", "B"],
+    treble: ["E4", "G#4", "B4"],
+    bass: ["E3", "G#3", "B3"],
+    displayName: "E Major",
+  },
+  "Fb": {
+  notes: ["Fb", "Ab", "Cb"],
+  treble: ["Fb4", "Ab4", "Cb5"],
+  bass: ["Fb3", "Ab3", "Cb4"],
+  displayName: "Fb Major",
+},
+  Emaj7: {
+    notes: ["E", "G#", "B", "D#"],
+    treble: ["E4", "G#4", "B4", "D#5"],
+    bass: ["E2", "G#2", "B2", "D#3"],
+    displayName: "E Major 7th",
+  },
+  Emaj6: {
+    notes: ["E", "G#", "B", "C#"],
+    treble: ["E4", "G#4", "B4", "C#5"],
+    bass: ["E2", "G#2", "B2", "C#3"],
+    displayName: "E Major 6th",
+  },
+  Emaj9: {
+    notes: ["E", "G#", "B", "D#", "F#"],
+    treble: ["E4", "G#4", "B4", "D#5", "F#5"],
+    bass: ["E2", "G#2", "B2", "D#3", "F#3"],
+    displayName: "E Major 9th",
+  },
+  Em: {
+    notes: ["E", "G", "B"],
+    treble: ["E4", "G4", "B4"],
+    bass: ["E3", "G4", "B3"],
+    displayName: "E Minor",
+  },
+  Emin7: {
+    notes: ["E", "G", "B", "D"],
+    treble: ["E4", "G4", "B4", "D5"],
+    bass: ["E2", "G2", "B2", "D3"],
+    displayName: "E Minor 7th",
+  },
+  Emin6: {
+    notes: ["E", "G", "B", "C#"],
+    treble: ["E4", "G4", "B4", "C#5"],
+    bass: ["E2", "G2", "B2", "C#3"],
+    displayName: "E Minor 6th",
+  },
+  Emin9: {
+    notes: ["E", "G", "B", "D", "F#"],
+    treble: ["E4", "G4", "B4", "D5", "F#5"],
+    bass: ["E2", "G2", "B2", "D3", "F#3"],
+    displayName: "E Minor 9th",
+  },
+  Edim: {
+    notes: ["E", "G", "Bb"],
+    treble: ["E4", "G4", "Bb4"],
+    bass: ["E3", "G3", "Bb3"],
+    displayName: "E Diminished",
+  },
+    "B#dim": {
+    notes: ["B#", "G", "A#"],
+    treble: ["B#4", "G4", "A#4"],
+    bass: ["B#3", "G3", "A#3"],
+    displayName: "B# Diminished",
+  },
+  Edim7: {
+    notes: ["E", "G", "Bb", "Db"],
+    treble: ["E4", "G4", "Bb4", "Db5"],
+    bass: ["E3", "G3", "Bb3", "Db4"],
+    displayName: "E Diminished 7th",
+  },
+  Em7b5: {
+    notes: ["E", "G", "Bb", "D"],
+    treble: ["E4", "G4", "Bb4", "D5"],
+    bass: ["E3", "G3", "Bb3", "D4"],
+    displayName: "E Half-Diminished 7th",
+  },
+  Eaug: {
+    notes: ["E", "G#", "B#"],
+    treble: ["E4", "G#4", "B#4"],
+    bass: ["E3", "G#3", "B#3"],
+    displayName: "E Augmented",
+  },
+  Eaug7: {
+    notes: ["E", "G#", "B#", "D"],
+    treble: ["E4", "G#4", "B#4", "D5"],
+    bass: ["E2", "G#2", "B#2", "D3"],
+    displayName: "E Augmented 7th",
+  },
+  E7: {
+    notes: ["E", "G#", "B", "D"],
+    treble: ["E4", "G#4", "B4", "D5"],
+    bass: ["E2", "G#2", "B2", "D3"],
+    displayName: "E Dominant 7th",
+  },
+  E9: {
+    notes: ["E", "G#", "B", "D", "F#"],
+    treble: ["E4", "G#4", "B4", "D5", "F#5"],
+    bass: ["E2", "G#2", "B2", "D3", "F#3"],
+    displayName: "E Dominant 9th",
+  },
+  Esus4: {
+    notes: ["E", "A", "B"],
+    treble: ["E4", "A4", "B4"],
+    bass: ["E3", "A3", "B3"],
+    displayName: "E Suspended 4th",
+  },
+  Esus2: {
+    notes: ["E", "F#", "B"],
+    treble: ["E4", "F#4", "B4"],
+    bass: ["E3", "F#3", "B3"],
+    displayName: "E Suspended 2nd",
+  },
+
+  // F Chords
+  F: {
+    notes: ["F", "A", "C"],
+    treble: ["F4", "A4", "C5"],
+    bass: ["F2", "A2", "C3"],
+    displayName: "F Major",
+  },
+  Fmaj7: {
+    notes: ["F", "A", "C", "E"],
+    treble: ["F4", "A4", "C5", "E5"],
+    bass: ["F2", "A2", "C3", "E3"],
+    displayName: "F Major 7th",
+  },
+  Fmaj6: {
+    notes: ["F", "A", "C", "D"],
+    treble: ["F4", "A4", "C5", "D5"],
+    bass: ["F2", "A2", "C3", "D3"],
+    displayName: "F Major 6th",
+  },
+  Fmaj9: {
+    notes: ["F", "A", "C", "E", "G"],
+    treble: ["F4", "A4", "C5", "E5", "G5"],
+    bass: ["F2", "A2", "C3", "E3", "G3"],
+    displayName: "F Major 9th",
+  },
+  Fm: {
+    notes: ["F", "Ab", "C"],
+    treble: ["F4", "Ab4", "C5"],
+    bass: ["F2", "Ab2", "C3"],
+    displayName: "F Minor",
+  },
+    "E#m": {
+    notes: ["E#", "G#", "C"],
+    treble: ["E#4", "G#4", "C5"],
+    bass: ["E#2", "G#2", "C3"],
+    displayName: "E# Minor",
+  },
+  Fmin7: {
+    notes: ["F", "Ab", "C", "Eb"],
+    treble: ["F4", "Ab4", "C5", "Eb5"],
+    bass: ["F2", "Ab2", "C3", "Eb3"],
+    displayName: "F Minor 7th",
+  },
+  Fmin6: {
+    notes: ["F", "Ab", "C", "D"],
+    treble: ["F4", "Ab4", "C5", "D5"],
+    bass: ["F2", "Ab2", "C3", "D3"],
+    displayName: "F Minor 6th",
+  },
+  Fmin9: {
+    notes: ["F", "Ab", "C", "Eb", "G"],
+    treble: ["F4", "Ab4", "C5", "Eb5", "G5"],
+    bass: ["F2", "Ab2", "C3", "Eb3", "G3"],
+    displayName: "F Minor 9th",
+  },
+  Fdim: {
+    notes: ["F", "Ab", "Cb"],
+    treble: ["F4", "Ab4", "Cb5"],
+    bass: ["F3", "Ab3", "Cb4"],
+    displayName: "F Diminished",
+  },
+    "E#dim": {
+    notes: ["E#", "G#", "B"],
+    treble: ["E#4", "G#4", "B4"],
+    bass: ["E#3", "Ab3", "B4"],
+    displayName: "E# Diminished",
+  },
+  Fdim7: {
+    notes: ["F", "Ab", "Cb", "Ebb"],
+    treble: ["F4", "Ab4", "Cb5", "Ebb5"],
+    bass: ["F3", "Ab3", "Cb4", "Ebb4"],
+    displayName: "F Diminished 7th",
+  },
+  Fm7b5: {
+    notes: ["F", "Ab", "Cb", "Eb"],
+    treble: ["F4", "Ab4", "Cb5", "Eb5"],
+    bass: ["F3", "Ab3", "Cb4", "Eb4"],
+    displayName: "F Half-Diminished 7th",
+  },
+  Faug: {
+    notes: ["F", "A", "C#"],
+    treble: ["F4", "A4", "C#5"],
+    bass: ["F2", "A2", "C#3"],
+    displayName: "F Augmented",
+  },
+  Faug7: {
+    notes: ["F", "A", "C#", "Eb"],
+    treble: ["F4", "A4", "C#5", "Eb5"],
+    bass: ["F2", "A2", "C#3", "Eb3"],
+    displayName: "F Augmented 7th",
+  },
+  F7: {
+    notes: ["F", "A", "C", "Eb"],
+    treble: ["F4", "A4", "C5", "Eb5"],
+    bass: ["F2", "A2", "C3", "Eb3"],
+    displayName: "F Dominant 7th",
+  },
+  F9: {
+    notes: ["F", "A", "C", "Eb", "G"],
+    treble: ["F4", "A4", "C5", "Eb5", "G5"],
+    bass: ["F2", "A2", "C3", "Eb3", "G3"],
+    displayName: "F Dominant 9th",
+  },
+  Fsus4: {
+    notes: ["F", "Bb", "C"],
+    treble: ["F4", "Bb4", "C5"],
+    bass: ["F2", "Bb2", "C3"],
+    displayName: "F Suspended 4th",
+  },
+  Fsus2: {
+    notes: ["F", "G", "C"],
+    treble: ["F4", "G4", "C5"],
+    bass: ["F2", "G2", "C3"],
+    displayName: "F Suspended 2nd",
+  },
+
+  // F# Chords
+  "F#": {
+    notes: ["F#", "A#", "C#"],
+    treble: ["F#4", "A#4", "C#5"],
+    bass: ["F#2", "A#2", "C#3"],
+    displayName: "F# Major",
+  },
+  "F#maj7": {
+    notes: ["F#", "A#", "C#", "E#"],
+    treble: ["F#4", "A#4", "C#5", "E#5"],
+    bass: ["F#2", "A#2", "C#3", "E#3"],
+    displayName: "F# Major 7th",
+  },
+  "F#maj6": {
+    notes: ["F#", "A#", "C#", "D#"],
+    treble: ["F#4", "A#4", "C#5", "D#5"],
+    bass: ["F#2", "A#2", "C#3", "D#3"],
+    displayName: "F# Major 6th",
+  },
+  "F#maj9": {
+    notes: ["F#", "A#", "C#", "E#", "G#"],
+    treble: ["F#4", "A#4", "C#5", "E#5", "G#5"],
+    bass: ["F#2", "A#2", "C#3", "E#3", "G#3"],
+    displayName: "F# Major 9th",
+  },
+  "F#m": {
+    notes: ["F#", "A", "C#"],
+    treble: ["F#4", "A4", "C#5"],
+    bass: ["F#2", "A2", "C#3"],
+    displayName: "F# Minor",
+  },
+  "F#min7": {
+    notes: ["F#", "A", "C#", "E"],
+    treble: ["F#4", "A4", "C#5", "E5"],
+    bass: ["F#2", "A2", "C#3", "E3"],
+    displayName: "F# Minor 7th",
+  },
+  "F#min6": {
+    notes: ["F#", "A", "C#", "D#"],
+    treble: ["F#4", "A4", "C#5", "D#5"],
+    bass: ["F#2", "A2", "C#3", "D#3"],
+    displayName: "F# Minor 6th",
+  },
+  "F#min9": {
+    notes: ["F#", "A", "C#", "E", "G#"],
+    treble: ["F#4", "A4", "C#5", "E5", "G#5"],
+    bass: ["F#2", "A2", "C#3", "E3", "G#3"],
+    displayName: "F# Minor 9th",
+  },
+  "F#dim": {
+    notes: ["F#", "A", "C"],
+    treble: ["F#4", "A4", "C5"],
+    bass: ["F#3", "A3", "C4"],
+    displayName: "F# Diminished",
+  },
+  "F#dim7": {
+    notes: ["F#", "A", "C", "Eb"],
+    treble: ["F#4", "A4", "C5", "Eb5"],
+    bass: ["F#3", "A3", "C4", "Eb4"],
+    displayName: "F# Diminished 7th",
+  },
+  "F#m7b5": {
+    notes: ["F#", "A", "C", "E"],
+    treble: ["F#4", "A4", "C5", "E5"],
+    bass: ["F#3", "A3", "C4", "E4"],
+    displayName: "F# Half-Diminished 7th",
+  },
+  "F#aug": {
+    notes: ["F#", "A#", "C##"],
+    treble: ["F#4", "A#4", "C##5"],
+    bass: ["F#2", "A#2", "C##3"],
+    displayName: "F# Augmented",
+  },
+  "F#aug7": {
+    notes: ["F#", "A#", "C##", "E"],
+    treble: ["F#4", "A#4", "C##5", "E5"],
+    bass: ["F#2", "A#2", "C##3", "E3"],
+    displayName: "F# Augmented 7th",
+  },
+  "F#7": {
+    notes: ["F#", "A#", "C#", "E"],
+    treble: ["F#4", "A#4", "C#5", "E5"],
+    bass: ["F#2", "A#2", "C#3", "E3"],
+    displayName: "F# Dominant 7th",
+  },
+  "F#9": {
+    notes: ["F#", "A#", "C#", "E", "G#"],
+    treble: ["F#4", "A#4", "C#5", "E5", "G#5"],
+    bass: ["F#2", "A#2", "C#3", "E3", "G#3"],
+    displayName: "F# Dominant 9th",
+  },
+  "F#sus4": {
+    notes: ["F#", "B", "C#"],
+    treble: ["F#4", "B4", "C#5"],
+    bass: ["F#2", "B2", "C#3"],
+    displayName: "F# Suspended 4th",
+  },
+  "F#sus2": {
+    notes: ["F#", "G#", "C#"],
+    treble: ["F#4", "G#4", "C#5"],
+    bass: ["F#2", "G#2", "C#3"],
+    displayName: "F# Suspended 2nd",
+  },
+
+  // Gb Chords
+  Gb: {
+    notes: ["Gb", "Bb", "Db"],
+    treble: ["Gb4", "Bb4", "Db5"],
+    bass: ["Gb2", "Bb2", "Db3"],
+    displayName: "Gb Major",
+  },
+  Gbmaj7: {
+    notes: ["Gb", "Bb", "Db", "F"],
+    treble: ["Gb4", "Bb4", "Db5", "F5"],
+    bass: ["Gb2", "Bb2", "Db3", "F3"],
+    displayName: "Gb Major 7th",
+  },
+  Gbmaj6: {
+    notes: ["Gb", "Bb", "Db", "Eb"],
+    treble: ["Gb4", "Bb4", "Db5", "Eb5"],
+    bass: ["Gb2", "Bb2", "Db3", "Eb3"],
+    displayName: "Gb Major 6th",
+  },
+  Gbmaj9: {
+    notes: ["Gb", "Bb", "Db", "F", "Ab"],
+    treble: ["Gb4", "Bb4", "Db5", "F5", "Ab5"],
+    bass: ["Gb2", "Bb2", "Db3", "F3", "Ab3"],
+    displayName: "Gb Major 9th",
+  },
+  Gbm: {
+    notes: ["Gb", "Bbb", "Db"],
+    treble: ["Gb4", "Bbb4", "Db5"],
+    bass: ["Gb2", "Bbb2", "Db3"],
+    displayName: "Gb Minor",
+  },
+  Gbmin7: {
+    notes: ["Gb", "Bbb", "Db", "Fb"],
+    treble: ["Gb4", "Bbb4", "Db5", "Fb5"],
+    bass: ["Gb2", "Bbb2", "Db3", "Fb3"],
+    displayName: "Gb Minor 7th",
+  },
+  Gbmin6: {
+    notes: ["Gb", "Bbb", "Db", "Eb"],
+    treble: ["Gb4", "Bbb4", "Db5", "Eb5"],
+    bass: ["Gb2", "Bbb2", "Db3", "Eb3"],
+    displayName: "Gb Minor 6th",
+  },
+  Gbmin9: {
+    notes: ["Gb", "Bbb", "Db", "Fb", "Ab"],
+    treble: ["Gb4", "Bbb4", "Db5", "Fb5", "Ab5"],
+    bass: ["Gb2", "Bbb2", "Db3", "Fb3", "Ab3"],
+    displayName: "Gb Minor 9th",
+  },
+  Gbdim: {
+    notes: ["Gb", "Bbb", "Dbb"],
+    treble: ["Gb4", "Bbb4", "Dbb5"],
+    bass: ["Gb3", "Bbb3", "Dbb4"],
+    displayName: "Gb Diminished",
+  },
+  Gbdim7: {
+    notes: ["Gb", "Bbb", "Dbb", "Fbb"],
+    treble: ["Gb4", "Bbb4", "Dbb5", "Fbb5"],
+    bass: ["Gb3", "Bbb3", "Dbb4", "Fbb4"],
+    displayName: "Gb Diminished 7th",
+  },
+  Gbm7b5: {
+    notes: ["Gb", "Bbb", "Dbb", "Fb"],
+    treble: ["Gb4", "Bbb4", "Dbb5", "Fb5"],
+    bass: ["Gb3", "Bbb3", "Dbb4", "Fb4"],
+    displayName: "Gb Half-Diminished 7th",
+  },
+  Gbaug: {
+    notes: ["Gb", "Bb", "D"],
+    treble: ["Gb4", "Bb4", "D5"],
+    bass: ["Gb2", "Bb2", "D3"],
+    displayName: "Gb Augmented",
+  },
+  Gbaug7: {
+    notes: ["Gb", "Bb", "D", "Fb"],
+    treble: ["Gb4", "Bb4", "D5", "Fb5"],
+    bass: ["Gb2", "Bb2", "D3", "Fb3"],
+    displayName: "Gb Augmented 7th",
+  },
+  Gb7: {
+    notes: ["Gb", "Bb", "Db", "Fb"],
+    treble: ["Gb4", "Bb4", "Db5", "Fb5"],
+    bass: ["Gb2", "Bb2", "Db3", "Fb3"],
+    displayName: "Gb Dominant 7th",
+  },
+  Gb9: {
+    notes: ["Gb", "Bb", "Db", "Fb", "Ab"],
+    treble: ["Gb4", "Bb4", "Db5", "Fb5", "Ab5"],
+    bass: ["Gb2", "Bb2", "Db3", "Fb3", "Ab3"],
+    displayName: "Gb Dominant 9th",
+  },
+  Gbsus4: {
+    notes: ["Gb", "Cb", "Db"],
+    treble: ["Gb4", "Cb5", "Db5"],
+    bass: ["Gb2", "Cb3", "Db3"],
+    displayName: "Gb Suspended 4th",
+  },
+  Gbsus2: {
+    notes: ["Gb", "Ab", "Db"],
+    treble: ["Gb4", "Ab4", "Db5"],
+    bass: ["Gb2", "Ab2", "Db3"],
+    displayName: "Gb Suspended 2nd",
+  },
+
+  // G Chords
+  G: {
+    notes: ["G", "B", "D"],
+    treble: ["G4", "B4", "D5"],
+    bass: ["G2", "B2", "D3"],
+    displayName: "G Major",
+  },
+  Gmaj7: {
+    notes: ["G", "B", "D", "F#"],
+    treble: ["G4", "B4", "D5", "F#5"],
+    bass: ["G2", "B2", "D3", "F#3"],
+    displayName: "G Major 7th",
+  },
+  Gmaj6: {
+    notes: ["G", "B", "D", "E"],
+    treble: ["G4", "B4", "D5", "E5"],
+    bass: ["G2", "B2", "D3", "E3"],
+    displayName: "G Major 6th",
+  },
+  Gmaj9: {
+    notes: ["G", "B", "D", "F#", "A"],
+    treble: ["G4", "B4", "D5", "F#5", "A5"],
+    bass: ["G2", "B2", "D3", "F#3", "A3"],
+    displayName: "G Major 9th",
+  },
+  Gm: {
+    notes: ["G", "Bb", "D"],
+    treble: ["G4", "Bb4", "D5"],
+    bass: ["G2", "Bb2", "D3"],
+    displayName: "G Minor",
+  },
+  Gmin7: {
+    notes: ["G", "Bb", "D", "F"],
+    treble: ["G4", "Bb4", "D5", "F5"],
+    bass: ["G2", "Bb2", "D3", "F3"],
+    displayName: "G Minor 7th",
+  },
+  Gmin6: {
+    notes: ["G", "Bb", "D", "E"],
+    treble: ["G4", "Bb4", "D5", "E5"],
+    bass: ["G2", "Bb2", "D3", "E3"],
+    displayName: "G Minor 6th",
+  },
+  Gmin9: {
+    notes: ["G", "Bb", "D", "F", "A"],
+    treble: ["G4", "Bb4", "D5", "F5", "A5"],
+    bass: ["G2", "Bb2", "D3", "F3", "A3"],
+    displayName: "G Minor 9th",
+  },
+  Gdim: {
+    notes: ["G", "Bb", "Db"],
+    treble: ["G4", "Bb4", "Db5"],
+    bass: ["G3", "Bb3", "Db4"],
+    displayName: "G Diminished",
+  },
+  Gdim7: {
+    notes: ["G", "Bb", "Db", "Fb"],
+    treble: ["G4", "Bb4", "Db5", "Fb5"],
+    bass: ["G3", "Bb3", "Db4", "Fb4"],
+    displayName: "G Diminished 7th",
+  },
+  Gm7b5: {
+    notes: ["G", "Bb", "Db", "F"],
+    treble: ["G4", "Bb4", "Db5", "F5"],
+    bass: ["G3", "Bb3", "Db4", "F4"],
+    displayName: "G Half-Diminished 7th",
+  },
+  Gaug: {
+    notes: ["G", "B", "D#"],
+    treble: ["G4", "B4", "D#5"],
+    bass: ["G2", "B2", "D#3"],
+    displayName: "G Augmented",
+  },
+  Gaug7: {
+    notes: ["G", "B", "D#", "F"],
+    treble: ["G4", "B4", "D#5", "F5"],
+    bass: ["G2", "B2", "D#3", "F3"],
+    displayName: "G Augmented 7th",
+  },
+  G7: {
+    notes: ["G", "B", "D", "F"],
+    treble: ["G4", "B4", "D5", "F5"],
+    bass: ["G2", "B2", "D3", "F3"],
+    displayName: "G Dominant 7th",
+  },
+  G9: {
+    notes: ["G", "B", "D", "F", "A"],
+    treble: ["G4", "B4", "D5", "F5", "A5"],
+    bass: ["G2", "B2", "D3", "F3", "A3"],
+    displayName: "G Dominant 9th",
+  },
+  Gsus4: {
+    notes: ["G", "C", "D"],
+    treble: ["G4", "C5", "D5"],
+    bass: ["G2", "C3", "D3"],
+    displayName: "G Suspended 4th",
+  },
+  Gsus2: {
+    notes: ["G", "A", "D"],
+    treble: ["G4", "A4", "D5"],
+    bass: ["G2", "A2", "D3"],
+    displayName: "G Suspended 2nd",
+  },
+
+  // G# Chords
+  "G#": {
+    notes: ["G#", "B#", "D#"],
+    treble: ["G#4", "B#4", "D#5"],
+    bass: ["G#2", "B#2", "D#3"],
+    displayName: "G# Major",
+  },
+  "G#maj7": {
+    notes: ["G#", "B#", "D#", "F##"],
+    treble: ["G#4", "B#4", "D#5", "F##5"],
+    bass: ["G#2", "B#2", "D#3", "F##3"],
+    displayName: "G# Major 7th",
+  },
+  "G#maj6": {
+    notes: ["G#", "B#", "D#", "E#"],
+    treble: ["G#4", "B#4", "D#5", "E#5"],
+    bass: ["G#2", "B#2", "D#3", "E#3"],
+    displayName: "G# Major 6th",
+  },
+  "G#maj9": {
+    notes: ["G#", "B#", "D#", "F##", "A#"],
+    treble: ["G#4", "B#4", "D#5", "F##5", "A#5"],
+    bass: ["G#2", "B#2", "D#3", "F##3", "A#3"],
+    displayName: "G# Major 9th",
+  },
+  "G#m": {
+    notes: ["G#", "B", "D#"],
+    treble: ["G#4", "B4", "D#5"],
+    bass: ["G#2", "B2", "D#3"],
+    displayName: "G# Minor",
+  },
+  "G#min7": {
+    notes: ["G#", "B", "D#", "F#"],
+    treble: ["G#4", "B4", "D#5", "F#5"],
+    bass: ["G#2", "B2", "D#3", "F#3"],
+    displayName: "G# Minor 7th",
+  },
+  "G#min6": {
+    notes: ["G#", "B", "D#", "E#"],
+    treble: ["G#4", "B4", "D#5", "E#5"],
+    bass: ["G#2", "B2", "D#3", "E#3"],
+    displayName: "G# Minor 6th",
+  },
+  "G#min9": {
+    notes: ["G#", "B", "D#", "F#", "A#"],
+    treble: ["G#4", "B4", "D#5", "F#5", "A#5"],
+    bass: ["G#2", "B2", "D#3", "F#3", "A#3"],
+    displayName: "G# Minor 9th",
+  },
+  "G#dim": {
+    notes: ["G#", "B", "D"],
+    treble: ["G#4", "B4", "D5"],
+    bass: ["G#3", "B3", "D4"],
+    displayName: "G# Diminished",
+  },
+  "G#dim7": {
+    notes: ["G#", "B", "D", "F"],
+    treble: ["G#4", "B4", "D5", "F5"],
+    bass: ["G#3", "B3", "D4", "F4"],
+    displayName: "G# Diminished 7th",
+  },
+  "G#m7b5": {
+    notes: ["G#", "B", "D", "F#"],
+    treble: ["G#4", "B4", "D5", "F#5"],
+    bass: ["G#3", "B3", "D4", "F#4"],
+    displayName: "G# Half-Diminished 7th",
+  },
+  "G#aug": {
+    notes: ["G#", "B#", "D##"],
+    treble: ["G#4", "B#4", "D##5"],
+    bass: ["G#2", "B#2", "D##3"],
+    displayName: "G# Augmented",
+  },
+  "G#aug7": {
+    notes: ["G#", "B#", "D##", "F#"],
+    treble: ["G#4", "B#4", "D##5", "F#5"],
+    bass: ["G#2", "B#2", "D##3", "F#3"],
+    displayName: "G# Augmented 7th",
+  },
+  "G#7": {
+    notes: ["G#", "B#", "D#", "F#"],
+    treble: ["G#4", "B#4", "D#5", "F#5"],
+    bass: ["G#2", "B#2", "D#3", "F#3"],
+    displayName: "G# Dominant 7th",
+  },
+  "G#9": {
+    notes: ["G#", "B#", "D#", "F#", "A#"],
+    treble: ["G#4", "B#4", "D#5", "F#5", "A#5"],
+    bass: ["G#2", "B#2", "D#3", "F#3", "A#3"],
+    displayName: "G# Dominant 9th",
+  },
+  "G#sus4": {
+    notes: ["G#", "C#", "D#"],
+    treble: ["G#4", "C#5", "D#5"],
+    bass: ["G#2", "C#3", "D#3"],
+    displayName: "G# Suspended 4th",
+  },
+  "G#sus2": {
+    notes: ["G#", "A#", "D#"],
+    treble: ["G#4", "A#4", "D#5"],
+    bass: ["G#2", "A#2", "D#3"],
+    displayName: "G# Suspended 2nd",
+  },
+
+  // Ab Chords
+  Ab: {
+    notes: ["Ab", "C", "Eb"],
+    treble: ["Ab4", "C5", "Eb5"],
+    bass: ["Ab2", "C3", "Eb3"],
+    displayName: "Ab Major",
+  },
+  Abmaj7: {
+    notes: ["Ab", "C", "Eb", "G"],
+    treble: ["Ab4", "C5", "Eb5", "G5"],
+    bass: ["Ab2", "C3", "Eb3", "G3"],
+    displayName: "Ab Major 7th",
+  },
+  Abmaj6: {
+    notes: ["Ab", "C", "Eb", "F"],
+    treble: ["Ab4", "C5", "Eb5", "F5"],
+    bass: ["Ab2", "C3", "Eb3", "F3"],
+    displayName: "Ab Major 6th",
+  },
+  Abmaj9: {
+    notes: ["Ab", "C", "Eb", "G", "Bb"],
+    treble: ["Ab4", "C5", "Eb5", "G5", "Bb5"],
+    bass: ["Ab2", "C3", "Eb3", "G3", "Bb3"],
+    displayName: "Ab Major 9th",
+  },
+  Abm: {
+    notes: ["Ab", "Cb", "Eb"],
+    treble: ["Ab4", "Cb5", "Eb5"],
+    bass: ["Ab2", "Cb3", "Eb3"],
+    displayName: "Ab Minor",
+  },
+  Abmin7: {
+    notes: ["Ab", "Cb", "Eb", "Gb"],
+    treble: ["Ab4", "Cb5", "Eb5", "Gb5"],
+    bass: ["Ab2", "Cb3", "Eb3", "Gb3"],
+    displayName: "Ab Minor 7th",
+  },
+  Abmin6: {
+    notes: ["Ab", "Cb", "Eb", "F"],
+    treble: ["Ab4", "Cb5", "Eb5", "F5"],
+    bass: ["Ab2", "Cb3", "Eb3", "F3"],
+    displayName: "Ab Minor 6th",
+  },
+  Abmin9: {
+    notes: ["Ab", "Cb", "Eb", "Gb", "Bb"],
+    treble: ["Ab4", "Cb5", "Eb5", "Gb5", "Bb5"],
+    bass: ["Ab2", "Cb3", "Eb3", "Gb3", "Bb3"],
+    displayName: "Ab Minor 9th",
+  },
+  Abdim: {
+    notes: ["Ab", "Cb", "Ebb"],
+    treble: ["Ab4", "Cb5", "Ebb5"],
+    bass: ["Ab3", "Cb4", "Ebb4"],
+    displayName: "Ab Diminished",
+  },
+  Abdim7: {
+    notes: ["Ab", "Cb", "Ebb", "Gbb"],
+    treble: ["Ab4", "Cb5", "Ebb5", "Gbb5"],
+    bass: ["Ab3", "Cb4", "Ebb4", "Gbb4"],
+    displayName: "Ab Diminished 7th",
+  },
+  Abm7b5: {
+    notes: ["Ab", "Cb", "Ebb", "Gb"],
+    treble: ["Ab4", "Cb5", "Ebb5", "Gb5"],
+    bass: ["Ab3", "Cb4", "Ebb4", "Gb4"],
+    displayName: "Ab Half-Diminished 7th",
+  },
+  Abaug: {
+    notes: ["Ab", "C", "E"],
+    treble: ["Ab4", "C5", "E5"],
+    bass: ["Ab3", "C3", "E3"],
+    displayName: "Ab Augmented",
+  },
+  Abaug7: {
+    notes: ["Ab", "C", "E", "Gb"],
+    treble: ["Ab4", "C5", "E5", "Gb5"],
+    bass: ["Ab2", "C3", "E3", "Gb3"],
+    displayName: "Ab Augmented 7th",
+  },
+  Ab7: {
+    notes: ["Ab", "C", "Eb", "Gb"],
+    treble: ["Ab4", "C5", "Eb5", "Gb5"],
+    bass: ["Ab2", "C3", "Eb3", "Gb3"],
+    displayName: "Ab Dominant 7th",
+  },
+  Ab9: {
+    notes: ["Ab", "C", "Eb", "Gb", "Bb"],
+    treble: ["Ab4", "C5", "Eb5", "Gb5", "Bb5"],
+    bass: ["Ab2", "C3", "Eb3", "Gb3", "Bb3"],
+    displayName: "Ab Dominant 9th",
+  },
+  Absus4: {
+    notes: ["Ab", "Db", "Eb"],
+    treble: ["Ab4", "Db5", "Eb5"],
+    bass: ["Ab2", "Db3", "Eb3"],
+    displayName: "Ab Suspended 4th",
+  },
+  Absus2: {
+    notes: ["Ab", "Bb", "Eb"],
+    treble: ["Ab4", "Bb4", "Eb5"],
+    bass: ["Ab2", "Bb2", "Eb3"],
+    displayName: "Ab Suspended 2nd",
+  },
+
+  // A Chords
+  A: {
+    notes: ["A", "C#", "E"],
+    treble: ["A4", "C#5", "E5"],
+    bass: ["A2", "C#3", "E3"],
+    displayName: "A Major",
+  },
+  Amaj7: {
+    notes: ["A", "C#", "E", "G#"],
+    treble: ["A4", "C#5", "E5", "G#5"],
+    bass: ["A2", "C#3", "E3", "G#3"],
+    displayName: "A Major 7th",
+  },
+  Amaj6: {
+    notes: ["A", "C#", "E", "F#"],
+    treble: ["A4", "C#5", "E5", "F#5"],
+    bass: ["A2", "C#3", "E3", "F#3"],
+    displayName: "A Major 6th",
+  },
+  Amaj9: {
+    notes: ["A", "C#", "E", "G#", "B"],
+    treble: ["A4", "C#5", "E5", "G#5", "B5"],
+    bass: ["A2", "C#3", "E3", "G#3", "B3"],
+    displayName: "A Major 9th",
+  },
+  Am: {
+    notes: ["A", "C", "E"],
+    treble: ["A4", "C5", "E5"],
+    bass: ["A2", "C3", "E3"],
+    displayName: "A Minor",
+  },
+  Amin7: {
+    notes: ["A", "C", "E", "G"],
+    treble: ["A4", "C5", "E5", "G5"],
+    bass: ["A2", "C3", "E3", "G3"],
+    displayName: "A Minor 7th",
+  },
+  Amin6: {
+    notes: ["A", "C", "E", "F#"],
+    treble: ["A4", "C5", "E5", "F#5"],
+    bass: ["A2", "C3", "E3", "F#3"],
+    displayName: "A Minor 6th",
+  },
+  Amin9: {
+    notes: ["A", "C", "E", "G", "B"],
+    treble: ["A4", "C5", "E5", "G5", "B5"],
+    bass: ["A2", "C3", "E3", "G3", "B3"],
+    displayName: "A Minor 9th",
+  },
+  Adim: {
+    notes: ["A", "C", "Eb"],
+    treble: ["A4", "C5", "Eb5"],
+    bass: ["A3", "C4", "Eb4"],
+    displayName: "A Diminished",
+  },
+  Adim7: {
+    notes: ["A", "C", "Eb", "Gb"],
+    treble: ["A4", "C5", "Eb5", "Gb5"],
+    bass: ["A3", "C4", "Eb4", "Gb4"],
+    displayName: "A Diminished 7th",
+  },
+  Am7b5: {
+    notes: ["A", "C", "Eb", "G"],
+    treble: ["A4", "C5", "Eb5", "G5"],
+    bass: ["A3", "C4", "Eb4", "G4"],
+    displayName: "A Half-Diminished 7th",
+  },
+  Aaug: {
+    notes: ["A", "C#", "E#"],
+    treble: ["A4", "C#5", "E#5"],
+    bass: ["A2", "C#3", "E#3"],
+    displayName: "A Augmented",
+  },
+  Aaug7: {
+    notes: ["A", "C#", "E#", "G"],
+    treble: ["A4", "C#5", "E#5", "G5"],
+    bass: ["A2", "C#3", "E#3", "G3"],
+    displayName: "A Augmented 7th",
+  },
+  A7: {
+    notes: ["A", "C#", "E", "G"],
+    treble: ["A4", "C#5", "E5", "G5"],
+    bass: ["A2", "C#3", "E3", "G3"],
+    displayName: "A Dominant 7th",
+  },
+  A9: {
+    notes: ["A", "C#", "E", "G", "B"],
+    treble: ["A4", "C#5", "E5", "G5", "B5"],
+    bass: ["A2", "C#3", "E3", "G3", "B3"],
+    displayName: "A Dominant 9th",
+  },
+  Asus4: {
+    notes: ["A", "D", "E"],
+    treble: ["A4", "D5", "E5"],
+    bass: ["A2", "D3", "E3"],
+    displayName: "A Suspended 4th",
+  },
+  Asus2: {
+    notes: ["A", "B", "E"],
+    treble: ["A4", "B4", "E5"],
+    bass: ["A2", "B2", "E3"],
+    displayName: "A Suspended 2nd",
+  },
+
+  // A# Chords
+  "A#": {
+    notes: ["A#", "C##", "E#"],
+    treble: ["A#4", "C##5", "E#5"],
+    bass: ["A#2", "C##3", "E#3"],
+    displayName: "A# Major",
+  },
+  "A#maj7": {
+    notes: ["A#", "C##", "E#", "G##"],
+    treble: ["A#4", "C##5", "E#5", "G##5"],
+    bass: ["A#2", "C##3", "E#3", "G##3"],
+    displayName: "A# Major 7th",
+  },
+  "A#maj6": {
+    notes: ["A#", "C##", "E#", "F##"],
+    treble: ["A#4", "C##5", "E#5", "F##5"],
+    bass: ["A#2", "C##3", "E#3", "F##3"],
+    displayName: "A# Major 6th",
+  },
+  "A#maj9": {
+    notes: ["A#", "C##", "E#", "G##", "B#"],
+    treble: ["A#4", "C##5", "E#5", "G##5", "B#5"],
+    bass: ["A#2", "C##3", "E#3", "G##3", "B#3"],
+    displayName: "A# Major 9th",
+  },
+  "A#m": {
+    notes: ["A#", "C#", "E#"],
+    treble: ["A#4", "C#5", "E#5"],
+    bass: ["A#2", "C#3", "E#3"],
+    displayName: "A# Minor",
+  },
+  "A#min7": {
+    notes: ["A#", "C#", "E#", "G#"],
+    treble: ["A#4", "C#5", "E#5", "G#5"],
+    bass: ["A#2", "C#3", "E#3", "G#3"],
+    displayName: "A# Minor 7th",
+  },
+  "A#min6": {
+    notes: ["A#", "C#", "E#", "F##"],
+    treble: ["A#4", "C#5", "E#5", "F##5"],
+    bass: ["A#2", "C#3", "E#3", "F##3"],
+    displayName: "A# Minor 6th",
+  },
+  "A#min9": {
+    notes: ["A#", "C#", "E#", "G#", "B#"],
+    treble: ["A#4", "C#5", "E#5", "G#5", "B#5"],
+    bass: ["A#2", "C#3", "E#3", "G#3", "B#3"],
+    displayName: "A# Minor 9th",
+  },
+  "A#dim": {
+    notes: ["A#", "C#", "E"],
+    treble: ["A#4", "C#5", "E5"],
+    bass: ["A#3", "C#4", "E4"],
+    displayName: "A# Diminished",
+  },
+  "A#dim7": {
+    notes: ["A#", "C#", "E", "G"],
+    treble: ["A#4", "C#5", "E5", "G5"],
+    bass: ["A#3", "C#4", "E4", "G4"],
+    displayName: "A# Diminished 7th",
+  },
+  "A#m7b5": {
+    notes: ["A#", "C#", "E", "G#"],
+    treble: ["A#4", "C#5", "E5", "G#5"],
+    bass: ["A#3", "C#4", "E4", "G#4"],
+    displayName: "A# Half-Diminished 7th",
+  },
+  "A#aug": {
+    notes: ["A#", "C##", "E##"],
+    treble: ["A#4", "C##5", "E##5"],
+    bass: ["A#2", "C##3", "E##3"],
+    displayName: "A# Augmented",
+  },
+  "A#aug7": {
+    notes: ["A#", "C##", "E##", "G#"],
+    treble: ["A#4", "C##5", "E##5", "G#5"],
+    bass: ["A#2", "C##3", "E##3", "G#3"],
+    displayName: "A# Augmented 7th",
+  },
+  "A#7": {
+    notes: ["A#", "C##", "E#", "G#"],
+    treble: ["A#4", "C##5", "E#5", "G#5"],
+    bass: ["A#2", "C##3", "E#3", "G#3"],
+    displayName: "A# Dominant 7th",
+  },
+  "A#9": {
+    notes: ["A#", "C##", "E#", "G#", "B#"],
+    treble: ["A#4", "C##5", "E#5", "G#5", "B#5"],
+    bass: ["A#2", "C##3", "E#3", "G#3", "B#3"],
+    displayName: "A# Dominant 9th",
+  },
+  "A#sus4": {
+    notes: ["A#", "D#", "E#"],
+    treble: ["A#4", "D#5", "E#5"],
+    bass: ["A#2", "D#3", "E#3"],
+    displayName: "A# Suspended 4th",
+  },
+  "A#sus2": {
+    notes: ["A#", "B#", "E#"],
+    treble: ["A#4", "B#4", "E#5"],
+    bass: ["A#2", "B#2", "E#3"],
+    displayName: "A# Suspended 2nd",
+  },
+
+  // Bb Chords
+  Bb: {
+    notes: ["Bb", "D", "F"],
+    treble: ["Bb4", "D5", "F5"],
+    bass: ["Bb2", "D3", "F3"],
+    displayName: "Bb Major",
+  },
+  Bbmaj7: {
+    notes: ["Bb", "D", "F", "A"],
+    treble: ["Bb4", "D5", "F5", "A5"],
+    bass: ["Bb2", "D3", "F3", "A3"],
+    displayName: "Bb Major 7th",
+  },
+  Bbmaj6: {
+    notes: ["Bb", "D", "F", "G"],
+    treble: ["Bb4", "D5", "F5", "G5"],
+    bass: ["Bb2", "D3", "F3", "G3"],
+    displayName: "Bb Major 6th",
+  },
+  Bbmaj9: {
+    notes: ["Bb", "D", "F", "A", "C"],
+    treble: ["Bb4", "D5", "F5", "A5", "C6"],
+    bass: ["Bb2", "D3", "F3", "A3", "C4"],
+    displayName: "Bb Major 9th",
+  },
+  Bbm: {
+    notes: ["Bb", "Db", "F"],
+    treble: ["Bb4", "Db5", "F5"],
+    bass: ["Bb2", "Db3", "F3"],
+    displayName: "Bb Minor",
+  },
+  Bbmin7: {
+    notes: ["Bb", "Db", "F", "Ab"],
+    treble: ["Bb4", "Db5", "F5", "Ab5"],
+    bass: ["Bb2", "Db3", "F3", "Ab3"],
+    displayName: "Bb Minor 7th",
+  },
+  Bbmin6: {
+    notes: ["Bb", "Db", "F", "G"],
+    treble: ["Bb4", "Db5", "F5", "G5"],
+    bass: ["Bb2", "Db3", "F3", "G3"],
+    displayName: "Bb Minor 6th",
+  },
+  Bbmin9: {
+    notes: ["Bb", "Db", "F", "Ab", "C"],
+    treble: ["Bb4", "Db5", "F5", "Ab5", "C6"],
+    bass: ["Bb2", "Db3", "F3", "Ab3", "C4"],
+    displayName: "Bb Minor 9th",
+  },
+  Bbdim: {
+    notes: ["Bb", "Db", "Fb"],
+    treble: ["Bb4", "Db5", "Fb5"],
+    bass: ["Bb3", "Db4", "Fb4"],
+    displayName: "Bb Diminished",
+  },
+  Bbdim7: {
+    notes: ["Bb", "Db", "Fb", "Abb"],
+    treble: ["Bb4", "Db5", "Fb5", "Abb5"],
+    bass: ["Bb3", "Db4", "Fb4", "Abb4"],
+    displayName: "Bb Diminished 7th",
+  },
+  Bbm7b5: {
+    notes: ["Bb", "Db", "Fb", "Ab"],
+    treble: ["Bb4", "Db5", "Fb5", "Ab5"],
+    bass: ["Bb3", "Db4", "Fb4", "Ab4"],
+    displayName: "Bb Half-Diminished 7th",
+  },
+  Bbaug: {
+    notes: ["Bb", "D", "F#"],
+    treble: ["Bb4", "D5", "F#5"],
+    bass: ["Bb2", "D3", "F#3"],
+    displayName: "Bb Augmented",
+  },
+  Bbaug7: {
+    notes: ["Bb", "D", "F#", "Ab"],
+    treble: ["Bb4", "D5", "F#5", "Ab5"],
+    bass: ["Bb2", "D3", "F#3", "Ab3"],
+    displayName: "Bb Augmented 7th",
+  },
+  Bb7: {
+    notes: ["Bb", "D", "F", "Ab"],
+    treble: ["Bb4", "D5", "F5", "Ab5"],
+    bass: ["Bb2", "D3", "F3", "Ab3"],
+    displayName: "Bb Dominant 7th",
+  },
+  Bb9: {
+    notes: ["Bb", "D", "F", "Ab", "C"],
+    treble: ["Bb4", "D5", "F5", "Ab5", "C6"],
+    bass: ["Bb2", "D3", "F3", "Ab3", "C4"],
+    displayName: "Bb Dominant 9th",
+  },
+  Bbsus4: {
+    notes: ["Bb", "Eb", "F"],
+    treble: ["Bb4", "Eb5", "F5"],
+    bass: ["Bb2", "Eb3", "F3"],
+    displayName: "Bb Suspended 4th",
+  },
+  Bbsus2: {
+    notes: ["Bb", "C", "F"],
+    treble: ["Bb4", "C5", "F5"],
+    bass: ["Bb2", "C3", "F3"],
+    displayName: "Bb Suspended 2nd",
+  },
+
+  // B Chords
+  B: {
+    notes: ["B", "D#", "F#"],
+    treble: ["B4", "D#5", "F#5"],
+    bass: ["B2", "D#3", "F#3"],
+    displayName: "B Major",
+  },
+"Cb": {
+  notes: ["Cb", "Eb", "Gb"],
+  treble: ["Cb5", "Eb5", "Gb5"],
+  bass: ["Cb3", "Eb3", "Gb3"],
+  displayName: "Cb Major",
+},
+  Bmaj7: {
+    notes: ["B", "D#", "F#", "A#"],
+    treble: ["B4", "D#5", "F#5", "A#5"],
+    bass: ["B2", "D#3", "F#3", "A#3"],
+    displayName: "B Major 7th",
+  },
+  Bmaj6: {
+    notes: ["B", "D#", "F#", "G#"],
+    treble: ["B4", "D#5", "F#5", "G#5"],
+    bass: ["B2", "D#3", "F#3", "G#3"],
+    displayName: "B Major 6th",
+  },
+  Bmaj9: {
+    notes: ["B", "D#", "F#", "A#", "C#"],
+    treble: ["B4", "D#5", "F#5", "A#5", "C#6"],
+    bass: ["B2", "D#3", "F#3", "A#3", "C#4"],
+    displayName: "B Major 9th",
+  },
+  Bm: {
+    notes: ["B", "D", "F#"],
+    treble: ["B4", "D5", "F#5"],
+    bass: ["B2", "D3", "F#3"],
+    displayName: "B Minor",
+  },
+  Bmin7: {
+    notes: ["B", "D", "F#", "A"],
+    treble: ["B4", "D5", "F#5", "A5"],
+    bass: ["B2", "D3", "F#3", "A3"],
+    displayName: "B Minor 7th",
+  },
+  Bmin6: {
+    notes: ["B", "D", "F#", "G#"],
+    treble: ["B4", "D5", "F#5", "G#5"],
+    bass: ["B2", "D3", "F#3", "G#3"],
+    displayName: "B Minor 6th",
+  },
+  Bmin9: {
+    notes: ["B", "D", "F#", "A", "C#"],
+    treble: ["B4", "D5", "F#5", "A5", "C#6"],
+    bass: ["B2", "D3", "F#3", "A3", "C#4"],
+    displayName: "B Minor 9th",
+  },
+  Bdim: {
+    notes: ["B", "D", "F"],
+    treble: ["B4", "D5", "F5"],
+    bass: ["B3", "D4", "F4"],
+    displayName: "B Diminished",
+  },
+  Bdim7: {
+    notes: ["B", "D", "F", "Ab"],
+    treble: ["B4", "D5", "F5", "Ab5"],
+    bass: ["B3", "D4", "F4", "Ab4"],
+    displayName: "B Diminished 7th",
+  },
+  Bm7b5: {
+    notes: ["B", "D", "F", "A"],
+    treble: ["B4", "D5", "F5", "A5"],
+    bass: ["B3", "D4", "F4", "A4"],
+    displayName: "B Half-Diminished 7th",
+  },
+  Baug: {
+    notes: ["B", "D#", "F##"],
+    treble: ["B4", "D#5", "F##5"],
+    bass: ["B2", "D#3", "F##3"],
+    displayName: "B Augmented",
+  },
+  Baug7: {
+    notes: ["B", "D#", "F##", "A"],
+    treble: ["B4", "D#5", "F##5", "A5"],
+    bass: ["B2", "D#3", "F##3", "A3"],
+    displayName: "B Augmented 7th",
+  },
+  B7: {
+    notes: ["B", "D#", "F#", "A"],
+    treble: ["B4", "D#5", "F#5", "A5"],
+    bass: ["B2", "D#3", "F#3", "A3"],
+    displayName: "B Dominant 7th",
+  },
+  B9: {
+    notes: ["B", "D#", "F#", "A", "C#"],
+    treble: ["B4", "D#5", "F#5", "A5", "C#6"],
+    bass: ["B2", "D#3", "F#3", "A3", "C#4"],
+    displayName: "B Dominant 9th",
+  },
+  Bsus4: {
+    notes: ["B", "E", "F#"],
+    treble: ["B4", "E5", "F#5"],
+    bass: ["B2", "E3", "F#3"],
+    displayName: "B Suspended 4th",
+  },
+  Bsus2: {
+    notes: ["B", "C#", "F#"],
+    treble: ["B4", "C#5", "F#5"],
+    bass: ["B2", "C#3", "F#3"],
+    displayName: "B Suspended 2nd",
+  },
+
+  "C/E": {
+    notes: ["E", "G", "C"],
+    treble: ["E4", "G4", "C5"],
+    bass: ["E3", "G3", "C4"],
+    displayName: "C Major (1st Inversion)",
+  },
+  "Db/F": {
+    notes: ["F", "Ab", "Db"],
+    treble: ["F4", "Ab4", "Db5"],
+    bass: ["F2", "Ab2", "Db3"],
+    displayName: "Db Major (1st Inversion)",
+  },
+  "D/F#": {
+    notes: ["F#", "A", "D"],
+    treble: ["F#4", "A4", "D5"],
+    bass: ["F#2", "A2", "D3"],
+    displayName: "D Major (1st Inversion)",
+  },
+  "Eb/G": {
+    notes: ["G", "Bb", "Eb"],
+    treble: ["G4", "Bb4", "Eb5"],
+    bass: ["G2", "Bb2", "Eb3"],
+    displayName: "Eb Major (1st Inversion)",
+  },
+  "E/G#": {
+    notes: ["G#", "B", "E"],
+    treble: ["G#4", "B4", "E5"],
+    bass: ["G#2", "B2", "E3"],
+    displayName: "E Major (1st Inversion)",
+  },
+  "F/A": {
+    notes: ["A", "C", "F"],
+    treble: ["A4", "C5", "F5"],
+    bass: ["A2", "C3", "F3"],
+    displayName: "F Major (1st Inversion)",
+  },
+  "F#/A#": {
+    notes: ["A#", "C#", "F#"],
+    treble: ["A#4", "C#5", "F#5"],
+    bass: ["A#2", "C#3", "F#3"],
+    displayName: "F# Major (1st Inversion)",
+  },
+  "Gb/Bb": {
+    notes: ["Bb", "Db", "Gb"],
+    treble: ["Bb4", "Db5", "Gb5"],
+    bass: ["Bb2", "Db3", "Gb3"],
+    displayName: "Gb Major (1st Inversion)",
+  },
+  "G/B": {
+    notes: ["B", "D", "G"],
+    treble: ["B4", "D5", "G5"],
+    bass: ["B2", "D3", "G3"],
+    displayName: "G Major (1st Inversion)",
+  },
+  "Ab/C": {
+    notes: ["C", "Eb", "Ab"],
+    treble: ["C5", "Eb5", "Ab5"],
+    bass: ["C3", "Eb3", "Ab3"],
+    displayName: "Ab Major (1st Inversion)",
+  },
+  "A/C#": {
+    notes: ["C#", "E", "A"],
+    treble: ["C#5", "E5", "A5"],
+    bass: ["C#3", "E3", "A3"],
+    displayName: "A Major (1st Inversion)",
+  },
+  "Bb/D": {
+    notes: ["D", "F", "Bb"],
+    treble: ["D5", "F5", "Bb5"],
+    bass: ["D3", "F3", "Bb3"],
+    displayName: "Bb Major (1st Inversion)",
+  },
+  "B/D#": {
+    notes: ["D#", "F#", "B"],
+    treble: ["D#5", "F#5", "B5"],
+    bass: ["D#3", "F#3", "B3"],
+    displayName: "B Major (1st Inversion)",
+  },
+  "C#/E#": {
+    notes: ["E#", "G#", "C#"],
+    treble: ["E#4", "G#4", "C#5"],
+    bass: ["E#3", "G#3", "C#4"],
+    displayName: "C# Major (1st Inversion)",
+  },
+  "D#/F##": {
+    notes: ["F##", "A#", "D#"],
+    treble: ["F##4", "A#4", "D#5"],
+    bass: ["F##2", "A#2", "D#3"],
+    displayName: "D# Major (1st Inversion)",
+  },
+  "G#/B#": {
+    notes: ["B#", "D#", "G#"],
+    treble: ["B#4", "D#5", "G#5"],
+    bass: ["B#2", "D#3", "G#3"],
+    displayName: "G# Major (1st Inversion)",
+  },
+  "A#/C##": {
+    notes: ["C##", "E#", "A#"],
+    treble: ["C##5", "E#5", "A#5"],
+    bass: ["C##3", "E#3", "A#3"],
+    displayName: "A# Major (1st Inversion)",
+  },
+
+  // --- Major Triad: 2nd Inversion ---
+  "C/G": {
+    notes: ["G", "C", "E"],
+    treble: ["G4", "C5", "E5"],
+    bass: ["G2", "C3", "E3"],
+    displayName: "C Major (2nd Inversion)",
+  },
+  "Db/Ab": {
+    notes: ["Ab", "Db", "F"],
+    treble: ["Ab4", "Db5", "F5"],
+    bass: ["Ab2", "Db3", "F3"],
+    displayName: "Db Major (2nd Inversion)",
+  },
+  "D/A": {
+    notes: ["A", "D", "F#"],
+    treble: ["A4", "D5", "F#5"],
+    bass: ["A2", "D3", "F#3"],
+    displayName: "D Major (2nd Inversion)",
+  },
+  "Eb/Bb": {
+    notes: ["Bb", "Eb", "G"],
+    treble: ["Bb4", "Eb5", "G5"],
+    bass: ["Bb2", "Eb3", "G3"],
+    displayName: "Eb Major (2nd Inversion)",
+  },
+  "E/B": {
+    notes: ["B", "E", "G#"],
+    treble: ["B4", "E5", "G#5"],
+    bass: ["B2", "E3", "G#3"],
+    displayName: "E Major (2nd Inversion)",
+  },
+  "F/C": {
+    notes: ["C", "F", "A"],
+    treble: ["C5", "F5", "A5"],
+    bass: ["C3", "F3", "A3"],
+    displayName: "F Major (2nd Inversion)",
+  },
+  "F#/C#": {
+    notes: ["C#", "F#", "A#"],
+    treble: ["C#5", "F#5", "A#5"],
+    bass: ["C#3", "F#3", "A#3"],
+    displayName: "F# Major (2nd Inversion)",
+  },
+  "Gb/Db": {
+    notes: ["Db", "Gb", "Bb"],
+    treble: ["Db5", "Gb5", "Bb5"],
+    bass: ["Db3", "Gb3", "Bb3"],
+    displayName: "Gb Major (2nd Inversion)",
+  },
+  "G/D": {
+    notes: ["D", "G", "B"],
+    treble: ["D5", "G5", "B5"],
+    bass: ["D3", "G3", "B3"],
+    displayName: "G Major (2nd Inversion)",
+  },
+  "Ab/Eb": {
+    notes: ["Eb", "Ab", "C"],
+    treble: ["Eb4", "Ab4", "C5"],
+    bass: ["Eb3", "Ab3", "C4"],
+    displayName: "Ab Major (2nd Inversion)",
+  },
+  "A/E": {
+    notes: ["E", "A", "C#"],
+    treble: ["E4", "A4", "C#5"],
+    bass: ["E3", "A3", "C#4"],
+    displayName: "A Major (2nd Inversion)",
+  },
+  "Bb/F": {
+    notes: ["F", "Bb", "D"],
+    treble: ["F4", "Bb4", "D5"],
+    bass: ["F2", "Bb2", "D3"],
+    displayName: "Bb Major (2nd Inversion)",
+  },
+  "B/F#": {
+    notes: ["F#", "B", "D#"],
+    treble: ["F#4", "B4", "D#5"],
+    bass: ["F#2", "B2", "D#3"],
+    displayName: "B Major (2nd Inversion)",
+  },
+  "C#/G#": {
+    notes: ["G#", "C#", "E#"],
+    treble: ["G#4", "C#5", "E#5"],
+    bass: ["G#2", "C#3", "E#3"],
+    displayName: "C# Major (2nd Inversion)",
+  },
+  "D#/A#": {
+    notes: ["A#", "D#", "F##"],
+    treble: ["A#4", "D#5", "F##5"],
+    bass: ["A#2", "D#3", "F##3"],
+    displayName: "D# Major (2nd Inversion)",
+  },
+  "G#/D#": {
+    notes: ["D#", "G#", "B#"],
+    treble: ["D#5", "G#5", "B#5"],
+    bass: ["D#3", "G#3", "B#3"],
+    displayName: "G# Major (2nd Inversion)",
+  },
+  "A#/E#": {
+    notes: ["E#", "A#", "C##"],
+    treble: ["E#5", "A#5", "C##6"],
+    bass: ["E#3", "A#3", "C##4"],
+    displayName: "A# Major (2nd Inversion)",
+  },
+
+  // --- Minor Triad: 1st Inversion ---
+  "Cm/Eb": {
+    notes: ["Eb", "G", "C"],
+    treble: ["Eb4", "G4", "C5"],
+    bass: ["Eb3", "G3", "C4"],
+    displayName: "C Minor (1st Inversion)",
+  },
+  "C#m/E": {
+    notes: ["E", "G#", "C#"],
+    treble: ["E4", "G#4", "C#5"],
+    bass: ["E3", "G#3", "C#4"],
+    displayName: "C# Minor (1st Inversion)",
+  },
+  "Dm/F": {
+    notes: ["F", "A", "D"],
+    treble: ["F4", "A4", "D5"],
+    bass: ["F2", "A2", "D3"],
+    displayName: "D Minor (1st Inversion)",
+  },
+  "D#m/F#": {
+    notes: ["F#", "A#", "D#"],
+    treble: ["F#4", "A#4", "D#5"],
+    bass: ["F#2", "A#2", "D#3"],
+    displayName: "D# Minor (1st Inversion)",
+  },
+  "Ebm/Gb": {
+    notes: ["Gb", "Bb", "Eb"],
+    treble: ["Gb4", "Bb4", "Eb5"],
+    bass: ["Gb2", "Bb2", "Eb3"],
+    displayName: "Eb Minor (1st Inversion)",
+  },
+  "Em/G": {
+    notes: ["G", "B", "E"],
+    treble: ["G4", "B4", "E5"],
+    bass: ["G2", "B2", "E3"],
+    displayName: "E Minor (1st Inversion)",
+  },
+  "Fm/Ab": {
+    notes: ["Ab", "C", "F"],
+    treble: ["Ab4", "C5", "F5"],
+    bass: ["Ab2", "C3", "F3"],
+    displayName: "F Minor (1st Inversion)",
+  },
+  "F#m/A": {
+    notes: ["A", "C#", "F#"],
+    treble: ["A4", "C#5", "F#5"],
+    bass: ["A2", "C#3", "F#3"],
+    displayName: "F# Minor (1st Inversion)",
+  },
+  "Gm/Bb": {
+    notes: ["Bb", "D", "G"],
+    treble: ["Bb4", "D5", "G5"],
+    bass: ["Bb2", "D3", "G3"],
+    displayName: "G Minor (1st Inversion)",
+  },
+  "G#m/B": {
+    notes: ["B", "D#", "G#"],
+    treble: ["B4", "D#5", "G#5"],
+    bass: ["B2", "D#3", "G#3"],
+    displayName: "G# Minor (1st Inversion)",
+  },
+  "Am/C": {
+    notes: ["C", "E", "A"],
+    treble: ["C5", "E5", "A5"],
+    bass: ["C3", "E3", "A3"],
+    displayName: "A Minor (1st Inversion)",
+  },
+  "A#m/C#": {
+    notes: ["C#", "E#", "A#"],
+    treble: ["C#5", "E#5", "A#5"],
+    bass: ["C#3", "E#3", "A#3"],
+    displayName: "A# Minor (1st Inversion)",
+  },
+  "Bbm/Db": {
+    notes: ["Db", "F", "Bb"],
+    treble: ["Db5", "F5", "Bb5"],
+    bass: ["Db3", "F3", "Bb3"],
+    displayName: "Bb Minor (1st Inversion)",
+  },
+  "Bm/D": {
+    notes: ["D", "F#", "B"],
+    treble: ["D5", "F#5", "B5"],
+    bass: ["D3", "F#3", "B3"],
+    displayName: "B Minor (1st Inversion)",
+  },
+  "Dbm/Fb": {
+    notes: ["Fb", "Ab", "Db"],
+    treble: ["Fb4", "Ab4", "Db5"],
+    bass: ["Fb2", "Ab2", "Db3"],
+    displayName: "Db Minor (1st Inversion)",
+  },
+  "Gbm/Bbb": {
+    notes: ["Bbb", "Db", "Gb"],
+    treble: ["Bbb4", "Db5", "Gb5"],
+    bass: ["Bbb2", "Db3", "Gb3"],
+    displayName: "Gb Minor (1st Inversion)",
+  },
+  "Abm/Cb": {
+    notes: ["Cb", "Eb", "Ab"],
+    treble: ["Cb5", "Eb5", "Ab5"],
+    bass: ["Cb3", "Eb3", "Ab3"],
+    displayName: "Ab Minor (1st Inversion)",
+  },
+
+  // --- Minor Triad: 2nd Inversion ---
+  "Cm/G": {
+    notes: ["G", "C", "Eb"],
+    treble: ["G4", "C5", "Eb5"],
+    bass: ["G2", "C3", "Eb3"],
+    displayName: "C Minor (2nd Inversion)",
+  },
+  "C#m/G#": {
+    notes: ["G#", "C#", "E"],
+    treble: ["G#4", "C#5", "E5"],
+    bass: ["G#2", "C#3", "E3"],
+    displayName: "C# Minor (2nd Inversion)",
+  },
+  "Dm/A": {
+    notes: ["A", "D", "F"],
+    treble: ["A4", "D5", "F5"],
+    bass: ["A2", "D3", "F3"],
+    displayName: "D Minor (2nd Inversion)",
+  },
+  "D#m/A#": {
+    notes: ["A#", "D#", "F#"],
+    treble: ["A#4", "D#5", "F#5"],
+    bass: ["A#2", "D#3", "F#3"],
+    displayName: "D# Minor (2nd Inversion)",
+  },
+  "Ebm/Bb": {
+    notes: ["Bb", "Eb", "Gb"],
+    treble: ["Bb4", "Eb5", "Gb5"],
+    bass: ["Bb2", "Eb3", "Gb3"],
+    displayName: "Eb Minor (2nd Inversion)",
+  },
+  "Em/B": {
+    notes: ["B", "E", "G"],
+    treble: ["B4", "E5", "G5"],
+    bass: ["B2", "E3", "G3"],
+    displayName: "E Minor (2nd Inversion)",
+  },
+  "Fm/C": {
+    notes: ["C", "F", "Ab"],
+    treble: ["C5", "F5", "Ab5"],
+    bass: ["C3", "F3", "Ab3"],
+    displayName: "F Minor (2nd Inversion)",
+  },
+  "F#m/C#": {
+    notes: ["C#", "F#", "A"],
+    treble: ["C#5", "F#5", "A5"],
+    bass: ["C#3", "F#3", "A3"],
+    displayName: "F# Minor (2nd Inversion)",
+  },
+  "Gm/D": {
+    notes: ["D", "G", "Bb"],
+    treble: ["D5", "G5", "Bb5"],
+    bass: ["D3", "G3", "Bb3"],
+    displayName: "G Minor (2nd Inversion)",
+  },
+  "G#m/D#": {
+    notes: ["D#", "G#", "B"],
+    treble: ["D#5", "G#5", "B5"],
+    bass: ["D#3", "G#3", "B3"],
+    displayName: "G# Minor (2nd Inversion)",
+  },
+  "Am/E": {
+    notes: ["E", "A", "C"],
+    treble: ["E4", "A4", "C5"],
+    bass: ["E3", "A3", "C4"],
+    displayName: "A Minor (2nd Inversion)",
+  },
+  "A#m/E#": {
+    notes: ["E#", "A#", "C#"],
+    treble: ["E#5", "A#5", "C#6"],
+    bass: ["E#3", "A#3", "C#4"],
+    displayName: "A# Minor (2nd Inversion)",
+  },
+  "Bbm/F": {
+    notes: ["F", "Bb", "Db"],
+    treble: ["F4", "Bb4", "Db5"],
+    bass: ["F2", "Bb2", "Db3"],
+    displayName: "Bb Minor (2nd Inversion)",
+  },
+  "Bm/F#": {
+    notes: ["F#", "B", "D"],
+    treble: ["F#4", "B4", "D5"],
+    bass: ["F#2", "B2", "D3"],
+    displayName: "B Minor (2nd Inversion)",
+  },
+  "Dbm/Ab": {
+    notes: ["Ab", "Db", "Fb"],
+    treble: ["Ab4", "Db5", "Fb5"],
+    bass: ["Ab2", "Db3", "Fb3"],
+    displayName: "Db Minor (2nd Inversion)",
+  },
+  "Gbm/Db": {
+    notes: ["Db", "Gb", "Bbb"],
+    treble: ["Db5", "Gb5", "Bbb5"],
+    bass: ["Db3", "Gb3", "Bbb3"],
+    displayName: "Gb Minor (2nd Inversion)",
+  },
+  "Abm/Eb": {
+    notes: ["Eb", "Ab", "Cb"],
+    treble: ["Eb5", "Ab5", "Cb6"],
+    bass: ["Eb3", "Ab3", "Cb4"],
+    displayName: "Ab Minor (2nd Inversion)",
+  },
+
+  "C7/E": {
+    notes: ["E", "Bb", "C"],
+    treble: ["E4", "Bb4", "C5"],
+    bass: ["E3", "Bb3", "C4"],
+    displayName: "C Dominant 7th (1st Inv, no 5)",
+  },
+  "C#7/E#": {
+    notes: ["E#", "B", "C#"],
+    treble: ["E#4", "B4", "C#5"],
+    bass: ["E#3", "B3", "C#4"],
+    displayName: "C# Dominant 7th (1st Inv, no 5)",
+  },
+  "Db7/F": {
+    notes: ["F", "Cb", "Db"],
+    treble: ["F4", "Cb5", "Db5"],
+    bass: ["F2", "Cb3", "Db3"],
+    displayName: "Db Dominant 7th (1st Inv, no 5)",
+  },
+  "D7/F#": {
+    notes: ["F#", "C", "D"],
+    treble: ["F#4", "C5", "D5"],
+    bass: ["F#2", "C3", "D3"],
+    displayName: "D Dominant 7th (1st Inv, no 5)",
+  },
+  "D#7/F##": {
+    notes: ["F##", "C#", "D#"],
+    treble: ["F##4", "C#5", "D#5"],
+    bass: ["F##2", "C#3", "D#3"],
+    displayName: "D# Dominant 7th (1st Inv, no 5)",
+  },
+  "Eb7/G": {
+    notes: ["G", "Db", "Eb"],
+    treble: ["G4", "Db5", "Eb5"],
+    bass: ["G2", "Db3", "Eb3"],
+    displayName: "Eb Dominant 7th (1st Inv, no 5)",
+  },
+  "E7/G#": {
+    notes: ["G#", "D", "E"],
+    treble: ["G#4", "D5", "E5"],
+    bass: ["G#2", "D3", "E3"],
+    displayName: "E Dominant 7th (1st Inv, no 5)",
+  },
+  "F7/A": {
+    notes: ["A", "Eb", "F"],
+    treble: ["A4", "Eb5", "F5"],
+    bass: ["A2", "Eb3", "F3"],
+    displayName: "F Dominant 7th (1st Inv, no 5)",
+  },
+  "F#7/A#": {
+    notes: ["A#", "E", "F#"],
+    treble: ["A#4", "E5", "F#5"],
+    bass: ["A#2", "E3", "F#3"],
+    displayName: "F# Dominant 7th (1st Inv, no 5)",
+  },
+  "Gb7/Bb": {
+    notes: ["Bb", "Fb", "Gb"],
+    treble: ["Bb4", "Fb5", "Gb5"],
+    bass: ["Bb2", "Fb3", "Gb3"],
+    displayName: "Gb Dominant 7th (1st Inv, no 5)",
+  },
+  "G7/B": {
+    notes: ["B", "F", "G"],
+    treble: ["B4", "F5", "G5"],
+    bass: ["B2", "F3", "G3"],
+    displayName: "G Dominant 7th (1st Inv, no 5)",
+  },
+  "G#7/B#": {
+    notes: ["B#", "F#", "G#"],
+    treble: ["B#4", "F#5", "G#5"],
+    bass: ["B#2", "F#3", "G#3"],
+    displayName: "G# Dominant 7th (1st Inv, no 5)",
+  },
+  "Ab7/C": {
+    notes: ["C", "Gb", "Ab"],
+    treble: ["C5", "Gb5", "Ab5"],
+    bass: ["C3", "Gb3", "Ab3"],
+    displayName: "Ab Dominant 7th (1st Inv, no 5)",
+  },
+  "A7/C#": {
+    notes: ["C#", "G", "A"],
+    treble: ["C#5", "G5", "A5"],
+    bass: ["C#3", "G3", "A3"],
+    displayName: "A Dominant 7th (1st Inv, no 5)",
+  },
+  "A#7/C##": {
+    notes: ["C##", "G#", "A#"],
+    treble: ["C##5", "G#5", "A#5"],
+    bass: ["C##3", "G#3", "A#3"],
+    displayName: "A# Dominant 7th (1st Inv, no 5)",
+  },
+  "Bb7/D": {
+    notes: ["D", "Ab", "Bb"],
+    treble: ["D5", "Ab5", "Bb5"],
+    bass: ["D3", "Ab3", "Bb3"],
+    displayName: "Bb Dominant 7th (1st Inv, no 5)",
+  },
+  "B7/D#": {
+    notes: ["D#", "A", "B"],
+    treble: ["D#5", "A5", "B5"],
+    bass: ["D#3", "A3", "B3"],
+    displayName: "B Dominant 7th (1st Inv, no 5)",
+  },
+};
+
+
+function normalizeChordName(chordName) {
+  const mappings = {
+    // Major chords
+    'C': { key: 'C', suffix: 'major' },
+    'C#': { key: 'C#', suffix: 'major' },
+    'Db': { key: 'Db', suffix: 'major' },
+    'D': { key: 'D', suffix: 'major' },
+    'D#': { key: 'D#', suffix: 'major' },
+    'Eb': { key: 'Eb', suffix: 'major' },
+    'E': { key: 'E', suffix: 'major' },
+    'F': { key: 'F', suffix: 'major' },
+    'F#': { key: 'F#', suffix: 'major' },
+    'Gb': { key: 'Gb', suffix: 'major' },
+    'G': { key: 'G', suffix: 'major' },
+    'G#': { key: 'G#', suffix: 'major' },
+    'Ab': { key: 'Ab', suffix: 'major' },
+    'A': { key: 'A', suffix: 'major' },
+    'A#': { key: 'A#', suffix: 'major' },
+    'Bb': { key: 'Bb', suffix: 'major' },
+    'B': { key: 'B', suffix: 'major' },
+    
+    // Minor chords
+    'Cm': { key: 'C', suffix: 'minor' },
+    'C#m': { key: 'C#', suffix: 'minor' },
+    'Dbm': { key: 'Db', suffix: 'minor' },
+    'Dm': { key: 'D', suffix: 'minor' },
+    'D#m': { key: 'D#', suffix: 'minor' },
+    'Ebm': { key: 'Eb', suffix: 'minor' },
+    'Em': { key: 'E', suffix: 'minor' },
+    'Fm': { key: 'F', suffix: 'minor' },
+    'F#m': { key: 'F#', suffix: 'minor' },
+    'Gbm': { key: 'Gb', suffix: 'minor' },
+    'Gm': { key: 'G', suffix: 'minor' },
+    'G#m': { key: 'G#', suffix: 'minor' },
+    'Abm': { key: 'Ab', suffix: 'minor' },
+    'Am': { key: 'A', suffix: 'minor' },
+    'A#m': { key: 'A#', suffix: 'minor' },
+    'Bbm': { key: 'Bb', suffix: 'minor' },
+    'Bm': { key: 'B', suffix: 'minor' },
+    
+    // 7th chords
+    'C7': { key: 'C', suffix: '7' },
+    'Cmaj7': { key: 'C', suffix: 'maj7' },
+    'Cmin7': { key: 'C', suffix: 'm7' },
+    'Cdim7': { key: 'C', suffix: 'dim7' },
+    'Cm7b5': { key: 'C', suffix: 'm7b5' },
+    'Caug7': { key: 'C', suffix: 'aug7' },
+    
+    // 6th chords
+    'Cmaj6': { key: 'C', suffix: '6' },
+    'Cmin6': { key: 'C', suffix: 'm6' },
+    
+    // 9th chords
+    'C9': { key: 'C', suffix: '9' },
+    'Cmaj9': { key: 'C', suffix: 'maj9' },
+    'Cmin9': { key: 'C', suffix: 'm9' },
+    
+    // Suspended chords
+    'Csus2': { key: 'C', suffix: 'sus2' },
+    'Csus4': { key: 'C', suffix: 'sus4' },
+    
+    // Diminished and Augmented
+    'Cdim': { key: 'C', suffix: 'dim' },
+    'Caug': { key: 'C', suffix: 'aug' }
+  };
+
+  // Generate mappings for all keys programmatically
+  const keys = ['C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#', 'Ab', 'A', 'A#', 'Bb', 'B'];
+  const chordTypes = [
+    { pattern: 'maj7', suffix: 'maj7' },
+    { pattern: 'maj6', suffix: '6' },
+    { pattern: 'maj9', suffix: 'maj9' },
+    { pattern: 'min7', suffix: 'm7' },
+    { pattern: 'min6', suffix: 'm6' },
+    { pattern: 'min9', suffix: 'm9' },
+    { pattern: 'dim7', suffix: 'dim7' },
+    { pattern: 'aug7', suffix: 'aug7' },
+    { pattern: 'm7b5', suffix: 'm7b5' },
+    { pattern: 'dim', suffix: 'dim' },
+    { pattern: 'aug', suffix: 'aug' },
+    { pattern: '7', suffix: '7' },
+    { pattern: '9', suffix: '9' },
+    { pattern: 'sus4', suffix: 'sus4' },
+    { pattern: 'sus2', suffix: 'sus2' },
+    { pattern: 'm', suffix: 'minor' }
+  ];
+  
+  keys.forEach(key => {
+    chordTypes.forEach(({ pattern, suffix }) => {
+      const chordName = key + pattern;
+      if (!mappings[chordName]) {
+        mappings[chordName] = { key, suffix };
+      }
+    });
+  });
+
+  return mappings[chordName];
+}
+
+// Function to find chord in database
+function findChordInDatabase(chordName) {
+  const normalized = normalizeChordName(chordName);
+  if (!normalized) {
+    console.warn(`Could not normalize chord name: ${chordName}`);
+    return null;
+  }
+
+  const { key, suffix } = normalized;
+  
+  // Find the chord in the database
+  const chord = chordsDb.chords[key]?.find(chord => 
+    chord.suffix === suffix
+  );
+
+  if (!chord) {
+    console.warn(`Chord not found in database: ${key} ${suffix}`);
+    return null;
+  }
+
+  // Return the first position (as requested)
+  return chord.positions[0];
+}
+
+// Function to convert array of frets/fingers to string format
+function convertToString(arr) {
+  return arr.map(val => val === -1 ? 'x' : val).join('');
+}
+
+// Main function to process chord definitions
+function addFretsAndFingerings() {
+  const updatedDefinitions = {};
+
+  for (const [chordName, chordData] of Object.entries(CHORD_DEFINITIONS)) {
+    // Copy existing chord data
+    const updatedChord = { ...chordData };
+
+    // Look up frets and fingerings in database
+    const dbChord = findChordInDatabase(chordName);
+    
+    if (dbChord) {
+      // Add frets and fingers from database
+      updatedChord.frets = Array.isArray(dbChord.frets) 
+        ? convertToString(dbChord.frets)
+        : dbChord.frets;
+      updatedChord.fingers = Array.isArray(dbChord.fingers)
+        ? convertToString(dbChord.fingers)
+        : dbChord.fingers;
+    } else {
+      // Use placeholder values if not found
+      updatedChord.frets = 'x32010'; // default C major pattern
+      updatedChord.fingers = '032010';
+      console.warn(`Using default frets/fingers for: ${chordName}`);
+    }
+
+    updatedDefinitions[chordName] = updatedChord;
+  }
+
+  return updatedDefinitions;
+}
+
+// Generate the output file
+function generateOutputFile() {
+  const updatedDefinitions = addFretsAndFingerings();
+
+  let output = '// CHORDS WITH FRETS AND FINGERINGS\n';
+  output += 'export const CHORD_DEFINITIONS = {\n';
+
+  for (const [chordName, chordData] of Object.entries(updatedDefinitions)) {
+    output += `  "${chordName}": {\n`;  // Added quotes around chord name
+    output += `    notes: ${JSON.stringify(chordData.notes)},\n`;
+    output += `    treble: ${JSON.stringify(chordData.treble)},\n`;
+    output += `    bass: ${JSON.stringify(chordData.bass)},\n`;
+    output += `    displayName: "${chordData.displayName}",\n`;
+    output += `    frets: "${chordData.frets}",\n`;
+    output += `    fingers: "${chordData.fingers}",\n`;
+    output += '  },\n';
+  }
+
+  output += '};\n';
+
+  return output;
+}
+
+// Run the script
+console.log('Processing chord definitions...');
+const output = generateOutputFile();
+
+// Write to file
+fs.writeFileSync('chord_definitions_with_frets.js', output);
+
+console.log('✅ Successfully added frets and fingerings to chord definitions!');
+console.log('📁 Output written to: chord_definitions_with_frets.js');
