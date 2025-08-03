@@ -6,6 +6,184 @@ import {
   startSpectrumVisualization
 } from '../ui/spectrum.js';
 import { pianoState } from "./appState.js";
+import { EnvelopeControl } from '../classes/envelopeControl.js';
+
+/**
+ * Instrument preset class that manages sample URLs and envelope settings
+ * for different instruments
+ */
+export class InstrumentControl {
+    constructor() {
+        this.presets = {
+            piano: {
+                name: 'Piano',
+                baseUrl: '/static/samples/',
+                sampleUrls: {
+                    C2: "SteinwayD_m_C2_L.wav",
+                    E2: "SteinwayD_m_E2_L.wav",
+                    "G#2": "SteinwayD_m_G#2_L.wav",
+                    C3: "SteinwayD_m_C3_L.wav",
+                    E3: "SteinwayD_m_E3_L.wav",
+                    "G#3": "SteinwayD_m_G#3_L.wav",
+                    C4: "SteinwayD_m_C4_L.wav",
+                    E4: "SteinwayD_m_E4_L.wav",
+                    "F#4": "SteinwayD_m_F#4_L.wav",
+                    "A#4": "SteinwayD_m_A#4_L.wav",
+                    C5: "SteinwayD_m_C5_L.wav",
+                    "F#5": "SteinwayD_m_F#5_L.wav",
+                    C6: "SteinwayD_m_C6_L.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.01,   // Very quick attack - hammer strikes
+                    decay: 0.3,     // Quick decay
+                    sustain: 0.8,   // Good sustain level
+                    release: 1.2    // Natural decay of strings
+                }
+            },
+
+            guitar: {
+                name: 'Guitar',
+                baseUrl: '/static/samples/',
+                sampleUrls: {
+                    "F#2": "nylonf42.wav",
+                    C3: "nylonf48.wav",
+                    F3: "nylonf53.wav",
+                    "A#3": "nylonf58.wav",
+                    D4: "nylonf62.wav",
+                    "G#4": "nylonf68.wav",
+                    "C#5": "nylonf73.wav",
+                    G5: "nylonf79.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.02,   // Slightly slower attack - string pluck
+                    decay: 0.5,     // Longer decay
+                    sustain: 0.9,   // High sustain - strings ring
+                    release: 2.0    // Long release - strings continue ringing
+                }
+            },
+
+            cello: {
+                name: 'Cello',
+                baseUrl: '/static/samples/',
+                sampleUrls: {
+                    "A#3": "Cello_A#3.wav",
+                    "A#4": "Cello_A#4.wav",
+                    "A#5": "Cello_A#5.wav",
+                    "A#6": "Cello_A#6.wav",
+                    E3: "Cello_E3.wav",
+                    E4: "Cello_E4.wav",
+                    E5: "Cello_E5.wav",
+                    E6: "Cello_E6.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.05,   // Slower attack - bow engagement
+                    decay: 0.2,     // Quick decay to sustain
+                    sustain: 0.95,  // Very high sustain - bowed strings
+                    release: 1.5    // Medium release
+                }
+            },
+
+            sax: {
+                name: 'Saxophone',
+                baseUrl: '/static/samples/',
+                sampleUrls: {
+                    A2: "TSAX45-2.wav",
+                    "C#3": "TSAX49.wav",
+                    F3: "TSAX53-3.wav",
+                    A3: "TSAX57.wav",
+                    C4: "TSAX60-3.wav",
+                    D4: "TSAX62-2.wav",
+                    F4: "TSAX65-2.wav",
+                    "G#4": "TSAX68.wav",
+                    A4: "TSAX69-3.wav",
+                    C5: "TSAX72.wav",
+                    "F#5": "TSAX78-2.wav",
+                    "A#5": "TSAX82-2.wav",
+                    C6: "TSAX84-2.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.03,   // Quick attack - breath/reed
+                    decay: 0.1,     // Very short decay
+                    sustain: 1.0,   // Full sustain - breath controlled
+                    release: 0.8    // Medium release
+                }
+            }
+        };
+    }
+
+    /**
+     * Get preset data for a specific instrument
+     * @param {string} instrumentName - Name of the instrument
+     * @returns {object|null} Preset data or null if not found
+     */
+    getPreset(instrumentName) {
+        return this.presets[instrumentName] || null;
+    }
+
+    /**
+     * Get sample URLs for a specific instrument
+     * @param {string} instrumentName - Name of the instrument
+     * @returns {object} Sample URL mapping
+     */
+    getSampleUrls(instrumentName) {
+        const preset = this.getPreset(instrumentName);
+        return preset ? preset.sampleUrls : this.presets.piano.sampleUrls; // Default to piano
+    }
+
+    /**
+     * Get base URL for samples
+     * @param {string} instrumentName - Name of the instrument
+     * @returns {string} Base URL for samples
+     */
+    getBaseUrl(instrumentName) {
+        const preset = this.getPreset(instrumentName);
+        return preset ? preset.baseUrl : this.presets.piano.baseUrl;
+    }
+
+    /**
+     * Create an envelope control with instrument-appropriate settings
+     * @param {string} instrumentName - Name of the instrument
+     * @returns {EnvelopeControl} Configured envelope control
+     */
+    createEnvelope(instrumentName) {
+        const preset = this.getPreset(instrumentName);
+        const settings = preset ? preset.envelopeSettings : this.presets.piano.envelopeSettings;
+        
+        console.log(`🎛️ Creating ${instrumentName} envelope:`, settings);
+        return new EnvelopeControl(settings);
+    }
+
+    /**
+     * Get all available instrument names
+     * @returns {string[]} Array of instrument names
+     */
+    getAvailableInstruments() {
+        return Object.keys(this.presets);
+    }
+
+    /**
+     * Get instrument display name
+     * @param {string} instrumentName - Name of the instrument
+     * @returns {string} Display name
+     */
+    getDisplayName(instrumentName) {
+        const preset = this.getPreset(instrumentName);
+        return preset ? preset.name : 'Unknown Instrument';
+    }
+
+    /**
+     * Add or update an instrument preset
+     * @param {string} instrumentName - Name of the instrument
+     * @param {object} presetData - Preset configuration
+     */
+    addPreset(instrumentName, presetData) {
+        this.presets[instrumentName] = presetData;
+        console.log(`📝 Added preset for ${instrumentName}`);
+    }
+}
+
+// Create a singleton instance
+export const Instrument = new InstrumentControl();
 
 // ===================================================================
 // Audio Unlock Status Persistence (Internal)
@@ -117,68 +295,6 @@ function processDeferredAction() {
 }
 
 // ===================================================================
-// Sample URL Configuration
-// ===================================================================
-
-function getSampleUrls() {
-  if (pianoState.instrument === "guitar") {
-    return {
-      "F#2": "nylonf42.wav",
-      C3: "nylonf48.wav",
-      F3: "nylonf53.wav",
-      "A#3": "nylonf58.wav",
-      D4: "nylonf62.wav",
-      "G#4": "nylonf68.wav",
-      "C#5": "nylonf73.wav",
-      G5: "nylonf79.wav",
-    };
-  } else if (pianoState.instrument === "cello") {
-    return {
-      "A#3": "Cello_A#3.wav",
-      "A#4": "Cello_A#4.wav",
-      "A#5": "Cello_A#5.wav",
-      "A#6": "Cello_A#6.wav",
-      E3: "Cello_E3.wav",
-      E4: "Cello_E4.wav",
-      E5: "Cello_E5.wav",
-      E6: "Cello_E6.wav",
-    };
-  } else if (pianoState.instrument === "sax") {
-    return {
-      A2: "TSAX45-2.wav",
-      "C#3": "TSAX49.wav",
-      F3: "TSAX53-3.wav",
-      A3: "TSAX57.wav",
-      C4: "TSAX60-3.wav",
-      D4: "TSAX62-2.wav",
-      F4: "TSAX65-2.wav",
-      "G#4": "TSAX68.wav",
-      A4: "TSAX69-3.wav",
-      C5: "TSAX72.wav",
-      "F#5": "TSAX78-2.wav",
-      "A#5": "TSAX82-2.wav",
-      C6: "TSAX84-2.wav",
-    };
-  } else {
-    return {
-      C2: "SteinwayD_m_C2_L.wav",
-      E2: "SteinwayD_m_E2_L.wav",
-      "G#2": "SteinwayD_m_G#2_L.wav",
-      C3: "SteinwayD_m_C3_L.wav",
-      E3: "SteinwayD_m_E3_L.wav",
-      "G#3": "SteinwayD_m_G#3_L.wav",
-      C4: "SteinwayD_m_C4_L.wav",
-      E4: "SteinwayD_m_E4_L.wav",
-      "F#4": "SteinwayD_m_F#4_L.wav",
-      "A#4": "SteinwayD_m_A#4_L.wav",
-      C5: "SteinwayD_m_C5_L.wav",
-      "F#5": "SteinwayD_m_F#5_L.wav",
-      C6: "SteinwayD_m_C6_L.wav",
-    };
-  }
-}
-
-// ===================================================================
 // Spectrum Management
 // ===================================================================
 
@@ -228,24 +344,19 @@ export function startSpectrumIfReady() {
   }
 }
 
-/**
- * Simplified initialization that runs the full unlock process every time.
- * Assumes a first-time visitor for debugging purposes.
- */
+// Replace the getSampleUrls function and update initializeAudio
 async function initializeAudio() {
     let timeoutId;
     try {
         setAudioStatus('loading');
         console.log("InitializeAudio: Starting UNCONDITIONAL audio initialization for debugging.");
 
-        // Create a global timeout for the entire process
         const overallTimeoutPromise = new Promise((_, reject) => {
             timeoutId = setTimeout(() => {
                 reject(new Error("Audio initialization timed out after 15 seconds."));
             }, 15000);
         });
 
-        // Race the main initialization against the timeout
         await Promise.race([
             (async () => {
                 // Stage 1: Always attempt to unlock audio.
@@ -255,19 +366,33 @@ async function initializeAudio() {
                 // Stage 2: Initialize Tone.js with retry logic.
                 await initializeToneWithRetry();
 
-                // Stage 3: Create sampler and wait for samples to load.
+                // Stage 3: Create instrument-specific sampler and envelope
                 console.log("Creating and configuring sampler...");
-                const sampleUrls = getSampleUrls();
+                
+                // ✅ NEW: Get current instrument (default to piano)
+                const currentInstrument = pianoState.instrument || 'piano';
+                console.log(`🎵 Initializing ${currentInstrument} instrument`);
+
+                // ✅ NEW: Create instrument-specific envelope
+                pianoState.envelope = Instrument.createEnvelope(currentInstrument);
+
+                // ✅ NEW: Get instrument-specific sample URLs and base URL
+                const sampleUrls = Instrument.getSampleUrls(currentInstrument);
+                const baseUrl = Instrument.getBaseUrl(currentInstrument);
+
+                // Create sampler with instrument-specific settings
                 pianoState.sampler = new Tone.Sampler({
                     urls: sampleUrls,
-                    release: 1,
-                    baseUrl: "/static/samples/",
-                    onload: () => console.log("All samples loaded successfully."),
+                    baseUrl: baseUrl,
+                    onload: () => console.log(`🎵 All ${currentInstrument} samples loaded successfully.`),
                     onerror: (error) => console.error("Sample loading error:", error)
-                }).toDestination();
+                });
+
+                // Connect sampler -> envelope -> destination
+                pianoState.envelope.connect(pianoState.sampler);
+                console.log('🎛️ Current envelope settings:', pianoState.envelope.getSettings());
 
                 await Tone.loaded();
-                console.log("Sampler is ready!");
 
                 // Stage 4: Final setup and validation.
                 pianoState.ctxStarted = true;
@@ -282,7 +407,7 @@ async function initializeAudio() {
             overallTimeoutPromise
         ]);
 
-        // --- Success Path ---
+        // Success Path
         clearTimeout(timeoutId);
         setAudioStatus('ready');
         initializeAudioControls();
@@ -296,15 +421,17 @@ async function initializeAudio() {
         return true;
 
     } catch (error) {
-        // --- Error Path ---
+        // Error Path
         console.error("A critical error occurred during audio initialization:", error);
-        clearTimeout(timeoutId); // Ensure timeout is cleared on error
+        clearTimeout(timeoutId);
         setAudioStatus('error');
         deferredAction = null;
         pianoState.lastAudioError = error;
         return false;
     }
 }
+
+// Remove the old getSampleUrls function entirely
 
 /**
  * Tries multiple strategies to unlock the audio context on mobile devices.
@@ -317,10 +444,8 @@ async function attemptMultipleAudioUnlocks() {
             if (unlockAudio) {
                 try {
                     await unlockAudio.play();
-                    console.log("Unlock Strategy: Native audio element played successfully.");
                     return true;
                 } catch (e) {
-                    console.warn("Unlock Strategy: Native audio play failed.", e.name);
                     return false;
                 }
             }
@@ -340,7 +465,6 @@ async function attemptMultipleAudioUnlocks() {
                 source.start(0);
                 // Close the temporary context to conserve resources
                 setTimeout(() => audioContext.close(), 500);
-                console.log("Unlock Strategy: Web Audio API buffer played successfully.");
                 return true;
             } catch (e) {
                 console.warn("Unlock Strategy: Web Audio API unlock failed.", e.name);

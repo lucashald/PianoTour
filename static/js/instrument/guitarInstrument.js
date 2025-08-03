@@ -7,8 +7,6 @@ import { trigger, triggerAttackRelease } from "./playbackHelpers.js";
 import { writeNote, fillRests } from "../score/scoreWriter.js";
 import { addAdvancedGuitarListeners } from "../ui/listenerManager.js";
 
-console.log('🎸 Loading guitarInstrument.js module...');
-
 // Guitar-specific constants
 const FRET_COUNT = 20;
 const STRING_COUNT = 6;

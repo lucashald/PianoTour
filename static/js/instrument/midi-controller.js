@@ -425,7 +425,7 @@ export function handleMidiNoteOff(midiNoteNumber, velocity, channel) {
         const noteInfo = notesByMidiKeyAware(midiNoteNumber);
         if (noteInfo && pianoState.sampler) {
           try {
-            pianoState.sampler.triggerRelease(noteInfo.name);
+            pianoState.envelope.triggerRelease(noteInfo.name);
             console.log(`Released orphaned note ${noteInfo.name}`);
           } catch (error) {
             console.warn(`Error releasing orphaned note ${noteInfo.name}:`, error);
@@ -470,50 +470,6 @@ export function initMidiWithErrorHandling() {
   initMidi();
 }
 
-// ===================================================================
-// 3. Debugging and diagnostic functions
-// ===================================================================
-
-/**
- * Test MIDI controller functionality
- */
-export function testMidiController() {
-  console.log("=== MIDI Controller Test ===");
-  
-  // Check audio readiness
-  console.log("Audio unlocked:", pianoState.isUnlocked);
-  console.log("Sampler ready:", pianoState.samplerReady);
-  console.log("Sampler exists:", !!pianoState.sampler);
-  
-  // Check MIDI access
-  const midiAccess = getMidiAccess();
-  if (midiAccess) {
-    console.log("MIDI access granted");
-    console.log("Input devices:", midiAccess.inputs.size);
-    console.log("Output devices:", midiAccess.outputs.size);
-    
-    // List all devices
-    listMidiDevices();
-  } else {
-    console.log("No MIDI access");
-  }
-  
-  // Test a note programmatically
-  if (pianoState.isUnlocked && pianoState.samplerReady) {
-    console.log("Testing note C4 (MIDI 60)...");
-    handleMidiNoteOn(60, 80, 0);
-    setTimeout(() => {
-      handleMidiNoteOff(60, 0, 0);
-      console.log("Test complete");
-    }, 1000);
-  } else {
-    console.log("Cannot test note - audio not ready");
-  }
-}
-
-/**
- * Monitor MIDI controller state
- */
 export function monitorMidiState() {
   const state = {
     audioReady: pianoState.isUnlocked && pianoState.samplerReady,

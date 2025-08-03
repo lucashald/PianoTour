@@ -698,13 +698,16 @@ export function initializeSpectrum(options = {}) {
       isSpectrumEnabled = true;
       console.log("Spectrum initialized successfully");
 
-      // Auto-connect to sampler if it exists.
-      // NOTE: `pianoState.sampler` should be set by `audioManager` *before* this
-      // function is called if auto-connection is desired.
-      if (pianoState.sampler) {
+      // ✅ FIXED: Connect to envelope if it exists, fallback to sampler
+      // The envelope is what's actually sending audio to the speakers
+      if (pianoState.envelope) {
+        connectSpectrumToAudio(pianoState.envelope.envelope); // Connect to the Tone.js envelope object
+        console.log("Spectrum connected to envelope output");
+      } else if (pianoState.sampler) {
         connectSpectrumToAudio(pianoState.sampler);
+        console.log("Spectrum connected to sampler (no envelope available)");
       } else {
-        console.log("Sampler not yet available for spectrum auto-connection.");
+        console.log("Neither envelope nor sampler available for spectrum auto-connection.");
       }
     }
   } catch (error) {

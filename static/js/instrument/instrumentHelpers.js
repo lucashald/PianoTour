@@ -483,7 +483,7 @@ export function handlePointerMove(e) {
 
           const noteInfo = notesByMidiKeyAware(midi);
           if (noteInfo) {
-            trigger([noteInfo.name], true);
+            trigger([noteInfo.name], true, 80, false);
           }
         }
       }
@@ -496,7 +496,7 @@ export function handlePointerMove(e) {
           keyEl.classList.remove("pressed", "drag-playing");
           const noteInfo = notesByMidiKeyAware(midi);
           if (noteInfo && keyEl.dataset.playing === "drag") {
-            trigger([noteInfo.name], false);
+            trigger([noteInfo.name], false, 80, false);
           }
           keyEl.dataset.playing = "";
         }
@@ -597,7 +597,7 @@ export function stopAllDragNotes() {
       keyEl.classList.remove("pressed", "drag-playing");
       const noteInfo = notesByMidiKeyAware(midi);
       if (noteInfo && keyEl.dataset.playing === "drag") {
-        trigger([noteInfo.name], false);
+        trigger([noteInfo.name], false, 80, false);
       }
       keyEl.dataset.playing = "";
     }
@@ -815,8 +815,6 @@ export function handleInitial(e) {
      console.log("Audio is ready! Playing note and writing to score:", clickedNoteDetails.noteName);
 
      // Activate the more advanced listeners for future interactions
-     addAdvancedInstrumentListeners();
-     addInstrumentDraggingListeners();
 
    // Play the clicked note.
      triggerAttackRelease([clickedNoteDetails.noteName], "q");

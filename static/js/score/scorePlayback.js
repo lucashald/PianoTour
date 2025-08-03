@@ -17,11 +17,11 @@ import {
 } from "./scoreHighlighter.js";
 import { getVexflowIndexByNoteId, safeRedraw, scrollToMeasure } from "./scoreRenderer.js";
 import { getMeasures } from "./scoreWriter.js";
+
 // ===================================================================
 // Constants
 // ===================================================================
 
-// DURATION_TO_TONE is not actively used but is fixed for future use.
 const DURATION_TO_TONE = {
   w: "1n",
   "w.": "1n.",
@@ -36,7 +36,7 @@ const DURATION_TO_TONE = {
   32: "32n",
   "32.": "32n.",
 };
-// FIX: Added beat values for dotted notes. This is the critical fix.
+
 const DURATION_TO_BEATS = {
   w: 4,
   "w.": 6,
@@ -51,15 +51,14 @@ const DURATION_TO_BEATS = {
   32: 0.125,
   "32.": 0.1875,
 };
-const PLAYBACK_HIGHLIGHT_COLOR = "#76B595"; // A standard highlight color
+
+const PLAYBACK_HIGHLIGHT_COLOR = "#76B595";
 
 // ===================================================================
 // Internal State for Playback
 // ===================================================================
 
-// Track the last measure scrolled to, to prevent erratic scrolling during playback.
 let lastScrolledMeasureIndex = -1;
-// Track notes that are currently highlighted by playback (to ensure they are unhighlighted on stop)
 let currentPlayingVexFlowNotes = new Set();
 
 // ===================================================================
@@ -67,306 +66,273 @@ let currentPlayingVexFlowNotes = new Set();
 // ===================================================================
 
 /**
-* Schedules individual note events (audio, piano key, score highlight) for playback.
-* @param {object} note - The note object from the measure.
-* @param {number} measureIndex - The index of the current measure.
-* @param {string} noteId - The ID of the note.
-* @param {number} currentTransportTime - The base transport time for the current measure.
-* @param {number} clefOffset - The accumulated time offset for the current clef within the measure.
-* @param {number} secondsPerBeat - The duration of one beat in seconds.
-*/
+ * Schedules individual note events (audio, piano key, score highlight) for playback.
+ */
 function scheduleNoteEvents(
- note,
- measureIndex,
- noteId,
- currentTransportTime,
- clefOffset,
- secondsPerBeat
+  note,
+  measureIndex,
+  noteId,
+  currentTransportTime,
+  clefOffset,
+  secondsPerBeat
 ) {
- const beatDuration = DURATION_TO_BEATS[note.duration];
+  const beatDuration = DURATION_TO_BEATS[note.duration];
 
- // Add a check for unknown durations to prevent crashes
- if (beatDuration === undefined) {
-   console.error(`Unknown duration: ${note.duration}. Cannot schedule note.`);
-   return 0; // Return 0 duration to avoid breaking the rest of the playback
- }
+  if (beatDuration === undefined) {
+    console.error(`Unknown duration: ${note.duration}. Cannot schedule note.`);
+    return 0;
+  }
 
- const noteDurationInSeconds = beatDuration * secondsPerBeat;
- const noteStartTime = currentTransportTime + clefOffset;
- const noteKey = `${measureIndex}-${note.clef}-${noteId}`; // Unique key for Set
+  const noteDurationInSeconds = beatDuration * secondsPerBeat;
+  const noteStartTime = currentTransportTime + clefOffset;
+  const noteKey = `${measureIndex}-${note.clef}-${noteId}`;
 
- if (!note.isRest) {
-   const notesToPlay = note.name
-     .replace(/[()]/g, "")
-     .split(" ")
-     .filter(Boolean);
+  if (!note.isRest) {
+    const notesToPlay = note.name
+      .replace(/[()]/g, "")
+      .split(" ")
+      .filter(Boolean);
 
-   // Schedule the "note on" event (audio + spectrum)
-   Tone.Transport.scheduleOnce((time) => {
-     trigger(notesToPlay, true);
+    // Schedule the "note on" event (audio + spectrum)
+    Tone.Transport.scheduleOnce((time) => {
+      // ✅ FIXED: Use envelope for score playback (4th parameter = true)
+      trigger(notesToPlay, true, 100, true);
 
-     // 🎯 NEW: Start spectrum and track this playback note
-     startSpectrumIfReady();
+      startSpectrumIfReady();
 
-     // Track this note as an active playback note for spectrum management
-     pianoState.activeDiatonicChords[noteKey] = {
-       notes: notesToPlay,
-       startTime: performance.now(),
-       isPlayback: true // Flag to identify playback notes
-     };
-   }, noteStartTime);
+      // Track this note as an active playback note for spectrum management
+      pianoState.activeDiatonicChords[noteKey] = {
+        notes: notesToPlay,
+        startTime: performance.now(),
+        isPlayback: true
+      };
+    }, noteStartTime);
 
-   // Schedule piano key highlighting
-   Tone.Transport.scheduleOnce((time) => {
-     notesToPlay.forEach((n) => {
-       const midi = NOTES_BY_NAME[n];
-       if (midi && pianoState.noteEls[midi]) {
-         Tone.Draw.schedule(() => {
-           pianoState.noteEls[midi].classList.add("pressed");
-         }, time);
-       }
-     });
-   }, noteStartTime);
+    // Schedule piano key highlighting
+    Tone.Transport.scheduleOnce((time) => {
+      notesToPlay.forEach((n) => {
+        const midi = NOTES_BY_NAME[n];
+        if (midi && pianoState.noteEls[midi]) {
+          Tone.Draw.schedule(() => {
+            pianoState.noteEls[midi].classList.add("pressed");
+          }, time);
+        }
+      });
+    }, noteStartTime);
 
-   // Schedule score note highlighting
-   Tone.Transport.scheduleOnce((time) => {
-     Tone.Draw.schedule(() => {
-       addPlaybackHighlight(
-         measureIndex,
-         note.clef,
-         noteId,
-         PLAYBACK_HIGHLIGHT_COLOR
-       );
+    // Schedule score note highlighting
+    Tone.Transport.scheduleOnce((time) => {
+      Tone.Draw.schedule(() => {
+        addPlaybackHighlight(
+          measureIndex,
+          note.clef,
+          noteId,
+          PLAYBACK_HIGHLIGHT_COLOR
+        );
 
-       // NEW: Update nowplaying display with note name
-       const displayName = note.chordName || note.name;
-       updateNowPlayingDisplay(displayName);
+        const displayName = note.chordName || note.name;
+        updateNowPlayingDisplay(displayName);
+        currentPlayingVexFlowNotes.add(noteKey);
+      }, time);
+    }, noteStartTime);
 
-       currentPlayingVexFlowNotes.add(noteKey); // Add to the set
-     }, time);
-   }, noteStartTime);
+    const noteEndTime = noteStartTime + noteDurationInSeconds;
 
-   const noteEndTime = noteStartTime + noteDurationInSeconds;
+    // Schedule the "note off" event (audio + spectrum management)
+    Tone.Transport.scheduleOnce((time) => {
+      // ✅ FIXED: Use envelope for score playback
+      trigger(notesToPlay, false, 100, true);
 
-   // Schedule the "note off" event (audio + spectrum management)
-   Tone.Transport.scheduleOnce((time) => {
-     trigger(notesToPlay, false);
+      delete pianoState.activeDiatonicChords[noteKey];
 
-     // 🎯 NEW: Remove from tracking and potentially stop spectrum
-     delete pianoState.activeDiatonicChords[noteKey];
+      // Account for sampler release time before checking spectrum stop
+      setTimeout(() => {
+        const hasActiveNotes =
+          Object.keys(pianoState.activeNotes).length > 0 ||
+          Object.keys(pianoState.activeDiatonicChords).length > 0;
 
-     // Account for sampler release time (1 second) before checking spectrum stop
-     setTimeout(() => {
-       const hasActiveNotes =
-         Object.keys(pianoState.activeNotes).length > 0 ||
-         Object.keys(pianoState.activeDiatonicChords).length > 0;
+        if (!hasActiveNotes) {
+          stopSpectrumVisualization();
+        }
+      }, 1000);
+    }, noteEndTime);
 
-       if (!hasActiveNotes) {
-         stopSpectrumVisualization();
-       }
-     }, 1000); // Wait for sampler release time
-   }, noteEndTime);
+    // Schedule piano key un-highlighting
+    Tone.Transport.scheduleOnce((time) => {
+      notesToPlay.forEach((n) => {
+        const midi = NOTES_BY_NAME[n];
+        if (midi && pianoState.noteEls[midi]) {
+          Tone.Draw.schedule(() => {
+            pianoState.noteEls[midi].classList.remove("pressed");
+          }, time);
+        }
+      });
+    }, noteEndTime);
 
-   // Schedule piano key un-highlighting
-   Tone.Transport.scheduleOnce((time) => {
-     notesToPlay.forEach((n) => {
-       const midi = NOTES_BY_NAME[n];
-       if (midi && pianoState.noteEls[midi]) {
-         Tone.Draw.schedule(() => {
-           pianoState.noteEls[midi].classList.remove("pressed");
-         }, time);
-       }
-     });
-   }, noteEndTime);
+    // Schedule individual note un-highlighting
+    Tone.Transport.scheduleOnce((time) => {
+      Tone.Draw.schedule(() => {
+        pianoState.currentPlaybackNotes.delete(noteKey);
 
-   // NEW: Schedule individual note un-highlighting (remove specific note from Set)
-   Tone.Transport.scheduleOnce((time) => {
-     Tone.Draw.schedule(() => {
-       // Remove this specific note from the Set
-       pianoState.currentPlaybackNotes.delete(noteKey);
+        const vexflowIndex = getVexflowIndexByNoteId()[noteId];
+        if (vexflowIndex !== undefined) {
+          let styleToRestore;
 
-       // Clear highlight for this specific note
-       const vexflowIndex = getVexflowIndexByNoteId()[noteId];
-       if (vexflowIndex !== undefined) {
-         let styleToRestore;
+          if (
+            pianoState.currentSelectedNote &&
+            pianoState.currentSelectedNote.measureIndex === measureIndex &&
+            pianoState.currentSelectedNote.clef === note.clef &&
+            pianoState.currentSelectedNote.noteId === noteId
+          ) {
+            styleToRestore = {
+              fillStyle: "#D88368",
+              strokeStyle: "#D88368",
+              shadowColor: null,
+              shadowBlur: 0,
+            };
+          } else if (measureIndex === pianoState.currentSelectedMeasure) {
+            styleToRestore = {
+              fillStyle: "#76B595",
+              strokeStyle: "#76B595",
+              shadowColor: null,
+              shadowBlur: 0,
+            };
+          } else {
+            styleToRestore = {
+              fillStyle: "#000000",
+              strokeStyle: "#000000",
+              shadowColor: null,
+              shadowBlur: 0,
+            };
+          }
 
-         // Determine the correct style to restore based on the highlighting precedence:
-         // 1. Is it the currently selected individual note? (Orange takes highest precedence)
-         if (
-           pianoState.currentSelectedNote &&
-           pianoState.currentSelectedNote.measureIndex === measureIndex &&
-           pianoState.currentSelectedNote.clef === note.clef &&
-           pianoState.currentSelectedNote.noteId === noteId
-         ) {
-           styleToRestore = {
-             fillStyle: "#D88368", // Peach (selected note color)
-             strokeStyle: "#D88368",
-             shadowColor: null,
-             shadowBlur: 0,
-           };
-         }
-         // 2. Is its containing measure currently selected? (Green takes next precedence)
-         else if (measureIndex === pianoState.currentSelectedMeasure) {
-           styleToRestore = {
-             fillStyle: "#76B595", // Green (measure highlight color)
-             strokeStyle: "#76B595",
-             shadowColor: null,
-             shadowBlur: 0,
-           };
-         }
-         // 3. Otherwise, restore to default black (lowest precedence).
-         else {
-           styleToRestore = {
-             fillStyle: "#000000", // Black (default note color)
-             strokeStyle: "#000000",
-             shadowColor: null,
-             shadowBlur: 0,
-           };
-         }
+          setVexFlowNoteStyle(measureIndex, note.clef, vexflowIndex, styleToRestore);
+        }
 
-         setVexFlowNoteStyle(measureIndex, note.clef, vexflowIndex, styleToRestore);
-       }
+        currentPlayingVexFlowNotes.delete(noteKey);
+      }, time);
+    }, noteEndTime);
+  }
 
-       currentPlayingVexFlowNotes.delete(noteKey); // Remove from the set
-     }, time);
-   }, noteEndTime);
- }
-
- return noteDurationInSeconds; // Return duration to update offset
+  return noteDurationInSeconds;
 }
 
 /**
-* Schedules the entire score for playback using Tone.js and provides visual feedback.
-*
-* This function clears any previous playback schedule, sets the tempo, and then
-* iterates through each measure of the score. It schedules "note on" and "note off"
-* events for both the audio and the visual highlighting of the piano keys and score.
-*
-* @param {Array} measures - The array of measures containing the score data.
-* @param {number} [bpm=120] - The tempo for playback in beats per minute.
-*/
+ * Schedules the entire score for playback using Tone.js and provides visual feedback.
+ */
 export function playScore(measures, bpm = pianoState.tempo) {
- if (!audioManager.isAudioReady()) { // REPLACED: pianoState.samplerReady with audioManager.isAudioReady()
-   console.warn("Sampler is not ready. Cannot play score.");
-   return;
- } else if (Tone.Transport.state === "started") {
-   console.warn("Score is already playing.");
-   return;
- }
+  if (!audioManager.isAudioReady()) {
+    console.warn("Sampler is not ready. Cannot play score.");
+    return;
+  } else if (Tone.Transport.state === "started") {
+    console.warn("Score is already playing.");
+    return;
+  }
 
- // 1. Stop any previous playback and clear the transport schedule.
- Tone.Transport.stop();
- Tone.Transport.cancel();
- Tone.Transport.position = 0;
- lastScrolledMeasureIndex = -1;
+  // Stop any previous playback and clear the transport schedule
+  Tone.Transport.stop();
+  Tone.Transport.cancel();
+  Tone.Transport.position = 0;
+  lastScrolledMeasureIndex = -1;
 
- // Clear the set of currently playing notes for a new playback session
- currentPlayingVexFlowNotes.clear();
+  // Clear the set of currently playing notes for a new playback session
+  currentPlayingVexFlowNotes.clear();
+  pianoState.currentPlaybackNotes.clear();
 
- // NEW: Clear the playback notes Set
- pianoState.currentPlaybackNotes.clear();
+  // Clear any existing playback notes from activeDiatonicChords
+  Object.keys(pianoState.activeDiatonicChords).forEach(key => {
+    if (pianoState.activeDiatonicChords[key].isPlayback) {
+      delete pianoState.activeDiatonicChords[key];
+    }
+  });
 
- // 🎯 NEW: Clear any existing playback notes from activeDiatonicChords
- Object.keys(pianoState.activeDiatonicChords).forEach(key => {
-   if (pianoState.activeDiatonicChords[key].isPlayback) {
-     delete pianoState.activeDiatonicChords[key];
-   }
- });
+  clearAllHighlights();
+  startSpectrumIfReady();
 
- clearAllHighlights(); // Ensure score is clean before starting
+  // Set the tempo for the playback
+  Tone.Transport.bpm.value = bpm;
+  let maxEndTime = 0;
 
- // 🎯 NEW: Start spectrum for playback
- startSpectrumIfReady();
+  // Iterate through each measure to schedule all notes and visual feedback
+  let currentTransportTime = 0;
+  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const secondsPerBeat = 60 / bpm;
 
- // 2. Set the tempo for the playback.
- Tone.Transport.bpm.value = bpm;
- let maxEndTime = 0;
+  measures.forEach((measure, measureIndex) => {
+    // Schedule scroll event for the beginning of each measure
+    Tone.Transport.scheduleOnce((time) => {
+      if (measureIndex !== lastScrolledMeasureIndex) {
+        Tone.Draw.schedule(() => {
+          scrollToMeasure(measureIndex);
+          lastScrolledMeasureIndex = measureIndex;
+        }, time);
+      }
+    }, currentTransportTime);
 
- // 3. Iterate through each measure to schedule all notes and visual feedback.
- let currentTransportTime = 0; // Use seconds instead of beats
- const beatsPerMeasure = pianoState.timeSignature.numerator; // Assuming 4/4 time signature
- const secondsPerBeat = 60 / bpm; // Convert BPM to seconds per beat
+    let trebleMeasureOffset = 0;
+    let bassMeasureOffset = 0;
 
- measures.forEach((measure, measureIndex) => {
-   // Schedule scroll event for the beginning of each measure
-   Tone.Transport.scheduleOnce((time) => {
-     if (measureIndex !== lastScrolledMeasureIndex) {
-       // Wrap scroll in Tone.Draw to ensure it's synchronized with the visual timeline
-       Tone.Draw.schedule(() => {
-         scrollToMeasure(measureIndex);
-         lastScrolledMeasureIndex = measureIndex;
-       }, time);
-     }
-   }, currentTransportTime);
+    const trebleNotes = measure.filter((n) => n.clef === "treble");
+    const bassNotes = measure.filter((n) => n.clef === "bass");
 
-   let trebleMeasureOffset = 0; // In seconds
-   let bassMeasureOffset = 0; // In seconds
+    // Schedule Treble Notes
+    trebleNotes.forEach((note) => {
+      trebleMeasureOffset += scheduleNoteEvents(
+        note,
+        measureIndex,
+        note.id,
+        currentTransportTime,
+        trebleMeasureOffset,
+        secondsPerBeat
+      );
+    });
 
-   // We use 'noteIndex' for array iteration here, as it's a positional reference within the filtered array.
-   const trebleNotes = measure.filter((n) => n.clef === "treble");
-   const bassNotes = measure.filter((n) => n.clef === "bass");
+    // Schedule Bass Notes
+    bassNotes.forEach((note) => {
+      bassMeasureOffset += scheduleNoteEvents(
+        note,
+        measureIndex,
+        note.id,
+        currentTransportTime,
+        bassMeasureOffset,
+        secondsPerBeat
+      );
+    });
 
-   // --- Schedule Treble Notes ---
-   trebleNotes.forEach((note) => {
-     trebleMeasureOffset += scheduleNoteEvents(
-       note,
-       measureIndex,
-       note.id, // Pass noteId here
-       currentTransportTime,
-       trebleMeasureOffset,
-       secondsPerBeat
-     );
-   });
+    // Ensure maxEndTime covers both clefs' durations within the measure
+    const measureEndTime =
+      currentTransportTime + Math.max(trebleMeasureOffset, bassMeasureOffset);
+    if (measureEndTime > maxEndTime) {
+      maxEndTime = measureEndTime;
+    }
 
-   // --- Schedule Bass Notes ---
-   bassNotes.forEach((note) => {
-     bassMeasureOffset += scheduleNoteEvents(
-       note,
-       measureIndex,
-       note.id, // Pass noteId here
-       currentTransportTime,
-       bassMeasureOffset,
-       secondsPerBeat
-     );
-   });
+    currentTransportTime += beatsPerMeasure * secondsPerBeat;
+  });
 
-   // Ensure maxEndTime covers both clefs' durations within the measure
-   const measureEndTime =
-     currentTransportTime + Math.max(trebleMeasureOffset, bassMeasureOffset);
-   if (measureEndTime > maxEndTime) {
-     maxEndTime = measureEndTime;
-   }
+  if (maxEndTime > 0) {
+    // Schedule a final stop event and clear all highlights
+    Tone.Transport.scheduleOnce(() => {
+      stopPlayback();
+    }, maxEndTime + 0.1);
+  }
 
-   currentTransportTime += beatsPerMeasure * secondsPerBeat;
- });
-
- if (maxEndTime > 0) {
-   // Schedule a final stop event and clear all highlights
-   Tone.Transport.scheduleOnce(() => {
-     stopPlayback();
-   }, maxEndTime + 0.1); // Add a small buffer
- }
-
- console.log(
-   "Score playback has been scheduled. Call Tone.Transport.start() to play."
- );
+  console.log("Score playback has been scheduled. Call Tone.Transport.start() to play.");
 }
 
 /**
  * Stops Tone.js transport and clears all scheduled events.
- * Also resets visual states like piano key presses and score highlights.
  */
 export function stopPlayback() {
-  Tone.Transport.stop(); // Stop the Tone.js transport
-  Tone.Transport.cancel(); // Clear all scheduled events
-  lastScrolledMeasureIndex = -1; // Reset scroll tracking
+  Tone.Transport.stop();
+  Tone.Transport.cancel();
+  lastScrolledMeasureIndex = -1;
 
   // Release all currently playing notes on the sampler
   if (audioManager.isAudioReady() && pianoState.sampler) {
     if (pianoState.sampler.releaseAll) {
       pianoState.sampler.releaseAll();
     } else {
-      // Fallback for older Tone.js versions if releaseAll doesn't exist
+      // ✅ FIXED: Call sampler.triggerRelease, not envelope.triggerRelease
       for (let midi = 21; midi <= 108; midi++) {
         try {
           pianoState.sampler.triggerRelease(
@@ -379,13 +345,17 @@ export function stopPlayback() {
     }
   }
 
+  // ✅ FIXED: Also release envelope if it exists
+  if (pianoState.envelope) {
+    pianoState.envelope.triggerRelease();
+  }
+
   // Clear any visual "pressed" states from the piano keys
   Object.values(pianoState.noteEls).forEach((el) => {
     el.classList.remove("pressed");
   });
 
-  // 🎯 FIXED: Don't immediately clear playback notes - let them decay naturally
-  // Instead, mark them for cleanup after release time
+  // Mark playback notes for cleanup after release time
   const playbackNotesToClear = [];
   Object.keys(pianoState.activeDiatonicChords).forEach(key => {
     if (pianoState.activeDiatonicChords[key].isPlayback) {
@@ -400,7 +370,6 @@ export function stopPlayback() {
         delete pianoState.activeDiatonicChords[key];
       });
 
-      // Check if spectrum should stop after all notes have decayed
       const hasActiveNotes =
         Object.keys(pianoState.activeNotes).length > 0 ||
         Object.keys(pianoState.activeDiatonicChords).length > 0;
@@ -408,15 +377,12 @@ export function stopPlayback() {
       if (!hasActiveNotes) {
         stopSpectrumVisualization();
       }
-    }, 1000); // Wait for sampler release time
+    }, 1000);
   } else {
-    // No playback notes, safe to stop spectrum immediately
     stopSpectrumVisualization();
   }
 
   console.log("Playback stopped.");
-
-  // Ensure all highlight rectangles are removed from the score
   clearAllHighlights();
   safeRedraw();
 }
@@ -428,19 +394,15 @@ export function initializePlayer() {
     ?.addEventListener("click", async (e) => {
       e.preventDefault();
       document.getElementById("instrument")?.focus();
-      // Directly check if audio is ready, or attempt to unlock and then play.
-      // The audioManager.unlockAndExecute function is the single point for this.
+      
       const playAction = () => {
         playScore(getMeasures());
         Tone.Transport.start();
       };
 
-      // Attempt to unlock audio and execute the play action.
-      // If audio is already ready, it executes immediately.
-      // If not, it initiates loading and executes once ready.
       const audioStarted = await audioManager.unlockAndExecute(playAction);
       if (!audioStarted) {
-          console.warn("Could not start audio for playback. Please ensure user interaction has occurred.");
+        console.warn("Could not start audio for playback. Please ensure user interaction has occurred.");
       }
     });
 
@@ -457,8 +419,8 @@ export function initializePlayer() {
     ?.addEventListener("click", (e) => {
       e.preventDefault();
       document.getElementById("instrument")?.focus();
-      // Removed direct call to pianoState.unlock() as audioManager handles unlocking.
-      // A simple call to unlockAndExecute with a no-op function is sufficient to trigger unlock on click.
-      audioManager.unlockAndExecute(() => { console.log("MIDI connection audio unlocked."); });
+      audioManager.unlockAndExecute(() => { 
+        console.log("MIDI connection audio unlocked."); 
+      });
     });
 }

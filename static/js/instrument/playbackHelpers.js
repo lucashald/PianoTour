@@ -77,25 +77,30 @@ export async function startAudio() {
  * @param {boolean} on - True to trigger attack, false to trigger release.
  * @param {number} [velocity=100] - MIDI velocity (1-127).
  */
-export function trigger(note, on, velocity = 100) {
-  if (!audioManager.isAudioReady()) return;
+ 
+export function trigger(note, on, velocity = 100, useEnvelope = true) {
+  if (!audioManager.isAudioReady() || !pianoState.sampler) return;
 
-  if (on) {
-    pianoState.sampler.triggerAttack(note, Tone.now(), velocity / 127);
-    startSpectrumVisualization(); // ✅ SIMPLIFIED
-  } else {
-    pianoState.sampler.triggerRelease(note);
+  const normalizedVelocity = Math.max(0.1, Math.min(1, velocity / 127));
+  const notes = Array.isArray(note) ? note : [note];
+  const now = Tone.now(); // ✅ Get current time
 
-    // Check if any notes are still active
-    const hasActiveNotes =
-      Object.keys(pianoState.activeNotes).length > 0 ||
-      Object.keys(pianoState.activeDiatonicChords).length > 0;
-
-    // Stop spectrum if no notes are active
-    if (!hasActiveNotes) {
-      stopSpectrumVisualization(); // ✅ Let spectrum handle its own timing
+  notes.forEach((n) => {
+    if (on) {
+      console.log(`🔊 Triggered attack for note: ${n} with velocity: ${normalizedVelocity}`);
+      pianoState.sampler.triggerAttack(n, undefined, normalizedVelocity);
+      
+      if (pianoState.envelope && useEnvelope) {
+        pianoState.envelope.triggerAttack(now); // ✅ Pass time parameter
+      }
+    } else {
+      pianoState.sampler.triggerRelease(n);
+      
+      if (pianoState.envelope && useEnvelope) {
+        pianoState.envelope.triggerRelease(now); // ✅ Pass time parameter
+      }
     }
-  }
+  });
 }
 
 /**
@@ -105,8 +110,12 @@ export function trigger(note, on, velocity = 100) {
  */
 export function startKey(el, velocity = 100) {
   const midi = el.dataset.midi;
-  console.log("startKey: midi =", midi);
-  if (!midi || el.dataset.playing) return;
+  
+  // ✅ FIXED: Check for any existing playing state, not just "note"
+  if (!midi || el.dataset.playing) {
+    console.log("startKey: blocked - already playing or no midi");
+    return;
+  }
 
   const noteInfo = notesByMidiKeyAware(midi);
   console.log("startKey: noteInfo =", noteInfo);
@@ -114,32 +123,51 @@ export function startKey(el, velocity = 100) {
 
   const noteName = noteInfo.name;
   console.log("startKey: noteName =", noteName);
-  console.log("startKey: calling trigger with", noteName);
 
+  // ✅ FIXED: Set playing state BEFORE triggering to prevent double calls
   el.dataset.playing = "note";
+  el.dataset.startTime = performance.now().toString();
   el.classList.add("pressed");
+  
   trigger(noteName, true, velocity);
+  
   const spelling = pianoState.keySignatureType === "b" ? "flat" : "sharp";
-  pianoState.activeNotes[midi] = { el, spelling, startTime: performance.now() };
+  pianoState.activeNotes[midi] = { 
+    el, 
+    spelling, 
+    startTime: performance.now() 
+  };
+
+  console.log("startKey: completed for", noteName);
 }
 
-/**
- * Stops a single piano key's sound and visual feedback.
- * @param {HTMLElement} el - The SVG element of the key.
- */
 export function stopKey(el) {
   const midi = el.dataset.midi;
-  if (!midi || !el.dataset.playing) return;
+  console.log("stopKey: midi =", midi, "playing =", el.dataset.playing);
+  
+  // ✅ FIXED: Only proceed if actually playing
+  if (!midi || el.dataset.playing !== "note") {
+    console.log("stopKey: blocked - not playing or no midi");
+    return;
+  }
+  
   const activeNote = pianoState.activeNotes[midi];
-  if (!activeNote) return;
+  if (!activeNote) {
+    console.log("stopKey: no active note found");
+    return;
+  }
 
   const noteInfo = notesByMidiKeyAware(midi);
-  const noteNameToTrigger = noteInfo.name; // Use key-signature-aware name
+  const noteNameToTrigger = noteInfo.name;
 
-  trigger(noteNameToTrigger, false);
+  // ✅ FIXED: Clear state BEFORE triggering to prevent re-entry
   delete el.dataset.playing;
+  delete el.dataset.startTime;
   el.classList.remove("pressed");
   delete pianoState.activeNotes[midi];
+
+  trigger(noteNameToTrigger, false);
+  console.log("stopKey: completed for", noteNameToTrigger);
 }
 
 export function playDiatonicChord(degree, key, writeToScore = true) {
@@ -352,12 +380,23 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
     }
   }
 
-  console.log(`🎵 Starting triggerAttackRelease: ${displayName}, duration: ${duration} (${durationMs}ms)`);
-
-  // IMPROVEMENT 1: Use Tone.js triggerAttackRelease with proper duration conversion
-  // Make sure we're using seconds, not milliseconds
+  // Convert duration to seconds for Tone.js
   const durationInSeconds = durationMs / 1000;
-  pianoState.sampler.triggerAttackRelease(note, durationInSeconds, Tone.now(), velocity / 127);
+  const now = Tone.now();
+  
+  // Trigger sampler with attack/release
+  pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, velocity / 127);
+
+  // NEW: Trigger envelope to match the sampler timing
+  if (pianoState.envelope) {
+    // Trigger envelope attack immediately
+    pianoState.envelope.triggerAttack(now);
+    
+    // Schedule envelope release to match when the sampler note would end
+    // We need to account for the envelope's own attack/decay phases
+    const envelopeReleaseTime = now + durationInSeconds;
+    pianoState.envelope.triggerRelease(envelopeReleaseTime);
+  }
 
   // Start spectrum visualization when notes are played
   startSpectrumVisualization();
@@ -378,14 +417,11 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
     isChord: isChord
   };
 
-  console.log(`📊 Active chords after adding: ${Object.keys(pianoState.activeDiatonicChords).length}`);
-
   // IMPROVEMENT 3: Schedule cleanup to happen slightly AFTER the audio finishes
   // Add a small buffer to ensure Tone.js has finished releasing
   const cleanupDelay = durationMs + 50; // Add 50ms buffer
 
   setTimeout(() => {
-    console.log(`🔇 triggerAttackRelease timeout fired for: ${displayName}`);
 
     // Get the chord data for potential score writing
     const chordData = pianoState.activeDiatonicChords[attackReleaseKey];
@@ -409,7 +445,6 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
 
     // Remove this specific attackRelease from tracking
     delete pianoState.activeDiatonicChords[attackReleaseKey];
-    console.log(`📊 Active chords after removing: ${Object.keys(pianoState.activeDiatonicChords).length}`);
 
     // IMPROVEMENT 4: Handle visual cleanup more aggressively for chords
     if (isChord) {
@@ -421,10 +456,8 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
       // Then restore after a brief moment
       setTimeout(() => {
         const remainingChords = Object.keys(pianoState.activeDiatonicChords).length;
-        console.log(`🎨 Checking visual cleanup, remaining chords: ${remainingChords}`);
 
         if (remainingChords === 0 && (pianoState.isMajorChordMode || pianoState.isMinorChordMode)) {
-          console.log(`🎨 Restoring chord highlighting`);
           paintChord();
         }
       }, 50); // Reduced delay
@@ -445,7 +478,6 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
 
       // Stop spectrum if no notes are active
       if (!hasActiveNotes) {
-        console.log(`📊 Stopping spectrum visualization (final check)`);
         stopSpectrumVisualization();
       }
     }, 10); // Small delay for final check
@@ -485,8 +517,6 @@ export function playScaleChord(degree, key, writeToScore = true, useBass = false
     startTime: performance.now(),
     writeToScore: writeToScore,
   };
-
-  console.log(`Playing diatonic chord degree ${degree}: ${chord.displayName} (${useBass ? 'bass' : 'treble'})`);
 }
 
 /**
