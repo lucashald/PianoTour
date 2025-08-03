@@ -1,39 +1,17 @@
 // guitarInstrument.js - Virtual Guitar Integration for Piano Tour
 import { pianoState } from "../core/appState.js";
-import { createChordPalette, createGuitarControls } from "../ui/guitarUI.js";
+import { createChordPalette, initializeGuitarControls } from "../ui/guitarUI.js";
 import audioManager from "../core/audioManager.js";
 import { NOTES_BY_NAME, DURATION_THRESHOLDS, splitNotesIntoClefs, identifyChord } from "../core/note-data.js";
 import { trigger, triggerAttackRelease } from "./playbackHelpers.js";
 import { writeNote, fillRests } from "../score/scoreWriter.js";
+import { addAdvancedGuitarListeners } from "../ui/listenerManager.js";
 
 console.log('🎸 Loading guitarInstrument.js module...');
 
 // Guitar-specific constants
 const FRET_COUNT = 20;
 const STRING_COUNT = 6;
-
-/**
- * Initialize guitar controls
- * @param {string} containerSelector - Where to render the controls
- * @param {GuitarInstrument} guitarInstance - Guitar to control (optional)
- * @returns {HTMLElement|null} Controls element
- */
-export function initializeGuitarControls(containerSelector, guitarInstance = window.guitarInstance) {
-    console.log('🎛️ Initializing Guitar Controls...');
-    
-    const container = document.querySelector(containerSelector);
-    if (!container) {
-        console.error(`Guitar controls container not found: ${containerSelector}`);
-        return null;
-    }
-
-    // Create and append guitar controls
-    const guitarControls = createGuitarControls(guitarInstance);
-    container.appendChild(guitarControls);
-    
-    console.log('✅ Guitar controls initialized');
-    return guitarControls;
-}
 
 // Standard guitar tuning (MIDI numbers) - Indexed 0-5 for strings 1-6 (thinnest to thickest)
 const GUITAR_TUNING = [
@@ -710,30 +688,6 @@ export function initializeGuitar(containerSelector = '#instrument') {
     
     console.log('✅ Guitar instrument initialized');
     return guitar;
-}
-
-// Updated advanced listeners function
-export function addAdvancedGuitarListeners() {
-  console.log('🎸 Adding advanced guitar listeners...');
-  
-  if (window.guitarInstance) {
-    // Remove basic listeners first
-    const stringButtons = window.guitarInstance.stringLabelsContainer.querySelectorAll('.string-button');
-    stringButtons.forEach(button => {
-      button.removeEventListener('click', handleInitialGuitar);
-    });
-    
-    if (window.guitarInstance.strumArea) {
-      window.guitarInstance.strumArea.removeEventListener('click', handleInitialGuitar);
-    }
-    
-    // Add advanced listeners
-    window.guitarInstance.setupAudioEventListeners();
-    createGuitarControls();
-    createChordPalette();
-  }
-  
-  console.log('🎸 Advanced listeners activated, basic listeners removed');
 }
 
 console.log('✅ GuitarInstrument class defined');

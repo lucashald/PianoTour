@@ -89,6 +89,11 @@ export function initializeAudioState() {
 function setAudioStatus(newStatus) {
   console.log(`Audio status: ${pianoState.audioStatus} → ${newStatus}`);
   pianoState.audioStatus = newStatus;
+  
+  // Dispatch event for volume control to listen to
+  window.dispatchEvent(new CustomEvent('audioStatusChange', {
+    detail: { status: newStatus }
+  }));
 }
 
 // ===================================================================

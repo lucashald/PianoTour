@@ -18,25 +18,46 @@ import {
   handleKeyUp,
 } from "../instrument/keyboardHelpers.js";
 
+import { handleInitialGuitar } from "../instrument/guitarInstrument.js";
+
+import { initializeGuitarControls, createChordPalette } from "./guitarUI.js";
+
 import { toggleIsMinorKey } from "../ui/uiHelpers.js";
 
-// Module-level variable to store instrumentDiv reference
 let instrumentDiv;
 
-/**
- * Sets the instrumentDiv reference that's needed by several listener functions
- * @param {HTMLElement} div - The instrument container div
- */
 export function setInstrumentDiv(div) {
   instrumentDiv = div;
 }
 
+export function addAudioStatusListeners() {
+  window.addEventListener('audioStatusChange', handleAudioStatusChange);
+}
+
+function handleAudioStatusChange(e) {
+  const status = e.detail.status;
+    switch (status) {
+    case 'loading':
+      console.log('zz Audio is loading.');
+      break;
+    case 'error':
+      console.error('zz Audio failed to load.');
+      break;
+    case 'ready':
+      console.log('zz Audio is ready.');
+    addAdvancedKeyboardListeners();
+    addAdvancedInstrumentListeners();
+    addInstrumentDraggingListeners();
+      break;
+  }
+}
 
 /**
- * Adds basic keyboard listeners for initial audio unlock
+ * Keyboard Section
  */
 export function addBasicKeyboardListeners() {
   document.addEventListener("keydown", handleInitialKeyboard, { once: true });
+  addAudioStatusListeners();
 }
 
 /**
@@ -48,12 +69,12 @@ export function addAdvancedKeyboardListeners() {
   document.removeEventListener("keydown", handleInitialKeyboard);
 if (pianoState.overlay) {
   pianoState.overlay.addEventListener("pointerdown", startSliderDrag);
-  pianoState.overlay.classList.remove("hidden"); // Add this line
+  pianoState.overlay.classList.remove("hidden");
 }
 }
 
 /**
- * Adds basic instrument listeners for initial audio unlock
+ * Piano Keys Section
  */
 export function addBasicInstrumentListeners() {
   if (!instrumentDiv) {
@@ -99,8 +120,32 @@ export function addAdvancedInstrumentListeners() {
   });
 }
 
+// Guitar Section
+
+// Updated advanced listeners function
+export function addAdvancedGuitarListeners() {
+  console.log('🎸 Adding advanced guitar listeners...');
+  
+  if (window.guitarInstance) {
+    // Remove basic listeners first
+    const stringButtons = window.guitarInstance.stringLabelsContainer.querySelectorAll('.string-button');
+    stringButtons.forEach(button => {
+      button.removeEventListener('click', handleInitialGuitar);
+    });
+    
+    if (window.guitarInstance.strumArea) {
+      window.guitarInstance.strumArea.removeEventListener('click', handleInitialGuitar);
+    }
+    
+    // Add advanced listeners
+    window.guitarInstance.setupAudioEventListeners();
+    initializeGuitarControls('#guitar-controls');
+    createChordPalette();
+  }
+}
+
 /**
- * Adds button and window listeners
+ * Adds button listeners
  */
 export function addButtonListeners() {
   document
@@ -113,8 +158,6 @@ export function addButtonListeners() {
     .getElementById("is-minor-key-btn")
     ?.addEventListener("click", toggleIsMinorKey);
   window.addEventListener("resize", handleWindowResize);
-
-  console.log("Piano instrument UI initialized.");
 }
 
 /**
