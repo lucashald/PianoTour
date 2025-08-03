@@ -37,6 +37,7 @@
         </header>
 
         {% block player %} {% include 'partials/_player.html' %} {% endblock %}
+        {% block volume %} {% include 'partials/_volumeControl.html' %} {% endblock %}
         {% block palette %}{% endblock %}
         
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
@@ -71,7 +72,6 @@
               />
               <span id="minor-key-text">Major</span>
             </label>
-            <a href="/print" class="btn btn--info"><span>Print</span></a>
             {% block filehandler %} {% include 'partials/_filehandler.html' %}
             {% endblock %}
           </div>
@@ -87,20 +87,14 @@
             {% else %}
             <a href="/editor" class="btn btn--info"><span>Open Editor</span></a>
             {% endif %}
-            
+            <a href="/print" class="btn btn--info"><span>Print</span></a>
             {% if request.path != '/' %}<a href="/" class="btn btn--info"
               ><span>Piano</span></a
             >{% endif %} {% if request.path != '/cello' %}<a
               href="/cello"
               class="btn btn--info"
               ><span>Cello</span></a
-            >{% endif %}
-            {% if request.path != '/drums' %}<a
-              href="/drums"
-              class="btn btn--info"
-              ><span>Drums</span></a
-            >{% endif %}
-            {% if request.path != '/sax' %}<a
+            >{% endif %} {% if request.path != '/sax' %}<a
               href="/sax"
               class="btn btn--info"
               ><span>Sax</span></a
@@ -490,6 +484,10 @@
       function handleUndo(e) {
         undoLastWrite();
       }
+
+          import('../static/js/core/audioManager.js').then(module => {
+        window.audioManager = module.default;
+    });
     </script>
 
     {% block scripts %}{% endblock %}

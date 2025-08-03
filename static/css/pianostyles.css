@@ -1239,3 +1239,20 @@ h4 {
 		.volume-icon:focus {
     outline: none;
 }
+
+.volume-control.audio-uninitialized * {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+.volume-control.audio-uninitialized .volume-slider {
+    opacity: 0.7;
+    /* Make it look disabled but keep it functional for clicks */
+    filter: grayscale(50%);
+}
+
+/* When audio is ready, restore normal appearance */
+.volume-control.audio-ready .volume-slider {
+    opacity: 1;
+    filter: none;
+}
