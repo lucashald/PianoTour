@@ -472,7 +472,6 @@ export function safeRedraw() {
   const scoreData = getMeasures();
   // drawAll now explicitly handles re-applying pianoState.currentSelectedMeasure, pianoState.currentSelectedNote, and pianoState.currentPlaybackNote
   drawAll(scoreData);
-  console.log("safeRedraw: ✓ Completed with highlights preserved");
 }
 
 export function enableScoreInteraction(onMeasureClick, onNoteClick) {

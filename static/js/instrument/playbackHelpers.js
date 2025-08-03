@@ -87,7 +87,6 @@ export function trigger(note, on, velocity = 100, useEnvelope = true) {
 
   notes.forEach((n) => {
     if (on) {
-      console.log(`🔊 Triggered attack for note: ${n} with velocity: ${normalizedVelocity}`);
       pianoState.sampler.triggerAttack(n, undefined, normalizedVelocity);
       
       if (pianoState.envelope && useEnvelope) {
@@ -352,6 +351,7 @@ export function playDiatonicChordFromUI(degree, inputSource) {
 export function stopDiatonicChordFromUI(inputSource) {
   stopDiatonicChord(inputSource);
 }
+
 export function triggerAttackRelease(note, duration = "q", velocity = 100, writeToScore = true, chordName = null) {
   if (!audioManager.isAudioReady()) return;
 
@@ -380,33 +380,27 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
     }
   }
 
-  // Convert duration to seconds for Tone.js
   const durationInSeconds = durationMs / 1000;
   const now = Tone.now();
   
-  // Trigger sampler with attack/release
-  pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, velocity / 127);
-
-  // NEW: Trigger envelope to match the sampler timing
+  // ✅ FIXED: Only trigger envelope attack, let it follow sampler naturally
   if (pianoState.envelope) {
-    // Trigger envelope attack immediately
     pianoState.envelope.triggerAttack(now);
-    
-    // Schedule envelope release to match when the sampler note would end
-    // We need to account for the envelope's own attack/decay phases
-    const envelopeReleaseTime = now + durationInSeconds;
-    pianoState.envelope.triggerRelease(envelopeReleaseTime);
+    // Don't manually release - let the envelope follow the sampler's natural end
   }
+  
+  // Trigger sampler with attack/release (envelope will shape this)
+  pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, velocity / 127);
 
   // Start spectrum visualization when notes are played
   startSpectrumVisualization();
 
-  // IMPROVEMENT 2: Paint chord visualization immediately for chords
+  // Paint chord visualization immediately for chords
   if (isChord) {
     paintChordOnTheFly({ notes: notesArray });
   }
 
-  // Store chord data following the same pattern as playScaleChord
+  // Store chord data
   pianoState.activeDiatonicChords[attackReleaseKey] = {
     notes: notesArray,
     clef: clefForPlayback,
@@ -417,15 +411,12 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
     isChord: isChord
   };
 
-  // IMPROVEMENT 3: Schedule cleanup to happen slightly AFTER the audio finishes
-  // Add a small buffer to ensure Tone.js has finished releasing
-  const cleanupDelay = durationMs + 50; // Add 50ms buffer
+  // ✅ FIXED: Longer cleanup delay to account for envelope release
+  const envelopeReleaseTime = 2000; // Assume ~2 seconds for envelope to fully release
+  const cleanupDelay = durationMs + envelopeReleaseTime;
 
   setTimeout(() => {
-
-    // Get the chord data for potential score writing
     const chordData = pianoState.activeDiatonicChords[attackReleaseKey];
-
     if (!chordData) {
       console.warn(`⚠️ No chord data found for key: ${attackReleaseKey}`);
       return;
@@ -433,8 +424,6 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
 
     // Handle score writing if enabled
     if (chordData.writeToScore) {
-      console.log(`📝 Writing ${isChord ? 'chord' : 'note'} to score:`, displayName);
-
       writeNote({
         clef: chordData.clef,
         duration: duration,
@@ -446,45 +435,32 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
     // Remove this specific attackRelease from tracking
     delete pianoState.activeDiatonicChords[attackReleaseKey];
 
-    // IMPROVEMENT 4: Handle visual cleanup more aggressively for chords
+    // Handle visual cleanup for chords
     if (isChord) {
-      // Clear chord highlights immediately
       if (typeof clearChordHi === 'function') {
         clearChordHi();
       }
 
-      // Then restore after a brief moment
       setTimeout(() => {
         const remainingChords = Object.keys(pianoState.activeDiatonicChords).length;
-
         if (remainingChords === 0 && (pianoState.isMajorChordMode || pianoState.isMinorChordMode)) {
           paintChord();
         }
-      }, 50); // Reduced delay
+      }, 50);
     }
 
-    // IMPROVEMENT 5: More aggressive spectrum cleanup check
-    // Use a small delay to ensure all cleanup has happened
+    // Final spectrum cleanup check
     setTimeout(() => {
       const hasActiveNotes =
         Object.keys(pianoState.activeNotes).length > 0 ||
         Object.keys(pianoState.activeDiatonicChords).length > 0;
 
-      console.log(`🔍 Final check for active notes/chords:`, {
-        activeNotes: Object.keys(pianoState.activeNotes).length,
-        activeDiatonicChords: Object.keys(pianoState.activeDiatonicChords).length,
-        hasActiveNotes
-      });
-
-      // Stop spectrum if no notes are active
       if (!hasActiveNotes) {
         stopSpectrumVisualization();
       }
-    }, 10); // Small delay for final check
+    }, 10);
 
-  }, cleanupDelay); // Use the buffered cleanup delay
-
-  console.log(`⏰ Scheduled cleanup in ${cleanupDelay}ms for: ${displayName}`);
+  }, cleanupDelay);
 }
 
 export function playScaleChord(degree, key, writeToScore = true, useBass = false) {

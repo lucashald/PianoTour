@@ -117,9 +117,6 @@
     </div>
 
     <script type="module">
-      // --- All your common JavaScript from the original file goes here ---
-      console.log("Main script execution started.");
-      // Calculate scrollbar width and set it as a CSS variable
       const scrollbarWidth =
         window.innerWidth - document.documentElement.clientWidth;
       document.documentElement.style.setProperty(
@@ -169,7 +166,6 @@
 
       // --- COMMON DOM READY & EVENT LISTENERS (for base template) ---
       document.addEventListener("DOMContentLoaded", () => {
-        console.log("🚀 Starting optimized initialization...");
 
         // PHASE 1: Immediate UI setup (no blocking operations)
         initializeImmediateUI();
@@ -243,8 +239,6 @@
           Math.min(vw * 0.9, 1040) + "px"
         );
         root.style.setProperty("--instrument-min-height", "120px");
-
-        console.log("📐 Initial dimensions set");
       }
 
       function showLoadingScore() {

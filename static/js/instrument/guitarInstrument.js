@@ -477,11 +477,6 @@ updateStringLabel(stringNum) {
   endStrum() {
     if (!this.activeStrum) return;
 
-    // Stop all currently playing strings
-    Object.keys(this.playingStrings).forEach(stringNum => {
-      this.stopString(parseInt(stringNum));
-    });
-
     const heldTime = performance.now() - this.activeStrum.startTime;
     let duration = "q";
     if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
@@ -621,7 +616,7 @@ export function handleInitialGuitar(e, actionData = null) {
     const clefGroups = splitNotesIntoClefs(clickedDetails.notes);
 
     if (clickedDetails.type === 'string') {
-      triggerAttackRelease(clickedDetails.notes, "q", 100, false);
+      triggerAttackRelease(clickedDetails.notes, "h", 100, false);
       
       if (window.guitarInstance) {
         window.guitarInstance.highlightString(clickedDetails.stringNum);
@@ -637,7 +632,7 @@ export function handleInitialGuitar(e, actionData = null) {
       
     } else if (clickedDetails.type === 'strum' || clickedDetails.type === 'palette') {
       clickedDetails.notes.forEach((note, index) => {
-        setTimeout(() => triggerAttackRelease([note], "q", 100, false), index * 10);
+        setTimeout(() => triggerAttackRelease([note], "h", 100, false), index * 10);
       });
       
       if (window.guitarInstance) {
@@ -687,7 +682,5 @@ export function initializeGuitar(containerSelector = '#instrument') {
     console.log('✅ Guitar instrument initialized');
     return guitar;
 }
-
-console.log('✅ GuitarInstrument class defined');
 
 export { GuitarInstrument, guitarState };

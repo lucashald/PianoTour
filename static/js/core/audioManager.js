@@ -66,17 +66,18 @@ export class InstrumentControl {
                 name: 'Cello',
                 baseUrl: '/static/samples/',
                 sampleUrls: {
-                    "A#3": "Cello_A#3.wav",
-                    "A#4": "Cello_A#4.wav",
-                    "A#5": "Cello_A#5.wav",
-                    "A#6": "Cello_A#6.wav",
-                    E3: "Cello_E3.wav",
-                    E4: "Cello_E4.wav",
-                    E5: "Cello_E5.wav",
-                    E6: "Cello_E6.wav",
+                    "C3": "CelloC3.wav",
+                    "A3": "CelloA3.wav",
+                    "C4": "CelloC4.wav",
+                    "D#4": "CelloD#4.wav",
+                    "E3": "CelloE3.wav",
+                    "A4": "CelloA4.wav",
+                    "F#4": "CelloF#4.wav",
+                    "D2": "CelloD2.wav",
+                    "C5": "CelloC5.wav",
                 },
                 envelopeSettings: {
-                    attack: 0.05,   // Slower attack - bow engagement
+                    attack: 0.03,   // Slower attack - bow engagement
                     decay: 0.2,     // Quick decay to sustain
                     sustain: 0.95,  // Very high sustain - bowed strings
                     release: 1.5    // Medium release
@@ -326,9 +327,15 @@ function initializeSpectrumVisualizer() {
     initializeSpectrum(spectrumOptions);
     spectrumInitialized = true;
 
-    if (pianoState.sampler) {
+    // ✅ FIXED: Connect to envelope output instead of sampler
+    if (pianoState.envelope) {
+      connectSpectrumToAudio(pianoState.envelope.envelope); // Connect to the actual Tone.js envelope
+      console.log("Spectrum connected to envelope output");
+    } else if (pianoState.sampler) {
       connectSpectrumToAudio(pianoState.sampler);
-      console.log("Spectrum connected to piano sampler");
+      console.log("Spectrum connected to sampler (fallback - no envelope)");
+    } else {
+      console.log("No audio source available for spectrum connection");
     }
   } catch (error) {
     console.error("Error initializing spectrum:", error);

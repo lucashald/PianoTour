@@ -67,7 +67,6 @@ triggerRelease(time) {
         // ✅ FIXED: Handle undefined time parameter
         const releaseTime = time !== undefined ? time : Tone.now();
         this.envelope.triggerRelease(releaseTime);
-        console.log(`🔗 Envelope released at time: ${releaseTime}`);
     }
 }
     
