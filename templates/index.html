@@ -72,6 +72,7 @@
               />
               <span id="minor-key-text">Major</span>
             </label>
+            <a href="/print" class="btn btn--info"><span>Print</span></a>
             {% block filehandler %} {% include 'partials/_filehandler.html' %}
             {% endblock %}
           </div>
@@ -87,14 +88,20 @@
             {% else %}
             <a href="/editor" class="btn btn--info"><span>Open Editor</span></a>
             {% endif %}
-            <a href="/print" class="btn btn--info"><span>Print</span></a>
+            
             {% if request.path != '/' %}<a href="/" class="btn btn--info"
               ><span>Piano</span></a
             >{% endif %} {% if request.path != '/cello' %}<a
               href="/cello"
               class="btn btn--info"
               ><span>Cello</span></a
-            >{% endif %} {% if request.path != '/sax' %}<a
+            >{% endif %}
+                        {% if request.path != '/drums' %}<a
+              href="/drums"
+              class="btn btn--info"
+              ><span>Drums</span></a
+            >{% endif %}
+            {% if request.path != '/sax' %}<a
               href="/sax"
               class="btn btn--info"
               ><span>Sax</span></a
@@ -431,7 +438,6 @@
         window.addEventListener("resize", () => {
           clearTimeout(resizeTimeout);
           resizeTimeout = setTimeout(() => {
-            console.log("📏 Handling resize...");
             drawAll(getMeasures());
           }, 150); // 150ms debounce
         });

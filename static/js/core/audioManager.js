@@ -75,6 +75,7 @@ export class InstrumentControl {
                     "F#4": "CelloF#4.wav",
                     "D2": "CelloD2.wav",
                     "C5": "CelloC5.wav",
+                    "G#4": "CelloG#4.wav",
                 },
                 envelopeSettings: {
                     attack: 0.03,   // Slower attack - bow engagement
@@ -104,7 +105,7 @@ export class InstrumentControl {
                 },
                 envelopeSettings: {
                     attack: 0.03,   // Quick attack - breath/reed
-                    decay: 0.1,     // Very short decay
+                    decay: 0.2,     // Very short decay
                     sustain: 1.0,   // Full sustain - breath controlled
                     release: 0.8    // Medium release
                 }

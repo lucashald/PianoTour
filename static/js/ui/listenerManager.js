@@ -57,7 +57,6 @@ function handleAudioStatusChange(e) {
  */
 export function addBasicKeyboardListeners() {
   document.addEventListener("keydown", handleInitialKeyboard, { once: true });
-  addAudioStatusListeners();
 }
 
 /**
@@ -158,6 +157,7 @@ export function addButtonListeners() {
     .getElementById("is-minor-key-btn")
     ?.addEventListener("click", toggleIsMinorKey);
   window.addEventListener("resize", handleWindowResize);
+  addAudioStatusListeners();
 }
 
 /**
