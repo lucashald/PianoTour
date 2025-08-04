@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guitar Instrument Test</title>
+    
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .controls-section {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .control-group {
+            display: inline-block;
+            margin: 10px 15px;
+            vertical-align: top;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #495057;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input[type="range"] {
+            padding: 8px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus, input[type="range"]:focus {
+            outline: none;
+            border-color: #4ECDC4;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: #4ECDC4;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45b7b8;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #FF6B6B;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff5252;
+        }
+
+        .btn.active {
+            background: #FF6B6B;
+            transform: scale(1.05);
+        }
+
+        .duration-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .technique-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .chord-palette {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .chord-palette.show {
+            display: grid;
+        }
+
+        .guitar-chord-btn {
+            padding: 12px 8px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            min-height: 50px;
+        }
+
+        .guitar-chord-btn:hover {
+            border-color: #4ECDC4;
+            background: #f0fdff;
+        }
+
+        .guitar-chord-btn.active {
+            background: #4ECDC4;
+            color: white;
+            border-color: #4ECDC4;
+        }
+
+        .score-section {
+            padding: 30px;
+        }
+
+        .score-wrap {
+            width: 100%;
+            max-width: 100%;
+            height: 300px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        #guitar-score {
+            min-height: 280px;
+            padding: 10px;
+        }
+
+        .playback-controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .status-display {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4fd;
+            border-left: 4px solid #4ECDC4;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .status-display h4 {
+            margin: 0 0 10px 0;
+            color: #2c5aa0;
+        }
+
+        .status-item {
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .success {
+            color: #155724;
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+
+        @media (max-width: 768px) {
+            .control-group {
+                display: block;
+                margin: 15px 0;
+            }
+            
+            .duration-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hidden audio element for unlock -->
+    <audio id="unlock-audio" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmIdBC2Dy/LReioFLYPP8tiIOwcZaq/u4aFODwxOpd/ytGIcBzmR1/LPeSsFJHfJ8N2QQAoUXrTs7alTFApGnt7zv18eBC2EzPLReioFLYPP8tiIOwcZaq/u4aFODwxOpd/ytGIcBzmR1/LPeSsFJHfJ8N2QQAoUXrTs7alTFApGnt7zv18eBC2EzPLReioFLYPP8tiIOwcZaq/u4aFODwxOpd/ytGIcBzmR1/LPeSsFJHfJ8N2QQAoUXrTs7alTFApGnt7zv18eBC2EzPLReioFLYPP8tiIOwcZaq/u4aFODwxOpd/ytGIcBzmR1/LPeSsFJHfJ8N2QQAoUXrTs7alTFApGnt7zv18eBC2EzPLReioFLYPP8tiIObT3" type="audio/wav">
+    </audio>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎸 Guitar Instrument Test</h1>
+            <p>Testing our new class-based guitar instrument system</p>
+        </div>
+
+        <div class="controls-section">
+            <!-- Basic Guitar Controls -->
+            <div class="control-group">
+                <label for="guitar-string-selector">String</label>
+                <select id="guitar-string-selector">
+                    <option value="1">High E (1st)</option>
+                    <option value="2">B (2nd)</option>
+                    <option value="3">G (3rd)</option>
+                    <option value="4">D (4th)</option>
+                    <option value="5">A (5th)</option>
+                    <option value="6">Low E (6th)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="guitar-fret-selector">Fret</label>
+                <select id="guitar-fret-selector">
+                    <option value="0">Open</option>
+                    <option value="1">1st</option>
+                    <option value="2">2nd</option>
+                    <option value="3">3rd</option>
+                    <option value="4">4th</option>
+                    <option value="5">5th</option>
+                    <option value="6">6th</option>
+                    <option value="7">7th</option>
+                    <option value="8">8th</option>
+                    <option value="9">9th</option>
+                    <option value="10">10th</option>
+                    <option value="11">11th</option>
+                    <option value="12">12th</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="guitar-technique-selector">Technique</label>
+                <select id="guitar-technique-selector">
+                    <option value="normal">Normal</option>
+                    <option value="bend">Bend</option>
+                    <option value="slide">Slide</option>
+                    <option value="hammer-on">Hammer On</option>
+                    <option value="pull-off">Pull Off</option>
+                    <option value="vibrato">Vibrato</option>
+                    <option value="mute">Mute</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Duration</label>
+                <div class="duration-buttons">
+                    <button class="btn btn-secondary" data-guitar-duration="w">Whole</button>
+                    <button class="btn btn-secondary" data-guitar-duration="h">Half</button>
+                    <button class="btn btn-secondary active" data-guitar-duration="q">Quarter</button>
+                    <button class="btn btn-secondary" data-guitar-duration="8">Eighth</button>
+                    <button class="btn btn-secondary" data-guitar-duration="16">16th</button>
+                </div>
+            </div>
+
+            <!-- Note Actions -->
+            <div class="control-group">
+                <label>Add Notes</label>
+                <div>
+                    <button id="add-guitar-note-btn" class="btn btn-primary">Add Note</button>
+                    <button id="add-guitar-rest-btn" class="btn btn-secondary">Add Rest</button>
+                </div>
+            </div>
+
+            <!-- Chord Mode -->
+            <div class="technique-section">
+                <button id="guitar-chord-mode-btn" class="btn btn-secondary">Single Notes</button>
+                <label>
+                    <input type="checkbox" id="guitar-tab-mode-toggle" checked> Show Tablature
+                </label>
+
+                <div id="guitar-chord-palette" class="chord-palette">
+                    <!-- Chord buttons will be generated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Score Display -->
+        <div class="score-section">
+            <div id="guitar-score-wrap" class="score-wrap">
+                <div id="guitar-score"></div>
+            </div>
+
+            <!-- Playback Controls -->
+            <div class="playback-controls">
+                <button id="play-guitar-score-btn" class="btn btn-primary">▶️ Play Score</button>
+                <button id="stop-guitar-score-btn" class="btn btn-secondary">⏹️ Stop</button>
+                <button id="clear-guitar-score-btn" class="btn btn-danger">🗑️ Clear Score</button>
+                <button id="undo-guitar-btn" class="btn btn-secondary">↶ Undo</button>
+                <button id="add-guitar-measure-btn" class="btn btn-secondary">➕ Add Measure</button>
+            </div>
+
+            <!-- Volume Control -->
+            <div class="control-group" style="text-align: center; margin-top: 20px;">
+                <label for="volumeSlider">Volume</label>
+                <input type="range" id="volumeSlider" min="0" max="100" value="75" style="width: 200px;">
+            </div>
+        </div>
+
+        <!-- Status Display -->
+        <div id="status-display" class="status-display">
+            <h4>System Status</h4>
+            <div class="status-item">Audio Engine: <span id="audio-status">Initializing...</span></div>
+            <div class="status-item">Guitar Instrument: <span id="guitar-status">Not loaded</span></div>
+            <div class="status-item">Current Note: <span id="current-note">None</span></div>
+            <div class="status-item">Measures: <span id="measure-count">0</span></div>
+        </div>
+    </div>
+
+    <!-- Test Script -->
+    <script type="module">
+        // Import our classes
+        import { AudioEngine } from '{{ url_for("static", filename="js/classes/AudioEngine.js") }}';
+        import { InstrumentPresetManager  } from '{{ url_for("static", filename="js/classes/InstrumentPresetManager.js") }}';
+        import { BaseInstrument } from '{{ url_for("static", filename="js/classes/BaseInstrument.js") }}';
+        import { GuitarInstrument } from '{{ url_for("static", filename="js/classes/GuitarInstrument.js") }}';
+        import { GuitarRenderer } from '{{ url_for("static", filename="js/classes/GuitarRenderer.js") }}';
+
+        // Global variables for testing
+        let guitar = null;
+        let isInitialized = false;
+
+        // Status update helpers
+        function updateStatus(elementId, text, isError = false) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = text;
+                element.style.color = isError ? '#dc3545' : '#28a745';
+            }
+        }
+
+        function logToConsole(message, isError = false) {
+            if (isError) {
+                console.error('🎸 Guitar Test:', message);
+            } else {
+                console.log('🎸 Guitar Test:', message);
+            }
+        }
+
+        // Test initialization
+        async function initializeGuitar() {
+            try {
+                logToConsole('Starting guitar initialization...');
+                updateStatus('guitar-status', 'Initializing...');
+
+                // Create guitar instance
+                guitar = new GuitarInstrument({
+                    defaultTempo: 120,
+                    storageKey: 'test-guitar-score'
+                });
+
+                // Set up event listeners
+                guitar.addEventListener('initialized', () => {
+                    logToConsole('Guitar initialized successfully!');
+                    updateStatus('guitar-status', 'Ready');
+                    isInitialized = true;
+                    updateMeasureCount();
+                });
+
+                guitar.addEventListener('noteAdded', (event) => {
+                    logToConsole(`Note added: ${JSON.stringify(event.noteData)}`);
+                    updateCurrentNote(event.noteData);
+                    updateMeasureCount();
+                });
+
+                guitar.addEventListener('playbackStarted', () => {
+                    logToConsole('Playback started');
+                    updateStatus('audio-status', 'Playing');
+                });
+
+                guitar.addEventListener('playbackStopped', () => {
+                    logToConsole('Playback stopped');
+                    updateStatus('audio-status', 'Ready');
+                });
+
+                guitar.addEventListener('scoreCleared', () => {
+                    logToConsole('Score cleared');
+                    updateStatus('current-note', 'None');
+                    updateMeasureCount();
+                });
+
+                // Initialize the guitar
+                await guitar.initialize();
+
+                // Set up audio engine status monitoring
+                guitar.audioEngine.addEventListener('ready', () => {
+                    updateStatus('audio-status', 'Ready');
+                });
+
+                guitar.audioEngine.addEventListener('error', (event) => {
+                    updateStatus('audio-status', 'Error', true);
+                    logToConsole(`Audio error: ${event.error.message}`, true);
+                });
+
+            } catch (error) {
+                logToConsole(`Initialization failed: ${error.message}`, true);
+                updateStatus('guitar-status', 'Error', true);
+                updateStatus('audio-status', 'Error', true);
+            }
+        }
+
+        function updateCurrentNote(noteData) {
+            let noteText = 'None';
+            if (noteData.isRest) {
+                noteText = `Rest (${noteData.duration})`;
+            } else if (noteData.isChord) {
+                noteText = `${noteData.chordName} chord (${noteData.duration})`;
+            } else {
+                noteText = `${noteData.note} - Fret ${noteData.fret}, String ${noteData.string} (${noteData.duration})`;
+            }
+            updateStatus('current-note', noteText);
+        }
+
+        function updateMeasureCount() {
+            if (guitar && guitar.measures) {
+                updateStatus('measure-count', guitar.measures.length.toString());
+            }
+        }
+
+        // Test functions
+        function testAddNote() {
+            if (!isInitialized) {
+                logToConsole('Guitar not initialized yet', true);
+                return;
+            }
+
+            try {
+                const fret = parseInt(document.getElementById('guitar-fret-selector').value);
+                const string = parseInt(document.getElementById('guitar-string-selector').value);
+                const technique = document.getElementById('guitar-technique-selector').value;
+                const duration = document.querySelector('[data-guitar-duration].active')?.dataset.guitarDuration || 'q';
+
+                const noteData = guitar.createNoteData({
+                    fret,
+                    string,
+                    duration,
+                    technique
+                });
+
+                const noteId = guitar.addNote(undefined, noteData);
+                if (noteId) {
+                    logToConsole(`Successfully added note: ${noteData.note}`);
+                } else {
+                    logToConsole('Failed to add note', true);
+                }
+            } catch (error) {
+                logToConsole(`Error adding note: ${error.message}`, true);
+            }
+        }
+
+        function testAddRest() {
+            if (!isInitialized) {
+                logToConsole('Guitar not initialized yet', true);
+                return;
+            }
+
+            try {
+                const duration = document.querySelector('[data-guitar-duration].active')?.dataset.guitarDuration || 'q';
+                const restData = guitar.createNoteData({
+                    duration,
+                    isRest: true
+                });
+
+                const noteId = guitar.addNote(undefined, restData);
+                if (noteId) {
+                    logToConsole(`Successfully added rest: ${duration}`);
+                } else {
+                    logToConsole('Failed to add rest', true);
+                }
+            } catch (error) {
+                logToConsole(`Error adding rest: ${error.message}`, true);
+            }
+        }
+
+        function testAddChord() {
+            if (!isInitialized) {
+                logToConsole('Guitar not initialized yet', true);
+                return;
+            }
+
+            try {
+                const chordName = 'G'; // Test with G major
+                const duration = document.querySelector('[data-guitar-duration].active')?.dataset.guitarDuration || 'q';
+                
+                const chordId = guitar.addChord(chordName, duration);
+                if (chordId) {
+                    logToConsole(`Successfully added chord: ${chordName}`);
+                } else {
+                    logToConsole('Failed to add chord', true);
+                }
+            } catch (error) {
+                logToConsole(`Error adding chord: ${error.message}`, true);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            logToConsole('DOM loaded, initializing guitar...');
+            
+            // Set up duration button handlers
+            document.querySelectorAll('[data-guitar-duration]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('[data-guitar-duration]').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                });
+            });
+
+            // Set up chord mode toggle
+            document.getElementById('guitar-chord-mode-btn').addEventListener('click', () => {
+                if (guitar) {
+                    guitar.toggleChordMode();
+                }
+            });
+
+            // Test button for adding sample data
+            const testBtn = document.createElement('button');
+            testBtn.textContent = '🧪 Add Test Chord';
+            testBtn.className = 'btn btn-secondary';
+            testBtn.style.marginLeft = '10px';
+            testBtn.addEventListener('click', testAddChord);
+            document.querySelector('.playback-controls').appendChild(testBtn);
+
+            // Initialize the guitar system
+            await initializeGuitar();
+        });
+
+        // Make functions available globally for debugging
+        window.guitarTest = {
+            guitar: () => guitar,
+            addNote: testAddNote,
+            addRest: testAddRest,
+            addChord: testAddChord,
+            getStatus: () => ({
+                initialized: isInitialized,
+                measures: guitar?.measures?.length || 0,
+                audioReady: guitar?.audioEngine?.isReady || false
+            })
+        };
+
+        // Log when everything is ready
+        window.addEventListener('load', () => {
+            logToConsole('Page fully loaded. Use window.guitarTest for debugging.');
+        });
+    </script>
+</body>
+</html>

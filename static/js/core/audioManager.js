@@ -6,7 +6,7 @@ import {
   startSpectrumVisualization
 } from '../ui/spectrum.js';
 import { pianoState } from "./appState.js";
-import { EnvelopeControl } from '../classes/envelopeControl.js';
+import { EnvelopeControl } from '../classes/EnvelopeControl.js';
 
 /**
  * Instrument preset class that manages sample URLs and envelope settings
@@ -200,74 +200,6 @@ export class InstrumentControl {
 
 // Create a singleton instance
 export const Instrument = new InstrumentControl();
-
-// ===================================================================
-// Audio Unlock Status Persistence (Internal)
-// ===================================================================
-
-const UNLOCK_KEY = 'pianoTourAudioUnlocked';
-
-/**
- * Check if audio was previously unlocked
- * @returns {boolean}
- */
-function wasAudioPreviouslyUnlocked() {
-  try {
-    const unlocked = localStorage.getItem(UNLOCK_KEY);
-    return unlocked === 'true';
-  } catch (error) {
-    console.error('Failed to check unlock status:', error);
-    return false;
-  }
-}
-
-/**
- * Mark audio as unlocked
- */
-function markAudioAsUnlocked() {
-  try {
-    localStorage.setItem(UNLOCK_KEY, 'true');
-    localStorage.setItem(UNLOCK_KEY + '_timestamp', Date.now().toString());
-    console.log('Audio marked as unlocked');
-  } catch (error) {
-    console.error('Failed to save unlock status:', error);
-  }
-}
-
-/**
- * Check if unlock status is recent (within 24 hours)
- * @returns {boolean}
- */
-function isUnlockStatusFresh() {
-  try {
-    if (!wasAudioPreviouslyUnlocked()) return false;
-
-    const timestamp = localStorage.getItem(UNLOCK_KEY + '_timestamp');
-    if (!timestamp) return false;
-
-    const unlockTime = parseInt(timestamp);
-    const now = Date.now();
-    const oneDay = 24 * 60 * 60 * 1000;
-
-    return (now - unlockTime) < oneDay;
-  } catch (error) {
-    console.error('Failed to check unlock freshness:', error);
-    return false;
-  }
-}
-
-/**
- * Clear unlock status (for testing or reset)
- */
-function clearUnlockStatus() {
-  try {
-    localStorage.removeItem(UNLOCK_KEY);
-    localStorage.removeItem(UNLOCK_KEY + '_timestamp');
-    console.log('Audio unlock status cleared');
-  } catch (error) {
-    console.error('Failed to clear unlock status:', error);
-  }
-}
 
 // ===================================================================
 // Audio State Management
