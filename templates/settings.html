@@ -1,0 +1,679 @@
+{% extends "index.html" %}
+
+{% block title %}PianoTour - Interactive Guitar Studio{% endblock %}
+
+{% block head %}
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/settings.css') }}"
+    />
+<style>
+/* Container for all controls */
+.controls-container {
+    display: flex;
+    gap: calc(var(--spacing-unit) * 2);
+    padding: var(--spacing-unit);
+    flex-wrap: wrap;
+}
+
+.control-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-unit);
+}
+
+.control-section h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    text-align: center;
+}
+
+.vertical-controls {
+    display: flex;
+    gap: calc(var(--spacing-unit) * 1.5);
+}
+
+/* Vertical volume control modifications */
+.volume-control.vertical {
+    width: auto;
+    height: 200px;
+    max-width: none;
+    flex-direction: column;
+    justify-content: flex-start;
+    margin-bottom: 0;
+    gap: calc(var(--spacing-unit) / 2);
+}
+
+.control-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin: 0;
+    white-space: nowrap;
+}
+
+/* Vertical slider styling */
+.vertical-slider {
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* WebKit */
+    width: 20px;
+    height: 120px;
+    flex-grow: 0;
+    background: linear-gradient(to top, 
+        var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 75%), 
+        var(--color-blue-dark) var(--value-percent, 75%)
+    );
+    cursor: pointer;
+    outline: none;
+    border-radius: 8px;
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) - Vertical */
+.vertical-slider::-webkit-slider-track {
+    background: transparent;
+    border: none;
+    width: 20px;
+}
+
+.vertical-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--color-text-primary);
+    border: 3px solid var(--color-green-medium);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    /* Center the thumb on vertical track */
+    margin-left: 0;
+    margin-top: 0;
+}
+
+/* Firefox - Vertical */
+.vertical-slider::-moz-range-track {
+    background: transparent;
+    border: none;
+    width: 20px;
+    height: 120px;
+}
+
+.vertical-slider::-moz-range-thumb {
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    background: var(--color-text-primary);
+    border: 3px solid var(--color-green-medium);
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    /* Remove default border and center */
+    border-color: var(--color-green-medium);
+    margin: 0;
+}
+
+/* Hover & Active States for Vertical Sliders */
+.vertical-slider:hover::-webkit-slider-thumb {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.vertical-slider:active::-webkit-slider-thumb {
+    transform: scale(1.2);
+}
+
+.vertical-slider:hover::-moz-range-thumb {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.vertical-slider:active::-moz-range-thumb {
+    transform: scale(1.2);
+}
+
+/* Focus states */
+.vertical-slider:focus {
+    outline: none;
+}
+
+/* Value display for vertical sliders */
+.volume-control.vertical .volume-value {
+    min-width: 60px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Remove volume icon for these controls */
+.volume-control.vertical .volume-icon {
+    display: none;
+}
+
+/* Muted state for vertical sliders */
+.volume-control.vertical.muted .vertical-slider {
+    --track-fill-color: var(--color-danger);
+}
+
+.volume-control.vertical.muted .vertical-slider::-webkit-slider-thumb {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+.volume-control.vertical.muted .vertical-slider::-moz-range-thumb {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+}
+
+/* Touch-friendly improvements for vertical sliders */
+@media (pointer: coarse) {
+    .vertical-slider { 
+        width: 24px; 
+    }
+    .vertical-slider::-webkit-slider-thumb { 
+        height: 24px; 
+        width: 24px; 
+    }
+    .vertical-slider::-moz-range-thumb { 
+        height: 18px; 
+        width: 18px; 
+    }
+}
+
+/* Audio state classes */
+.volume-control.vertical.audio-uninitialized * {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+.volume-control.vertical.audio-uninitialized .vertical-slider {
+    opacity: 0.7;
+    filter: grayscale(50%);
+}
+
+.volume-control.vertical.audio-ready .vertical-slider {
+    opacity: 1;
+    filter: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .controls-container {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .vertical-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .volume-control.vertical {
+        height: 150px;
+    }
+    
+    .vertical-slider {
+        height: 100px;
+    }
+}
+
+.controls-footer {
+  background: #04273C;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Horizontally centers all direct children */
+  padding: calc(var(--spacing-unit) * 2);
+  gap: calc(var(--spacing-unit) * 1.5);
+  width: 100%;
+  max-width: 1200px;
+}
+
+.preset-controls {
+    display: flex;
+    gap: calc(var(--spacing-unit) * 2);
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.preset-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--spacing-unit) * 0.5);
+}
+
+.preset-section h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    text-align: center;
+}
+
+.button-row {
+    display: flex;
+    gap: calc(var(--spacing-unit) * 0.5);
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.btn--compact {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn--primary {
+    background-color: var(--color-primary, #007bff);
+    color: white;
+}
+
+.btn--primary:hover {
+    background-color: var(--color-primary-dark, #0056b3);
+}
+
+.btn--secondary {
+    background-color: var(--color-secondary, #6c757d);
+    color: white;
+}
+
+.btn--secondary:hover {
+    background-color: var(--color-secondary-dark, #545b62);
+}
+
+.instrument-selector {
+    min-width: 150px;
+}
+
+.form-select {
+    padding: 8px 12px;
+    font-size: 14px;
+    background-color: #295570;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    width: 100%;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--color-primary, #007bff);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-select:hover {
+    border-color: var(--color-primary, #007bff);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .preset-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .button-row {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn--compact {
+        width: 100%;
+        max-width: 200px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block top %}
+<div class="controls-container">
+    <!-- ADSR Envelope controls -->
+    <div class="control-section">
+        <h3>ADSR Envelope</h3>
+        <div class="vertical-controls">
+            <div class="volume-control vertical audio-uninitialized" id="attackControl">
+                <label class="control-label">Attack</label>
+                <input type="range" 
+                       min="0.001" 
+                       max="1" 
+                       value="0.01" 
+                       step="0.001"
+                       class="volume-slider vertical-slider" 
+                       id="attackSlider"
+                       aria-label="Attack time">
+                <span class="volume-value" id="attackValue" aria-live="polite">0.01</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="decayControl">
+                <label class="control-label">Decay</label>
+                <input type="range" 
+                       min="0.1" 
+                       max="2" 
+                       value="0.3" 
+                       step="0.01"
+                       class="volume-slider vertical-slider" 
+                       id="decaySlider"
+                       aria-label="Decay time">
+                <span class="volume-value" id="decayValue" aria-live="polite">0.3</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="sustainControl">
+                <label class="control-label">Sustain</label>
+                <input type="range" 
+                       min="0" 
+                       max="1" 
+                       value="0.8" 
+                       step="0.01"
+                       class="volume-slider vertical-slider" 
+                       id="sustainSlider"
+                       aria-label="Sustain level">
+                <span class="volume-value" id="sustainValue" aria-live="polite">0.8</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="releaseControl">
+                <label class="control-label">Release</label>
+                <input type="range" 
+                       min="0.1" 
+                       max="3" 
+                       value="1.2" 
+                       step="0.01"
+                       class="volume-slider vertical-slider" 
+                       id="releaseSlider"
+                       aria-label="Release time">
+                <span class="volume-value" id="releaseValue" aria-live="polite">1.2</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reverb controls -->
+    <div class="control-section">
+        <h3>Reverb</h3>
+        <div class="vertical-controls">
+            <div class="volume-control vertical audio-uninitialized" id="reverbRoomControl">
+                <label class="control-label">Room Size</label>
+                <input type="range" 
+                       min="0" 
+                       max="1" 
+                       value="0.2" 
+                       step="0.01"
+                       class="volume-slider vertical-slider" 
+                       id="reverbRoomSlider"
+                       aria-label="Reverb room size">
+                <span class="volume-value" id="reverbRoomValue" aria-live="polite">0.2</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="reverbWetControl">
+                <label class="control-label">Wet</label>
+                <input type="range" 
+                       min="0" 
+                       max="1" 
+                       value="0.15" 
+                       step="0.01"
+                       class="volume-slider vertical-slider" 
+                       id="reverbWetSlider"
+                       aria-label="Reverb wet level">
+                <span class="volume-value" id="reverbWetValue" aria-live="polite">0.15</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compression controls -->
+    <div class="control-section">
+        <h3>Compression</h3>
+        <div class="vertical-controls">
+            <div class="volume-control vertical audio-uninitialized" id="compThresholdControl">
+                <label class="control-label">Threshold</label>
+                <input type="range" 
+                       min="-40" 
+                       max="0" 
+                       value="-18" 
+                       step="0.1"
+                       class="volume-slider vertical-slider" 
+                       id="compThresholdSlider"
+                       aria-label="Compression threshold">
+                <span class="volume-value" id="compThresholdValue" aria-live="polite">-18</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="compRatioControl">
+                <label class="control-label">Ratio</label>
+                <input type="range" 
+                       min="1" 
+                       max="20" 
+                       value="4" 
+                       step="0.1"
+                       class="volume-slider vertical-slider" 
+                       id="compRatioSlider"
+                       aria-label="Compression ratio">
+                <span class="volume-value" id="compRatioValue" aria-live="polite">4</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="compAttackControl">
+                <label class="control-label">Attack</label>
+                <input type="range" 
+                       min="0.001" 
+                       max="0.1" 
+                       value="0.003" 
+                       step="0.0001"
+                       class="volume-slider vertical-slider" 
+                       id="compAttackSlider"
+                       aria-label="Compression attack">
+                <span class="volume-value" id="compAttackValue" aria-live="polite">0.003</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="compReleaseControl">
+                <label class="control-label">Release</label>
+                <input type="range" 
+                       min="0.01" 
+                       max="1" 
+                       value="0.1" 
+                       step="0.01"
+                       class="volume-slider vertical-slider" 
+                       id="compReleaseSlider"
+                       aria-label="Compression release">
+                <span class="volume-value" id="compReleaseValue" aria-live="polite">0.1</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- EQ controls -->
+    <div class="control-section">
+        <h3>EQ</h3>
+        <div class="vertical-controls">
+            <div class="volume-control vertical audio-uninitialized" id="eqLowControl">
+                <label class="control-label">Low</label>
+                <input type="range" 
+                       min="-12" 
+                       max="12" 
+                       value="1" 
+                       step="0.1"
+                       class="volume-slider vertical-slider" 
+                       id="eqLowSlider"
+                       aria-label="EQ low frequency">
+                <span class="volume-value" id="eqLowValue" aria-live="polite">+1</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="eqMidControl">
+                <label class="control-label">Mid</label>
+                <input type="range" 
+                       min="-12" 
+                       max="12" 
+                       value="0" 
+                       step="0.1"
+                       class="volume-slider vertical-slider" 
+                       id="eqMidSlider"
+                       aria-label="EQ mid frequency">
+                <span class="volume-value" id="eqMidValue" aria-live="polite">0</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="eqHighControl">
+                <label class="control-label">High</label>
+                <input type="range" 
+                       min="-12" 
+                       max="12" 
+                       value="-1" 
+                       step="0.1"
+                       class="volume-slider vertical-slider" 
+                       id="eqHighSlider"
+                       aria-label="EQ high frequency">
+                <span class="volume-value" id="eqHighValue" aria-live="polite">-1</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="controls-footer">
+    <div class="preset-controls">
+        <div class="preset-section">
+            <h4>Quick Actions</h4>
+            <div class="button-row">
+                <button id="resetButton" class="btn btn--compact btn--secondary">
+                    🔄 Reset to Default
+                </button>
+            </div>
+        </div>
+
+        <div class="preset-section">
+            <h4>Audio Presets</h4>
+            <div class="button-row">
+                <button id="concertHallButton" class="btn btn--compact btn--primary">
+                    Concert Hall
+                </button>
+                <button id="studioButton" class="btn btn--compact btn--primary">
+                    Studio
+                </button>
+                <button id="jazzClubButton" class="btn btn--compact btn--primary">
+                    Jazz Club
+                </button>
+                <button id="cathedralButton" class="btn btn--compact btn--primary">
+                    Cathedral
+                </button>
+            </div>
+        </div>
+
+        <div class="preset-section">
+            <h4>Instrument</h4>
+            <div class="instrument-selector">
+                <select id="instrumentSelect" class="form-select">
+                    <option value="piano">🎹 Piano</option>
+                    <option value="guitar">🎸 Guitar</option>
+                    <option value="cello">🎻 Cello</option>
+                    <option value="sax">🎷 Saxophone</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block content %}
+{% endblock %}
+
+{% block side %}
+{% endblock %}
+
+{% block toggles %}
+    {% include 'partials/_toggles.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+    // Import the settings controller and related functions
+    import { 
+        audioSettingsController, 
+        resetAudioSettings, 
+        getCurrentAudioSettings, 
+        applyAudioSettings 
+    } from '{{ url_for("static", filename="js/ui/settings.js") }}';
+    
+    import { Instrument } from '{{ url_for("static", filename="js/core/audioManager.js") }}';
+    import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+
+    window.audioSettingsController = audioSettingsController;
+    window.resetAudioSettings = resetAudioSettings;
+    window.getCurrentAudioSettings = getCurrentAudioSettings;
+    window.applyAudioSettings = applyAudioSettings;
+    window.Instrument = Instrument;
+
+    function initializePresetControls() {
+        // ...preset button and selector initialization as described...
+        // ...existing code from your prompt...
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializePresetControls);
+    } else {
+        initializePresetControls();
+    }
+
+    window.addEventListener('audioReady', () => {
+        setTimeout(initializePresetControls, 100);
+    });
+
+    window.addEventListener('instrumentChanged', (event) => {
+        const instrumentSelect = document.getElementById('instrumentSelect');
+        if (instrumentSelect && event.detail.instrument) {
+            instrumentSelect.value = event.detail.instrument;
+            console.log(`🎵 Instrument selector updated to: ${event.detail.instrument}`);
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName === 'INPUT' || 
+            document.activeElement.tagName === 'SELECT' || 
+            document.activeElement.tagName === 'TEXTAREA') {
+            return;
+        }
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+            switch (e.key) {
+                case '1':
+                    e.preventDefault();
+                    audioSettingsController.applyPreset('concertHall');
+                    break;
+                case '2':
+                    e.preventDefault();
+                    audioSettingsController.applyPreset('studio');
+                    break;
+                case '3':
+                    e.preventDefault();
+                    audioSettingsController.applyPreset('jazzClub');
+                    break;
+                case '4':
+                    e.preventDefault();
+                    audioSettingsController.applyPreset('cathedral');
+                    break;
+                case '0':
+                    e.preventDefault();
+                    audioSettingsController.resetToDefaults();
+                    break;
+            }
+        }
+    });
+
+    window.debugPresets = () => {
+        console.log('Available presets:', audioSettingsController.getAudioPresets());
+    };
+
+    window.debugCurrentSettings = () => {
+        console.log('Current settings:', getCurrentAudioSettings());
+    };
+
+    window.testPreset = (presetName) => {
+        audioSettingsController.applyPreset(presetName);
+    };
+
+    console.log('🎛️ Audio settings script loaded successfully');
+    console.log('💡 Keyboard shortcuts: Ctrl+1-4 for presets, Ctrl+0 to reset');
+    console.log('💡 Debug functions: debugPresets(), debugCurrentSettings(), testPreset("presetName")');
+</script>
+{% endblock %}

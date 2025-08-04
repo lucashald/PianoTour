@@ -37,7 +37,12 @@ export class InstrumentControl {
                     attack: 0.01,   // Very quick attack - hammer strikes
                     decay: 0.3,     // Quick decay
                     sustain: 0.8,   // Good sustain level
-                    release: 1.2    // Natural decay of strings
+                    release: 1.2,    // Natural decay of strings
+
+                    // ✅ NEW: Piano effects
+                    reverb: { enabled: true, roomSize: 0.2, wet: 0.15 },
+                    compression: { enabled: true, threshold: -18, ratio: 4, attack: 0.003, release: 0.1 },
+                    eq: { enabled: true, low: +1, mid: 0, high: -1 }
                 }
             },
 
@@ -58,7 +63,12 @@ export class InstrumentControl {
                     attack: 0.02,   // Slightly slower attack - string pluck
                     decay: 0.5,     // Longer decay
                     sustain: 0.9,   // High sustain - strings ring
-                    release: 2.0    // Long release - strings continue ringing
+                    release: 2.0,    // Long release - strings continue ringing
+
+                    // ✅ NEW: Guitar effects
+                    reverb: { enabled: true, roomSize: 0.4, wet: 0.25 },
+                    chorus: { enabled: true, frequency: 1.5, depth: 0.7, wet: 0.2 },
+                    compression: { enabled: true, threshold: -16, ratio: 6, attack: 0.003, release: 0.1 }
                 }
             },
 
@@ -81,7 +91,11 @@ export class InstrumentControl {
                     attack: 0.03,   // Slower attack - bow engagement
                     decay: 0.2,     // Quick decay to sustain
                     sustain: 0.95,  // Very high sustain - bowed strings
-                    release: 1.5    // Medium release
+                    release: 1.5,    // Medium release
+
+                    // ✅ NEW: Cello effects
+                    reverb: { enabled: true, roomSize: 0.6, wet: 0.3 },
+                    eq: { enabled: true, low: 2, mid: 0, high: -1 }
                 }
             },
 

@@ -27,7 +27,7 @@
     <div class="piano-app">
       {% if show_side_panel %}
       <aside class="piano-app__side-panel">
-        {% block editor %}{% endblock %} {% block extras %}{% endblock %}
+        {% block editor %}{% endblock %} {% block side %}{% endblock %}
       </aside>
       {% endif %}
 
@@ -38,6 +38,7 @@
 
         {% block player %} {% include 'partials/_player.html' %} {% endblock %}
         {% block volume %} {% include 'partials/_volumeControl.html' %} {% endblock %}
+        {% block top %}{% endblock %}
         {% block palette %}{% endblock %}
         
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
