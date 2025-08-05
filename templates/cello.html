@@ -2,9 +2,14 @@
 
 {% block title %}PianoTour - Interactive Cello Studio{% endblock %}
 
+{% block toggles %}
+    {% include 'partials/_toggles.html' %}
+{% endblock %}
+
 {% block scripts %}
 <script type="module">
-    import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
+    import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+    import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
 
     // Set instrument from template variable, default to 'cello' if not provided
     const templateInstrument = '{{ instrument }}' || 'cello';
@@ -13,5 +18,6 @@
     pianoState.instrument = templateInstrument;
 
     console.log("Set instrument to:", templateInstrument);
+    addBasicKeyboardListeners();
 </script>
 {% endblock %}

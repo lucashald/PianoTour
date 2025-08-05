@@ -1,0 +1,1258 @@
+/* ==========================================================================
+   1. Design Tokens & Global Settings
+   - CSS variables for colors, spacing, and layout stability.
+   - Global styles for the body and base typography.
+   ========================================================================== */
+:root {
+  /* Color Palette */
+  --color-primary: #297B51; /* Green for main actions */
+  --color-secondary: #295570;
+  --color-danger: #AF563A;  /* Red for destructive actions */
+  --color-info: #295570;   /* Blue for informational elements */
+  --color-surface: #04273C;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #6F91A5;
+  --color-border: #6F91A5;
+  --color-warning: #AF7A3A;
+
+      /* Primary Color (Greens) */
+      --color-green-lightest: #76B595;
+      --color-green-light: #499770;
+      --color-green-medium: #297B51;
+      --color-green-dark: #116038;
+      --color-green-darkest: #014221;
+
+      /* Secondary Color #1 (Blues) */
+      --color-blue-lightest: #6F91A5;
+      --color-blue-light: #467089;
+      --color-blue-medium: #295570;
+      --color-blue-dark: #143E58;
+      --color-blue-darkest: #04273C;
+
+      /* Secondary Color #2 (Golds) */
+      --color-gold-lightest: #FFD7A7;
+      --color-gold-light: #D8A668;
+      --color-gold-medium: #AF7A3A;
+      --color-gold-dark: #895718;
+      --color-gold-darkest: #5E3401;
+
+      /* Complement Color (Peaches/Reds) */
+      --color-peach-lightest: #FFBCA7;
+      --color-peach-light: #D88368;
+      --color-peach-medium: #AF563A;
+      --color-peach-dark: #893418;
+      --color-peach-darkest: #5E1701;
+
+  /* Sizing & Spacing */
+  --max-width-main: 1100px;
+  --border-radius: 8px;
+  --spacing-unit: 1rem; /* 16px */
+
+  /* Layout Stability (Prevents CLS) */
+  --min-height-score: 300px;
+  --min-height-instrument: 120px;
+  --min-height-spectrum: 120px;
+  --min-height-controls: 100px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body.no-scroll {
+  overflow: hidden;
+  padding-right: var(--scrollbar-width);
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, var(--color-blue-darkest) 0%, var(--color-blue-medium) 50%, var(--color-blue-lightest) 100%);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+}
+
+body {
+  scrollbar-gutter: stable both-edges;
+}
+
+/* this wrapper is slightly redundant but we set the background color here */
+.outer-instrument-wrapper {
+  background: #04273C;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Horizontally centers all direct children */
+  padding: calc(var(--spacing-unit) * 2);
+  gap: calc(var(--spacing-unit) * 1.5);
+  width: 100%;
+  max-width: 1200px;
+}
+
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.control-row:last-child {
+  margin-bottom: 0;
+}
+
+.control-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+/* Time Signature Controls */
+.time-signature-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-signature-input {
+  width: 50px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.time-signature-input:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+
+.time-signature-separator {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--color-text-secondary);
+  margin: 0 4px;
+}
+
+.time-signature-select {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.time-signature-select:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+
+/* Tempo Controls */
+.tempo-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tempo-input {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tempo-input:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+
+.tempo-label {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Measure Controls */
+.measure-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.measure-input {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-size: 0.9rem;
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.measure-input:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 2px rgba(118, 181, 149, 0.2);
+}
+/* ==========================================================================
+   2. Main Application Layout
+   - Defines the overall structure and centering for the app.
+   ========================================================================== */
+.piano-app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.piano-app__side-panel {
+  /* Styles for the side editor panel can be added here */
+  flex-shrink: 0;
+}
+
+.piano-app__content-area {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Horizontally centers all direct children */
+  padding: calc(var(--spacing-unit) * 2);
+  gap: calc(var(--spacing-unit) * 1.5);
+}
+
+.piano-app__header {
+  width: 100%;
+  max-width: var(--max-width-main);
+  text-align: center;
+}
+
+.piano-app__header-title {
+    font-size: 3rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--color-green-medium) 0%, var(--color-green-lightest) 50%, #FFFFFF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 90px var(--color-green-lightest);
+}
+
+h4 {
+  text-align: center;
+  margin-bottom: var(--spacing-unit);
+  font-size: 1.25rem;
+  color: var(--color-text-secondary);
+}
+
+.piano-app__now-playing {
+  min-height: 42px; /* Prevents collapse when empty */
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ==========================================================================
+   3. Component Block Styles
+   - Defines the layout for each major section of the UI.
+   ========================================================================== */
+#score {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+/* Score Viewer Block */
+.score-viewer {
+  width: 100%;
+  max-width: var(--max-width-main);
+  min-height: var(--min-height-score);
+  background-color: #FFFFFF;
+  color: var(--color-blue-darkest);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-unit);
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.score-viewer__container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.score-viewer__content {
+  display: inline-block;
+}
+
+/* In your editor.css or relevant stylesheet */
+.drums-score-viewer__container {
+    overflow-x: auto; /* Allow horizontal scrolling */
+    white-space: nowrap; /* Prevent inline-block elements from wrapping */
+    margin: 1rem 0; /* Example margin */
+}
+
+/* Ensure the content itself does not wrap */
+.drums-score-viewer__content {
+    display: inline-block; /* Make it respect width calculation and allow nowrap from parent */
+}
+
+/* Instrument & Spectrum Panel Block */
+.instrument-panel {
+  width: 100%;
+  max-width: var(--max-width-main);
+  flex-shrink: 0;
+  
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-unit);
+  position: relative; /* FIX: Make this the positioning context for the slider */
+}
+
+.instrument-panel__spectrum {
+  min-height: var(--min-height-spectrum);
+  background-color: #000;
+  border-radius: var(--border-radius);
+}
+
+.instrument-panel__keyboard {
+  /* FIX: Removed 'position: relative' from here */
+  min-height: var(--min-height-instrument);
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+/* Main Controls Block */
+.main-controls {
+  width: 100%;
+  max-width: var(--max-width-main);
+  min-height: var(--min-height-controls);
+  flex-shrink: 0;
+  background-color: var(--color-surface);
+  padding: calc(var(--spacing-unit) * 1.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-unit);
+}
+
+.main-controls__button-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-unit);
+}
+
+.main-controls__chord-interface {
+  width: 100%;
+  padding-top: var(--spacing-unit);
+  border-top: 1px solid var(--color-border);
+}
+
+.chord-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(var(--spacing-unit) * 0.75);
+}
+
+/* Playback Controls Block */
+.playback-controls {
+    width: 100%;
+    max-width: var(--max-width-main);
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-unit);
+    margin-bottom: var(--spacing-unit);
+}
+
+/* Playback Controls Block */
+.guitar-controls {
+    width: 100%;
+    max-width: var(--max-width-main);
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-unit);
+    margin-bottom: var(--spacing-unit);
+}
+
+#chord-palette {
+    width: 100%;
+    max-width: var(--max-width-main);
+    display: flex;
+    justify-content: center;
+}
+
+/* ==========================================================================
+   4. Element & Component Styles
+   - Defines the appearance of buttons and other small elements.
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none; /* Removes the default border */
+  border-radius: 8px; /* This is the line to add */
+  background-color: var(--color-secondary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn:hover {
+  background-color: var(--color-blue-light);
+}
+
+/* Button Color Modifiers */
+.btn--primary {
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest); /* Dark text for contrast */
+}
+.btn--primary:hover {
+  background-color: var(--color-green-light);
+}
+
+.btn--danger {
+  background-color: var(--color-peach-light);
+  color: var(--color-peach-darkest); /* Dark text for contrast */
+}
+.btn--danger:hover {
+  background-color: var(--color-peach-medium);
+}
+
+.btn--info {
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest); /* Dark text for contrast */
+}
+.btn--info:hover {
+  background-color: var(--color-blue-light);
+}
+
+.btn--compact {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  margin: 0.25rem;
+      background-color: var(--color-blue-lightest);
+      color: var(--color-blue-darkest); /* Dark text for contrast */
+}
+
+.btn--compact:hover {
+  background-color: var(--color-blue-light);
+}
+
+/* Toggle Button - Inactive State (Blue) */
+.btn--toggle {
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest); /* Dark text for contrast */
+}
+
+.btn--toggle:hover {
+  background-color: var(--color-blue-light);
+}
+
+/* Toggle Button - Active State (Green) */
+.btn--toggle.is-active {
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest); /* Dark text for contrast */
+}
+
+.btn--toggle.is-active:hover {
+  background-color: var(--color-green-light);
+}
+
+/* Hidden Input Utility */
+.hidden-input {
+  display: none;
+}
+
+/* ==========================================================================
+   5. Instrument-Specific Styling
+   - Styles for the SVG piano keys, overlays, and gate.
+   ========================================================================== */
+
+/* Base Key Styles */
+.instrument-panel__keyboard .white { fill: #FFFFFF; stroke: #444; }
+.instrument-panel__keyboard .black { fill: #333333; stroke: #000; }
+.instrument-panel__keyboard .white.pressed { fill: #D1D5DB; }
+.instrument-panel__keyboard .black.pressed { fill: #555555; }
+
+/* Hand Position / Note Function Highlighting */
+/* Contrasting Flow (Blue to Peach) */
+.instrument-panel__keyboard .left-white  { fill: var(--color-blue-light) !important; }
+.instrument-panel__keyboard .left-black  { fill: var(--color-blue-dark) !important; }
+.instrument-panel__keyboard .middle      { fill: var(--color-green-light) !important; }
+.instrument-panel__keyboard .right-white { fill: var(--color-peach-light) !important; }
+.instrument-panel__keyboard .right-black { fill: var(--color-peach-dark) !important; }
+
+/* Chord Highlighting */
+.instrument-panel__keyboard .chord-root { fill: var(--color-blue-light) !important; }
+.instrument-panel__keyboard .chord-third { fill: var(--color-green-light) !important; }
+.instrument-panel__keyboard .chord-fifth { fill: var(--color-peach-light) !important; }
+
+/* Unlock Gate Overlay */
+#gate {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(5px);
+    cursor: pointer;
+    z-index: 10;
+}
+
+#gate p {
+    padding: 1rem 1.5rem;
+    border: 2px solid var(--color-primary);
+    border-radius: var(--border-radius);
+    color: var(--color-text-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+    background: rgba(118, 181, 149, 0.1);
+}
+
+/* Hand Position Slider Overlay */
+#handOverlay {
+    position: absolute;
+    height: 16px;
+    background: var(--color-primary);
+    border-radius: 8px;
+    top: -20px;
+    cursor: grab;
+    touch-action: none;
+    backdrop-filter: blur(2px);
+    z-index: 5;
+}
+
+#handOverlay.chord-mode {
+    background: var(--color-primary);
+    border-color: var(--color-info);
+}
+
+/* ==========================================================================
+   6. Utility Classes
+   ========================================================================== */
+
+/* ADDED: Utility class to hide elements */
+.hidden {
+  display: none !important;
+}
+
+.piano-app__side-panel .btn--side {
+  margin: 0.5rem; 
+}
+
+.editor-widget__content--note-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Adjust the vertical space between button groups */
+}
+
+.button-group {
+  display: flex;
+  flex-direction: row; /* Default behavior, but explicit for clarity */
+  gap: 4px; /* Adjust the horizontal space between the two buttons */
+}
+
+/* ==========================================================================
+   EDITOR WIDGET STYLES - Add these to your pianostyles.css
+   ========================================================================== */
+
+/* Editor Panel Structure */
+.piano-app__side-panel {
+    width: 320px;
+    min-height: 100vh;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 0 12px 12px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+}
+
+/* Editor Widget Layout */
+.editor-widget {
+    margin-bottom: 24px;
+}
+
+.editor-widget__title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.editor-widget__content {
+    /* Base content styling */
+}
+
+.editor-widget__content--note-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+/* Note Group Layout */
+.editor-widget__note-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Note Editor Styles */
+.note-editor {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.note-editor__header {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.note-editor__header::before {
+    content: "🎵";
+    font-size: 18px;
+}
+
+.note-editor__controls {
+    /* Controls container - inherits from existing .control-group styles */
+}
+
+/* Floating Panel Styles */
+.floating-panel {
+    position: fixed;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    z-index: 4000;
+    min-width: 280px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+}
+
+.floating-panel.visible {
+    display: block;
+    animation: panelSlideIn 0.3s ease-out forwards;
+}
+
+.floating-panel.hidden {
+    display: none;
+}
+
+@keyframes panelSlideIn {
+    from { 
+        opacity: 0; 
+        transform: translate(-50%, -50%) scale(0.98); 
+    }
+    to { 
+        opacity: 1;
+    }}
+
+    /* Editor Panel Structure */
+.piano-app__side-panel {
+    width: 320px;
+    min-height: 100vh;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 0 12px 12px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+}
+
+/* Editor Widget Layout */
+.editor-widget {
+    margin-bottom: 24px;
+}
+
+.editor-widget__title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.editor-widget__content--note-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.editor-widget__note-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.editor-widget {
+    margin-bottom: 24px;
+}
+
+.editor-widget__title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.editor-widget__content--note-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.editor-widget__note-group {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.note-editor {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.note-editor__header {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.note-editor__controls {
+    /* Inherits existing control-group styles */
+}
+
+/* ==========================================================================
+   EDITOR PALETTE STYLES
+   Add these rules to your pianostyles.css or editor.css file
+   ========================================================================== */
+
+/* Palette Container - Positioned for the editor sidebar */
+.piano-app__side-panel .note-palette-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(29, 185, 84, 0.2);
+    transition: var(--transition);
+}
+
+.piano-app__side-panel .note-palette-container:hover {
+    box-shadow: 0 6px 20px rgba(29, 185, 84, 0.3);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Palette Header */
+.piano-app__side-panel .palette-header {
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+}
+
+/* Palette Grid Layout */
+.piano-app__side-panel .note-palette {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    align-items: center;
+    justify-items: center;
+}
+
+/* Individual Palette Notes - Optimized for sidebar */
+.piano-app__side-panel .palette-note {
+    width: 55px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--border-radius-sm);
+    color: #1f2937;
+    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    transition: var(--transition);
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hover Effects */
+.piano-app__side-panel .palette-note:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: var(--primary-green);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+/* Active/Dragging State */
+.piano-app__side-panel .palette-note:active {
+    cursor: none;
+    transform: scale(0.95);
+}
+
+/* Note Duration Labels */
+.piano-app__side-panel .note-duration {
+    font-size: 8px;
+    margin-top: 1px;
+    opacity: 0.7;
+    font-weight: 500;
+    line-height: 1;
+}
+
+/* Special Chord Styles */
+.piano-app__side-panel .chord-major {
+    background: linear-gradient(135deg, var(--success), #22c55e) !important;
+    color: white !important;
+    border-color: var(--success) !important;
+}
+
+.piano-app__side-panel .chord-major:hover {
+    background: linear-gradient(135deg, #22c55e, var(--success)) !important;
+    transform: translateY(-2px);
+}
+
+.piano-app__side-panel .chord-minor {
+    background: linear-gradient(135deg, #a855f7, #9333ea) !important;
+    color: white !important;
+    border-color: #a855f7 !important;
+}
+
+.piano-app__side-panel .chord-minor:hover {
+    background: linear-gradient(135deg, #9333ea, #a855f7) !important;
+    transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   PALETTE STYLES - Fixed for correct location in layout
+   Add these rules to your pianostyles.css file (replacing existing palette styles)
+   ========================================================================== */
+
+/* Note Palette Container - Works anywhere in the layout */
+.note-palette-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(29, 185, 84, 0.2);
+    transition: var(--transition);
+    max-width: 400px; /* Constrain width for main content area */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.note-palette-container:hover {
+    box-shadow: 0 6px 20px rgba(29, 185, 84, 0.3);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Palette Header */
+.palette-header {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+}
+
+/* Palette Grid Layout */
+.note-palette {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Individual Palette Notes */
+.palette-note {
+    width: 60px;
+    height: 45px;
+    background: #76B595;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--border-radius-sm);
+    color: #000;
+    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    transition: var(--transition);
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.palette-note[data-type="rest"] {
+    background: #76B595;
+    color: #000;
+}
+
+.palette-note[data-type="rest"]:hover {
+    background: #D88368;
+}
+
+/* Hover Effects */
+.palette-note:hover {
+    background: #D88368;
+    border-color: var(--primary-green);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Active/Dragging State */
+.palette-note:active {
+    cursor: none;
+    transform: scale(0.95);
+}
+
+/* Note Duration Labels */
+.note-duration {
+    font-size: 9px;
+    margin-top: 2px;
+    opacity: 0.7;
+    font-weight: 500;
+    line-height: 1;
+}
+
+/* Special Chord Styles */
+.chord-major {
+    background: linear-gradient(135deg, var(--success), #22c55e) !important;
+    color: white !important;
+    border-color: var(--success) !important;
+}
+
+.chord-major:hover {
+    background: linear-gradient(135deg, #22c55e, var(--success)) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4) !important;
+}
+
+.chord-minor {
+    background: linear-gradient(135deg, #a855f7, #9333ea) !important;
+    color: white !important;
+    border-color: #a855f7 !important;
+}
+
+.chord-minor:hover {
+    background: linear-gradient(135deg, #9333ea, #a855f7) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(168, 85, 247, 0.4) !important;
+}
+
+/* Palette Separator */
+.palette-separator {
+    width: 2px;
+    height: 40px;
+    background: linear-gradient(
+        180deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.4) 20%, 
+        rgba(255, 255, 255, 0.6) 50%, 
+        rgba(255, 255, 255, 0.4) 80%, 
+        transparent 100%
+    );
+    margin: 0 8px;
+    border-radius: 1px;
+}
+
+/* Drag Feedback Animation */
+.palette-note.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg) scale(0.9);
+}
+
+/* Focus States for Accessibility */
+.palette-note:focus-visible {
+    outline: 2px solid var(--primary-green);
+    outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .note-palette {
+        gap: 8px;
+    }
+    
+    .palette-note {
+        width: 50px;
+        height: 38px;
+        font-size: 16px;
+    }
+    
+    .note-duration {
+        font-size: 8px;
+    }
+    
+    .note-palette-container {
+        padding: 12px;
+        max-width: 100%;
+    }
+}
+
+/* Animation for when palette items are being dragged */
+@keyframes palette-drag-start {
+    0% { transform: scale(1) rotate(0deg); }
+    100% { transform: scale(0.9) rotate(3deg); }
+}
+
+.palette-note[draggable="true"]:active {
+    animation: palette-drag-start 0.1s ease-out;
+}
+
+/* Mobile optimization */
+
+.instrument-panel__keyboard, .instrument-panel__keyboard * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* But allow normal touch behavior on the gate */
+#gate {
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    user-select: auto !important;
+    -webkit-touch-callout: default !important;
+    touch-action: auto !important;
+}
+
+ .volume-control {
+    width: 100%;
+    max-width: var(--max-width-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-unit);
+    margin-bottom: var(--spacing-unit);
+}
+
+        .volume-icon {
+            width: 40px;
+            height: 40px;
+            fill: var(--color-text-secondary);
+            flex-shrink: 0;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .volume-icon:hover {
+            fill: var(--color-primary);
+            background-color: var(--color-blue-dark);
+        }
+        
+        .volume-slider {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 20px;
+            cursor: pointer;
+            outline: none;
+            border-radius: 8px;
+            background: linear-gradient(to right, 
+                var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 75%), 
+                var(--color-blue-dark) var(--value-percent, 75%)
+            );
+        }
+
+        /* WebKit browsers (Chrome, Safari, Edge) */
+        .volume-slider::-webkit-slider-track {
+            background: transparent;
+            border: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 24px;
+            width: 24px;
+            margin-top: -2px;
+            border-radius: 50%;
+            background: var(--color-text-primary);
+            border: 3px solid var(--color-green-medium);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        /* Firefox */
+        .volume-slider::-moz-range-track {
+           background: transparent;
+           border: none;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--color-text-primary);
+            border: 3px solid var(--color-green-medium);
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+            border-color: inherit;
+        }
+        
+        /* Hover & Active States */
+        .volume-slider:hover::-webkit-slider-thumb {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        .volume-slider:active::-webkit-slider-thumb {
+            transform: scale(1.2);
+        }
+        .volume-slider:hover::-moz-range-thumb {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        .volume-slider:active::-moz-range-thumb {
+            transform: scale(1.2);
+        }
+
+        /* Focus states - Outline removed */
+        .volume-slider:focus {
+            outline: none;
+        }
+        
+        .volume-value {
+            min-width: 40px;
+            text-align: right;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            transition: color 0.3s ease;
+        }
+
+        /* Muted state */
+        .volume-control.muted .volume-slider {
+            --track-fill-color: var(--color-danger);
+        }
+        
+        /* Muted Thumb - Background changed to make it solid */
+        .volume-control.muted .volume-slider::-webkit-slider-thumb {
+            background: var(--color-danger);
+            border-color: var(--color-danger);
+        }
+        .volume-control.muted .volume-slider::-moz-range-thumb {
+            background: var(--color-danger);
+            border-color: var(--color-danger);
+        }
+        .volume-control.muted .volume-icon {
+            fill: var(--color-danger);
+        }
+
+        /* Touch-friendly improvements */
+        @media (pointer: coarse) {
+            .volume-slider { height: 20px; }
+            .volume-slider::-webkit-slider-thumb { height: 24px; width: 24px; margin-top: -2px; }
+            .volume-slider::-moz-range-thumb { height: 24px; width: 24px; }
+            .volume-icon { width: 32px; height: 32px; padding: 12px; }
+        }
+		
+		.volume-icon:focus {
+    outline: none;
+}
+
+.volume-control.audio-uninitialized * {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+.volume-control.audio-uninitialized .volume-slider {
+    opacity: 0.7;
+    /* Make it look disabled but keep it functional for clicks */
+    filter: grayscale(50%);
+}
+
+/* When audio is ready, restore normal appearance */
+.volume-control.audio-ready .volume-slider {
+    opacity: 1;
+    filter: none;
+}

@@ -1,0 +1,29 @@
+<div class="volume-control audio-uninitialized" id="volumeControl">
+            <svg class="volume-icon" viewBox="0 0 24 24" tabindex="0" role="button" aria-label="Toggle mute">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+            
+            <input type="range" 
+                   min="0" 
+                   max="100" 
+                   value="75" 
+                   class="volume-slider" 
+                   id="volumeSlider"
+                   aria-label="Volume level">
+            
+            <span class="volume-value" id="volumeValue" aria-live="polite">75</span>
+        </div>
+
+<script type="module">
+    import { VolumeControl } from '{{ url_for("static", filename="js/classes/volumeControl.js") }}';
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const volumeControl = document.getElementById('volumeControl');
+        if (volumeControl) {
+            window.volumeController = new VolumeControl(volumeControl);
+            console.log('Volume control initialized');
+        } else {
+            console.error('Volume control element not found');
+        }
+    });
+</script>

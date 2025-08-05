@@ -2,9 +2,14 @@
 
 {% block title %}PianoTour - Interactive Saxaphone Studio{% endblock %}
 
+{% block toggles %}
+    {% include 'partials/_toggles.html' %}
+{% endblock %}
+
 {% block scripts %}
 <script type="module">
-    import { pianoState } from '{{ url_for("static", filename="appState.js") }}';
+    import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+    import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
 
     // Set instrument from template variable, default to 'sax' if not provided
     const templateInstrument = '{{ instrument }}' || 'sax';
@@ -18,5 +23,6 @@
     console.log("Set instrument to:", templateInstrument);
     console.log("pianoState.instrument:", pianoState.instrument);
     console.log("window.CURRENT_INSTRUMENT:", window.CURRENT_INSTRUMENT);
+    addBasicKeyboardListeners();
 </script>
 {% endblock %}

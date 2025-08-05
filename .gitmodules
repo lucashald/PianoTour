@@ -1,0 +1,3 @@
+[submodule "vendor/ugly_midi"]
+	path = vendor/ugly_midi
+	url = https://github.com/lucashald/uglymidi.git

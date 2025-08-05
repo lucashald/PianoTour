@@ -1,0 +1,14 @@
+# Folders to ignore
+.vscode/
+test-logs/
+test-results/
+tests/
+node_modules/
+static/soundfonts/
+
+# Files to ignore
+settings.js
+babel.config.js
+jest.config.js
+jest.setup.js
+run.tests.js

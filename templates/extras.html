@@ -2,7 +2,8 @@
 
 {% block title %}PianoTour - Extras{% endblock %}
 
-{% block extras %}
+{% block side %}
+
 <a href="/player">
   <button id="midi-player-btn" class="btn btn--primary btn--side playback-controls__button">
     MIDI Player
@@ -12,8 +13,31 @@
   <button id="practice-btn" class="btn btn--info btn--side">
     Sight Reading Practice
   </button>
+  <a href="/json">
+  <button id="json-btn" class="btn btn--info btn--side">
+    Edit JSON
+  </button>
 </a>
+<br />
 <button id="export-midi-btn" class="btn btn--info btn--side">Export MIDI</button>
 <!-- This input is not a visible button -->
 <input type="file" id="file-loader-input" style="display: none" accept=".json, .mid, .midi" />
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+  import { exportMidi, initializeFileHandlers } from ('{{ url_for("static", filename="js/utils/scoreRenderer.js") }}');
+  // Initialize file handlers when the page loads
+  document.addEventListener('DOMContentLoaded', () => {
+    
+    // Add event listener for the export MIDI button
+    document.getElementById('export-midi-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('instrument')?.focus();
+      exportMidi();
+    });
+    
+    console.log("Extras page initialized with MIDI export functionality.");
+  });
+</script>
 {% endblock %}
