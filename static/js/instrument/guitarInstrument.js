@@ -21,9 +21,6 @@ const GUITAR_TUNING = [
   40  // E2 (low E)  - STRING 6, thickest
 ];
 
-
-console.log('🎸 Guitar tuning loaded:', GUITAR_TUNING);
-
 // Convert MIDI to note name
 function midiToNoteName(midiNumber) {
   const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -39,8 +36,6 @@ const guitarState = {
   mutedStrings: [false, false, false, false, false, false],
   sustainMode: false
 };
-
-console.log('🎸 Initial guitar state:', guitarState);
 
 class GuitarInstrument {
   constructor(containerId) {
@@ -220,7 +215,6 @@ createStringButton(stringNum) {
 
   // NEW: Setup basic listeners for audio unlock (called after elements are created)
   setupBasicAudioUnlockListeners() {
-    console.log('🎸 Setting up basic audio unlock listeners...');
     
     // Attach to individual string buttons
     const stringButtons = this.stringLabelsContainer.querySelectorAll('.string-button');
@@ -234,8 +228,6 @@ createStringButton(stringNum) {
     if (this.strumArea) {
       this.strumArea.addEventListener('click', handleInitialGuitar);
     }
-    
-    console.log(`🎸 Basic listeners attached to ${stringButtons.length} string buttons and strum area`);
   }
 
   // Set up listeners that don't make sound (safe to call immediately)
@@ -265,7 +257,6 @@ createStringButton(stringNum) {
 
   // Set up listeners that DO make sound (call only after audio is ready)
 setupAudioEventListeners() {
-  console.log('🎸 Setting up audio event listeners...');
   
   // String button mousedown/mouseup for playing and timing
   this.stringLabelsContainer.addEventListener('mousedown', (e) => {
@@ -569,8 +560,6 @@ setChord(fretData) {
 export function handleInitialGuitar(e, actionData = null) {
   e.stopPropagation();
   e.preventDefault();
-  
-  console.log('🎸 Initial guitar interaction for audio unlock...');
 
   // Store the click details for the deferred action
   let clickedDetails = null;
@@ -608,7 +597,7 @@ export function handleInitialGuitar(e, actionData = null) {
 
   // Rest of the function remains the same...
   const playGuitarAndWriteToScore = () => {
-    console.log('🎸 Audio is ready! Playing guitar and writing to score:', clickedDetails);
+    console.log('Audio is ready! Playing guitar and writing to score:', clickedDetails);
 
     addAdvancedGuitarListeners();
 
@@ -660,12 +649,10 @@ export function handleInitialGuitar(e, actionData = null) {
   };
 
   audioManager.unlockAndExecute(playGuitarAndWriteToScore);
-  console.log('🎸 Calling unlock and execute with guitar functionality');
 }
 
 // Simplified initialize function
 export function initializeGuitar(containerSelector = '#instrument') {
-    console.log('🎸 Initializing Guitar Instrument...');
     
     const container = document.querySelector(containerSelector);
     if (!container) {

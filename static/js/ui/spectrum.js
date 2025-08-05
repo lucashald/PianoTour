@@ -770,7 +770,6 @@ export function stopSpectrumVisualization() {
     const hasAudioActivity = spectrumVisualizer.instance.hasSignificantAudioActivity();
     
     if (!hasAudioActivity) {
-      console.log(`🎵 Audio activity ceased, stopping spectrum visualization (#${currentRequestId})`);
       spectrumVisualizer.stop();
       spectrumStopTimeout = null;
       pendingStopRequests = 0;

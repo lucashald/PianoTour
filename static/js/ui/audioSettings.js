@@ -492,8 +492,6 @@ class AudioSettingsController {
             return;
         }
 
-        console.log(`🎵 Changing instrument to ${instrumentName}`);
-
         try {
             // Import the audioManager to access Instrument class
             const { Instrument } = await import('../core/audioManager.js');
@@ -520,7 +518,7 @@ class AudioSettingsController {
                 urls: sampleUrls,
                 baseUrl: baseUrl,
                 onload: () => {
-                    console.log(`🎵 ${instrumentName} samples loaded successfully`);
+                    console.log(`${instrumentName} samples loaded successfully`);
                     // Connect new sampler to new envelope
                     pianoState.envelope.connect(pianoState.sampler);
                     

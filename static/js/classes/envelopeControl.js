@@ -25,7 +25,7 @@ export class EnvelopeControl {
     
     init() {
         this.createAudioChain();
-        console.log('🎵 Envelope created with ADSR:', {
+        console.log('Envelope created with ADSR:', {
             attack: this.attack,
             decay: this.decay, 
             sustain: this.sustain,

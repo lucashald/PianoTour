@@ -14,7 +14,6 @@ class PianoTourPlayer {
     }
 
     async initialize() {
-        console.log('🎹 Initializing minimal Piano Tour player...');
 
         // Wait for SpessaSynth libraries
         await this.waitForLibraries();

@@ -332,7 +332,6 @@ async function initializeAudio() {
                 
                 // Get current instrument (default to piano)
                 const currentInstrument = pianoState.instrument || 'piano';
-                console.log(`🎵 Initializing ${currentInstrument} instrument`);
 
                 // Create instrument-specific envelope
                 pianoState.envelope = Instrument.createEnvelope(currentInstrument);
