@@ -359,7 +359,7 @@ export function handleInitialKeyboard(e) {
  * @param {boolean} writeToScore - Whether to write to score when released
  * @param {boolean} useBass - Whether to use bass voicing (shift key pressed)
  */
-function playScaleChord(degree, key, writeToScore = true, useBass = false) {
+export function playScaleChord(degree, key, writeToScore = true, useBass = false) {
   // Get chord directly from our new function
   const chord = getChordByDegree(degree);
   if (!chord) {
@@ -397,7 +397,7 @@ function playScaleChord(degree, key, writeToScore = true, useBass = false) {
  * Unified function to stop a diatonic chord and handle score writing.
  * @param {string|number} key - The unique identifier used when the chord was played.
  */
-function stopScaleChord(key) {
+export function stopScaleChord(key) {
   const chordData = pianoState.activeDiatonicChords[key];
   if (!chordData) return;
 

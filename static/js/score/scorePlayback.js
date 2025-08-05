@@ -17,6 +17,7 @@ import {
 } from "./scoreHighlighter.js";
 import { getVexflowIndexByNoteId, safeRedraw, scrollToMeasure } from "./scoreRenderer.js";
 import { getMeasures } from "./scoreWriter.js";
+import { initMidiWhenReady } from "../instrument/midi-controller.js";
 
 // ===================================================================
 // Constants
@@ -420,7 +421,9 @@ export function initializePlayer() {
       e.preventDefault();
       document.getElementById("instrument")?.focus();
       audioManager.unlockAndExecute(() => { 
-        console.log("MIDI connection audio unlocked."); 
+        console.log("MIDI connection audio unlocked.");
+        startSpectrumIfReady();
+        initMidiWhenReady();
       });
     });
 }
