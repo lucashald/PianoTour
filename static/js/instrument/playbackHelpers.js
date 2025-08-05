@@ -392,9 +392,6 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
   // Trigger sampler with attack/release (envelope will shape this)
   pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, velocity / 127);
 
-  // Start spectrum visualization when notes are played
-  startSpectrumVisualization();
-
   // Paint chord visualization immediately for chords
   if (isChord) {
     paintChordOnTheFly({ notes: notesArray });

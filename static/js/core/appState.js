@@ -50,7 +50,6 @@ export const pianoState = {
     gw: null,          // SVG group for white keys
     gb: null,          // SVG group for black keys
     overlay: null,     // Hand overlay (slider) element
-    gate: null,        // Gate/Unlock screen element
     isUnlocked: false,
 	
 	// Track user selections and playback.
@@ -107,7 +106,6 @@ export const drumsState = {
     gw: null,          // SVG group for white keys
     gb: null,          // SVG group for black keys
     overlay: null,     // Hand overlay (slider) element
-    gate: null,        // Gate/Unlock screen element
     isUnlocked: false,
 	
 	// Track user selections and playback.

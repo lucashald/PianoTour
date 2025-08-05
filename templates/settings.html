@@ -9,7 +9,7 @@
     />
 <style>
 /* Container for all controls */
-.controls-container {
+ .audio-controls-container {
     display: flex;
     gap: calc(var(--spacing-unit) * 2);
     padding: var(--spacing-unit);
@@ -34,17 +34,6 @@
 .vertical-controls {
     display: flex;
     gap: calc(var(--spacing-unit) * 1.5);
-}
-
-/* Vertical volume control modifications */
-.volume-control.vertical {
-    width: auto;
-    height: 200px;
-    max-width: none;
-    flex-direction: column;
-    justify-content: flex-start;
-    margin-bottom: 0;
-    gap: calc(var(--spacing-unit) / 2);
 }
 
 .control-label {
@@ -123,10 +112,6 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-.vertical-slider:active::-webkit-slider-thumb {
-    transform: scale(1.2);
-}
-
 .vertical-slider:hover::-moz-range-thumb {
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -141,68 +126,9 @@
     outline: none;
 }
 
-/* Value display for vertical sliders */
-.volume-control.vertical .volume-value {
-    min-width: 60px;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-/* Remove volume icon for these controls */
-.volume-control.vertical .volume-icon {
-    display: none;
-}
-
-/* Muted state for vertical sliders */
-.volume-control.vertical.muted .vertical-slider {
-    --track-fill-color: var(--color-danger);
-}
-
-.volume-control.vertical.muted .vertical-slider::-webkit-slider-thumb {
-    background: var(--color-danger);
-    border-color: var(--color-danger);
-}
-
-.volume-control.vertical.muted .vertical-slider::-moz-range-thumb {
-    background: var(--color-danger);
-    border-color: var(--color-danger);
-}
-
-/* Touch-friendly improvements for vertical sliders */
-@media (pointer: coarse) {
-    .vertical-slider { 
-        width: 24px; 
-    }
-    .vertical-slider::-webkit-slider-thumb { 
-        height: 24px; 
-        width: 24px; 
-    }
-    .vertical-slider::-moz-range-thumb { 
-        height: 18px; 
-        width: 18px; 
-    }
-}
-
-/* Audio state classes */
-.volume-control.vertical.audio-uninitialized * {
-    cursor: pointer !important;
-    pointer-events: auto !important;
-}
-
-.volume-control.vertical.audio-uninitialized .vertical-slider {
-    opacity: 0.7;
-    filter: grayscale(50%);
-}
-
-.volume-control.vertical.audio-ready .vertical-slider {
-    opacity: 1;
-    filter: none;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .controls-container {
+    .audio-controls-container {
         flex-direction: column;
         align-items: center;
     }
@@ -212,25 +138,9 @@
         justify-content: center;
     }
     
-    .volume-control.vertical {
-        height: 150px;
-    }
-    
     .vertical-slider {
         height: 100px;
     }
-}
-
-.controls-footer {
-  background: #04273C;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Horizontally centers all direct children */
-  padding: calc(var(--spacing-unit) * 2);
-  gap: calc(var(--spacing-unit) * 1.5);
-  width: 100%;
-  max-width: 1200px;
 }
 
 .preset-controls {
@@ -256,41 +166,6 @@
     text-align: center;
 }
 
-.button-row {
-    display: flex;
-    gap: calc(var(--spacing-unit) * 0.5);
-    flex-wrap: wrap;
-    justify-content: center;
-}
-
-.btn--compact {
-    padding: 6px 12px;
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-}
-
-.btn--primary {
-    background-color: var(--color-primary, #007bff);
-    color: white;
-}
-
-.btn--primary:hover {
-    background-color: var(--color-primary-dark, #0056b3);
-}
-
-.btn--secondary {
-    background-color: var(--color-secondary, #6c757d);
-    color: white;
-}
-
-.btn--secondary:hover {
-    background-color: var(--color-secondary-dark, #545b62);
-}
 
 .instrument-selector {
     min-width: 150px;
@@ -305,38 +180,11 @@
     width: 100%;
 }
 
-.form-select:focus {
-    outline: none;
-    border-color: var(--color-primary, #007bff);
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-.form-select:hover {
-    border-color: var(--color-primary, #007bff);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .preset-controls {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .button-row {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .btn--compact {
-        width: 100%;
-        max-width: 200px;
-    }
-}
 </style>
 {% endblock %}
 
 {% block top %}
-<div class="controls-container">
+<div class="audio-controls-container">
     <!-- ADSR Envelope controls -->
     <div class="control-section">
         <h3>ADSR Envelope</h3>
@@ -531,11 +379,11 @@
     </div>
 </div>
 
-<div class="controls-footer">
+<div class="outer-wrapper">
     <div class="preset-controls">
         <div class="preset-section">
             <h4>Quick Actions</h4>
-            <div class="button-row">
+            <div class="controls-button-row">
                 <button id="resetButton" class="btn btn--compact btn--secondary">
                     🔄 Reset to Default
                 </button>
@@ -544,7 +392,7 @@
 
         <div class="preset-section">
             <h4>Audio Presets</h4>
-            <div class="button-row">
+            <div class="controls-button-row">
                 <button id="concertHallButton" class="btn btn--compact btn--primary">
                     Concert Hall
                 </button>

@@ -1,4 +1,6 @@
-import audioManager from '../core/audioManager.js';
+// VolumeControl.js
+// This class manages the volume control UI and functionality, including audio status handling.
+import { unlockAndExecute } from '../core/audioManager.js';
 
 export class VolumeControl {
         constructor(container) {
@@ -168,19 +170,17 @@ updateAudioStatusDisplay() {
         }
         
         // NEW: Initialize audio when clicked in uninitialized state
-        async initializeAudio() {
-            if (window.audioManager && window.audioManager.unlockAndExecute) {
-                this.setAudioStatus('loading');
-                try {
-                    await window.audioManager.unlockAndExecute(() => {
-                        console.log('Audio initialized via volume control');
-                    });
-                } catch (error) {
-                    console.error('Failed to initialize audio:', error);
-                    this.setAudioStatus('error');
-                }
-            }
-        }
+async initializeAudio() {
+    this.setAudioStatus('loading');
+    try {
+        await unlockAndExecute(() => {
+            console.log('Audio initialized via volume control');
+        });
+    } catch (error) {
+        console.error('Failed to initialize audio:', error);
+        this.setAudioStatus('error');
+    }
+}
         
         updateDisplay() {
             const value = this.slider.value;

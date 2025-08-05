@@ -32,7 +32,7 @@ class KeyboardAlignedSpectrum {
       maxDb: -5,
       enableFrequencyGain: true,
       debugMode: false,
-      drawingThreshold: 0.25, // Increased from 0.1 to 0.2
+      drawingThreshold: 0.2,
       ...options,
     };
 

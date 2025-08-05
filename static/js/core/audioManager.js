@@ -1,4 +1,4 @@
-// audioManager.js - Enhanced with unlock status persistence
+// audioManager.js - Enhanced instrument control and audio management
 
 import {
   connectSpectrumToAudio,
@@ -39,7 +39,7 @@ export class InstrumentControl {
                     sustain: 0.8,   // Good sustain level
                     release: 1.2,    // Natural decay of strings
 
-                    // ✅ NEW: Piano effects
+                    // Piano effects
                     reverb: { enabled: true, roomSize: 0.2, wet: 0.15 },
                     compression: { enabled: true, threshold: -18, ratio: 4, attack: 0.003, release: 0.1 },
                     eq: { enabled: true, low: +1, mid: 0, high: -1 }
@@ -65,7 +65,7 @@ export class InstrumentControl {
                     sustain: 0.9,   // High sustain - strings ring
                     release: 2.0,    // Long release - strings continue ringing
 
-                    // ✅ NEW: Guitar effects
+                    // Guitar effects
                     reverb: { enabled: true, roomSize: 0.4, wet: 0.25 },
                     chorus: { enabled: true, frequency: 1.5, depth: 0.7, wet: 0.2 },
                     compression: { enabled: true, threshold: -16, ratio: 6, attack: 0.003, release: 0.1 }
@@ -93,7 +93,7 @@ export class InstrumentControl {
                     sustain: 0.95,  // Very high sustain - bowed strings
                     release: 1.5,    // Medium release
 
-                    // ✅ NEW: Cello effects
+                    // Cello effects
                     reverb: { enabled: true, roomSize: 0.6, wet: 0.3 },
                     eq: { enabled: true, low: 2, mid: 0, high: -1 }
                 }
@@ -202,74 +202,6 @@ export class InstrumentControl {
 export const Instrument = new InstrumentControl();
 
 // ===================================================================
-// Audio Unlock Status Persistence (Internal)
-// ===================================================================
-
-const UNLOCK_KEY = 'pianoTourAudioUnlocked';
-
-/**
- * Check if audio was previously unlocked
- * @returns {boolean}
- */
-function wasAudioPreviouslyUnlocked() {
-  try {
-    const unlocked = localStorage.getItem(UNLOCK_KEY);
-    return unlocked === 'true';
-  } catch (error) {
-    console.error('Failed to check unlock status:', error);
-    return false;
-  }
-}
-
-/**
- * Mark audio as unlocked
- */
-function markAudioAsUnlocked() {
-  try {
-    localStorage.setItem(UNLOCK_KEY, 'true');
-    localStorage.setItem(UNLOCK_KEY + '_timestamp', Date.now().toString());
-    console.log('Audio marked as unlocked');
-  } catch (error) {
-    console.error('Failed to save unlock status:', error);
-  }
-}
-
-/**
- * Check if unlock status is recent (within 24 hours)
- * @returns {boolean}
- */
-function isUnlockStatusFresh() {
-  try {
-    if (!wasAudioPreviouslyUnlocked()) return false;
-
-    const timestamp = localStorage.getItem(UNLOCK_KEY + '_timestamp');
-    if (!timestamp) return false;
-
-    const unlockTime = parseInt(timestamp);
-    const now = Date.now();
-    const oneDay = 24 * 60 * 60 * 1000;
-
-    return (now - unlockTime) < oneDay;
-  } catch (error) {
-    console.error('Failed to check unlock freshness:', error);
-    return false;
-  }
-}
-
-/**
- * Clear unlock status (for testing or reset)
- */
-function clearUnlockStatus() {
-  try {
-    localStorage.removeItem(UNLOCK_KEY);
-    localStorage.removeItem(UNLOCK_KEY + '_timestamp');
-    console.log('Audio unlock status cleared');
-  } catch (error) {
-    console.error('Failed to clear unlock status:', error);
-  }
-}
-
-// ===================================================================
 // Audio State Management
 // ===================================================================
 
@@ -335,6 +267,7 @@ function initializeSpectrumVisualizer() {
       showLabels: false,
       minDb: -90,
       maxDb: -5,
+      drawingThreshold: 0.2,
       enableFrequencyGain: true,
       debugMode: false,
     };
@@ -342,7 +275,7 @@ function initializeSpectrumVisualizer() {
     initializeSpectrum(spectrumOptions);
     spectrumInitialized = true;
 
-    // ✅ FIXED: Connect to envelope output instead of sampler
+    // Connect to envelope output instead of sampler
     if (pianoState.envelope) {
       connectSpectrumToAudio(pianoState.envelope.envelope); // Connect to the actual Tone.js envelope
       console.log("Spectrum connected to envelope output");
@@ -366,12 +299,15 @@ export function startSpectrumIfReady() {
   }
 }
 
-// Replace the getSampleUrls function and update initializeAudio
+// ===================================================================
+// Audio Initialization
+// ===================================================================
+
 async function initializeAudio() {
     let timeoutId;
     try {
         setAudioStatus('loading');
-        console.log("InitializeAudio: Starting UNCONDITIONAL audio initialization for debugging.");
+        console.log("InitializeAudio: Starting audio initialization");
 
         const overallTimeoutPromise = new Promise((_, reject) => {
             timeoutId = setTimeout(() => {
@@ -381,24 +317,24 @@ async function initializeAudio() {
 
         await Promise.race([
             (async () => {
-                // Stage 1: Always attempt to unlock audio.
-                console.log("Forcing multiple unlock strategies for debugging.");
+                // Stage 1: Attempt to unlock audio
+                console.log("Attempting audio unlock strategies");
                 await attemptMultipleAudioUnlocks();
 
-                // Stage 2: Initialize Tone.js with retry logic.
+                // Stage 2: Initialize Tone.js with retry logic
                 await initializeToneWithRetry();
 
                 // Stage 3: Create instrument-specific sampler and envelope
                 console.log("Creating and configuring sampler...");
                 
-                // ✅ NEW: Get current instrument (default to piano)
+                // Get current instrument (default to piano)
                 const currentInstrument = pianoState.instrument || 'piano';
                 console.log(`🎵 Initializing ${currentInstrument} instrument`);
 
-                // ✅ NEW: Create instrument-specific envelope
+                // Create instrument-specific envelope
                 pianoState.envelope = Instrument.createEnvelope(currentInstrument);
 
-                // ✅ NEW: Get instrument-specific sample URLs and base URL
+                // Get instrument-specific sample URLs and base URL
                 const sampleUrls = Instrument.getSampleUrls(currentInstrument);
                 const baseUrl = Instrument.getBaseUrl(currentInstrument);
 
@@ -416,10 +352,11 @@ async function initializeAudio() {
 
                 await Tone.loaded();
 
-                // Stage 4: Final setup and validation.
+                // Stage 4: Final setup and validation
                 pianoState.ctxStarted = true;
                 pianoState.samplerReady = true;
                 initializeSpectrumVisualizer();
+                startSpectrumIfReady();
 
                 const isValid = await validateAudioSystem();
                 if (!isValid) {
@@ -432,7 +369,6 @@ async function initializeAudio() {
         // Success Path
         clearTimeout(timeoutId);
         setAudioStatus('ready');
-        initializeAudioControls();
         processDeferredAction();
 
         const instrument = document.getElementById("instrument");
@@ -453,14 +389,12 @@ async function initializeAudio() {
     }
 }
 
-// Remove the old getSampleUrls function entirely
-
 /**
  * Tries multiple strategies to unlock the audio context on mobile devices.
  */
 async function attemptMultipleAudioUnlocks() {
     const unlockStrategies = [
-        // Strategy 1: Play a silent HTML audio element.
+        // Strategy 1: Play a silent HTML audio element
         async () => {
             const unlockAudio = document.getElementById("unlock-audio");
             if (unlockAudio) {
@@ -473,7 +407,7 @@ async function attemptMultipleAudioUnlocks() {
             }
             return false;
         },
-        // Strategy 2: Create and play a silent buffer with the Web Audio API.
+        // Strategy 2: Create and play a silent buffer with the Web Audio API
         async () => {
             try {
                 const audioContext = new(window.AudioContext || window.webkitAudioContext)();
@@ -503,7 +437,6 @@ async function attemptMultipleAudioUnlocks() {
     console.warn("All audio unlock strategies failed. Proceeding with Tone.start() as a last resort.");
 }
 
-
 /**
  * Attempts to start Tone.js, retrying on failure.
  * @param {number} maxRetries - The maximum number of attempts.
@@ -514,25 +447,25 @@ async function initializeToneWithRetry(maxRetries = 3) {
             await Tone.start();
             console.log(`Tone.js started successfully on attempt ${attempt}.`);
 
-            // Handle specific mobile browser state where context is 'interrupted'.
+            // Handle specific mobile browser state where context is 'interrupted'
             if (Tone.context.state === 'interrupted') {
                 console.log("Context was interrupted, attempting resume...");
                 await Tone.context.resume();
             }
 
-            // Final check to ensure the context is running.
+            // Final check to ensure the context is running
             if (Tone.context.state !== 'running') {
                 throw new Error(`Audio context is in an unexpected state: ${Tone.context.state}`);
             }
 
-            return; // Success, exit the loop.
+            return; // Success, exit the loop
 
         } catch (error) {
             console.warn(`Tone.js start attempt ${attempt} of ${maxRetries} failed:`, error);
             if (attempt === maxRetries) {
                 throw new Error("Failed to start Tone.js after multiple retries.");
             }
-            // Wait with an increasing backoff before the next retry.
+            // Wait with an increasing backoff before the next retry
             await new Promise(resolve => setTimeout(resolve, 300 * attempt));
         }
     }
@@ -618,18 +551,13 @@ export async function unlockAndExecute(newAction, replaceExisting = true) {
 }
 
 export function initializeAudioControls() {
-  const volumeSlider = document.getElementById('volumeSlider'); // Changed from 'volumeControl'
+  const volumeSlider = document.getElementById('volumeSlider');
   
   if (volumeSlider) {
     // Convert 0-100 range to dB range (-20 to 0)
     function percentToDb(percent) {
       if (percent === 0) return -Infinity; // Complete silence
       return (percent / 100) * 20 - 20; // Maps 100% to 0dB, 1% to -19.8dB
-    }
-    
-    function dbToPercent(db) {
-      if (db === -Infinity) return 0;
-      return Math.max(0, Math.min(100, (db + 20) / 20 * 100));
     }
 
     // Restore saved volume on load
@@ -665,26 +593,6 @@ export function isAudioReady() {
   return pianoState.audioStatus === 'ready';
 }
 
-/**
- * Get unlock status information (for UI updates)
- * @returns {Object} Unlock status info
- */
-export function getUnlockStatus() {
-  return {
-    wasPreviouslyUnlocked: wasAudioPreviouslyUnlocked(),
-    isFreshUnlock: isUnlockStatusFresh(),
-    canOptimizeUnlock: isUnlockStatusFresh()
-  };
-}
-
-/**
- * Reset unlock status (for testing)
- */
-export function resetUnlockStatus() {
-  clearUnlockStatus();
-  console.log('Audio unlock status reset');
-}
-
 // ===================================================================
 // Default Export
 // ===================================================================
@@ -695,6 +603,4 @@ export default {
   unlockAndExecute,
   isAudioReady,
   startSpectrumIfReady,
-  getUnlockStatus,
-  resetUnlockStatus,
 };

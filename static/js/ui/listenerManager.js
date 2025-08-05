@@ -38,13 +38,13 @@ function handleAudioStatusChange(e) {
   const status = e.detail.status;
     switch (status) {
     case 'loading':
-      console.log('zz Audio is loading.');
+      console.log('Audio is loading.');
       break;
     case 'error':
-      console.error('zz Audio failed to load.');
+      console.error('Audio failed to load.');
       break;
     case 'ready':
-      console.log('zz Audio is ready.');
+      console.log('Audio is ready.');
     addAdvancedKeyboardListeners();
     addAdvancedInstrumentListeners();
     addInstrumentDraggingListeners();
@@ -123,7 +123,6 @@ export function addAdvancedInstrumentListeners() {
 
 // Updated advanced listeners function
 export function addAdvancedGuitarListeners() {
-  console.log('🎸 Adding advanced guitar listeners...');
   
   if (window.guitarInstance) {
     // Remove basic listeners first

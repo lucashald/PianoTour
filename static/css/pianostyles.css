@@ -78,7 +78,7 @@ body {
 }
 
 /* this wrapper is slightly redundant but we set the background color here */
-.outer-instrument-wrapper {
+.outer-wrapper {
   background: #04273C;
   flex-grow: 1;
   display: flex;
@@ -221,11 +221,6 @@ body {
   min-height: 100vh;
 }
 
-.piano-app__side-panel {
-  /* Styles for the side editor panel can be added here */
-  flex-shrink: 0;
-}
-
 .piano-app__content-area {
   flex-grow: 1;
   display: flex;
@@ -359,7 +354,7 @@ h4 {
   gap: var(--spacing-unit);
 }
 
-.main-controls__button-row {
+.controls-button-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -517,29 +512,6 @@ h4 {
 .instrument-panel__keyboard .chord-third { fill: var(--color-green-light) !important; }
 .instrument-panel__keyboard .chord-fifth { fill: var(--color-peach-light) !important; }
 
-/* Unlock Gate Overlay */
-#gate {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(30, 30, 30, 0.8);
-    backdrop-filter: blur(5px);
-    cursor: pointer;
-    z-index: 10;
-}
-
-#gate p {
-    padding: 1rem 1.5rem;
-    border: 2px solid var(--color-primary);
-    border-radius: var(--border-radius);
-    color: var(--color-text-primary);
-    font-size: 1.2rem;
-    font-weight: 600;
-    background: rgba(118, 181, 149, 0.1);
-}
-
 /* Hand Position Slider Overlay */
 #handOverlay {
     position: absolute;
@@ -571,60 +543,14 @@ h4 {
   margin: 0.5rem; 
 }
 
-.editor-widget__content--note-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px; /* Adjust the vertical space between button groups */
-}
-
 .button-group {
   display: flex;
   flex-direction: row; /* Default behavior, but explicit for clarity */
   gap: 4px; /* Adjust the horizontal space between the two buttons */
 }
 
-/* ==========================================================================
-   EDITOR WIDGET STYLES - Add these to your pianostyles.css
-   ========================================================================== */
-
-/* Editor Panel Structure */
-.piano-app__side-panel {
-    width: 320px;
-    min-height: 100vh;
-    background: rgba(30, 41, 59, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 20px;
-    border-radius: 0 12px 12px 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    flex-shrink: 0;
-}
-
-/* Editor Widget Layout */
-.editor-widget {
-    margin-bottom: 24px;
-}
-
-.editor-widget__title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
 .editor-widget__content {
     /* Base content styling */
-}
-
-.editor-widget__content--note-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
 }
 
 /* Note Group Layout */
@@ -732,42 +658,6 @@ h4 {
     padding: 12px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
-}
-
-.editor-widget__note-group {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.editor-widget {
-    margin-bottom: 24px;
-}
-
-.editor-widget__title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.editor-widget__content--note-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-}
-
-.editor-widget__note-group {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    flex-wrap: wrap;
 }
 
 .note-editor {
