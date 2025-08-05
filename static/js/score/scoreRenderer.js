@@ -296,7 +296,7 @@ export function setKeySignature(keySignature) {
 
   return true;
 }
-export function drawAll(measures) {
+export function drawAll(measures, noScroll = false) {
   console.log("drawAll: START");
   const out = document.getElementById("score");
   if (!out) {
@@ -457,7 +457,8 @@ export function drawAll(measures) {
     }
 
     const scoreWrap = document.getElementById("scoreWrap");
-  scoreWrap.scrollLeft = scoreWrap.scrollWidth;
+    if (!noScroll) {scoreWrap.scrollLeft = scoreWrap.scrollWidth - scoreWrap.clientWidth;
+    }
   } catch (e) {
     console.error("drawAll: VexFlow rendering error:", e);
   }
@@ -1332,8 +1333,7 @@ function detectMeasureClick(x, y) {
  * @param {number} measureIndex - The index of the measure to scroll to.
  */
 
-
-export function scrollToMeasure(measureIndex) {
+export function scrollToMeasure(measureIndex, smoothScroll = true) {
   console.log("scrollToMeasure called with index", measureIndex);
   const scoreWrap = document.getElementById("scoreWrap");
   
@@ -1365,18 +1365,23 @@ export function scrollToMeasure(measureIndex) {
       return;
     }
 
-    scoreWrap.scrollTo({
-      left: targetScrollLeft,
-      behavior: "smooth",
-    });
-    console.log(`scrollToMeasure: Scrolled to measure ${measureIndex}.`);
+    if (smoothScroll) {
+      scoreWrap.scrollTo({
+        left: targetScrollLeft,
+        behavior: "smooth",
+      });
+    } else {
+      // Instant scroll
+      scoreWrap.scrollLeft = targetScrollLeft;
+    }
+    
+    console.log(`scrollToMeasure: Scrolled to measure ${measureIndex} (${smoothScroll ? 'smooth' : 'instant'}).`);
   } else {
     console.warn(
       `scrollToMeasure: Cannot scroll to measure ${measureIndex}. Measure position not found.`
     );
   }
 }
-
 
 // end scrolltomeasure function
 

@@ -55,7 +55,7 @@ export function setTimeSignature(numerator, denominator) {
   pianoState.timeSignature.denominator = denominator;
 
   // Redraw the score with new time signature
-  drawAll(getMeasures());
+  drawAll(getMeasures(), true);
   
   // Save to localStorage to persist the change
   saveToLocalStorage();
@@ -77,7 +77,7 @@ export function setTimeSignature(numerator, denominator) {
   pianoState.tempo = newTempo;
 
   // Redraw the score with new time signature
-  drawAll(getMeasures());
+  drawAll(getMeasures(), true);
   
   // Save to localStorage to persist the change
   saveToLocalStorage();
@@ -433,7 +433,8 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
 
     // Save history and handle side effects
     saveStateToHistory();
-    handleSideEffects();
+    drawAll(measuresData, true);
+    saveToLocalStorage();
 
     console.log(`addNoteToMeasure output: Note added with ID ${noteData.id}. Current beats - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}.`);
     return {
@@ -457,7 +458,8 @@ export function removeNoteFromMeasure(measureIndex, noteId) {
     if (removedNote) {
         // Save history AFTER the change is made
         saveStateToHistory();
-        handleSideEffects();
+            drawAll(measuresData, true);
+    saveToLocalStorage();
         console.log(`removeNoteFromMeasure output: Note with ID ${noteId} removed from measure ${measureIndex}. Removed note:`, removedNote);
     } else {
         console.log('removeNoteFromMeasure output: null (note not found)');
@@ -508,7 +510,8 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
     if (success) {
         // Save history AFTER the change is made
         saveStateToHistory();
-        handleSideEffects();
+    drawAll(measuresData, true);
+    saveToLocalStorage();
         console.log(`updateNoteInMeasure output: Note with ID ${noteId} updated at measure ${measureIndex}. Current beats - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}.`);
     }
 
@@ -550,7 +553,8 @@ export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureI
     saveStateToHistory();
 
     // Handle side effects once at the end
-    handleSideEffects();
+    drawAll(measuresData, true);
+    saveToLocalStorage();
 
     console.log(`moveNoteBetweenMeasures output: true. Note with ID ${fromNoteId} moved successfully.`);
     return true;

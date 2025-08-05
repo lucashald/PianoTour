@@ -95,7 +95,7 @@ function parseSingleNoteName(noteName) {
     return { letter, accidental, octave };
 }
 
-function renderNoteEditBox() {
+function renderNoteEditBox(smoothScroll = true) {
     const measures = getMeasures();
     if (editorSelectedMeasureIndex >= measures.length) {
         editorSelectedMeasureIndex = Math.max(0, measures.length - 1);
@@ -262,7 +262,7 @@ function renderNoteEditBox() {
         clearSelectedNoteHighlight();
         pianoState.currentSelectedNote = null;
     }
-    scrollToMeasure(editorSelectedMeasureIndex);
+    scrollToMeasure(editorSelectedMeasureIndex, smoothScroll); // Don't animate scroll
     console.log('scrolling to', editorSelectedMeasureIndex)
 }
 
@@ -326,7 +326,7 @@ function updateChordFromUI() {
     } else {
         updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: formatChord(chordNotes), isRest: false });
     }
-    renderNoteEditBox();
+    renderNoteEditBox(false);
 }
 
 function addNoteToChordUI() {
@@ -338,7 +338,7 @@ function addNoteToChordUI() {
     let currentChordNotes = isChord(selectedNote.name) ? parseChord(selectedNote.name) : [selectedNote.name];
     currentChordNotes.push('C4');
     updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: formatChord(currentChordNotes), isRest: false });
-    renderNoteEditBox();
+    renderNoteEditBox(false);
 }
 
 function removeNoteFromChordUI(noteIndexToRemove) {
@@ -354,7 +354,7 @@ function removeNoteFromChordUI(noteIndexToRemove) {
     } else {
         updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
     }
-    renderNoteEditBox();
+    renderNoteEditBox(false);
 }
 
 // ===================================================================
@@ -362,7 +362,7 @@ function removeNoteFromChordUI(noteIndexToRemove) {
 // ===================================================================
 
 export function initializeMusicEditor() {
-    renderNoteEditBox();
+    renderNoteEditBox(false); // Initial render without smooth scroll
     enableScoreInteraction(
         (measureIndex, wasNoteClicked) => changeMeasure(measureIndex, !wasNoteClicked),
         handleEditorNoteSelectClick
@@ -403,13 +403,13 @@ export function initializeMusicEditor() {
         if (target.id === 'editorRemoveNote') {
             removeNoteFromMeasure(editorSelectedMeasureIndex, editorSelectedNoteId);
             editorSelectedNoteId = null;
-            renderNoteEditBox();
+            renderNoteEditBox(false);
         }
         if (target.id === 'editorToggleClef') {
             const measures = getMeasures();
             const note = measures[editorSelectedMeasureIndex]?.find(n => n.id === editorSelectedNoteId);
             if (note) updateNoteInMeasure(editorSelectedMeasureIndex, note.id, { clef: note.clef === 'treble' ? 'bass' : 'treble' });
-            renderNoteEditBox();
+            renderNoteEditBox(false);
         }
         if (target.id === 'editorToggleRest') {
             const measures = getMeasures();
@@ -419,20 +419,20 @@ export function initializeMusicEditor() {
                 let newName = newIsRest ? "R" : (note.isRest ? "C4" : note.name);
                 updateNoteInMeasure(editorSelectedMeasureIndex, note.id, { isRest: newIsRest, name: newName });
             }
-            renderNoteEditBox();
+            renderNoteEditBox(false);
         }
         if (target.id === 'editorMoveToPrevMeasure') {
             if (editorSelectedNoteId !== null && editorSelectedMeasureIndex > 0) {
                 moveNoteBetweenMeasures(editorSelectedMeasureIndex, editorSelectedNoteId, editorSelectedMeasureIndex - 1);
                 editorSelectedNoteId = null;
-                renderNoteEditBox();
+                renderNoteEditBox(false);
             }
         }
         if (target.id === 'editorMoveToNextMeasure') {
             if (editorSelectedNoteId !== null) {
                 moveNoteBetweenMeasures(editorSelectedMeasureIndex, editorSelectedNoteId, editorSelectedMeasureIndex + 1);
                 editorSelectedNoteId = null;
-                renderNoteEditBox();
+                renderNoteEditBox(false);
             }
         }
 
@@ -494,7 +494,7 @@ export function initializeMusicEditor() {
         if (target.id === 'editorDurationDropdown') {
             updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
         }
-        renderNoteEditBox();
+        renderNoteEditBox(false);
         return;
     }
 
@@ -511,7 +511,7 @@ export function initializeMusicEditor() {
         updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
     }
     
-    renderNoteEditBox();
+    renderNoteEditBox(false);
 });
 
     document.addEventListener('noteDropped', (event) => {
@@ -563,7 +563,7 @@ export function initializeMusicEditor() {
             updateNoteInMeasure(fromMeasureIndex, fromNoteId, updatedNoteData);
             editorSelectedNoteId = fromNoteId;
         }
-        renderNoteEditBox();
+        renderNoteEditBox(false);
     });
 
     const durationDropdown = document.getElementById('editorDurationDropdown');

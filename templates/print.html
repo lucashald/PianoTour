@@ -31,12 +31,10 @@
       import { 
           getMeasures, 
           processAndSyncScore 
-      } from '/static/scoreWriter.js';
+      } from '/static/js/score/scoreWriter.js';
 
-      import { renderPrintScore } from '/static/print.js';
-      import { pianoState } from '/static/appState.js';
-
-      import '/static/note-data.js';
+      import { renderPrintScore } from '/static/js/utils/print.js';
+      import { pianoState } from '/static/js/core/appState.js';
 
       // Load score from localStorage and render
       document.addEventListener("DOMContentLoaded", () => {

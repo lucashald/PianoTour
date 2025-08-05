@@ -17,7 +17,7 @@ export class InstrumentControl {
         this.presets = {
             piano: {
                 name: 'Piano',
-                baseUrl: '/static/samples/',
+                baseUrl: '/static/samples/piano/',
                 sampleUrls: {
                     C2: "SteinwayD_m_C2_L.wav",
                     E2: "SteinwayD_m_E2_L.wav",
@@ -36,19 +36,19 @@ export class InstrumentControl {
                 envelopeSettings: {
                     attack: 0.01,   // Very quick attack - hammer strikes
                     decay: 0.3,     // Quick decay
-                    sustain: 0.8,   // Good sustain level
-                    release: 1.2,    // Natural decay of strings
+                    sustain: 0.5,   // Good sustain level
+                    release: 0.8,    // Natural decay of strings
 
                     // Piano effects
-                    reverb: { enabled: true, roomSize: 0.2, wet: 0.15 },
-                    compression: { enabled: true, threshold: -18, ratio: 4, attack: 0.003, release: 0.1 },
-                    eq: { enabled: true, low: +1, mid: 0, high: -1 }
+                    reverb: { enabled: true, roomSize: 0.7, wet: 0.25 },
+                    compression: { enabled: true, threshold: -15, ratio: 1.5, attack: 0.1, release: 0.3 },
+                    eq: { enabled: true, low: -1, mid: 1, high: 0 }
                 }
             },
 
             guitar: {
                 name: 'Guitar',
-                baseUrl: '/static/samples/',
+                baseUrl: '/static/samples/guitar/',
                 sampleUrls: {
                     "F#2": "nylonf42.wav",
                     C3: "nylonf48.wav",
@@ -60,48 +60,48 @@ export class InstrumentControl {
                     G5: "nylonf79.wav",
                 },
                 envelopeSettings: {
-                    attack: 0.02,   // Slightly slower attack - string pluck
-                    decay: 0.5,     // Longer decay
-                    sustain: 0.9,   // High sustain - strings ring
-                    release: 2.0,    // Long release - strings continue ringing
+                    attack: 0.0005,
+                    decay: 0.2,
+                    sustain: 0.2,
+                    release: 0.3,
 
                     // Guitar effects
-                    reverb: { enabled: true, roomSize: 0.4, wet: 0.25 },
-                    chorus: { enabled: true, frequency: 1.5, depth: 0.7, wet: 0.2 },
-                    compression: { enabled: true, threshold: -16, ratio: 6, attack: 0.003, release: 0.1 }
+                    reverb: { enabled: true, roomSize: 0.4, wet: 0.15 },
+                    eq: { enabled: true, low: -1, mid: 0, high: 1 },
+                    compression: { enabled: true, threshold: -10, ratio: 2.5, attack: 0.025, release: 0.08 }
                 }
             },
 
             cello: {
                 name: 'Cello',
-                baseUrl: '/static/samples/',
-                sampleUrls: {
-                    "C3": "CelloC3.wav",
-                    "A3": "CelloA3.wav",
-                    "C4": "CelloC4.wav",
-                    "D#4": "CelloD#4.wav",
-                    "E3": "CelloE3.wav",
-                    "A4": "CelloA4.wav",
-                    "F#4": "CelloF#4.wav",
-                    "D2": "CelloD2.wav",
-                    "C5": "CelloC5.wav",
-                    "G#4": "CelloG#4.wav",
-                },
+                baseUrl: '/static/samples/cello/',
+sampleUrls: {
+    "C2": "C2.wav",   // Or "C2_1.wav", "C2_2.wav", etc. if C2.wav doesn't exist
+    "G#2": "G#2.wav", // Or "G#2_1.wav", "G#2_2.wav", etc.
+    "F2": "F2.wav",   // Or "F2_1.wav", "F2_2.wav", etc.
+    "E2": "E2.wav",   // Or "E2_2.wav", "E2_3.wav", etc.
+    "D2": "D2.wav",   // Or "D2_1.wav", "D2_2.wav"
+    "C#2": "C#2.wav", // Or "C#2_2.wav", "C#2_3.wav"
+    "D#2": "D#2.wav", // Or "D#2_1.wav", "D#2_2.wav", etc.
+    "A2": "A2.wav",
+},
+
                 envelopeSettings: {
-                    attack: 0.03,   // Slower attack - bow engagement
-                    decay: 0.2,     // Quick decay to sustain
-                    sustain: 0.95,  // Very high sustain - bowed strings
-                    release: 1.5,    // Medium release
+                    attack: 0.08,   // Slower attack - bow engagement
+                    decay: 0.4,     // Quick decay to sustain
+                    sustain: 0.9,  // Very high sustain - bowed strings
+                    release: 1.8,    // Medium release
 
                     // Cello effects
-                    reverb: { enabled: true, roomSize: 0.6, wet: 0.3 },
-                    eq: { enabled: true, low: 2, mid: 0, high: -1 }
+                    reverb: { enabled: true, roomSize: 0.8, wet: 0.35 },
+                    eq: { enabled: true, low: 0, mid: 1, high: 0 },
+                    compression: { enabled: true, threshold: -10, ratio: 1.5, attack: 0.15, release: 0.4 }
                 }
             },
 
             sax: {
                 name: 'Saxophone',
-                baseUrl: '/static/samples/',
+                baseUrl: '/static/samples/sax/',
                 sampleUrls: {
                     A2: "TSAX45-2.wav",
                     "C#3": "TSAX49.wav",
@@ -118,10 +118,13 @@ export class InstrumentControl {
                     C6: "TSAX84-2.wav",
                 },
                 envelopeSettings: {
-                    attack: 0.03,   // Quick attack - breath/reed
-                    decay: 0.2,     // Very short decay
-                    sustain: 1.0,   // Full sustain - breath controlled
-                    release: 0.8    // Medium release
+                    attack: 0.04,   // Quick attack - breath/reed
+                    decay: 0.15,     // Very short decay
+                    sustain: 0.8,   // Full sustain - breath controlled
+                    release: 0.6,    // Medium release
+                    reverb: { enabled: true, roomSize: 0.5, wet: 0.2 },
+                    eq: { enabled: true, low: -1, mid: 1, high: 0 },
+                    compression: { enabled: true, threshold: -18, ratio: 3, attack: 0.005, release: 0.2 }
                 }
             }
         };
