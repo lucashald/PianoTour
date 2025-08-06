@@ -39,13 +39,13 @@ const DRUM_SAMPLE_BASE_URL = "/static/samples/drums/";
 
 const DRUM_SAMPLE_URLS = {
     // Kicks
-    "C2": "kick.wav",              // Kick (MIDI 36 - Acoustic Bass Drum)
-    "B1": "BOXKICK.wav",           // Bass Kick (MIDI 35 - Acoustic Bass Drum alternative)
+    "C2": "kick.wav",            // Kick (MIDI 36 - Acoustic Bass Drum)
+    "B1": "BOXKICK.wav",          // Bass Kick (MIDI 35 - Acoustic Bass Drum alternative)
 
     // Snares
-    "D2": "snare.wav",             // Snare (MIDI 38 - Acoustic Snare)
-    "C#2": "sidestick.wav",         // Stick (MIDI 37 - Side Stick/Rimshot - often near snare)
-    "F2": "rim.wav",               // Rimshot (MIDI 40 - Electric Snare, commonly used for rimshot)
+    "D2": "snare.wav",            // Snare (MIDI 38 - Acoustic Snare)
+    "C#2": "sidestick.wav",          // Stick (MIDI 37 - Side Stick/Rimshot - often near snare)
+    "F2": "rim.wav",            // Rimshot (MIDI 40 - Electric Snare, commonly used for rimshot)
 
     // Hi-Hats
     "F#2": "hi-hat.wav",           // Hi-Hat Closed (MIDI 42) - Using 'hi-hat.wav' as provided
@@ -598,6 +598,7 @@ export function handleDrumPlayback() {
                     // For duet, we want to ensure both stop.
                     // If piano has its own auto-stop, we need to ensure this doesn't conflict.
                     // For now, let's assume `stopDrumPlayback` is sufficient to stop the shared transport.
+                    // For a more robust solution, a shared stop function would be ideal.
                 }, maxPlaybackTime + 0.1); // Add a small buffer
             }
 
@@ -660,6 +661,57 @@ function calculateTotalPianoPlaybackDuration(pianoMeasures, bpm) {
 
 
 /**
+ * Helper function to schedule a single note or chord event.
+ */
+function scheduleNoteOrChord(note, noteStartTime, noteDurationInSeconds) {
+    if (note.isRest) {
+        return;
+    }
+
+    if (note.isChord) {
+        // Schedule all instruments in the chord
+        note.notes.forEach(individualNote => {
+            // Schedule note on
+            Tone.Transport.scheduleOnce((time) => {
+                triggerDrum(individualNote.drumInstrument, true, 1);
+            }, noteStartTime);
+            
+            // Schedule UI update (using the first instrument in the chord for display)
+            Tone.Transport.scheduleOnce((time) => {
+                Tone.Draw.schedule(() => {
+                    updateNowPlayingDisplay(individualNote.drumInstrument);
+                }, time);
+            }, noteStartTime);
+
+            // Schedule note off
+            const noteEndTime = noteStartTime + noteDurationInSeconds;
+            Tone.Transport.scheduleOnce((time) => {
+                triggerDrum(individualNote.drumInstrument, false);
+            }, noteEndTime);
+        });
+    } else {
+        // Schedule a single note
+        // Schedule note on
+        Tone.Transport.scheduleOnce((time) => {
+            triggerDrum(note.drumInstrument, true, 1);
+        }, noteStartTime);
+
+        // Schedule UI update
+        Tone.Transport.scheduleOnce((time) => {
+            Tone.Draw.schedule(() => {
+                updateNowPlayingDisplay(note.drumInstrument);
+            }, time);
+        }, noteStartTime);
+
+        // Schedule note off
+        const noteEndTime = noteStartTime + noteDurationInSeconds;
+        Tone.Transport.scheduleOnce((time) => {
+            triggerDrum(note.drumInstrument, false);
+        }, noteEndTime);
+    }
+}
+
+/**
  * Schedule drum events on the Transport
  */
 function scheduleDrumEvents(drumMeasures, bpm) {
@@ -687,25 +739,8 @@ function scheduleDrumEvents(drumMeasures, bpm) {
             const noteDurationInSeconds = beatDuration * secondsPerBeat;
             const noteStartTime = currentTransportTime + measureOffset;
 
-            if (!note.isRest) {
-                // Schedule note on
-                Tone.Transport.scheduleOnce((time) => {
-                    triggerDrum(note.drumInstrument, true, 1);
-                }, noteStartTime);
-
-                // Schedule UI update
-                Tone.Transport.scheduleOnce((time) => {
-                    Tone.Draw.schedule(() => {
-                        updateNowPlayingDisplay(note.drumInstrument);
-                    }, time);
-                }, noteStartTime);
-
-                // Schedule note off
-                const noteEndTime = noteStartTime + noteDurationInSeconds;
-                Tone.Transport.scheduleOnce((time) => {
-                    triggerDrum(note.drumInstrument, false);
-                }, noteEndTime);
-            }
+            // Use the new helper function to handle both notes and chords
+            scheduleNoteOrChord(note, noteStartTime, noteDurationInSeconds);
 
             measureOffset += noteDurationInSeconds;
         });

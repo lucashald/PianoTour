@@ -17,176 +17,175 @@ const { StaveNote, Stem, Annotation, Articulation, Stroke } = Vex.Flow;
  * 'isRest' indicates if the element is a rest.
  */
 // core/drum-data.js
-
 export const DRUM_INSTRUMENT_MAP = {
-  "kick": {
-    name: "Kick Drum",
-    keys: ["F/4"], // VexFlow key for rendering (bass clef F3)
-    notehead: "x",
-    stemDirection: 1, // Down
-    midi: 36, // General MIDI Standard for Kick Drum 1 (Acoustic Bass Drum)
-    filename: "kick.wav", // Path to your cleaned kick drum sample
-  },
-  "snare": {
-    name: "Snare Drum",
-    keys: ["C/5"],
+  "bongo-low": {
+    name: "Low Bongo",
+    keys: ["D/3"], // Assigned to the lowest available note for low percussion.
     notehead: "x",
     stemDirection: 1,
-    midi: 38, // General MIDI Standard for Acoustic Snare
-    filename: "snare.wav", // Path to your cleaned snare drum sample
-  },
-  "hihat-closed": {
-    name: "Closed Hi-Hat",
-    keys: ["G#/5"], // VexFlow key for rendering (treble clef C5)
-    notehead: "x",
-    stemDirection: -1, // Up
-    modifiers: [], // Articulation for closed hi-hat
-    midi: 42, // General MIDI Standard for Closed Hi-Hat
-    filename: "hihat-closed.wav", // Path to your cleaned closed hi-hat sample
-  },
-  "hihat-open": {
-    name: "Open Hi-Hat",
-    keys: ["G/5"],
-    notehead: "x",
-    stemDirection: -1,
-    modifiers: [], // Articulation for open hi-hat
-    midi: 46, // General MIDI Standard for Open Hi-Hat
-    filename: "hihat-open.wav", // Path to your cleaned open hi-hat sample
-  },
-  "crash": {
-    name: "Crash Cymbal",
-    keys: ["A/5"], // Typically above staff, C6 is common for Crash 1
-    notehead: "x",
-    stemDirection: -1,
-    midi: 49, // General MIDI Standard for Crash Cymbal 1
-    filename: "crash.wav", // Path to your cleaned crash cymbal sample
-  },
-  "ride": {
-    name: "Ride Cymbal",
-    keys: ["G/5"], // Typically above staff, G5 is common for Ride 1
-    notehead: "x",
-    stemDirection: -1,
-    midi: 51, // General MIDI Standard for Ride Cymbal 1
-    filename: "ride.wav", // Path to your cleaned ride cymbal sample
-  },
-  "tom-high": {
-    name: "High Tom",
-    keys: ["E/5"],
-    notehead: "x",
-    stemDirection: -1,
-    midi: 48, // General MIDI Standard for High Tom
-    filename: "high-tom.wav", // Path to your cleaned high tom sample
-  },
-  "tom-low": {
-    name: "Low Tom",
-    keys: ["A/4"], // Often on E4 or D4
-    notehead: "x",
-    stemDirection: 1,
-    midi: 45, // General MIDI Standard for Low Tom
-    filename: "low-tom.wav", // Path to your cleaned low tom sample
-  },
-  "clap": {
-    name: "Clap",
-    keys: ["D/4"], // A common position for clap, adjust if needed
-    notehead: "x",
-    stemDirection: 1,
-    midi: 39, // Hand Clap
-    filename: "clap.wav", // Path to your cleaned clap sample
-  },
-  "cowbell": {
-    name: "Cowbell",
-    keys: ["E/5"], // A common position for cowbell
-    notehead: "x",
-    stemDirection: 1,
-    midi: 56, // Cowbell
-    filename: "cowbell.wav", // Path to your cleaned cowbell sample
-  },
-  "conga": {
-    name: "Conga",
-    keys: ["A/4"], // A common position for conga (High Conga)
-    notehead: "x",
-    stemDirection: 1,
-    midi: 62, // High Conga
-    filename: "conga.wav", // Path to your cleaned conga sample
-  },
-  "shaker": {
-    name: "Shaker",
-    keys: ["D/5"], // A common position for shaker
-    notehead: "x",
-    stemDirection: -1,
-    midi: 82, // Shaker (or other percussion if more specific is needed)
-    filename: "shaker.wav", // Path to your cleaned shaker sample
-  },
-  "cymbal": {
-    name: "Cymbal",
-    keys: ["B/5"],
-    notehead: "x",
-    stemDirection: -1,
-    midi: 55, // Ride Cymbal 2, or a general crash/cymbal sound
-    filename: "cymbal.wav",
-  },
-  "rest": {
-    name: "Rest",
-    keys: ["B/4"], // Default VexFlow key for rests (will be overridden by duration 'r' suffix)
-    notehead: "r", // Not directly used as a notehead, but indicates a rest.
-    stemDirection: 0,
-    midi: null, // Rests do not have a MIDI number
+    midi: 61,
+    filename: "BONGOLO.wav",
   },
   "bass-kick": {
     name: "Bass Kick",
-    keys: ["E/4"], // Lower than standard kick to differentiate, if needed
+    keys: ["E/3"], // Positioned just above the lowest note, distinct from the main kick.
     notehead: "x",
     stemDirection: 1,
-    midi: 35, // Acoustic Bass Drum (lower octave alternative)
+    midi: 35,
     filename: "BOXKICK.wav",
   },
-  "sidestick": {
-    name: "Stick",
-    keys: ["C/6"], // Often placed high on the staff
+  "kick": {
+    name: "Kick Drum",
+    keys: ["F/3"], // Traditional bass drum position, low on the staff.
     notehead: "x",
-    stemDirection: -1,
-    midi: 37, // Side Stick
-    filename: "sidestick.wav",
+    stemDirection: 1,
+    midi: 36,
+    filename: "kick.wav",
   },
   "rimshot": {
     name: "Rimshot",
-    keys: ["C/4"], // Same as snare, but can be differentiated with modifiers
+    keys: ["G/3"], // Placed distinct from the snare, but in a related lower-mid range.
     notehead: "x",
     stemDirection: 1,
-    midi: 40, // Electric Snare (often used for rimshot if no specific rimshot MIDI)
+    midi: 40,
     filename: "rim.wav",
-  },
-  "tom-mid": {
-    name: "Mid Tom",
-    keys: ["D/5"], // Between low and high tom
-    notehead: "x",
-    stemDirection: -1,
-    midi: 47, // Low-Mid Tom
-    filename: "MIDTOM.wav",
-  },
-  "bongo-low": {
-    name: "Low Bongo",
-    keys: ["A/3"], // Low percussion
-    notehead: "x",
-    stemDirection: 1,
-    midi: 61, // Low Bongo
-    filename: "BONGOLO.wav",
   },
   "bongo-high": {
     name: "High Bongo",
-    keys: ["C/4"], // High percussion
+    keys: ["A/3"], // Positioned above the low bongo to maintain relative pitch.
     notehead: "x",
     stemDirection: 1,
-    midi: 60, // High Bongo
+    midi: 60,
     filename: "BONGOHI.wav",
+  },
+  "clap": {
+    name: "Clap",
+    keys: ["B/3"], // A mid-low auxiliary percussion sound.
+    notehead: "x",
+    stemDirection: 1,
+    midi: 39,
+    filename: "clap.wav",
+  },
+  "snare": {
+    name: "Snare Drum",
+    keys: ["C/4"], // Traditional snare drum position, in the middle of the staff.
+    notehead: "x",
+    stemDirection: 1,
+    midi: 38,
+    filename: "snare.wav",
+  },
+  "conga": {
+    name: "Conga",
+    keys: ["D/4"], // A mid-range auxiliary percussion sound.
+    notehead: "x",
+    stemDirection: 1,
+    midi: 62,
+    filename: "conga.wav",
   },
   "claves": {
     name: "Claves",
-    keys: ["G/4"], // Common position for claves
+    keys: ["E/4"], // Another mid-range auxiliary sound.
     notehead: "x",
     stemDirection: 1,
-    midi: 75, // Claves
+    midi: 75,
     filename: "claves.wav",
+  },
+  "tom-low": {
+    name: "Low Tom",
+    keys: ["F/4"], // The lowest tom, placed above the snare and other lower percussion.
+    notehead: "x",
+    stemDirection: 1,
+    midi: 45,
+    filename: "low-tom.wav",
+  },
+  "tom-mid": {
+    name: "Mid Tom",
+    keys: ["G/4"], // The middle tom, maintaining relative pitch to other toms.
+    notehead: "x",
+    stemDirection: -1,
+    midi: 47,
+    filename: "MIDTOM.wav",
+  },
+  "tom-high": {
+    name: "High Tom",
+    keys: ["A/4"], // The highest tom, maintaining relative pitch.
+    notehead: "x",
+    stemDirection: -1,
+    midi: 48,
+    filename: "high-tom.wav",
+  },
+  "rest": {
+    name: "Rest",
+    keys: ["B/4"], // Default rest position within the specified range.
+    notehead: "r",
+    stemDirection: 0,
+    midi: null,
+  },
+  "shaker": {
+    name: "Shaker",
+    keys: ["C/5"], // A higher auxiliary percussion sound.
+    notehead: "x",
+    stemDirection: -1,
+    midi: 82,
+    filename: "shaker.wav",
+  },
+  "cowbell": {
+    name: "Cowbell",
+    keys: ["D/5"], // Traditionally placed high on the staff.
+    notehead: "x",
+    stemDirection: 1,
+    midi: 56,
+    filename: "cowbell.wav",
+  },
+  "hihat-closed": {
+    name: "Closed Hi-Hat",
+    keys: ["E/5"], // A unique high position, separate from the open hi-hat.
+    notehead: "x",
+    stemDirection: -1,
+    modifiers: [],
+    midi: 42,
+    filename: "hihat-closed.wav",
+  },
+  "hihat-open": {
+    name: "Open Hi-Hat",
+    keys: ["F/5"], // Placed adjacent to the closed hi-hat for visual grouping.
+    notehead: "x",
+    stemDirection: -1,
+    modifiers: [],
+    midi: 46,
+    filename: "hihat-open.wav",
+  },
+  "sidestick": {
+    name: "Stick",
+    keys: ["G/5"], // Placed high to visually differentiate its "click" sound from the snare.
+    notehead: "x",
+    stemDirection: -1,
+    midi: 37,
+    filename: "sidestick.wav",
+  },
+  "cymbal": {
+    name: "Cymbal",
+    keys: ["A/5"], // A general cymbal sound, placed high and distinct from crash and ride.
+    notehead: "x",
+    stemDirection: -1,
+    midi: 55,
+    filename: "cymbal.wav",
+  },
+  "crash": {
+    name: "Crash Cymbal",
+    keys: ["B/5"], // Traditional crash cymbal position, high on the staff.
+    notehead: "x",
+    stemDirection: -1,
+    midi: 49,
+    filename: "crash.wav",
+  },
+  "ride": {
+    name: "Ride Cymbal",
+    keys: ["C/6"], // Traditional ride cymbal position, the highest note on the staff.
+    notehead: "x",
+    stemDirection: -1,
+    midi: 51,
+    filename: "ride.wav",
   },
 };
 

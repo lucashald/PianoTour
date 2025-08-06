@@ -1,0 +1,159 @@
+<div
+  class="drum-pattern-editor"
+  id="drumPatternEditor"
+>
+  <div class="pattern-editor__header">
+    <button
+      class="pattern-editor__toggle"
+      id="patternEditorToggle"
+      type="button"
+      aria-expanded="true"
+      aria-controls="patternEditorContent"
+    >
+      <span class="pattern-editor__toggle-icon" id="patternToggleIcon">▼</span>
+      <span class="pattern-editor__toggle-text">Pattern Editor</span>
+    </button>
+    
+    <div class="pattern-editor__controls">
+      <button class="pattern-editor__btn pattern-editor__btn--clear" id="clearPatternBtn" type="button">
+        Clear Pattern
+      </button>
+      <button class="pattern-editor__btn pattern-editor__btn--add" id="addPatternToScoreBtn" type="button">
+        Add to Score
+      </button>
+      <button class="pattern-editor__btn pattern-editor__btn--preview" id="loopPreviewBtn" type="button">
+        <span id="loopPreviewBtnText">Loop Preview</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="pattern-editor__content" id="patternEditorContent">
+    <div class="pattern-grid" id="patternGrid">
+      
+      <div class="pattern-grid__header-cell"></div> {% for step in range(1, 9) %}
+      <div class="pattern-grid__step-number" data-step="{{ step }}">
+        {{ step }}
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="bass-kick"><span>Box Kick</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="bass-kick" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-bass-kick-{{ step }}" data-instrument="bass-kick" data-step="{{ step }}" aria-label="Box Kick step {{ step }}" />
+        <label for="grid-bass-kick-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="sidestick"><span>Stick</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="sidestick" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-sidestick-{{ step }}" data-instrument="sidestick" data-step="{{ step }}" aria-label="Stick step {{ step }}" />
+        <label for="grid-sidestick-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="snare"><span>Snare</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="snare" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-snare-{{ step }}" data-instrument="snare" data-step="{{ step }}" aria-label="Snare step {{ step }}" />
+        <label for="grid-snare-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="tom-low"><span>Low Tom</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="tom-low" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-tom-low-{{ step }}" data-instrument="tom-low" data-step="{{ step }}" aria-label="Low Tom step {{ step }}" />
+        <label for="grid-tom-low-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="tom-mid"><span>Mid Tom</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="tom-mid" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-tom-mid-{{ step }}" data-instrument="tom-mid" data-step="{{ step }}" aria-label="Mid Tom step {{ step }}" />
+        <label for="grid-tom-mid-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="tom-high"><span>High Tom</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="tom-high" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-tom-high-{{ step }}" data-instrument="tom-high" data-step="{{ step }}" aria-label="High Tom step {{ step }}" />
+        <label for="grid-tom-high-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+      
+      <div class="pattern-grid__instrument-label" data-instrument="hihat-closed"><span>Hi-Hat</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="hihat-closed" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-hihat-closed-{{ step }}" data-instrument="hihat-closed" data-step="{{ step }}" aria-label="Hi-Hat step {{ step }}" />
+        <label for="grid-hihat-closed-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="hihat-open"><span>Open Hat</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="hihat-open" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-hihat-open-{{ step }}" data-instrument="hihat-open" data-step="{{ step }}" aria-label="Open Hat step {{ step }}" />
+        <label for="grid-hihat-open-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+      
+      <div class="pattern-grid__instrument-label" data-instrument="crash"><span>Crash</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="crash" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-crash-{{ step }}" data-instrument="crash" data-step="{{ step }}" aria-label="Crash step {{ step }}" />
+        <label for="grid-crash-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="ride"><span>Ride</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="ride" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-ride-{{ step }}" data-instrument="ride" data-step="{{ step }}" aria-label="Ride step {{ step }}" />
+        <label for="grid-ride-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+      
+      <div class="pattern-grid__instrument-label" data-instrument="bongo-low"><span>Low Bongo</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="bongo-low" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-bongo-low-{{ step }}" data-instrument="bongo-low" data-step="{{ step }}" aria-label="Low Bongo step {{ step }}" />
+        <label for="grid-bongo-low-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="bongo-high"><span>High Bongo</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="bongo-high" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-bongo-high-{{ step }}" data-instrument="bongo-high" data-step="{{ step }}" aria-label="High Bongo step {{ step }}" />
+        <label for="grid-bongo-high-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="clap"><span>Clap</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="clap" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-clap-{{ step }}" data-instrument="clap" data-step="{{ step }}" aria-label="Clap step {{ step }}" />
+        <label for="grid-clap-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+
+      <div class="pattern-grid__instrument-label" data-instrument="cowbell"><span>Cowbell</span></div>
+      {% for step in range(1, 9) %}
+      <div class="pattern-grid__cell" data-instrument="cowbell" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-cowbell-{{ step }}" data-instrument="cowbell" data-step="{{ step }}" aria-label="Cowbell step {{ step }}" />
+        <label for="grid-cowbell-{{ step }}" class="pattern-grid__cell-label"></label>
+      </div>
+      {% endfor %}
+      
+      <div class="pattern-grid__header-cell"></div> {% for step in range(1, 9) %}
+      <div class="pattern-grid__playback-step" data-step="{{ step }}">
+        <span class="pattern-grid__playback-marker"></span>
+      </div>
+      {% endfor %}
+
+    </div>
+  </div>
+</div>

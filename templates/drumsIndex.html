@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Interactive Piano Studio with Drums{% endblock %}</title>
+    <title>
+      {% block title %}Interactive Piano Studio with Drums{% endblock %}
+    </title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/pianostyles.css') }}"
@@ -19,7 +21,6 @@
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
     {% block head_extra %}{% endblock %}
-    
   </head>
   <body id="page-instrument">
     <audio id="unlock-audio" preload="auto" style="display: none">
@@ -54,7 +55,6 @@
             <div class="score-viewer__content" id="score"></div>
           </div>
         </section>
-
         <section class="instrument-panel">
           {% block spectrum %} {% if not hide_spectrum %} {% include
           'partials/_spectrum.html' %} {% endif %} {% endblock %}
@@ -67,129 +67,135 @@
           </div>
         </section>
 
+        <div class="drum-controls">
+          <div class="drum-controls__section">
+            <h4 class="drum-controls__section-title">
+              Drum Instruments & Duration
+            </h4>
+            <div
+              class="drum-switches-container"
+              id="drumButtonContainer"
+              style="
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 0.5em;
+              "
+            >
+              <div class="drum-step-button" data-drum="bass-kick">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Box Kick</span>
+              </div>
+              <div class="drum-step-button" data-drum="sidestick">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Stick</span>
+              </div>
+              <div class="drum-step-button" data-drum="snare">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Snare</span>
+              </div>
+              <div class="drum-step-button" data-drum="tom-low">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Low Tom</span>
+              </div>
+              <div class="drum-step-button" data-drum="tom-mid">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Mid Tom</span>
+              </div>
+              <div class="drum-step-button" data-drum="tom-high">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">High Tom</span>
+              </div>
+
+              <div class="drum-step-button" data-drum="hihat-closed">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Hi-Hat</span>
+              </div>
+              <div class="drum-step-button" data-drum="hihat-open">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Open Hat</span>
+              </div>
+              <div class="drum-step-button" data-drum="crash">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Crash</span>
+              </div>
+              <div class="drum-step-button" data-drum="ride">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Ride</span>
+              </div>
+              <div class="drum-step-button" data-drum="bongo-low">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Low Bongo</span>
+              </div>
+              <div class="drum-step-button" data-drum="bongo-high">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">High Bongo</span>
+              </div>
+
+              <div class="drum-step-button" data-drum="clap">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Clap</span>
+              </div>
+              <div class="drum-step-button" data-drum="cowbell">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Cowbell</span>
+              </div>
+              <div class="drum-step-button" data-drum="rest">
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Rest</span>
+              </div>
+
+              <div
+                class="drum-step-button"
+                data-duration="16"
+                id="drum-sixteenth-btn-new"
+              >
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">16th</span>
+              </div>
+              <div
+                class="drum-step-button"
+                data-duration="8"
+                id="drum-eighth-btn-new"
+              >
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">8th</span>
+              </div>
+              <div
+                class="drum-step-button"
+                data-duration="q"
+                id="drum-quarter-btn-new"
+              >
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Quarter</span>
+              </div>
+              <div
+                class="drum-step-button"
+                data-duration="h"
+                id="drum-half-btn-new"
+              >
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Half</span>
+              </div>
+              <div
+                class="drum-step-button"
+                data-duration="w"
+                id="drum-whole-btn-new"
+              >
+                <div class="indicator"></div>
+                <span class="drum-step-button-label">Whole</span>
+              </div>
+              
+            </div>
+            {% include 'partials/_drumGrid.html' %}
+          </div>
+
+          <div class="drum-controls__section">
+            <div
+              class="drum-controls__button-row drum-controls__button-row--centered"
+            ></div>
+          </div>
+        </div>
         
-    <div class="drum-controls">
-
-      <div class="drum-controls__section">
-        <h4 class="drum-controls__section-title">Drum Instruments & Duration</h4>
-        <div class="drum-switches-container" id="drumButtonContainer" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5em;">
-          <div class="drum-step-button" data-drum="bass-kick">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Box Kick</span>
-          </div>
-          <div class="drum-step-button" data-drum="kick">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Kick</span>
-          </div>
-          <div class="drum-step-button" data-drum="sidestick">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Stick</span>
-          </div>
-          <div class="drum-step-button" data-drum="snare">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Snare</span>
-          </div>
-          <!-- Rimshot button inserted here -->
-          <div class="drum-step-button" data-drum="rimshot">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Rimshot</span>
-          </div>
-          <!-- Tom buttons reordered: Low, Mid, High -->
-          <div class="drum-step-button" data-drum="tom-low">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Low Tom</span>
-          </div>
-          <div class="drum-step-button" data-drum="tom-mid">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Mid Tom</span>
-          </div>
-          <div class="drum-step-button" data-drum="tom-high">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">High Tom</span>
-          </div>
-
-          <div class="drum-step-button" data-drum="hihat-closed">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Hi-Hat</span>
-          </div>
-          <div class="drum-step-button" data-drum="hihat-open">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Open Hat</span>
-          </div>
-          <div class="drum-step-button" data-drum="crash">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Crash</span>
-          </div>
-          <div class="drum-step-button" data-drum="ride">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Ride</span>
-          </div>
-          <!-- Low Bongo and High Bongo buttons inserted here -->
-          <div class="drum-step-button" data-drum="bongo-low">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Low Bongo</span>
-          </div>
-          <div class="drum-step-button" data-drum="bongo-high">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">High Bongo</span>
-          </div>
-
-          <div class="drum-step-button" data-drum="clap">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Clap</span>
-          </div>
-          <div class="drum-step-button" data-drum="cowbell">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Cowbell</span>
-          </div>
-          <div class="drum-step-button" data-drum="conga">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Conga</span>
-          </div>
-          <div class="drum-step-button" data-drum="cymbal">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Cymbal</span>
-          </div>
-          <div class="drum-step-button" data-drum="claves">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Claves</span>
-          </div>
-          <div class="drum-step-button" data-drum="rest">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Rest</span>
-          </div>
-
-          <div class="drum-step-button" data-duration="16" id="drum-sixteenth-btn-new">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">16th</span>
-          </div>
-          <div class="drum-step-button" data-duration="8" id="drum-eighth-btn-new">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">8th</span>
-          </div>
-          <div class="drum-step-button" data-duration="q" id="drum-quarter-btn-new">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Quarter</span>
-          </div>
-          <div class="drum-step-button" data-duration="h" id="drum-half-btn-new">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Half</span>
-          </div>
-          <!-- Whole duration button added here -->
-          <div class="drum-step-button" data-duration="w" id="drum-whole-btn-new">
-            <div class="indicator"></div>
-            <span class="drum-step-button-label">Whole</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="drum-controls__section">
-        <div class="drum-controls__button-row drum-controls__button-row--centered">
-
-
-        </div>
-      </div>
-    </div>
 
         <nav class="main-controls">
           <div class="controls-button-row">
@@ -197,12 +203,12 @@
               Clear Piano Score
             </button>
             <button id="clear-drum-score-btn" class="btn btn--danger">
-            Clear Drum Score
-          </button>
+              Clear Drum Score
+            </button>
             <button id="undo-btn" class="btn btn--danger">Undo Piano</button>
-                      <button id="undo-drum-btn" class="btn btn--danger">
-            Undo Drum
-          </button>
+            <button id="undo-drum-btn" class="btn btn--danger">
+              Undo Drum
+            </button>
             <button id="key-signature-btn" class="btn btn--info">
               Key Signature
             </button>
@@ -217,8 +223,9 @@
           </div>
 
           <div class="controls-button-row">
-            {% block toggles %}{% endblock %}
-            {% if request.path != '/' %}<a href="/" class="btn btn--info"
+            {% block toggles %}{% endblock %} {% if request.path != '/' %}<a
+              href="/"
+              class="btn btn--info"
               ><span>Piano</span></a
             >{% endif %} {% if request.path != '/cello' %}<a
               href="/cello"
@@ -247,9 +254,6 @@
         </nav>
       </main>
     </div>
-
-
-
 
     <script type="module">
       // --- All your common JavaScript from the original file goes here ---
@@ -309,12 +313,13 @@
         initializeDrumAudioModule,
         handleDrumPlayback, // Now handled by drumAudio.js
       } from '{{ url_for("static", filename="js/drums/drumAudio.js") }}';
-
+import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drumGrid.js") }}';
       document.addEventListener("DOMContentLoaded", () => {
         // Moved setupDrumPlaybackButton and setupDrumControls into initializeDrumAudioModule
         // initializeDrumAudioModule now encapsulates all drum-related listeners and setup
         initializeDrumAudioModule();
         initializeImmediateUI();
+        initializeDrumGrid();
 
         // PHASE 2: Defer heavy operations to next tick
         setTimeout(() => {
@@ -406,7 +411,10 @@
           document.documentElement.clientHeight || 0,
           window.innerHeight || 0
         );
-        root.style.setProperty("--score-min-width", Math.min(vw * 0.9, 1100) + "px");
+        root.style.setProperty(
+          "--score-min-width",
+          Math.min(vw * 0.9, 1100) + "px"
+        );
         root.style.setProperty("--score-min-height", "400px");
         root.style.setProperty(
           "--instrument-min-width",
@@ -453,7 +461,7 @@
 
       async function loadScoreFromStorage() {
         const savedScoreJSON = localStorage.getItem("autosavedScore");
-        
+
         if (!savedScoreJSON) {
           console.log("📝 No saved piano score found");
           return;
@@ -461,7 +469,9 @@
         try {
           updateLoadingMessage("🔄 Loading saved piano score...");
           const savedData = await parseJSONAsync(savedScoreJSON);
-          const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+          const measures = Array.isArray(savedData)
+            ? savedData
+            : savedData.measures;
           if (processAndSyncScore(measures)) {
             if (!Array.isArray(savedData)) {
               applyScoreMetadata(savedData);
@@ -489,7 +499,9 @@
         try {
           updateDrumLoadingMessage("🔄 Loading saved drum score...");
           const savedData = await parseJSONAsync(savedDrumScoreJSON);
-          const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+          const measures = Array.isArray(savedData)
+            ? savedData
+            : savedData.measures;
           if (processAndSyncDrumScore(measures)) {
             if (!Array.isArray(savedData)) {
               applyDrumScoreMetadata(savedData);
@@ -586,7 +598,10 @@
 
       function updateDrumLoadingMessage(message) {
         const drumScoreElement = document.getElementById("drums-score");
-        if (drumScoreElement && drumScoreElement.innerHTML.includes("Loading")) {
+        if (
+          drumScoreElement &&
+          drumScoreElement.innerHTML.includes("Loading")
+        ) {
           drumScoreElement.innerHTML = `
           <div style="display: flex; align-items: center; justify-content: center; min-height: 200px; color: #666; font-style: italic;">
             <span>${message}</span>
@@ -612,7 +627,9 @@
             }
           });
           if (success) {
-            console.log("✅ Audio and MIDI systems are now live (or were already).");
+            console.log(
+              "✅ Audio and MIDI systems are now live (or were already)."
+            );
           } else {
             console.warn("❌ Failed to initialize audio/MIDI system.");
           }

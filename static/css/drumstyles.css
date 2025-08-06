@@ -97,30 +97,19 @@
 .drum-step-button:nth-child(11),
 .drum-step-button:nth-child(12),
 .drum-step-button:nth-child(13),
-.drum-step-button:nth-child(14),
-.drum-step-button:nth-child(15) {
+.drum-step-button:nth-child(14) {
   background-color: #f1c40f;
 }
 
 /* Next 4 Pale yellow/cream to beige elements (with black text) */
-.drum-step-button:nth-child(16) {
+.drum-step-button:nth-child(15) {
   background-color: #F0EAD6; /* Very light yellow/beige (from original image) */
   color: black;
 }
-.drum-step-button:nth-child(17) {
-  background-color: #E8E5D9; /* Slightly paler beige */
-  color: black;
-}
-.drum-step-button:nth-child(18) {
-  background-color: #E0E0D0; /* Paler beige */
-  color: black;
-}
-.drum-step-button:nth-child(19) {
-  background-color: #D8D8C7; /* Even paler beige */
-  color: black;
-}
-
-/* The very last element is pure white (with black text) */
+.drum-step-button:nth-child(16),
+.drum-step-button:nth-child(17),
+.drum-step-button:nth-child(18),
+.drum-step-button:nth-child(19),
 .drum-step-button:nth-child(20) {
   background-color: #FFFFFF; /* Pure White */
   color: black;
@@ -151,3 +140,227 @@
         justify-content: center;
         gap: 10px; /* Space between buttons */
       }
+
+/* --- Main Container and Header --- */
+
+
+/* --- Corrected Pattern Editor CSS (v3) --- */
+
+/* --- Pattern Editor Container --- */
+
+.drum-pattern-editor {
+    background-color: #04273C;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 1rem 0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    color: #eee;
+    font-family: Arial, sans-serif;
+}
+
+/* --- Header & Buttons --- */
+
+.pattern-editor__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.pattern-editor__toggle {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s;
+}
+
+.pattern-editor__toggle:hover {
+    color: #f1c40f;
+}
+
+.pattern-editor__btn {
+    padding: 10px 18px;
+    border-radius: 6px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pattern-editor__btn--clear {
+    background-color: #CC0000;
+    color: #fff;
+}
+
+.pattern-editor__btn--add {
+    background-color: #CC5200;
+    color: #fff;
+}
+
+.pattern-editor__btn--preview {
+    background-color:  rgb(118, 181, 149);
+    color: #fff;
+}
+
+.pattern-editor__btn:hover {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.pattern-editor__btn:active {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* --- The Main Grid --- */
+
+.pattern-grid {
+    display: grid;
+    /* This is the key fix: one column for labels and 8 for steps */
+    grid-template-columns: 150px repeat(8, 55px);
+    gap: 12px;
+    align-items: center;
+    overflow-x: auto;
+    padding: 10px;
+}
+
+/* Grid Header (for step numbers) */
+
+.pattern-grid__header-cell {
+    /* Empty cell for first column */
+    width: 100%;
+    height: 100%;
+}
+
+.pattern-grid__step-number {
+    justify-self: center;
+    font-size: 0.9em;
+    color: #a7b7c9;
+}
+
+/* Instrument Labels */
+
+.pattern-grid__instrument-label {
+    justify-self: end;
+    padding-right: 10px;
+    font-weight: bold;
+    font-size: 1em;
+    text-transform: uppercase;
+    color: #b0c4de;
+}
+
+/* The actual clickable cells */
+.pattern-grid__cell {
+    width: 55px;
+    height: 55px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2px;
+}
+
+/* --- Custom Checkbox Styling --- */
+
+/* Hide the native checkbox input */
+.pattern-grid__checkbox {
+    display: none;
+}
+
+/* Style the visible label */
+.pattern-grid__cell-label {
+    display: block;
+    width: 50px;
+    height: 50px;
+    background-color: #333;
+    border-radius: 6px;
+    border: 1px solid #555;
+    cursor: pointer;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+    transition: background-color 0.2s, box-shadow 0.1s, transform 0.1s;
+}
+
+/* Hover and Active states */
+.pattern-grid__cell-label:hover {
+    background-color: #444;
+}
+
+.pattern-grid__checkbox:checked + .pattern-grid__cell-label {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px #f1c40f;
+}
+
+.pattern-grid__cell[data-instrument="bass-kick"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="sidestick"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="snare"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="tom-low"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="tom-mid"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label {
+  background-color: #E60000;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px #E60000;
+}
+
+/* Next 5 Orange elements */
+.pattern-grid__cell[data-instrument="tom-high"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="hihat-closed"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="hihat-open"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="crash"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="ride"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label {
+  background-color: #FF6600;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px #FF6600;
+}
+
+/* Next 4 Yellow elements */
+.pattern-grid__cell[data-instrument="bongo-low"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="bongo-high"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="clap"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="cowbell"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label {
+  background-color: #f1c40f;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px #f1c40f;
+}
+/* --- Playback Indicator (808 Style) --- */
+
+.pattern-grid__playback-step {
+  padding: 20px;
+    justify-self: center;
+    align-self: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    /* Muted, unlit LED look */
+    background-color: #333;
+    border: 2px solid #555;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    transition: background-color 0.1s, box-shadow 0.1s;
+    pointer-events: none;
+}
+
+.pattern-grid__playback-marker {
+    display: none;
+}
+
+.pattern-grid__playback-step.active {
+    /* Vibrant, lit-up LED color */
+    background-color: #E60000;
+    
+    /* Stronger, focused glow */
+    box-shadow: 
+        0 0 5px #E60000, 
+        0 0 10px #E60000, 
+        inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    
+    /* A clean, rhythmic pulse */
+    animation: 808-pulse 0.5s ease-out infinite alternate;
+}
+
+@keyframes 808-pulse {
+    from {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+    to {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}

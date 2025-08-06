@@ -77,116 +77,143 @@ export function drawAll(measures) {
             vexflowNoteMap[i] = []; // Store VexFlow notes for this measure
 
             measureNotesData.forEach((noteData) => {
-                const { drumInstrument, duration, isRest, id, modifiers } = noteData;
-                const instrumentProps = DRUM_INSTRUMENT_MAP[drumInstrument];
+                const { id } = noteData;
 
-                if (!instrumentProps) {
-                    console.warn(`drumRenderer drawAll: Unknown drum instrument: ${drumInstrument}. Skipping note ID: ${id}`);
-                    return;
-                }
+                let vexNote;
 
-                const vexflowKeys = instrumentProps.keys;
-                const vexflowStemDirection = instrumentProps.stemDirection;
-                const vexflowNotehead = instrumentProps.notehead;
-
-                const vexNote = new Vex.Flow.StaveNote({
-                    keys: vexflowKeys,
-                    duration: isRest ? `${duration}r` : duration, // VexFlow rests need 'r' suffix
-                    stem_direction: vexflowStemDirection,
-                    type: vexflowNotehead // Set in constructor
-                });
-
-                // Apply modifiers/articulations from DRUM_INSTRUMENT_MAP
-                if (instrumentProps.modifiers && instrumentProps.modifiers.length > 0) {
-                    instrumentProps.modifiers.forEach(mod => {
-                        if (mod.type === "articulation") {
-                            vexNote.addArticulation(0, new Vex.Flow.Articulation(mod.symbol)).setPosition(mod.position);
-                        } else if (mod.type === "annotation") {
-                             vexNote.addAnnotation(0, new Vex.Flow.Annotation(mod.text)
-                                .setFont({ family: "Arial", size: 10, weight: "bold" }))
-                                .setJustification(mod.justification);
-                        }
+                if (noteData.isRest) {
+                    // Handle rest note
+                    vexNote = new Vex.Flow.StaveNote({
+                        keys: ["B/4"], // Rests are placed on a neutral key
+                        duration: `${noteData.duration}r`, // VexFlow rests need 'r' suffix
+                        clef: "percussion",
                     });
-                }
+                } else if (noteData.isChord) {
+                    // Handle chord: create a single VexFlow note for all instruments
+                    const { notes, duration } = noteData;
 
-                // Apply modifiers from individual note data (e.g., for rolls, ghost notes which are dynamically added)
-                if (noteData.modifiers && noteData.modifiers.length > 0) {
-                    noteData.modifiers.forEach(mod => {
-                        if (mod.type === "stroke") {
-                            vexNote.addStroke(0, new Vex.Flow.Stroke(mod.symbol));
-                        } else if (mod.type === "annotation") {
-                            vexNote.addAnnotation(0, new Vex.Flow.Annotation(mod.text)
-                                .setFont({ family: "Arial", size: 10, weight: "bold" }))
-                                .setJustification(mod.justification);
+                    const keys = notes.map((n) => {
+                        const instrumentProps = DRUM_INSTRUMENT_MAP[n.drumInstrument];
+                        if (!instrumentProps) {
+                            console.warn(`drumRenderer drawAll: Unknown drum instrument in chord: ${n.drumInstrument}. Skipping note ID: ${id}`);
+                            return 'b/4'; // Return a neutral key to avoid crash
                         }
+                        return instrumentProps.keys[0];
                     });
+                    
+                    const noteHeads = notes.map((n) => {
+                         const instrumentProps = DRUM_INSTRUMENT_MAP[n.drumInstrument];
+                         return { type: instrumentProps.notehead };
+                    });
+
+                    const stemDirection = notes[0].stemDirection || Vex.Flow.Stem.UP;
+
+                    // Create the VexFlow note for the chord, passing note_heads to the constructor
+                    vexNote = new Vex.Flow.StaveNote({
+                        keys,
+                        duration,
+                        stem_direction: stemDirection,
+                        note_heads: noteHeads
+                    });
+
+                } else {
+                    // Handle single note
+                    const { drumInstrument, duration, modifiers } = noteData;
+                    const instrumentProps = DRUM_INSTRUMENT_MAP[drumInstrument];
+
+                    if (!instrumentProps) {
+                        console.warn(`drumRenderer drawAll: Unknown drum instrument: ${drumInstrument}. Skipping note ID: ${id}`);
+                        return;
+                    }
+                    
+                    vexNote = new Vex.Flow.StaveNote({
+                        keys: instrumentProps.keys,
+                        duration,
+                        stem_direction: instrumentProps.stemDirection,
+                        type: instrumentProps.notehead, // Set in constructor
+                    });
+
+                    // Apply modifiers from DRUM_INSTRUMENT_MAP
+                    if (instrumentProps.modifiers && instrumentProps.modifiers.length > 0) {
+                        instrumentProps.modifiers.forEach((mod) => {
+                            if (mod.type === "articulation") {
+                                vexNote.addArticulation(0, new Vex.Flow.Articulation(mod.symbol)).setPosition(mod.position);
+                            } else if (mod.type === "annotation") {
+                                vexNote.addAnnotation(0, new Vex.Flow.Annotation(mod.text).setFont({ family: "Arial", size: 10, weight: "bold" })).setJustification(mod.justification);
+                            }
+                        });
+                    }
+
+                    // Apply modifiers from individual note data
+                    if (modifiers && modifiers.length > 0) {
+                        modifiers.forEach((mod) => {
+                            if (mod.type === "stroke") {
+                                vexNote.addStroke(0, new Vex.Flow.Stroke(mod.symbol));
+                            } else if (mod.type === "annotation") {
+                                vexNote.addAnnotation(0, new Vex.Flow.Annotation(mod.text).setFont({ family: "Arial", size: 10, weight: "bold" })).setJustification(mod.justification);
+                            }
+                        });
+                    }
                 }
 
                 vexNotesForMeasure.push(vexNote);
-                vexflowNoteMap[i].push(vexNote); // Store for direct access
+                vexflowNoteMap[i].push(vexNote);
                 vexflowIndexByNoteId[id] = { measureIndex: i, vexflowIndex: vexNotesForMeasure.length - 1 };
             });
 
             // If the measure is empty, add a whole rest
             if (vexNotesForMeasure.length === 0) {
                 const defaultRest = new Vex.Flow.StaveNote({
-                    keys: ["B/4"], // Use "B/4" with slash for rests
+                    keys: ["B/4"],
                     duration: "wr", // Whole rest
-                    clef: "percussion"
+                    clef: "percussion",
                 });
                 vexNotesForMeasure.push(defaultRest);
             }
 
             const voice = score.voice(vexNotesForMeasure).setStrict(false);
 
-            // Create the System for each measure (as per your piano example)
             const system = vexFlowFactory.System({
                 x: currentX,
                 y: verticalOffset,
                 width: measureWidth,
-                spaceBetweenStaves: 0 // Single stave, so no space needed
+                spaceBetweenStaves: 0,
             });
 
-            // Add the Stave within the system. This also associates the stave with the factory.
             const stave = system.addStave({ voices: [voice] });
 
-            // Now, add initial modifiers to the stave
             if (i === 0) {
-                stave.addClef("percussion"); // Use percussion clef
+                stave.addClef("percussion");
                 stave.addTimeSignature(`${drumsState.timeSignature.numerator}/${drumsState.timeSignature.denominator}`);
-                stave.setTempo({ duration: 'q', bpm: drumsState.tempo }, -27); // Tempo only on first stave
+                stave.setTempo({ duration: 'q', bpm: drumsState.tempo }, -27);
+            } else if (i > 0) {
+                stave.setBegBarType(Vex.Flow.Barline.type.SINGLE);
             }
-            // Set end barline for the last stave
             if (i === measureCount - 1) {
                 stave.setEndBarType(Vex.Flow.Barline.type.END);
             }
-            // Add a single barline at the beginning of each measure (after the first)
-            else if (i > 0) {
-                stave.setBegBarType(Vex.Flow.Barline.type.SINGLE);
-            }
 
-            vexflowStaveMap[i] = stave; // Store the single stave for possible reference
+            vexflowStaveMap[i] = stave;
 
             currentX += measureWidth;
         }
 
-        vexFlowFactory.draw(); // This draws all staves and voices managed by the factory.
+        vexFlowFactory.draw();
         console.log("drumRenderer drawAll: VexFlow drawing complete.");
 
         // --- Restore playback highlights only ---
-        // (No logic for currentSelectedMeasure or currentSelectedNote, as interactive editing is removed)
         for (const noteKey of drumsState.currentPlaybackNotes) {
             const [measureIndex, clef, noteId] = noteKey.split("-");
             const measureIdx = parseInt(measureIndex);
             console.log(`drumRenderer drawAll: Restoring playback highlight for note`, {
                 measureIndex: measureIdx,
-                clef: 'percussion', // Always pass 'percussion' for drum notes
+                clef: 'percussion',
                 noteId,
             });
         }
 
         const scoreWrap = document.getElementById("drums-score-wrap");
-            scoreWrap.scrollLeft = scoreWrap.scrollWidth;
+        scoreWrap.scrollLeft = scoreWrap.scrollWidth;
     } catch (e) {
         console.error("drumRenderer drawAll: VexFlow rendering error:", e, e.stack);
     }
@@ -207,7 +234,6 @@ export function safeRedraw() {
 // Interaction Functions (All removed as per request)
 // ===================================================================
 
-// Exported functions for external modules (now limited to only those needed by playback or management)
 export function scrollToMeasure(measureIndex) {
     console.log("drumRenderer scrollToMeasure called with index", measureIndex);
     const scoreWrap = document.getElementById("drums-score-wrap");

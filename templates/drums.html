@@ -1,25 +1,21 @@
-{% extends "drumsIndex.html" %}
-
-{% block title %}Piano Tour - Interactive Drums Studio{% endblock %}
-
-{% block toggles %}
-    {% include 'partials/_toggles.html' %}
-{% endblock %}
-
-{% block scripts %}
+{% extends "drumsIndex.html" %} {% block title %}Piano Tour - Interactive Drums
+Studio{% endblock %} {% block toggles %} {% include 'partials/_toggles.html' %}
+{% endblock %} {% block scripts %}
 <script type="module">
-    import { drumsState, pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
-    import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
+  import {
+    drumsState,
+    pianoState,
+  } from '{{ url_for("static", filename="js/core/appState.js") }}';
+  import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
 
-    // Set instrument from template variable, default to 'drums' if not provided
-    const templateInstrument = '{{ instrument }}' || 'piano';
+  // Set instrument from template variable, default to 'drums' if not provided
+  const templateInstrument = "{{ instrument }}" || "piano";
 
-    // Update drumsState
-    pianoState.instrument = templateInstrument;
+  // Update drumsState
+  pianoState.instrument = templateInstrument;
 
-    console.log("Set instrument to:", templateInstrument);
+  console.log("Set instrument to:", templateInstrument);
 
-    addBasicKeyboardListeners();
-    
+  addBasicKeyboardListeners();
 </script>
 {% endblock %}

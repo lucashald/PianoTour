@@ -6,7 +6,7 @@
 // ===================================================================
 import { drumsState } from "../core/appState.js";
 import { updateNowPlayingDisplay } from '../ui/uiHelpers.js';
-// import { saveToLocalStorage } from '../utils/ioHelpers.js'; // This import is no longer needed if saveDrums handles it directly
+// import { saveToLocalStorage } from '../utils/ioHelpers.js';
 import { drawAll as drawAllDrums } from './drumRenderer.js';
 import { DRUM_INSTRUMENT_MAP } from '../core/drum-data.js';
 
@@ -51,23 +51,25 @@ function calculateMeasureBeats(measure) {
         console.warn('calculateMeasureBeats: Invalid measure provided', measure);
         return 0;
     }
-    
+
     let totalBeats = 0;
     measure.forEach(note => {
         if (!note || !note.duration) {
             console.warn('calculateMeasureBeats: Invalid note found', note);
             return;
         }
-        
-        const beats = BEAT_VALUES[note.duration];
+
+        const durationToCheck = note.isChord ? note.notes[0].duration : note.duration;
+        const beats = BEAT_VALUES[durationToCheck];
+
         if (beats === undefined) {
-            console.warn(`calculateMeasureBeats: Unknown duration "${note.duration}" for note:`, note);
+            console.warn(`calculateMeasureBeats: Unknown duration "${durationToCheck}" for note:`, note);
             return;
         }
-        
+
         totalBeats += beats;
     });
-    
+
     return totalBeats;
 }
 
@@ -103,7 +105,7 @@ function saveStateToHistory() {
         index: currentIndex,
         beats: currentDrumBeats
     });
-    
+
     if (history.length > MAX_HISTORY) {
         history.shift();
     }
@@ -148,10 +150,10 @@ function ensureMeasureExists(measureIndex) {
 // ===================================================================
 
 /**
- * Internal function to add a note without side effects.
+ * Internal function to add a note or chord without side effects.
  * This function handles deciding which measure to add the note to.
  * @param {number|null|undefined} explicitMeasureIndex - Optional: If provided, attempts to add to this measure. Otherwise, uses `currentIndex`.
- * @param {object} noteData - Note data object.
+ * @param {object} noteData - Note data object. Can be a single note or a chord.
  * @param {string|null} insertBeforeNoteId - Optional ID to insert before.
  * @returns {boolean} Success status.
  */
@@ -161,124 +163,134 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
     console.log(`Initial global state: currentDrumBeats=${currentDrumBeats}, currentIndex=${currentIndex}, measuresData length=${measuresData.length}`);
 
     try {
-        // Determine the actual measure index to operate on
-        // If explicitMeasureIndex is provided (e.g., for `addDrumMeasure` or drag/drop to a specific measure), use it.
-        // Otherwise, use the internally tracked `currentIndex`.
         const actualTargetMeasureIndex = (explicitMeasureIndex !== undefined && explicitMeasureIndex !== null)
-                                        ? explicitMeasureIndex
-                                        : currentIndex;
+            ? explicitMeasureIndex
+            : currentIndex;
         console.log(`Actual measure index for operation: ${actualTargetMeasureIndex}`);
 
-
-        // Validate inputs
-        if (!noteData || !noteData.drumInstrument || !noteData.duration) {
-            console.error('doAddNote: Invalid note data provided', noteData);
+        if (!noteData || (!noteData.drumInstrument && !noteData.drumInstruments && !noteData.isRest)) {
+            console.error('doAddNote: Invalid note data provided. Missing drumInstrument, drumInstruments, or isRest property.', noteData);
             return false;
         }
 
-        // Ensure measure exists at the actual operation index
+        // Handle rests
+        if (noteData.isRest) {
+            if (!noteData.duration) {
+                console.error('doAddNote: Rest note must have a duration.');
+                return false;
+            }
+            const restToInsert = {
+                id: noteData.id || generateUniqueId(),
+                duration: noteData.duration,
+                isRest: true,
+                measure: actualTargetMeasureIndex,
+            };
+            noteData = restToInsert;
+        }
+        
+        // This is the key fix: check for a chord OR a single note in an array
+        const isChord = noteData.drumInstruments && Array.isArray(noteData.drumInstruments) && noteData.drumInstruments.length > 1;
+        const isSingleNoteInArray = noteData.drumInstruments && Array.isArray(noteData.drumInstruments) && noteData.drumInstruments.length === 1;
+
+        let notesToInsert = [];
+        let noteBeatValue = 0;
+        let objectToInsert;
+
+        if (noteData.isRest) {
+            objectToInsert = noteData;
+            noteBeatValue = durationToBeats(noteData.duration);
+        } else if (isChord) {
+            notesToInsert = noteData.drumInstruments.map(instrument => {
+                const instrumentProps = DRUM_INSTRUMENT_MAP[instrument];
+                if (!instrumentProps) {
+                    throw new Error(`Unknown drum instrument in chord: ${instrument}`);
+                }
+                noteBeatValue = durationToBeats(noteData.duration);
+                return {
+                    id: noteData.id || generateUniqueId(),
+                    drumInstrument: instrument,
+                    duration: noteData.duration,
+                    isRest: false,
+                    measure: actualTargetMeasureIndex,
+                    keys: instrumentProps.keys,
+                    notehead: instrumentProps.notehead,
+                    stemDirection: instrumentProps.stemDirection,
+                    modifiers: noteData.modifiers || instrumentProps.modifiers || []
+                };
+            });
+            objectToInsert = {
+                id: notesToInsert[0].id,
+                isChord: true,
+                notes: notesToInsert,
+                duration: notesToInsert[0].duration,
+            };
+        } else {
+            // This block now handles both single-note objects AND single-note arrays
+            const instrument = noteData.drumInstrument || noteData.drumInstruments[0];
+            const instrumentProps = DRUM_INSTRUMENT_MAP[instrument];
+            if (!instrumentProps) {
+                console.error(`doAddNote: Unknown drum instrument: ${instrument}`);
+                return false;
+            }
+            noteBeatValue = durationToBeats(noteData.duration);
+            objectToInsert = {
+                id: noteData.id || generateUniqueId(),
+                drumInstrument: instrument,
+                duration: noteData.duration,
+                isRest: false,
+                measure: actualTargetMeasureIndex,
+                keys: instrumentProps.keys,
+                notehead: instrumentProps.notehead,
+                stemDirection: instrumentProps.stemDirection,
+                modifiers: noteData.modifiers || instrumentProps.modifiers || []
+            };
+        }
+        
         ensureMeasureExists(actualTargetMeasureIndex);
-        console.log(`After ensureMeasureExists, measuresData[${actualTargetMeasureIndex}] exists:`, measuresData[actualTargetMeasureIndex]);
-
-        // Generate unique ID if not provided
-        if (!noteData.id) {
-            noteData.id = generateUniqueId();
-            console.log(`Generated new note ID: ${noteData.id}`);
-        }
-
-        // Get instrument properties
-        const instrumentProps = DRUM_INSTRUMENT_MAP[noteData.drumInstrument];
-        if (!instrumentProps) {
-            console.error(`doAddNote: Unknown drum instrument: ${noteData.drumInstrument}`);
-            return false;
-        }
-
-        // Validate duration
-        const noteBeatValue = durationToBeats(noteData.duration);
-        if (noteBeatValue === 0) {
-            console.error(`doAddNote: Invalid duration: ${noteData.duration}`);
-            return false;
-        }
-        console.log(`Note duration "${noteData.duration}" corresponds to ${noteBeatValue} beats.`);
-
-        // Construct the complete note object
-        const noteToInsert = {
-            id: noteData.id,
-            drumInstrument: noteData.drumInstrument,
-            duration: noteData.duration,
-            isRest: noteData.isRest || false,
-            measure: actualTargetMeasureIndex, // Initial measure property (might change if overflow)
-            keys: instrumentProps.keys,
-            notehead: instrumentProps.notehead,
-            stemDirection: instrumentProps.stemDirection,
-            modifiers: noteData.modifiers || instrumentProps.modifiers || []
-        };
-        console.log(`Constructed noteToInsert:`, noteToInsert);
-
         const targetMeasure = measuresData[actualTargetMeasureIndex];
         let insertIndex = targetMeasure.length;
 
-        // Find insertion position if specified
         if (insertBeforeNoteId !== null) {
             const foundIndex = targetMeasure.findIndex(note => note.id === insertBeforeNoteId);
             if (foundIndex !== -1) {
                 insertIndex = foundIndex;
                 console.log(`Note ID ${insertBeforeNoteId} found at index ${foundIndex}. Inserting at ${insertIndex}.`);
             } else {
-                console.warn(`doAddNote: Note ID ${insertBeforeNoteId} not found in measure ${actualTargetMeasureIndex}. Appending to end.`);
+                console.warn(`doAddNote: Note ID ${insertBeforeNoteId} not found. Appending to end.`);
             }
         }
-        console.log(`Insertion index for target measure: ${insertIndex}`);
 
-        // Create temporary measure to test for overflow
-        const tempMeasure = [...targetMeasure]; // Create a shallow copy
-        tempMeasure.splice(insertIndex, 0, noteToInsert);
-        
-        console.log(`Temporary measure for overflow check:`, tempMeasure);
+        const tempMeasure = [...targetMeasure];
+        tempMeasure.splice(insertIndex, 0, objectToInsert);
 
         const totalBeatsAfterInsert = calculateMeasureBeats(tempMeasure);
         const maxBeats = getMaxBeatsPerMeasure();
 
-        console.log(`Calculated totalBeatsAfterInsert for tempMeasure: ${totalBeatsAfterInsert}`);
-        console.log(`Max beats allowed per measure (time signature numerator): ${maxBeats}`);
-
-        // Check for measure overflow
         if (totalBeatsAfterInsert > maxBeats) {
-            // Create new measure at the end
             const newMeasureIndex = measuresData.length;
-            noteToInsert.measure = newMeasureIndex; // Update the measure property of the note
-            measuresData.push([noteToInsert]); // Add the note to the new measure
-
-            // Update current index and beats to reflect the newly created measure
+            if (objectToInsert.isChord) {
+                objectToInsert.notes.forEach(n => n.measure = newMeasureIndex);
+            } else {
+                objectToInsert.measure = newMeasureIndex;
+            }
+            measuresData.push([objectToInsert]);
             currentIndex = newMeasureIndex;
-            currentDrumBeats = noteBeatValue; // The new measure starts with just this note
-
+            currentDrumBeats = noteBeatValue;
             console.log(`New measure created at index ${newMeasureIndex}.`);
-            console.log(`Updated global state: currentIndex=${currentIndex}, currentDrumBeats=${currentDrumBeats}`);
             return true;
         } else {
-            // No overflow, insert into existing measure
-            measuresData[actualTargetMeasureIndex].splice(insertIndex, 0, noteToInsert);
-            console.log(`Note inserted into existing measure ${actualTargetMeasureIndex}. Current state of measuresData[${actualTargetMeasureIndex}]:`, measuresData[actualTargetMeasureIndex]);
-
-            // Update current measure beats if this is the current measure being modified
+            measuresData[actualTargetMeasureIndex].splice(insertIndex, 0, objectToInsert);
             if (actualTargetMeasureIndex === currentIndex) {
                 currentDrumBeats = totalBeatsAfterInsert;
-                console.log(`Updated currentDrumBeats for measure ${actualTargetMeasureIndex} (which is current index): ${currentDrumBeats}`);
-            } else {
-                 console.log(`Note added to measure ${actualTargetMeasureIndex}, but it's not the current index (${currentIndex}). currentDrumBeats not updated for this operation.`);
-                 // If a note is added to a non-current measure (e.g., via drag/drop to an earlier measure)
-                 // currentDrumBeats should still reflect the actual currentIndex's beats.
-                 // It's good that we're not updating currentDrumBeats here for a non-current measure.
             }
-
-            updateNowPlayingDisplay(noteToInsert.drumInstrument);
+            updateNowPlayingDisplay(isChord ? 'Chord added' : objectToInsert.drumInstrument);
             handleSideEffects();
-            console.log(`--- doAddNote Call End (Note added to existing measure) ---`);
+            console.log(`--- doAddNote Call End (Note/Chord added to existing measure) ---`);
             return true;
         }
+
     } catch (error) {
-        console.error('doAddNote: Error adding note', error);
+        console.error('doAddNote: Error adding note/chord', error);
         console.log(`--- doAddNote Call End (Error) ---`);
         return false;
     }
@@ -305,32 +317,25 @@ function doRemoveNote(measureIndex, noteId) {
 
         const removedNote = measuresData[measureIndex].splice(noteIndex, 1)[0];
 
-        // Handle empty measure cleanup
         if (measuresData[measureIndex].length === 0) {
             if (measureIndex > 0) {
-                // Remove empty measure (except first one)
                 measuresData.splice(measureIndex, 1);
-                // Adjust currentIndex if the measure removed was the current one or before it
                 if (currentIndex >= measureIndex) {
                     currentIndex = Math.max(0, currentIndex - 1);
                 }
                 console.log(`doRemoveNote: Empty measure ${measureIndex} removed`);
             } else if (measureIndex === 0 && measuresData.length === 1) {
-                // Clear first and only measure
                 measuresData[0] = [];
                 console.log(`doRemoveNote: First and only measure cleared`);
             }
         }
 
-        // Update current measure beats for the (potentially new) current index
         updateCurrentDrumBeats(currentIndex);
 
-        // If current measure was removed and measuresData is now empty, reset currentIndex to 0
-        // and ensure the first measure exists for future additions.
         if (!measuresData[currentIndex] || measuresData.length === 0) {
             currentIndex = 0;
-            ensureMeasureExists(0); // Ensure at least one empty measure exists
-            currentDrumBeats = 0; // Reset beats if measuresData is now empty or points to a cleared measure
+            ensureMeasureExists(0);
+            currentDrumBeats = 0;
         }
 
         return removedNote;
@@ -360,33 +365,64 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
             return false;
         }
 
-        // Create temporary measure to test for overflow
         const tempMeasure = JSON.parse(JSON.stringify(measuresData[measureIndex]));
         const existingNote = tempMeasure[noteIndex];
-        
-        // Get instrument properties if drum instrument changed
+
         let instrumentProps = {};
-        if (newNoteData.drumInstrument) {
-            instrumentProps = DRUM_INSTRUMENT_MAP[newNoteData.drumInstrument];
-            if (!instrumentProps) {
-                console.error(`doUpdateNote: Unknown drum instrument: ${newNoteData.drumInstrument}`);
-                return false;
+        let updatedNote;
+        const isNewNoteChord = newNoteData.drumInstruments && Array.isArray(newNoteData.drumInstruments) && newNoteData.drumInstruments.length > 1;
+
+        if (isNewNoteChord) {
+            const notes = newNoteData.drumInstruments.map(instrument => {
+                const props = DRUM_INSTRUMENT_MAP[instrument];
+                return {
+                    id: existingNote.id,
+                    drumInstrument: instrument,
+                    duration: newNoteData.duration || existingNote.duration,
+                    isRest: false,
+                    measure: measureIndex,
+                    keys: props.keys,
+                    notehead: props.notehead,
+                    stemDirection: props.stemDirection,
+                    modifiers: newNoteData.modifiers || props.modifiers || []
+                };
+            });
+            updatedNote = {
+                id: existingNote.id,
+                isChord: true,
+                notes: notes,
+                duration: newNoteData.duration || existingNote.duration,
+            };
+        } else {
+            const instrument = newNoteData.drumInstrument || (newNoteData.drumInstruments ? newNoteData.drumInstruments[0] : null);
+            if (instrument) {
+                instrumentProps = DRUM_INSTRUMENT_MAP[instrument];
+                if (!instrumentProps) {
+                    console.error(`doUpdateNote: Unknown drum instrument: ${instrument}`);
+                    return false;
+                }
+            } else {
+                instrumentProps = {}; // Ensure it's an object if no instrument is found
+            }
+
+            updatedNote = {
+                ...existingNote,
+                ...newNoteData,
+                ...instrumentProps
+            };
+
+            // If we're updating a chord to a single note, explicitly remove the chord properties
+            if (existingNote.isChord && !isNewNoteChord) {
+                updatedNote.isChord = false;
+                delete updatedNote.notes;
             }
         }
-
-        // Create updated note
-        const updatedNote = {
-            ...existingNote,
-            ...newNoteData,
-            ...instrumentProps
-        };
 
         tempMeasure[noteIndex] = updatedNote;
 
         const totalBeats = calculateMeasureBeats(tempMeasure);
         const maxBeats = getMaxBeatsPerMeasure();
 
-        // Check for overflow
         if (totalBeats > maxBeats) {
             console.warn(`doUpdateNote: Update would cause overflow (${totalBeats} > ${maxBeats}). Operation cancelled.`);
             updateNowPlayingDisplay("Error: Update would overflow measure!");
@@ -394,10 +430,8 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
             return false;
         }
 
-        // Apply the update
         Object.assign(measuresData[measureIndex][noteIndex], updatedNote);
 
-        // Update current measure beats if this is the current measure
         if (measureIndex === currentIndex) {
             currentDrumBeats = totalBeats;
         }
@@ -415,8 +449,7 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
 function handleSideEffects() {
     try {
         drawAllDrums(measuresData);
-        // saveToLocalStorage(AUTOSAVE_KEY, measuresData); // This was the old way, now saveDrums will be called explicitly
-        saveDrums(); // Call the new saveDrums function
+        saveDrums();
     } catch (error) {
         console.error('handleSideEffects: Error handling side effects', error);
     }
@@ -435,25 +468,19 @@ function handleSideEffects() {
  * @returns {object|null} Result object with noteId and measureIndex, or null on failure.
  */
 export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = null) {
-    // Note: measureIndex parameter now allows null/undefined to indicate "add to current"
     console.log('addNoteToMeasure: Adding note', { measureIndex, noteData, insertBeforeNoteId });
-    
+
     saveStateToHistory();
-    
-    // Pass the potentially null/undefined measureIndex to the internal doAddNote
+
     const success = doAddNote(measureIndex, noteData, insertBeforeNoteId);
-    
+
     if (success) {
         handleSideEffects();
-        // Determine the actual measure where the note was placed for the return value
-        const actualMeasureIndex = (measureIndex !== undefined && measureIndex !== null)
-                                    ? measureIndex
-                                    : currentIndex;
+        const actualMeasureIndex = (measureIndex !== undefined && measureIndex !== null) ? measureIndex : currentIndex;
         console.log(`addNoteToMeasure: Success. Current beats: ${currentDrumBeats}. Actual measure index where note was placed: ${actualMeasureIndex}`);
         return { noteId: noteData.id, measureIndex: actualMeasureIndex };
     } else {
         console.warn('addNoteToMeasure: Failed to add note');
-        // Revert history on failure
         if (history.length > 0) history.pop();
         return null;
     }
@@ -467,18 +494,18 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
  */
 export function removeNoteFromMeasure(measureIndex, noteId) {
     console.log('removeNoteFromMeasure: Removing note', { measureIndex, noteId });
-    
+
     saveStateToHistory();
-    
+
     const removedNote = doRemoveNote(measureIndex, noteId);
-    
+
     if (removedNote) {
         handleSideEffects();
         console.log('removeNoteFromMeasure: Success');
     } else {
         console.log('removeNoteFromMeasure: Note not found');
     }
-    
+
     return removedNote;
 }
 
@@ -491,20 +518,19 @@ export function removeNoteFromMeasure(measureIndex, noteId) {
  */
 export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
     console.log('updateNoteInMeasure: Updating note', { measureIndex, noteId, newNoteData });
-    
+
     saveStateToHistory();
-    
+
     const success = doUpdateNote(measureIndex, noteId, newNoteData);
-    
+
     if (success) {
         handleSideEffects();
         console.log('updateNoteInMeasure: Success');
     } else {
         console.warn('updateNoteInMeasure: Failed to update note');
-        // Revert history on failure
         if (history.length > 0) history.pop();
     }
-    
+
     return success;
 }
 
@@ -518,9 +544,9 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
  */
 export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId = null) {
     console.log('moveNoteBetweenMeasures: Moving note', { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId });
-    
+
     saveStateToHistory();
-    
+
     const noteToMove = doRemoveNote(fromMeasureIndex, fromNoteId);
     if (!noteToMove) {
         console.error('moveNoteBetweenMeasures: Source note not found');
@@ -528,20 +554,27 @@ export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureI
         return false;
     }
 
-    // Update measure property before adding to target
-    noteToMove.measure = toMeasureIndex; // Set the measure property for the note
-    const success = doAddNote(toMeasureIndex, noteToMove, insertBeforeNoteId); // Explicitly add to toMeasureIndex
-    
+    if (noteToMove.isChord) {
+        noteToMove.notes.forEach(note => note.measure = toMeasureIndex);
+    } else {
+        noteToMove.measure = toMeasureIndex;
+    }
+
+    const success = doAddNote(toMeasureIndex, noteToMove, insertBeforeNoteId);
+
     if (success) {
         handleSideEffects();
         console.log('moveNoteBetweenMeasures: Success');
         return true;
     } else {
         console.error('moveNoteBetweenMeasures: Failed to add to target. Rolling back.');
-        // Rollback: re-add to original position
-        noteToMove.measure = fromMeasureIndex; // Restore original measure property
-        doAddNote(fromMeasureIndex, noteToMove, null); // Re-add to original measure
-        if (history.length > 0) history.pop(); // Remove the state saved for the failed move
+        if (noteToMove.isChord) {
+            noteToMove.notes.forEach(note => note.measure = fromMeasureIndex);
+        } else {
+            noteToMove.measure = fromMeasureIndex;
+        }
+        doAddNote(fromMeasureIndex, noteToMove, null);
+        if (history.length > 0) history.pop();
         handleSideEffects();
         return false;
     }
@@ -554,7 +587,7 @@ export function undoLastWrite() {
     console.log('undoLastWrite: Attempting undo. History length:', history.length);
 
     if (history.length > 1) {
-        history.pop(); // Remove current state
+        history.pop();
         const prevState = history[history.length - 1];
 
         measuresData = JSON.parse(JSON.stringify(prevState.measures));
@@ -565,7 +598,7 @@ export function undoLastWrite() {
         updateNowPlayingDisplay('Undid last action');
         console.log('undoLastWrite: Success');
     } else if (history.length === 1) {
-        resetDrumScore(); // If only one state, reset to initial empty state
+        resetDrumScore();
         updateNowPlayingDisplay('Score reset');
         console.log('undoLastWrite: Score reset (only one state in history)');
     } else {
@@ -579,20 +612,19 @@ export function undoLastWrite() {
  */
 export function resetDrumScore() {
     console.log('resetDrumScore: Resetting score');
-    
+
     measuresData = [];
     currentIndex = 0;
     currentDrumBeats = 0;
     history.length = 0;
 
-    // Save initial empty state
-    ensureMeasureExists(0); // Ensure at least the first measure exists
+    ensureMeasureExists(0);
     saveStateToHistory();
 
     localStorage.removeItem(AUTOSAVE_KEY);
     updateNowPlayingDisplay('');
     drawAllDrums(measuresData);
-    
+
     console.log('resetDrumScore: Complete');
 }
 
@@ -603,10 +635,10 @@ export function resetDrumScore() {
  */
 export function processAndSyncScore(loadedData) {
     console.log('processAndSyncScore: Processing data', loadedData);
-    
+
     if (!Array.isArray(loadedData) || loadedData.flat().length === 0) {
         console.warn('processAndSyncScore: Invalid data. Initializing empty score.');
-        measuresData = [[]]; // Initialize with an empty first measure
+        measuresData = [[]];
         currentIndex = 0;
         currentDrumBeats = 0;
         history.length = 0;
@@ -616,10 +648,8 @@ export function processAndSyncScore(loadedData) {
 
     try {
         measuresData = JSON.parse(JSON.stringify(loadedData));
-        // Set currentIndex to the last measure, or 0 if measuresData is empty
         currentIndex = measuresData.length > 0 ? measuresData.length - 1 : 0;
 
-        // Recalculate current beats for the current index
         if (measuresData[currentIndex]) {
             currentDrumBeats = calculateMeasureBeats(measuresData[currentIndex]);
         } else {
@@ -660,9 +690,9 @@ export function getCurrentDrumMeasureIndex() {
 export function saveDrums() {
     console.log("Attempting to save drum score to local storage...");
     try {
-        const drumScoreToSave = getDrumMeasures(); // Get the current drum measures data
-        const drumScoreJSON = JSON.stringify(drumScoreToSave); // Convert to JSON string
-        localStorage.setItem(AUTOSAVE_KEY, drumScoreJSON); // Save using the defined key
+        const drumScoreToSave = getDrumMeasures();
+        const drumScoreJSON = JSON.stringify(drumScoreToSave);
+        localStorage.setItem(AUTOSAVE_KEY, drumScoreJSON);
         console.log("✅ Drum score saved successfully to local storage.");
     } catch (error) {
         console.error("❌ Error saving drum score to local storage:", error);
@@ -674,14 +704,11 @@ export function saveDrums() {
 // Event Listeners (These remain the same, as they dispatch, not directly call)
 // ===================================================================
 
-// Event listener for notes added from drum renderer (e.g., drag and drop onto a specific measure)
 document.addEventListener("addDrumNoteToScore", (event) => {
-    // This event assumes the measureIndex is explicitly provided (e.g., from a drag-and-drop target)
     const { measureIndex, noteData, insertBeforeNoteId } = event.detail;
     addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId);
 });
 
-// Event listener for notes moved/updated by drag from drum renderer
 document.addEventListener("drumNoteDropped", (event) => {
     const { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId, drumInstrumentChanged, newDrumInstrument } = event.detail;
 
@@ -691,21 +718,16 @@ document.addEventListener("drumNoteDropped", (event) => {
         return;
     }
 
-    // Handle different types of operations
     if (fromMeasureIndex === toMeasureIndex && !drumInstrumentChanged) {
-        // Simple reordering within measure - remove and re-add at new position
         removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
         addNoteToMeasure(toMeasureIndex, { ...originalNote, id: originalNote.id }, insertBeforeNoteId);
     } else if (fromMeasureIndex !== toMeasureIndex) {
-        // Move to different measure
         const updatedNoteData = { ...originalNote };
         if (drumInstrumentChanged) {
             updatedNoteData.drumInstrument = newDrumInstrument;
         }
-        // moveNoteBetweenMeasures handles both remove and add
         moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId);
     } else {
-        // Same measure, instrument changed (or other property update)
         const updatedNoteData = { ...originalNote };
         if (drumInstrumentChanged) {
             updatedNoteData.drumInstrument = newDrumInstrument;
