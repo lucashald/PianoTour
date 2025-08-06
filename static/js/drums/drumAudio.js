@@ -1,19 +1,16 @@
 // drumAudio.js
-// This file centralizes all drum-related audio and playback logic.
+// Simplified drum audio management using shared infrastructure
 
 // ===================================================================
 // Imports
 // ===================================================================
-// 💡 IMPORTANT: Verify these import paths match your project structure!
 import { drumsState, pianoState } from "../core/appState.js";
 import { DRUM_INSTRUMENT_MAP } from "../core/drum-data.js";
 import { NOTES_BY_NAME } from "../core/note-data.js";
 import audioManager from "../core/audioManager.js";
 import { trigger } from "../instrument/playbackHelpers.js";
-import { addPlaybackHighlight, clearAllHighlights } from "../score/scoreHighlighter.js"; // Only for piano
-import {
-    scrollToMeasure,
-} from "./drumRenderer.js";
+import { addPlaybackHighlight, clearAllHighlights } from "../score/scoreHighlighter.js";
+import { scrollToMeasure } from "./drumRenderer.js";
 import {
     getDrumMeasures,
     addNoteToMeasure,
@@ -24,160 +21,80 @@ import {
 import { getMeasures } from "../score/scoreWriter.js";
 import { safeRedraw } from "../score/scoreRenderer.js";
 import { updateNowPlayingDisplay } from "../ui/uiHelpers.js";
-import {
-    initializeSpectrum,
-    connectSpectrumToAudio,
-    startSpectrumVisualization,
-    stopSpectrumVisualization,
-} from "../ui/spectrum.js";
 
 // ===================================================================
-// Constants
+// Drum-Specific Constants
 // ===================================================================
 
 const DRUM_SAMPLE_BASE_URL = "/static/samples/drums/";
 
 const DRUM_SAMPLE_URLS = {
     // Kicks
-    "C2": "kick.wav",            // Kick (MIDI 36 - Acoustic Bass Drum)
-    "B1": "BOXKICK.wav",          // Bass Kick (MIDI 35 - Acoustic Bass Drum alternative)
-
-    // Snares
-    "D2": "snare.wav",            // Snare (MIDI 38 - Acoustic Snare)
-    "C#2": "sidestick.wav",          // Stick (MIDI 37 - Side Stick/Rimshot - often near snare)
-    "F2": "rim.wav",            // Rimshot (MIDI 40 - Electric Snare, commonly used for rimshot)
-
+    "C2": "kick.wav",
+    "B1": "BOXKICK.wav",
+    // Snares  
+    "D2": "snare.wav",
+    "C#2": "sidestick.wav",
+    "F2": "rim.wav",
     // Hi-Hats
-    "F#2": "hi-hat.wav",           // Hi-Hat Closed (MIDI 42) - Using 'hi-hat.wav' as provided
-    "A#2": "open-hat.wav",         // Hi-Hat Open (MIDI 46)
-
+    "F#2": "hi-hat.wav",
+    "A#2": "open-hat.wav",
     // Toms
-    "A2": "low-tom.wav",           // Low Tom (MIDI 45) - Using 'low-tom.wav' as provided
-    "B2": "MIDTOM.wav",            // Mid Tom (MIDI 47) - **Corrected to MIDTOM.wav**
-    "C3": "high-tom.wav",          // High Tom (MIDI 48) - Using 'high-tom.wav' as provided
-
+    "A2": "low-tom.wav",
+    "B2": "MIDTOM.wav",
+    "C3": "high-tom.wav",
     // Cymbals
-    "C#3": "crash.wav",            // Crash (MIDI 49)
-    "D#3": "ride.wav",             // Ride (MIDI 51)
-    "G3": "cymbal.wav",            // General Cymbal (MIDI 55)
-
-    // Hand Percussion / Other
-    "D#2": "clap.wav",             // Clap (MIDI 39 - Hand Clap)
-    "G#3": "cowbell.wav",          // Cowbell (MIDI 56)
-    "A#3": "conga.wav",            // Conga (MIDI 62 - High Conga) - Using 'conga.wav' as provided
-    "F#3": "BONGOLO.wav",          // Low Bongo (MIDI 61)
-    "G#4": "BONGOHI.wav",          // High Bongo (MIDI 60)
-    "A4": "claves.wav",            // Claves (MIDI 75)
+    "C#3": "crash.wav",
+    "D#3": "ride.wav",
+    "G3": "cymbal.wav",
+    // Hand Percussion
+    "D#2": "clap.wav",
+    "G#3": "cowbell.wav",
+    "A#3": "conga.wav",
+    "F#3": "BONGOLO.wav",
+    "G#4": "BONGOHI.wav",
+    "A4": "claves.wav",
 };
 
-// Mapping from MIDI numbers to note names for drum triggering
 const DRUM_MIDI_TO_NOTE = {
-    35: "B1",   // Bass Drum 2
-    36: "C2",   // Bass Drum 1 (Kick)
-    37: "C#2",  // Side Stick (Rim shot)
-    38: "D2",   // Acoustic Snare
-    39: "D#2",  // Hand Clap (fixed from "Clap 2")
-    40: "E2",   // Electric Snare
-    41: "F2",   // Low Floor Tom
-    42: "F#2",  // Closed Hi-hat
-    43: "G2",   // High Floor Tom
-    44: "G#2",  // Pedal Hi-hat
-    45: "A2",   // Low Tom
-    46: "A#2",  // Open Hi-hat
-    47: "B2",   // Low-Mid Tom
-    48: "C3",   // Hi-Mid Tom (Tom high)
-    49: "C#3",  // Crash Cymbal 1
-    50: "D3",   // High Tom (Tom mid)
-    51: "D#3",  // Ride Cymbal 1
-    52: "E3",   // Chinese Cymbal
-    53: "F3",   // Ride Bell
-    54: "F#3",  // Tambourine
-    55: "G3",   // Splash Cymbal
-    56: "G#3",  // Cowbell
-    57: "A3",   // Crash Cymbal 2
-    58: "A#3",  // Vibraslap
-    59: "B3",   // Ride Cymbal 2
-    60: "C4",   // Hi Bongo
-    61: "C#4",  // Low Bongo
-    62: "D4",   // Mute Hi Conga
-    63: "D#4",  // Open Hi Conga
-    64: "E4",   // Low Conga
-    65: "F4",   // High Timbale
-    66: "F#4",  // Low Timbale
-    67: "G4",   // High Agogo
-    68: "G#4",  // Low Agogo
-    69: "A4",   // Cabasa
-    70: "A#4",  // Maracas
-    71: "B4",   // Short Whistle
-    72: "C5",   // Long Whistle
-    73: "C#5",  // Short Guiro
-    74: "D5",   // Long Guiro
-    75: "D#5",  // Claves
-    76: "E5",   // Hi Wood Block
-    77: "F5",   // Low Wood Block
-    78: "F#5",  // Mute Cuica
-    79: "G5",   // Open Cuica
-    80: "G#5",  // Mute Triangle
-    81: "A5",   // Open Triangle
-    82: "A#5",  // Shaker
-    83: "B5",   // Jingle Bell
-    84: "C6",   // Bell Tree
-    85: "C#6",  // Castanets
-    86: "D6",   // Mute Surdo
-    87: "D#6",  // Open Surdo
+    35: "B1", 36: "C2", 37: "C#2", 38: "D2", 39: "D#2", 40: "E2",
+    41: "F2", 42: "F#2", 43: "G2", 44: "G#2", 45: "A2", 46: "A#2",
+    47: "B2", 48: "C3", 49: "C#3", 50: "D3", 51: "D#3", 52: "E3",
+    53: "F3", 54: "F#3", 55: "G3", 56: "G#3", 57: "A3", 58: "A#3",
+    59: "B3", 60: "C4", 61: "C#4", 62: "D4", 63: "D#4", 64: "E4",
+    65: "F4", 66: "F#4", 67: "G4", 68: "G#4", 69: "A4", 70: "A#4",
+    71: "B4", 72: "C5", 73: "C#5", 74: "D5", 75: "D#5", 76: "E5",
+    77: "F5", 78: "F#5", 79: "G5", 80: "G#5", 81: "A5", 82: "A#5",
+    83: "B5", 84: "C6", 85: "C#6", 86: "D6", 87: "D#6",
 };
 
 const DURATION_TO_BEATS = {
-    w: 4, "w.": 6,
-    h: 2, "h.": 3,
-    q: 1, "q.": 1.5,
-    "8": 0.5, "8.": 0.75,
-    "16": 0.25, "16.": 0.375,
+    w: 4, "w.": 6, h: 2, "h.": 3, q: 1, "q.": 1.5,
+    "8": 0.5, "8.": 0.75, "16": 0.25, "16.": 0.375,
     "32": 0.125, "32.": 0.1875,
 };
 
 // ===================================================================
-// Internal State Variables
+// Internal State
 // ===================================================================
-
-let deferredDrumAction = null;
-let spectrumInitialized = false;
-let spectrumActive = false;
 let selectedDrumDuration = "q";
-let lastScrolledDrumMeasureIndex = -1; // New: to track drum score scrolling
+let lastScrolledDrumMeasureIndex = -1;
+let drumSampler = null; // Separate sampler for drums
 
 // ===================================================================
-// Utility Functions for Drum Button Management
+// Drum Button Management
 // ===================================================================
-
-/**
- * Finds the drum button element for a given drum instrument
- * @param {string} drumInstrument - The drum instrument name
- * @returns {Element|null} - The drum button element or null if not found
- */
 function findDrumButton(drumInstrument) {
     return document.querySelector(`[data-drum="${drumInstrument}"]`);
 }
 
-/**
- * Sets the active state of a drum button
- * @param {string} drumInstrument - The drum instrument name
- * @param {boolean} isActive - Whether to add or remove the active class
- */
 function setDrumButtonActive(drumInstrument, isActive) {
     const drumButton = findDrumButton(drumInstrument);
     if (drumButton) {
-        if (isActive) {
-            drumButton.classList.add('active');
-        } else {
-            drumButton.classList.remove('active');
-        }
+        drumButton.classList.toggle('active', isActive);
     }
 }
 
-/**
- * Clears all active drum button states
- */
 function clearAllActiveDrumButtons() {
     document.querySelectorAll('[data-drum].active').forEach(btn => {
         btn.classList.remove('active');
@@ -185,361 +102,146 @@ function clearAllActiveDrumButtons() {
 }
 
 // ===================================================================
-// Core Audio Management Functions
+// Core Drum Functions
 // ===================================================================
 
 /**
- * Initializes the drum-specific audio state in `drumsState`.
+ * Initialize drum-specific audio state
  */
 export function initializeDrumAudioState() {
     if (!drumsState.audioStatus) {
         drumsState.audioStatus = "uninitialized";
-        drumsState.sampler = null;
         drumsState.activeDrumNotes = new Set();
     }
 }
 
-function setDrumAudioStatus(newStatus) {
-    console.log(`🥁 Drum audio status: ${drumsState.audioStatus} → ${newStatus}`);
-    drumsState.audioStatus = newStatus;
-}
-
-function processDeferredDrumAction() {
-    if (deferredDrumAction) {
-        console.log("🥁 Processing deferred drum action");
-        const action = deferredDrumAction;
-        deferredDrumAction = null;
-        try {
-            action();
-        } catch (error) {
-            console.error("❌ Error executing deferred drum action:", error);
-        }
-    }
-}
-
+/**
+ * Check if drum audio is ready
+ */
 export function isDrumAudioReady() {
-    return drumsState.audioStatus === 'ready';
+    return audioManager.isAudioReady() && drumSampler;
 }
 
-function initializeSpectrumVisualizer() {
-    try {
-        const spectrumContainer = document.getElementById("spectrum");
-        if (!spectrumContainer) {
-            console.log("🥁 Spectrum container not found - spectrum disabled for drums");
-            return;
-        }
-
-        const spectrumOptions = {
-            fftSize: 4096,
-            smoothingTimeConstant: 0.8,
-            canvasHeight: 120,
-            backgroundColor: "#000000",
-            colorScheme: "blue fire",
-            showGrid: false,
-            showLabels: false,
-            minDb: -90,
-            maxDb: -5,
-            enableFrequencyGain: true,
-            debugMode: false,
-        };
-
-        initializeSpectrum(spectrumOptions);
-        spectrumInitialized = true;
-
-        if (drumsState.sampler) {
-            connectSpectrumToAudio(drumsState.sampler);
-            console.log("🥁 Spectrum connected to drum sampler");
-        }
-    } catch (error) {
-        console.error("❌ Error initializing drum spectrum:", error);
-        spectrumInitialized = false;
-    }
-}
-
-function startSpectrumIfReadyDrum() {
-    if (spectrumInitialized && !spectrumActive) {
-        startSpectrumVisualization();
-        spectrumActive = true;
-        console.log("🥁 Drum spectrum visualization started");
-    }
-}
-
-function stopSpectrumVisualizationDrum() {
-    if (spectrumActive) {
-        stopSpectrumVisualization();
-        spectrumActive = false;
-        console.log("🥁 Drum spectrum visualization stopped");
-    }
-}
-
-async function attemptMultipleDrumAudioUnlocks() {
-    const unlockAudio = document.getElementById("unlock-audio");
-    if (unlockAudio) {
-        try {
-            await unlockAudio.play();
-            console.log("🥁 Unlock Strategy: Native audio element played successfully.");
-            return;
-        } catch (e) {
-            console.warn("🥁 Unlock Strategy: Native audio play failed.", e.name);
-        }
-    }
-
-    try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioContext.state === 'suspended') {
-            await audioContext.resume();
-        }
-        const buffer = audioContext.createBuffer(1, 1, 22050);
-        const source = audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContext.destination);
-        source.start(0);
-        setTimeout(() => audioContext.close(), 500);
-        console.log("🥁 Unlock Strategy: Web Audio API buffer played successfully.");
-    } catch (e) {
-        console.warn("🥁 Unlock Strategy: Web Audio API unlock failed.", e.name);
-    }
-}
-
-async function initializeToneWithRetryDrum(maxRetries = 3) {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            await Tone.start();
-            console.log(`✅ Tone.js for drums started successfully on attempt ${attempt}.`);
-            if (Tone.context.state === 'interrupted') {
-                console.log("🥁 Context was interrupted, attempting resume...");
-                await Tone.context.resume();
-            }
-            if (Tone.context.state !== 'running') {
-                throw new Error(`🥁 Audio context is in an unexpected state: ${Tone.context.state}`);
-            }
-            return;
-        } catch (error) {
-            console.warn(`⚠️ Tone.js drum start attempt ${attempt} of ${maxRetries} failed:`, error);
-            if (attempt === maxRetries) {
-                throw new Error("❌ Failed to start Tone.js for drums after multiple retries.");
-            }
-            await new Promise(resolve => setTimeout(resolve, 300 * attempt));
-        }
-    }
-}
-
+/**
+ * Initialize drum sampler and connect to spectrum
+ */
 async function initializeDrumSampler() {
-    console.log("🥁 Creating and configuring drum sampler...");
-    drumsState.sampler = new Tone.Sampler({
+    if (drumSampler) return drumSampler;
+    
+    console.log("🥁 Creating drum sampler...");
+    
+    drumSampler = new Tone.Sampler({
         urls: DRUM_SAMPLE_URLS,
         release: 1,
         baseUrl: DRUM_SAMPLE_BASE_URL,
-        onload: () => console.log("✅ All drum samples loaded successfully."),
-        onerror: (error) => console.error("❌ Drum sample loading error:", error),
+        onload: () => console.log("✅ Drum samples loaded"),
+        onerror: (error) => console.error("❌ Drum sample error:", error),
     }).toDestination();
 
     await Tone.loaded();
-    console.log("🥁 Drum Sampler is ready!");
-}
-
-async function validateDrumAudioSystem() {
+    
+    // Connect drum sampler to spectrum visualization
     try {
-        if (Tone.context.state !== "running") {
-            console.error("❌ Drum Validation failed: Context not running");
-            return false;
-        }
-        if (!drumsState.sampler) {
-            console.error("❌ Drum Validation failed: No sampler");
-            return false;
-        }
-        return true;
+        const { connectSpectrumToAudio } = await import("../ui/spectrum.js");
+        connectSpectrumToAudio(drumSampler);
+        console.log("🥁 Drum sampler connected to spectrum");
     } catch (error) {
-        console.error("❌ Drum audio validation error:", error);
-        return false;
+        console.warn("🥁 Could not connect drums to spectrum:", error);
     }
+    
+    console.log("🥁 Drum sampler ready!");
+    return drumSampler;
 }
 
-async function initializeDrumAudio() {
-    let timeoutId;
-    try {
-        setDrumAudioStatus("loading");
-        console.log("🥁 Initializing drum audio components.");
-
-        const overallTimeoutPromise = new Promise((_, reject) => {
-            timeoutId = setTimeout(() => {
-                reject(new Error("🥁 Drum audio initialization timed out after 15 seconds."));
-            }, 15000);
-        });
-
-        await Promise.race([
-            (async () => {
-                await attemptMultipleDrumAudioUnlocks();
-                await initializeToneWithRetryDrum();
-                await initializeDrumSampler();
-                initializeSpectrumVisualizer();
-                const isValid = await validateDrumAudioSystem();
-                if (!isValid) {
-                    throw new Error("🥁 Drum audio system validation failed after setup.");
-                }
-            })(),
-            overallTimeoutPromise,
-        ]);
-
-        clearTimeout(timeoutId);
-        setDrumAudioStatus("ready");
-        processDeferredDrumAction();
-        window.dispatchEvent(new Event("drumAudioReady"));
-        return true;
-    } catch (error) {
-        console.error("❌ A critical error occurred during drum audio initialization:", error);
-        clearTimeout(timeoutId);
-        setDrumAudioStatus("error");
-        deferredDrumAction = null;
-        return false;
-    }
-}
-
-export async function unlockAndExecuteDrum(newAction) {
-    console.log('🥁 UnlockAndExecuteDrum called, current status:', drumsState.audioStatus);
-
-    if (Tone.context && Tone.context.state !== 'running') {
-        console.log(`🥁 Attempting to resume Drum AudioContext. Current state: ${Tone.context.state}`);
-        try {
-            await Tone.context.resume();
-            console.log(`🥁 Drum AudioContext resumed. New state: ${Tone.context.state}`);
-        } catch (e) {
-            console.warn("⚠️ Failed to resume Drum AudioContext during unlock:", e);
-        }
-    }
-
-    if (drumsState.audioStatus === "ready") {
-        console.log("✅ Drum audio already ready, executing action immediately");
-        try {
-            newAction();
-            return true;
-        } catch (error) {
-            console.error("❌ Error executing immediate drum action:", error);
-            return false;
-        }
-    }
-
-    deferredDrumAction = newAction;
-    console.log("🥁 Deferred drum action stored.");
-
-    if (drumsState.audioStatus === "loading") {
-        console.log("🥁 Drum audio currently loading, action deferred.");
-        return new Promise((resolve) => {
-            const checkReady = setInterval(() => {
-                if (drumsState.audioStatus === "ready") {
-                    clearInterval(checkReady);
-                    resolve(true);
-                } else if (drumsState.audioStatus === "error") {
-                    clearInterval(checkReady);
-                    deferredDrumAction = null;
-                    resolve(false);
-                }
-            }, 50);
-        });
-    }
-
-    console.log("🥁 Starting drum audio initialization with deferred action.");
-    const success = await initializeDrumAudio();
-
-    if (!success) {
-        deferredDrumAction = null;
-    }
-    return success;
-}
-
-// ===================================================================
-// Core Playback Functions
-// ===================================================================
-
+/**
+ * Trigger drum sound using shared infrastructure
+ */
 export function triggerDrum(drumInstrument, on, velocity = 1) {
-    if (!isDrumAudioReady()) return;
+    if (!audioManager.isAudioReady()) {
+        console.warn("🥁 Audio not ready");
+        return;
+    }
 
     const instrumentProps = DRUM_INSTRUMENT_MAP[drumInstrument];
     if (!instrumentProps || typeof instrumentProps.midi !== 'number') {
-        console.warn(`🥁 Cannot play unknown drum instrument or no valid MIDI number defined: ${drumInstrument}`);
+        console.warn(`🥁 Unknown drum instrument: ${drumInstrument}`);
         return;
     }
     
     const midiNumber = instrumentProps.midi;
     const noteToPlay = DRUM_MIDI_TO_NOTE[midiNumber];
     
-    if (!noteToPlay) {
-        console.warn(`🥁 No note mapping for MIDI ${midiNumber} (${drumInstrument})`);
+    if (!noteToPlay || !drumSampler) {
+        console.warn(`🥁 No note mapping for ${drumInstrument}`);
         return;
     }
 
     if (on) {
-        drumsState.sampler.triggerAttack(noteToPlay, Tone.now(), velocity);
+        // Use the drum sampler directly for drums
+        drumSampler.triggerAttack(noteToPlay, Tone.now(), velocity);
         drumsState.activeDrumNotes.add(drumInstrument);
         setDrumButtonActive(drumInstrument, true);
-        startSpectrumIfReadyDrum();
+        audioManager.startSpectrumIfReady(); // Use shared spectrum
     } else {
-        drumsState.sampler.triggerRelease(noteToPlay);
+        drumSampler.triggerRelease(noteToPlay);
         drumsState.activeDrumNotes.delete(drumInstrument);
         setDrumButtonActive(drumInstrument, false);
-
-        // This block is for individual note release, not for full playback stop
-        // It ensures spectrum stops if *all* currently active individual notes cease.
-        // During a full stopPlayback, the main stop logic will handle spectrum.
-        if (drumsState.activeDrumNotes.size === 0 && Tone.Transport.state !== "started") { // Added check for Tone.Transport.state
-            setTimeout(() => {
-                if (drumsState.activeDrumNotes.size === 0 && Tone.Transport.state !== "started") {
-                    stopSpectrumVisualizationDrum();
-                }
-            }, 100); // Give a small buffer for release
-        }
     }
 }
 
 /**
- * Stops drum playback and clears associated states.
+ * Unlock drum audio using shared audioManager
+ */
+export async function unlockAndExecuteDrum(action) {
+    console.log('🥁 Unlocking drum audio...');
+    
+    // Use shared audio manager unlock
+    const success = await audioManager.unlockAndExecute(async () => {
+        // Initialize drum sampler after shared audio is ready
+        await initializeDrumSampler();
+        // Execute the actual action
+        action();
+    });
+
+    return success;
+}
+
+/**
+ * Stop drum playback
  */
 export function stopDrumPlayback() {
     console.log("🥁 Stopping drum playback...");
+    
     Tone.Transport.stop();
     Tone.Transport.cancel();
-    lastScrolledDrumMeasureIndex = -1; // Reset scroll tracking for drums
+    lastScrolledDrumMeasureIndex = -1;
 
-    // Release all notes from the drum sampler
-    if (drumsState.sampler && drumsState.sampler.releaseAll) {
-        drumsState.sampler.releaseAll();
-        console.log("🥁 Drum sampler notes released.");
+    if (drumSampler && drumSampler.releaseAll) {
+        drumSampler.releaseAll();
     }
 
-    clearAllActiveDrumButtons(); // Clear UI active states
-
-    // Ensure active drum notes are cleared after sampler release time
-    // This mirrors the more robust logic in scorePlayback.js
-    if (drumsState.activeDrumNotes.size > 0) {
-        console.log("🥁 Scheduling active drum notes cleanup and spectrum stop check.");
-        setTimeout(() => {
-            drumsState.activeDrumNotes.clear(); // Clear the set after the release
-            // Only stop spectrum if no other notes are active and transport isn't playing
-            if (drumsState.activeDrumNotes.size === 0 && Tone.Transport.state !== "started") {
-                stopSpectrumVisualizationDrum();
-            }
-        }, 100); // Wait for sampler release time
-    } else {
-        // If no active notes, stop spectrum immediately
-        stopSpectrumVisualizationDrum();
+    // Release all piano notes too if they exist
+    if (pianoState.sampler && pianoState.sampler.releaseAll) {
+        pianoState.sampler.releaseAll();
     }
 
-    updateNowPlayingDisplay(''); // Clear the now playing display
-    clearAllHighlights;
-    safeRedraw(); // Redraw drum score to clear any highlights (though we don't have highlights for drums yet)
-    console.log("🥁 Drum playback stopped.");
+    clearAllActiveDrumButtons();
+    drumsState.activeDrumNotes.clear();
+    updateNowPlayingDisplay('');
+    clearAllHighlights();
+    safeRedraw();
 }
 
+// ===================================================================
+// Playback Functions
+// ===================================================================
 
 /**
- * Handles duet playback - plays both piano and drum scores simultaneously
+ * Handle drum/duet playback - plays both piano and drum scores simultaneously
  */
 export function handleDrumPlayback() {
-    const playBtn = document.getElementById('play-drums-score-btn');
-
     if (Tone.Transport.state === "started") {
-        // If already playing, stop it
-        stopDrumPlayback(); // Call the new dedicated stop function
+        stopDrumPlayback();
         return;
     }
 
@@ -556,22 +258,25 @@ export function handleDrumPlayback() {
 
     console.log(`🎵 Starting duet playback - Drums: ${hasDrumScore ? 'Yes' : 'No'}, Piano: ${hasPianoScore ? 'Yes' : 'No'}`);
 
-    const startDuetPlayback = () => {
+    const startDuetPlayback = async () => {
         try {
+            // Ensure both audio systems are ready
+            if (!drumSampler) {
+                await initializeDrumSampler();
+            }
+
             const tempo = drumsState.tempo || 120;
             
-            // Setup transport
             Tone.Transport.stop();
             Tone.Transport.cancel();
             Tone.Transport.position = 0;
             Tone.Transport.bpm.value = tempo;
-            clearAllActiveDrumButtons(); // Clear all drum button states
+            clearAllActiveDrumButtons();
 
             // Schedule drum events
             if (hasDrumScore) {
                 console.log('🥁 Scheduling drum events');
                 scheduleDrumEvents(drumMeasures, tempo);
-                startSpectrumIfReadyDrum();
             }
 
             // Schedule piano events
@@ -580,8 +285,7 @@ export function handleDrumPlayback() {
                 schedulePianoEvents(pianoMeasures, tempo);
             }
 
-            // Schedule a final stop for the entire transport when all notes are done
-            // This is important for duet playback to ensure everything stops
+            // Calculate total playback time and schedule stop
             let maxPlaybackTime = 0;
             if (hasDrumScore) {
                 maxPlaybackTime = Math.max(maxPlaybackTime, calculateTotalDrumPlaybackDuration(drumMeasures, tempo));
@@ -592,47 +296,23 @@ export function handleDrumPlayback() {
 
             if (maxPlaybackTime > 0) {
                 Tone.Transport.scheduleOnce(() => {
-                    stopDrumPlayback(); // Stop drums
-                    // The piano's stopPlayback will be called by its own transport schedule
-                    // or by the stop-score-btn.
-                    // For duet, we want to ensure both stop.
-                    // If piano has its own auto-stop, we need to ensure this doesn't conflict.
-                    // For now, let's assume `stopDrumPlayback` is sufficient to stop the shared transport.
-                    // For a more robust solution, a shared stop function would be ideal.
+                    stopDrumPlayback();
                 }, maxPlaybackTime + 0.1); // Add a small buffer
             }
 
-
-            // Start transport
             Tone.Transport.start();
-            
             console.log('🎵 Duet playback started!');
         } catch (error) {
             console.error('❌ Error starting duet playback:', error);
         }
     };
 
-    // Ensure both audio systems are ready
-    const drumAudioReady = isDrumAudioReady();
-    const pianoAudioReady = audioManager.isAudioReady();
-
-    if (hasDrumScore && !drumAudioReady) {
-        unlockAndExecuteDrum(() => {
-            if (hasPianoScore && !pianoAudioReady) {
-                audioManager.unlockAndExecute(startDuetPlayback);
-            } else {
-                startDuetPlayback();
-            }
-        });
-    } else if (hasPianoScore && !pianoAudioReady) {
-        audioManager.unlockAndExecute(startDuetPlayback);
-    } else {
-        startDuetPlayback();
-    }
+    // Use shared unlock system for both instruments
+    unlockAndExecuteDrum(startDuetPlayback);
 }
 
 /**
- * Helper to calculate total drum playback duration
+ * Calculate total drum playback duration
  */
 function calculateTotalDrumPlaybackDuration(drumMeasures, bpm) {
     let totalTime = 0;
@@ -646,7 +326,7 @@ function calculateTotalDrumPlaybackDuration(drumMeasures, bpm) {
 }
 
 /**
- * Helper to calculate total piano playback duration
+ * Calculate total piano playback duration
  */
 function calculateTotalPianoPlaybackDuration(pianoMeasures, bpm) {
     let totalTime = 0;
@@ -659,60 +339,8 @@ function calculateTotalPianoPlaybackDuration(pianoMeasures, bpm) {
     return totalTime;
 }
 
-
 /**
- * Helper function to schedule a single note or chord event.
- */
-function scheduleNoteOrChord(note, noteStartTime, noteDurationInSeconds) {
-    if (note.isRest) {
-        return;
-    }
-
-    if (note.isChord) {
-        // Schedule all instruments in the chord
-        note.notes.forEach(individualNote => {
-            // Schedule note on
-            Tone.Transport.scheduleOnce((time) => {
-                triggerDrum(individualNote.drumInstrument, true, 1);
-            }, noteStartTime);
-            
-            // Schedule UI update (using the first instrument in the chord for display)
-            Tone.Transport.scheduleOnce((time) => {
-                Tone.Draw.schedule(() => {
-                    updateNowPlayingDisplay(individualNote.drumInstrument);
-                }, time);
-            }, noteStartTime);
-
-            // Schedule note off
-            const noteEndTime = noteStartTime + noteDurationInSeconds;
-            Tone.Transport.scheduleOnce((time) => {
-                triggerDrum(individualNote.drumInstrument, false);
-            }, noteEndTime);
-        });
-    } else {
-        // Schedule a single note
-        // Schedule note on
-        Tone.Transport.scheduleOnce((time) => {
-            triggerDrum(note.drumInstrument, true, 1);
-        }, noteStartTime);
-
-        // Schedule UI update
-        Tone.Transport.scheduleOnce((time) => {
-            Tone.Draw.schedule(() => {
-                updateNowPlayingDisplay(note.drumInstrument);
-            }, time);
-        }, noteStartTime);
-
-        // Schedule note off
-        const noteEndTime = noteStartTime + noteDurationInSeconds;
-        Tone.Transport.scheduleOnce((time) => {
-            triggerDrum(note.drumInstrument, false);
-        }, noteEndTime);
-    }
-}
-
-/**
- * Schedule drum events on the Transport
+ * Schedule drum events
  */
 function scheduleDrumEvents(drumMeasures, bpm) {
     let currentTransportTime = 0;
@@ -739,9 +367,7 @@ function scheduleDrumEvents(drumMeasures, bpm) {
             const noteDurationInSeconds = beatDuration * secondsPerBeat;
             const noteStartTime = currentTransportTime + measureOffset;
 
-            // Use the new helper function to handle both notes and chords
             scheduleNoteOrChord(note, noteStartTime, noteDurationInSeconds);
-
             measureOffset += noteDurationInSeconds;
         });
 
@@ -759,16 +385,6 @@ function schedulePianoEvents(pianoMeasures, bpm) {
     const beatsPerMeasure = 4; // Assuming 4/4 time
     const secondsPerBeat = 60 / bpm;
     
-    // Piano note duration mapping
-    const PIANO_DURATION_TO_BEATS = {
-        w: 4, "w.": 6,
-        h: 2, "h.": 3,
-        q: 1, "q.": 1.5,
-        "8": 0.5, "8.": 0.75,
-        "16": 0.25, "16.": 0.375,
-        "32": 0.125, "32.": 0.1875,
-    };
-
     pianoMeasures.forEach((measure, measureIndex) => {
         let trebleMeasureOffset = 0;
         let bassMeasureOffset = 0;
@@ -779,7 +395,7 @@ function schedulePianoEvents(pianoMeasures, bpm) {
 
         // Function to schedule a piano note
         const schedulePianoNote = (note, measureOffset) => {
-            const beatDuration = PIANO_DURATION_TO_BEATS[note.duration];
+            const beatDuration = DURATION_TO_BEATS[note.duration];
             if (beatDuration === undefined) {
                 console.error(`Unknown piano duration: ${note.duration}`);
                 return 0;
@@ -808,7 +424,7 @@ function schedulePianoEvents(pianoMeasures, bpm) {
                 Tone.Transport.scheduleOnce((time) => {
                     notesToPlay.forEach((n) => {
                         const midi = NOTES_BY_NAME[n];
-                        if (midi && pianoState.noteEls[midi]) {
+                        if (midi && pianoState.noteEls && pianoState.noteEls[midi]) {
                             Tone.Draw.schedule(() => {
                                 pianoState.noteEls[midi].classList.add("pressed");
                             }, time);
@@ -820,10 +436,10 @@ function schedulePianoEvents(pianoMeasures, bpm) {
                 Tone.Transport.scheduleOnce((time) => {
                     notesToPlay.forEach((n) => {
                         const midi = NOTES_BY_NAME[n];
-                        if (midi && pianoState.noteEls[midi]) {
+                        if (midi && pianoState.noteEls && pianoState.noteEls[midi]) {
                             Tone.Draw.schedule(() => {
                                 pianoState.noteEls[midi].classList.remove("pressed");
-                            });
+                            }, time);
                         }
                     });
                 }, noteStartTime + noteDurationInSeconds);
@@ -853,39 +469,74 @@ function schedulePianoEvents(pianoMeasures, bpm) {
     });
 }
 
+/**
+ * Schedule individual drum note or chord
+ */
+function scheduleNoteOrChord(note, noteStartTime, noteDurationInSeconds) {
+    if (note.isRest) return;
+
+    if (note.isChord) {
+        note.notes.forEach(individualNote => {
+            scheduleIndividualNote(individualNote, noteStartTime, noteDurationInSeconds);
+        });
+    } else {
+        scheduleIndividualNote(note, noteStartTime, noteDurationInSeconds);
+    }
+}
+
+function scheduleIndividualNote(note, noteStartTime, noteDurationInSeconds) {
+    // Schedule note on
+    Tone.Transport.scheduleOnce((time) => {
+        triggerDrum(note.drumInstrument, true, 1);
+    }, noteStartTime);
+    
+    // Schedule UI update
+    Tone.Transport.scheduleOnce((time) => {
+        Tone.Draw.schedule(() => {
+            updateNowPlayingDisplay(note.drumInstrument);
+        }, time);
+    }, noteStartTime);
+
+    // Schedule note off
+    Tone.Transport.scheduleOnce((time) => {
+        triggerDrum(note.drumInstrument, false);
+    }, noteStartTime + noteDurationInSeconds);
+}
+
 // ===================================================================
 // UI Event Handlers
 // ===================================================================
 
-let selectedDrumDurationElement = null;
-
 export function initializeDrumAudioListeners() {
+    // Duration buttons
     document.querySelectorAll('[data-duration]').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            if (selectedDrumDurationElement) {
-                selectedDrumDurationElement.classList.remove('btn--active');
-            }
+            document.querySelectorAll('[data-duration]').forEach(b => 
+                b.classList.remove('btn--active')
+            );
             e.currentTarget.classList.add('btn--active');
             selectedDrumDuration = e.currentTarget.dataset.duration;
-            selectedDrumDurationElement = e.currentTarget;
-            console.log(`🥁 Selected drum duration: ${selectedDrumDuration}`);
+            console.log(`🥁 Selected duration: ${selectedDrumDuration}`);
         });
     });
 
-    selectedDrumDurationElement = document.getElementById('drum-quarter-btn');
-    if (selectedDrumDurationElement) {
-        selectedDrumDurationElement.classList.add('btn--active');
+    // Set initial duration
+    const quarterBtn = document.getElementById('drum-quarter-btn');
+    if (quarterBtn) {
+        quarterBtn.classList.add('btn--active');
     }
 
+    // Drum instrument buttons
     document.querySelectorAll('[data-drum]').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const drumType = e.currentTarget.dataset.drum;
 
             unlockAndExecuteDrum(() => {
-                // Trigger drum sound and visual feedback
+                // Trigger drum sound
                 triggerDrum(drumType, true);
                 setTimeout(() => triggerDrum(drumType, false), 200);
 
+                // Add to score
                 const drumNoteData = {
                     drumInstrument: drumType,
                     duration: selectedDrumDuration,
@@ -894,32 +545,27 @@ export function initializeDrumAudioListeners() {
                 };
                 addNoteToMeasure(undefined, drumNoteData);
 
-                const currentDrumMeasureIdx = getCurrentDrumMeasureIndex();
-                if (typeof scrollToMeasure === 'function') {
-                    scrollToMeasure(currentDrumMeasureIdx);
-                }
-                console.log(`🥁 Added ${drumType} to drum score via button.`);
+                // Scroll to current measure
+                const currentMeasureIdx = getCurrentDrumMeasureIndex();
+                scrollToMeasure(currentMeasureIdx);
+                console.log(`🥁 Added ${drumType} to score`);
             });
         });
     });
 
+    // Control buttons
     document.getElementById('clear-drum-score-btn')?.addEventListener('click', () => {
         resetDrumScore();
         clearAllActiveDrumButtons();
-        console.log('🥁 Drum score cleared.');
+        console.log('🥁 Score cleared');
     });
 
     document.getElementById('undo-drum-btn')?.addEventListener('click', () => {
         undoDrumLastWrite();
-        console.log('🥁 Drum undo performed.');
+        console.log('🥁 Undo performed');
     });
 
     document.getElementById('add-drum-measure-btn')?.addEventListener('click', () => {
-        addDrumMeasureInternal();
-        console.log('🥁 Drum measure added.');
-    });
-
-    function addDrumMeasureInternal() {
         const newMeasureIndex = getDrumMeasures().length;
         const restNote = {
             drumInstrument: "rest",
@@ -928,24 +574,21 @@ export function initializeDrumAudioListeners() {
             id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
         };
         addNoteToMeasure(newMeasureIndex, restNote);
-        if (typeof scrollToMeasure === 'function') {
-            scrollToMeasure(newMeasureIndex);
-        }
-    }
-
-    // Pattern buttons remain the same...
+        scrollToMeasure(newMeasureIndex);
+        console.log('🥁 Measure added');
+    });
 }
 
 export function setupDrumPlaybackButton() {
-    const playDrumBtn = document.getElementById('play-drums-score-btn');
-    if (!playDrumBtn) {
-        console.warn('🥁 Play drums button not found');
+    const playBtn = document.getElementById('play-drums-score-btn');
+    if (!playBtn) {
+        console.warn('🥁 Play button not found');
         return;
     }
 
-    playDrumBtn.addEventListener('click', (e) => {
+    playBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        handleDrumPlayback();
+        handleDrumPlayback(); // This now handles duet playback automatically
     });
 }
 
@@ -953,5 +596,5 @@ export function initializeDrumAudioModule() {
     initializeDrumAudioState();
     initializeDrumAudioListeners();
     setupDrumPlaybackButton();
-    console.log("🥁 Drum Audio Module initialized.");
+    console.log("🥁 Drum Audio Module initialized (using shared infrastructure)");
 }

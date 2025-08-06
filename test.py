@@ -135,7 +135,7 @@ def bass():
 @app.route('/drums')
 def drums():
     """Drums instrument route"""
-    return render_template('drums.html')
+    return render_template('drums.html', hide_spectrum=False, hide_instrument=True, hide_score=True)
 
 
 @app.route('/player')

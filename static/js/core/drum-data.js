@@ -1,10 +1,5 @@
 // core/drum-data.js
 
-// Access VexFlow components directly from the global Vex.Flow object
-// assuming it's loaded via a script tag in index.html
-// Ensure Vex.Flow is available globally before this module attempts to use it.
-const { StaveNote, Stem, Annotation, Articulation, Stroke } = Vex.Flow;
-
 /**
  * DRUM_INSTRUMENT_MAP defines the visual and structural properties for each drum kit element
  * when rendered on a single 5-line percussion staff using VexFlow.
@@ -20,23 +15,23 @@ const { StaveNote, Stem, Annotation, Articulation, Stroke } = Vex.Flow;
 export const DRUM_INSTRUMENT_MAP = {
   "bongo-low": {
     name: "Low Bongo",
-    keys: ["D/3"], // Assigned to the lowest available note for low percussion.
-    notehead: "x",
+    keys: ["G/4"],
+    notehead: "n",
     stemDirection: 1,
     midi: 61,
     filename: "BONGOLO.wav",
   },
   "bass-kick": {
     name: "Bass Kick",
-    keys: ["E/3"], // Positioned just above the lowest note, distinct from the main kick.
-    notehead: "x",
-    stemDirection: 1,
+    keys: ["F/4"],
+    notehead: "n",
+    stemDirection: -1,
     midi: 35,
     filename: "BOXKICK.wav",
   },
   "kick": {
     name: "Kick Drum",
-    keys: ["F/3"], // Traditional bass drum position, low on the staff.
+    keys: ["E/4"],
     notehead: "x",
     stemDirection: 1,
     midi: 36,
@@ -52,15 +47,15 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "bongo-high": {
     name: "High Bongo",
-    keys: ["A/3"], // Positioned above the low bongo to maintain relative pitch.
-    notehead: "x",
+    keys: ["B/4"], // Positioned above the low bongo to maintain relative pitch.
+    notehead: "n",
     stemDirection: 1,
     midi: 60,
     filename: "BONGOHI.wav",
   },
   "clap": {
     name: "Clap",
-    keys: ["B/3"], // A mid-low auxiliary percussion sound.
+    keys: ["C/6"], // A mid-low auxiliary percussion sound.
     notehead: "x",
     stemDirection: 1,
     midi: 39,
@@ -68,8 +63,8 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "snare": {
     name: "Snare Drum",
-    keys: ["C/4"], // Traditional snare drum position, in the middle of the staff.
-    notehead: "x",
+    keys: ["C/5"], // Traditional snare drum position, in the middle of the staff.
+    notehead: "n",
     stemDirection: 1,
     midi: 38,
     filename: "snare.wav",
@@ -92,25 +87,25 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "tom-low": {
     name: "Low Tom",
-    keys: ["F/4"], // The lowest tom, placed above the snare and other lower percussion.
-    notehead: "x",
+    keys: ["A/4"], // The lowest tom, placed above the snare and other lower percussion.
+    notehead: "n",
     stemDirection: 1,
     midi: 45,
     filename: "low-tom.wav",
   },
   "tom-mid": {
     name: "Mid Tom",
-    keys: ["G/4"], // The middle tom, maintaining relative pitch to other toms.
-    notehead: "x",
-    stemDirection: -1,
+    keys: ["D/5"], // The middle tom, maintaining relative pitch to other toms.
+    notehead: "n",
+    stemDirection: 1,
     midi: 47,
     filename: "MIDTOM.wav",
   },
   "tom-high": {
     name: "High Tom",
-    keys: ["A/4"], // The highest tom, maintaining relative pitch.
-    notehead: "x",
-    stemDirection: -1,
+    keys: ["E/5"], // The highest tom, maintaining relative pitch.
+    notehead: "n",
+    stemDirection: 1,
     midi: 48,
     filename: "high-tom.wav",
   },
@@ -132,25 +127,25 @@ export const DRUM_INSTRUMENT_MAP = {
   "cowbell": {
     name: "Cowbell",
     keys: ["D/5"], // Traditionally placed high on the staff.
-    notehead: "x",
+    notehead: "h",
     stemDirection: 1,
     midi: 56,
     filename: "cowbell.wav",
   },
   "hihat-closed": {
-    name: "Closed Hi-Hat",
-    keys: ["E/5"], // A unique high position, separate from the open hi-hat.
+    name: "Closed Hat",
+    keys: ["A/5"], // A unique high position, separate from the open hi-hat.
     notehead: "x",
-    stemDirection: -1,
+    stemDirection: 1,
     modifiers: [],
     midi: 42,
     filename: "hihat-closed.wav",
   },
   "hihat-open": {
-    name: "Open Hi-Hat",
-    keys: ["F/5"], // Placed adjacent to the closed hi-hat for visual grouping.
-    notehead: "x",
-    stemDirection: -1,
+    name: "Open Hat",
+    keys: ["A/5"], // Placed adjacent to the closed hi-hat for visual grouping.
+    notehead: "n",
+    stemDirection: 1,
     modifiers: [],
     midi: 46,
     filename: "hihat-open.wav",
@@ -175,15 +170,15 @@ export const DRUM_INSTRUMENT_MAP = {
     name: "Crash Cymbal",
     keys: ["B/5"], // Traditional crash cymbal position, high on the staff.
     notehead: "x",
-    stemDirection: -1,
+    stemDirection: 1,
     midi: 49,
     filename: "crash.wav",
   },
   "ride": {
     name: "Ride Cymbal",
-    keys: ["C/6"], // Traditional ride cymbal position, the highest note on the staff.
-    notehead: "x",
-    stemDirection: -1,
+    keys: ["F/5"], // Traditional ride cymbal position, the highest note on the staff.
+    notehead: "h",
+    stemDirection: 1,
     midi: 51,
     filename: "ride.wav",
   },

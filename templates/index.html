@@ -42,20 +42,19 @@
         {% block palette %}{% endblock %}
         
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
-        <section class="score-viewer">
-          <div class="score-viewer__container" id="scoreWrap">
-            <div class="score-viewer__content" id="score"></div>
-          </div>
-        </section>
+          {% block score %} {% if not hide_score %} {% include
+          'partials/_score.html' %} {% endif %} {% endblock %}
         <div class="outer-wrapper">
         <section class="instrument-panel">
           {% block spectrum %} {% if not hide_spectrum %} {% include
           'partials/_spectrum.html' %} {% endif %} {% endblock %}
-          <div id="handOverlay" class="hidden"></div>
-          <div class="instrument-panel__keyboard" id="instrument"></div>
+          {% block instrument %} {% if not hide_instrument %} {% include
+          'partials/_instrument.html' %} {% endif %} {% endblock %}
+
           {% block content %}{% endblock %}
         </section>
         </div>
+        {% block after %}{% endblock %}
         <nav class="main-controls">
           <div class="controls-button-row">
             <button id="clearScoreBtn" class="btn btn--danger">

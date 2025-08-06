@@ -215,7 +215,28 @@ export class InstrumentControl {
                     eq: { enabled: true, low: 1, mid: 0, high: 1 }
                 }
             },
-            
+            // In audioManager.js, add to the InstrumentControl presets:
+drums: {
+    name: 'Drums',
+    baseUrl: '/static/samples/drums/',
+    sampleUrls: {
+        "C2": "kick.wav", "B1": "BOXKICK.wav",
+        "D2": "snare.wav", "C#2": "sidestick.wav",
+        "F#2": "hi-hat.wav", "A#2": "open-hat.wav",
+        "A2": "low-tom.wav", "B2": "MIDTOM.wav",
+        "C#3": "crash.wav", "D#3": "ride.wav",
+        // ... rest of your drum samples
+    },
+    envelopeSettings: {
+        attack: 0.001,    // Instant attack for drums
+        decay: 0.1,       // Quick decay
+        sustain: 0.0,     // No sustain for drums
+        release: 0.3,     // Short release
+        
+        reverb: { enabled: true, roomSize: 0.3, wet: 0.15 },
+        compression: { enabled: true, threshold: -8, ratio: 4, attack: 0.001, release: 0.05 }
+    }
+},
             clarinet: {
                 name: 'Clarinet',
                 baseUrl: '/static/samples/clarinet/',
@@ -396,7 +417,7 @@ function processDeferredAction() {
 let spectrumInitialized = false;
 let spectrumActive = false;
 
-function initializeSpectrumVisualizer() {
+export function initializeSpectrumVisualizer() {
   try {
     const spectrumContainer = document.getElementById("spectrum");
     if (!spectrumContainer) {
