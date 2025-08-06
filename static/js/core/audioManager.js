@@ -37,7 +37,7 @@ export class InstrumentControl {
                     attack: 0.01,   // Very quick attack - hammer strikes
                     decay: 0.3,     // Quick decay
                     sustain: 0.5,   // Good sustain level
-                    release: 0.8,    // Natural decay of strings
+                    release: 0.8,     // Natural decay of strings
 
                     // Piano effects
                     reverb: { enabled: true, roomSize: 0.7, wet: 0.25 },
@@ -75,22 +75,22 @@ export class InstrumentControl {
             cello: {
                 name: 'Cello',
                 baseUrl: '/static/samples/cello/',
-sampleUrls: {
-    "C2": "C2.wav",   // Or "C2_1.wav", "C2_2.wav", etc. if C2.wav doesn't exist
-    "G#2": "G#2.wav", // Or "G#2_1.wav", "G#2_2.wav", etc.
-    "F2": "F2.wav",   // Or "F2_1.wav", "F2_2.wav", etc.
-    "E2": "E2.wav",   // Or "E2_2.wav", "E2_3.wav", etc.
-    "D2": "D2.wav",   // Or "D2_1.wav", "D2_2.wav"
-    "C#2": "C#2.wav", // Or "C#2_2.wav", "C#2_3.wav"
-    "D#2": "D#2.wav", // Or "D#2_1.wav", "D#2_2.wav", etc.
-    "A2": "A2.wav",
-},
+                sampleUrls: {
+                    "C2": "C2.wav",   // Or "C2_1.wav", "C2_2.wav", etc. if C2.wav doesn't exist
+                    "G#2": "G#2.wav", // Or "G#2_1.wav", "G#2_2.wav", etc.
+                    "F2": "F2.wav",   // Or "F2_1.wav", "F2_2.wav", etc.
+                    "E2": "E2.wav",   // Or "E2_2.wav", "E2_3.wav", etc.
+                    "D2": "D2.wav",   // Or "D2_1.wav", "D2_2.wav"
+                    "C#2": "C#2.wav", // Or "C#2_2.wav", "C#2_3.wav"
+                    "D#2": "D#2.wav", // Or "D#2_1.wav", "D#2_2.wav", etc.
+                    "A2": "A2.wav",
+                },
 
                 envelopeSettings: {
                     attack: 0.08,   // Slower attack - bow engagement
                     decay: 0.4,     // Quick decay to sustain
                     sustain: 0.9,  // Very high sustain - bowed strings
-                    release: 1.8,    // Medium release
+                    release: 1.8,     // Medium release
 
                     // Cello effects
                     reverb: { enabled: true, roomSize: 0.8, wet: 0.35 },
@@ -119,14 +119,158 @@ sampleUrls: {
                 },
                 envelopeSettings: {
                     attack: 0.04,   // Quick attack - breath/reed
-                    decay: 0.15,     // Very short decay
+                    decay: 0.15,    // Very short decay
                     sustain: 0.8,   // Full sustain - breath controlled
-                    release: 0.6,    // Medium release
+                    release: 0.6,     // Medium release
                     reverb: { enabled: true, roomSize: 0.5, wet: 0.2 },
                     eq: { enabled: true, low: -1, mid: 1, high: 0 },
                     compression: { enabled: true, threshold: -18, ratio: 3, attack: 0.005, release: 0.2 }
                 }
-            }
+            },
+                bass: {
+                name: 'Bass',
+                baseUrl: '/static/samples/bass/',
+                sampleUrls: {
+        "D1": "PickedBass26-2.wav",
+        "E1": "AcousticBass28.wav",
+        "G1": "PickedBass31-2.wav",
+        "G#1": "AcousticBass32.wav",
+        "A1": "PickedBass33.wav",
+        "A#1": "PickedBass34-2.wav",
+        "B1": "AcousticBass35.wav",
+        "D2": "PickedBass38.wav",
+        "D#2": "AcousticBass39.wav",
+        "E2": "PickedBass40-2.wav",
+        "F#2": "AcousticBass42.wav",
+        "A#2": "AcousticBass46.wav",
+        "B2": "PickedBass47-2.wav",
+        "C#3": "AcousticBass49.wav",
+        "D#3": "PickedBass51-2.wav",
+        "E3": "PickedBass52.wav",
+        "F#3": "AcousticBass54.wav",
+        "A3": "PickedBass57-2.wav",
+        "B3": "AcousticBass59.wav",
+        "C5": "PickedBass72-2.wav",
+        "A5": "AcousticBass81.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.05,
+                    decay: 0.3,
+                    sustain: 0.6,
+                    release: 0.5,
+
+                    // Bass effects
+                    reverb: { enabled: true, roomSize: 0.2, wet: 0.1 },
+                    eq: { enabled: true, low: 2, mid: 0, high: -2 },
+                    compression: { enabled: true, threshold: -12, ratio: 4, attack: 0.01, release: 0.15 }
+                }
+            },
+            french_horn: {
+                name: 'French Horn',
+                baseUrl: '/static/samples/french_horn/',
+                sampleUrls: {
+                    "A#2": "A#2.wav",
+                    "C#2": "C#2.wav",
+                    "C2": "C2.wav",
+                    "D#2": "D#2.wav",
+                    "D2": "D2.wav",
+                    "E2": "E2.wav",
+                    "F#2": "F#2.wav",
+                    "F2": "F2.wav",
+                    "G2": "G2.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.1,    // Slower, smooth attack
+                    decay: 0.2,     // Short decay to sustain
+                    sustain: 0.7,   // Strong, brassy sustain
+                    release: 0.5,   // Medium release
+                    
+                    // French Horn effects
+                    reverb: { enabled: true, roomSize: 0.6, wet: 0.3 },
+                    eq: { enabled: true, low: 0, mid: 1, high: -1 },
+                    compression: { enabled: true, threshold: -15, ratio: 2, attack: 0.1, release: 0.2 }
+                }
+            },
+
+            electric_guitar: {
+                name: 'Electric Guitar',
+                baseUrl: '/static/samples/electric_guitar/',
+                sampleUrls: {
+                    "A#3": "A#3.wav",
+                    "C2": "C2.wav",
+                    "C3": "C3.wav",
+                    "D#4": "D#4.wav",
+                    "F2": "F2.wav",
+                    "F3": "F3.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.01,
+                    decay: 0.2,
+                    sustain: 0.6,
+                    release: 0.5,
+
+                    // Electric Guitar effects
+                    reverb: { enabled: true, roomSize: 0.3, wet: 0.2 },
+                    compression: { enabled: true, threshold: -10, ratio: 3, attack: 0.01, release: 0.1 },
+                    eq: { enabled: true, low: 1, mid: 0, high: 1 }
+                }
+            },
+            
+            clarinet: {
+                name: 'Clarinet',
+                baseUrl: '/static/samples/clarinet/',
+                sampleUrls: {
+                    "A#2": "A#2.wav",
+                    "A#3": "A#3.wav",
+                    "D#3": "D#3.wav",
+                    "F4": "F4.wav",
+                    "C5": "C5.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.05,
+                    decay: 0.15,
+                    sustain: 0.9,
+                    release: 0.4,
+
+                    // Clarinet effects
+                    reverb: { enabled: true, roomSize: 0.5, wet: 0.25 },
+                    eq: { enabled: true, low: -1, mid: 1, high: 0 },
+                    compression: { enabled: true, threshold: -15, ratio: 2, attack: 0.05, release: 0.2 }
+                }
+            },
+            harp: {
+                name: 'Harp',
+                baseUrl: '/static/samples/harp/',
+                sampleUrls: {
+                    "B3": "Harp_B3.wav",
+                    "C3": "Harp_C3.wav",
+                    "D4": "Harp_D4.wav",
+                    "D6": "Harp_D6.wav",
+                    "D7": "Harp_D7.wav",
+                    "E3": "Harp_E3.wav",
+                    "E5": "Harp_E5.wav",
+                    "F4": "Harp_F4.wav",
+                    "F6": "Harp_F6.wav",
+                    "F7": "Harp_F7.wav",
+                    "G3": "Harp_G3.wav",
+                    "G5": "Harp_G5.wav",
+                    "A4": "Harp_A4.wav",
+                    "A6": "Harp_A6.wav",
+                    "B5": "Harp_B5.wav",
+                    "C5": "Harp_C5.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.001,
+                    decay: 0.1,
+                    sustain: 0.0,
+                    release: 2.0,
+
+                    // Harp effects
+                    reverb: { enabled: true, roomSize: 0.8, wet: 0.4 },
+                    eq: { enabled: true, low: 0, mid: 0, high: 2 },
+                    compression: { enabled: true, threshold: -10, ratio: 1.5, attack: 0.01, release: 0.1 }
+                }
+              }
         };
     }
 

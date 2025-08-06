@@ -112,6 +112,26 @@ def sax():
     """Guitar instrument route"""
     return render_template('sax.html', instrument='sax')
 
+@app.route('/french_horn')
+def french_horn():
+    """French Horn instrument route"""
+    return render_template('french_horn.html', instrument='french_horn')
+
+@app.route('/clarinet')
+def clarinet():
+    """Clarinet instrument route"""
+    return render_template('clarinet.html', instrument='clarinet')
+
+@app.route('/harp')
+def harp():
+    """Harp instrument route"""
+    return render_template('harp.html', instrument='harp')
+
+@app.route('/bass')
+def bass():
+    """Bass instrument route"""
+    return render_template('bass.html', instrument='bass')
+
 @app.route('/drums')
 def drums():
     """Drums instrument route"""
