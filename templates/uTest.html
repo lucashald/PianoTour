@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Music Renderer Test - Fixed Beams</title>
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .instrument-section {
+            background: white;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .instrument-header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .piano-header { background: #3498db; }
+        .drums-header { background: #e74c3c; }
+        .guitar-header { background: #27ae60; }
+        
+        .score-container {
+            padding: 20px;
+            overflow-x: auto;
+            min-height: 200px;
+        }
+        
+        .guitar-container {
+            min-height: 300px;
+        }
+        
+        .controls {
+            padding: 15px 20px;
+            background: #ecf0f1;
+            border-top: 1px solid #bdc3c7;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-right: 10px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 20px;
+            color: #721c24;
+        }
+        
+        #vexflow-version {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Universal Music Renderer Test - Fixed Beams</h1>
+        
+        <div class="info">
+            <strong>Testing UniversalMusicRenderer Class with Fixed Beam Implementation</strong><br>
+            Using the same beam approach as the drum renderer for consistent behavior across all instruments.
+        </div>
+
+        <!-- Piano Section -->
+        <div class="instrument-section">
+            <div class="instrument-header piano-header">🎹 Piano (Grand Staff)</div>
+            <div class="score-container" id="piano-score"></div>
+            <div class="controls">
+                <button onclick="renderPiano()">Basic</button>
+                <button onclick="renderPianoChords()">Chords</button>
+                <button onclick="renderPianoBeams()">Beamed Notes</button>
+                <button onclick="renderPianoTies()">Ties & Slurs</button>
+                <button onclick="clearPiano()">Clear</button>
+            </div>
+        </div>
+
+        <!-- Drums Section -->
+        <div class="instrument-section">
+            <div class="instrument-header drums-header">🥁 Drums (Percussion)</div>
+            <div class="score-container" id="drums-score"></div>
+            <div class="controls">
+                <button onclick="renderDrums()">Basic Beat</button>
+                <button onclick="renderDrumFill()">Fill</button>
+                <button onclick="renderDrumBeams()">Beamed Patterns</button>
+                <button onclick="renderDrumModifiers()">Modifiers</button>
+                <button onclick="clearDrums()">Clear</button>
+            </div>
+        </div>
+
+        <!-- Guitar Section -->
+        <div class="instrument-section">
+            <div class="instrument-header guitar-header">🎸 Guitar (Standard + Tablature)</div>
+            <div class="score-container guitar-container" id="guitar-score"></div>
+            <div class="controls">
+                <button onclick="renderGuitar()">With Tablature</button>
+                <button onclick="renderGuitarNoTab()">Standard Only</button>
+                <button onclick="renderGuitarChords()">Chord Progression</button>
+                <button onclick="renderGuitarBeams()">Beamed & Tied</button>
+                <button onclick="clearGuitar()">Clear</button>
+            </div>
+        </div>
+
+        <div id="vexflow-version"></div>
+    </div>
+
+    <script>
+        // Universal Music Renderer Class with Improved Beam Handling
+        class UniversalMusicRenderer {
+            constructor(elementId, options = {}) {
+                this.elementId = elementId;
+                this.instrumentType = options.instrumentType || 'piano';
+                this.measureWidth = options.measureWidth || 400;
+                this.showTablature = options.showTablature !== false;
+                this.timeSignature = options.timeSignature || { numerator: 4, denominator: 4 };
+                this.tempo = options.tempo || 120;
+                this.keySignature = options.keySignature || 'C';
+                
+                this.vfContext = null;
+                this.vexFlowFactory = null;
+                this.vexflowNoteMap = []; 
+                this.measureXPositions = [];
+                this.vexflowStaveMap = [];
+                this.vexflowIndexByNoteId = {};
+                
+                this.vexflowBeams = [];
+                this.tieGroups = [];
+                
+                this.guitarConfig = {
+                    strings: 6,
+                    standardTuning: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+                    fretCount: 24
+                };
+                
+                // CORRECTED DRUM INSTRUMENT MAP
+                this.drumInstrumentMap = {
+                    kick: { name: "Kick", keys: ['C/4'], notehead: 'normal', stemDirection: Vex.Flow.Stem.UP, midi: 36, filename: "kick.wav" },
+                    snare: { name: "Snare", keys: ['E/4'], notehead: 'normal', stemDirection: Vex.Flow.Stem.UP, midi: 38, filename: "snare.wav" },
+                    hihat: { name: "Closed Hat", keys: ['G/5'], notehead: 'x', stemDirection: Vex.Flow.Stem.UP, midi: 42, filename: "hihat-closed.wav" },
+                    // FIX: Using "ah" for the open hi-hat symbol as it is a valid VexFlow articulation glyph.
+                    "hihat-open": { name: "Open Hat", keys: ['A/5'], notehead: "x", stemDirection: Vex.Flow.Stem.UP, 
+                      modifiers: [{ type: "articulation", symbol: "ah", position: "above" }], midi: 46, filename: "hihat-open.wav" },
+                    crash: { name: "Crash", keys: ['A/5'], notehead: 'x', stemDirection: Vex.Flow.Stem.UP, midi: 49, filename: "crash.wav" },
+                    ride: { name: "Ride", keys: ['F/5'], notehead: 'x', stemDirection: Vex.Flow.Stem.UP, midi: 51, filename: "ride.wav" },
+                    tom1: { name: "High Tom", keys: ['A/4'], notehead: 'normal', stemDirection: Vex.Flow.Stem.UP, midi: 48, filename: "tom-high.wav" },
+                    tom2: { name: "Mid Tom", keys: ['F/4'], notehead: 'normal', stemDirection: Vex.Flow.Stem.UP, midi: 45, filename: "tom-mid.wav" },
+                    tom3: { name: "Low Tom", keys: ['D/4'], notehead: 'n', stemDirection: Vex.Flow.Stem.UP, midi: 41, filename: "tom-low.wav" }
+                };
+            }
+
+            isBeamableNote(vexNote) {
+                if (!vexNote || vexNote.isRest()) return false;
+                
+                const duration = vexNote.getDuration();
+                const beamableDurations = ['8', '16', '32', '64', '128'];
+                return beamableDurations.includes(duration);
+            }
+
+            createBeamsForNotes(vexNotes, notesData) {
+                const beams = [];
+                const beamGroups = {};
+                
+                if (notesData) {
+                    notesData.forEach((noteData, index) => {
+                        if (noteData.beamGroup !== undefined && vexNotes[index]) {
+                            if (!beamGroups[noteData.beamGroup]) {
+                                beamGroups[noteData.beamGroup] = [];
+                            }
+                            if (this.isBeamableNote(vexNotes[index])) {
+                                beamGroups[noteData.beamGroup].push(vexNotes[index]);
+                            }
+                        }
+                    });
+                }
+                
+                Object.values(beamGroups).forEach(groupNotes => {
+                    if (groupNotes.length >= 2) {
+                        beams.push(new Vex.Flow.Beam(groupNotes));
+                    }
+                });
+                
+                if (Object.keys(beamGroups).length === 0) {
+                    let currentBeamGroup = [];
+                    
+                    vexNotes.forEach((note) => {
+                        if (this.isBeamableNote(note)) {
+                            currentBeamGroup.push(note);
+                        } else {
+                            if (currentBeamGroup.length >= 2) {
+                                beams.push(new Vex.Flow.Beam(currentBeamGroup));
+                            }
+                            currentBeamGroup = [];
+                        }
+                    });
+                    
+                    if (currentBeamGroup.length >= 2) {
+                        beams.push(new Vex.Flow.Beam(currentBeamGroup));
+                    }
+                }
+                
+                return beams;
+            }
+
+            render(measuresData, options = {}) {
+                console.log(`UniversalMusicRenderer: Rendering ${this.instrumentType} notation`);
+                
+                const element = document.getElementById(this.elementId);
+                if (!element) {
+                    console.error(`UniversalMusicRenderer: Element #${this.elementId} not found!`);
+                    return;
+                }
+
+                element.innerHTML = "";
+                this.resetInternalState();
+
+                if (typeof Vex === "undefined" || !Vex.Flow) {
+                    element.innerHTML = '<div class="error">VexFlow library not loaded.</div>';
+                    return;
+                }
+
+                try {
+                    this.initializeVexFlow(measuresData, options);
+                    
+                    switch (this.instrumentType) {
+                        case 'piano':
+                            this.renderPiano(measuresData, options);
+                            break;
+                        case 'drums':
+                            this.renderDrums(measuresData, options);
+                            break;
+                        case 'guitar':
+                            this.renderGuitar(measuresData, options);
+                            break;
+                        default:
+                            throw new Error(`Unknown instrument type: ${this.instrumentType}`);
+                    }
+
+                    this.drawAllBeams();
+                    this.drawTies();
+                    
+                    console.log(`UniversalMusicRenderer: ${this.instrumentType} rendering complete.`);
+                    
+                } catch (error) {
+                    console.error(`UniversalMusicRenderer: Rendering error:`, error);
+                    element.innerHTML = `<div class="error">Rendering error: ${error.message}</div>`;
+                }
+            }
+
+            resetInternalState() {
+                this.vexflowNoteMap = []; 
+                this.measureXPositions = [];
+                this.vexflowStaveMap = [];
+                this.vexflowIndexByNoteId = {};
+                this.vexflowBeams = [];
+                this.tieGroups = [];
+            }
+
+            initializeVexFlow(measuresData, options) {
+                const measureCount = Math.max(measuresData.length, 1);
+                const totalWidth = this.measureWidth * measureCount + 40;
+                
+                let height = 300;
+                if (this.instrumentType === 'piano') {
+                    height = 300;
+                } else if (this.instrumentType === 'drums') {
+                    height = 150;
+                } else if (this.instrumentType === 'guitar') {
+                    height = this.showTablature ? 280 : 200;
+                }
+
+                this.vexFlowFactory = new Vex.Flow.Factory({
+                    renderer: {
+                        elementId: this.elementId,
+                        width: totalWidth,
+                        height: height,
+                    },
+                });
+                this.vfContext = this.vexFlowFactory.getContext();
+            }
+
+            renderPiano(measuresData, options) {
+                const measureCount = Math.max(measuresData.length, 1);
+                let currentX = 20;
+
+                for (let i = 0; i < measureCount; i++) {
+                    this.measureXPositions.push(currentX);
+                    const measure = measuresData[i] || [];
+                    const trebleNotesData = measure.filter(n => n.clef === 'treble');
+                    const bassNotesData = measure.filter(n => n.clef === 'bass');
+                    
+                    this.vexflowNoteMap[i] = { treble: [], bass: [] };
+
+                    const trebleStave = new Vex.Flow.Stave(currentX, 20, this.measureWidth);
+                    if (i === 0) {
+                        trebleStave.addClef('treble');
+                        trebleStave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
+                        trebleStave.setTempo({ duration: 'q', bpm: this.tempo }, -27);
+                    }
+                    if (i === measureCount - 1) {
+                        trebleStave.setEndBarType(Vex.Flow.Barline.type.END);
+                    }
+
+                    const bassStave = new Vex.Flow.Stave(currentX, 120, this.measureWidth);
+                    if (i === 0) {
+                        bassStave.addClef('bass');
+                        bassStave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
+                    }
+                    if (i === measureCount - 1) {
+                        bassStave.setEndBarType(Vex.Flow.Barline.type.END);
+                    }
+
+                    trebleStave.setContext(this.vfContext).draw();
+                    bassStave.setContext(this.vfContext).draw();
+
+                    if (i === 0) {
+                        const brace = new Vex.Flow.StaveConnector(trebleStave, bassStave);
+                        brace.setType(Vex.Flow.StaveConnector.type.BRACE);
+                        brace.setContext(this.vfContext).draw();
+
+                        const connector = new Vex.Flow.StaveConnector(trebleStave, bassStave);
+                        connector.setType(Vex.Flow.StaveConnector.type.SINGLE_LEFT);
+                        connector.setContext(this.vfContext).draw();
+                    }
+
+                    if (i === measureCount - 1) {
+                        const endConnector = new Vex.Flow.StaveConnector(trebleStave, bassStave);
+                        endConnector.setType(Vex.Flow.StaveConnector.type.BOLD_DOUBLE_RIGHT);
+                        endConnector.setContext(this.vfContext).draw();
+                    }
+
+                    if (trebleNotesData.length > 0) {
+                        const trebleVexNotes = this.createVexFlowNotes(trebleNotesData, i, 'treble');
+                        this.vexflowNoteMap[i].treble = trebleVexNotes;
+                        this.vexflowBeams[i] = this.vexflowBeams[i] || {};
+                        this.vexflowBeams[i].treble = this.createBeamsForNotes(trebleVexNotes, trebleNotesData);
+                        this.processTies(trebleNotesData);
+
+                        const trebleVoice = this.createVoice(trebleVexNotes);
+                        new Vex.Flow.Formatter().joinVoices([trebleVoice]).format([trebleVoice], this.measureWidth - 50);
+                        trebleVoice.draw(this.vfContext, trebleStave);
+                    }
+
+                    if (bassNotesData.length > 0) {
+                        const bassVexNotes = this.createVexFlowNotes(bassNotesData, i, 'bass');
+                        this.vexflowNoteMap[i].bass = bassVexNotes;
+                        this.vexflowBeams[i] = this.vexflowBeams[i] || {};
+                        this.vexflowBeams[i].bass = this.createBeamsForNotes(bassVexNotes, bassNotesData);
+                        this.processTies(bassNotesData);
+
+                        const bassVoice = this.createVoice(bassVexNotes);
+                        new Vex.Flow.Formatter().joinVoices([bassVoice]).format([bassVoice], this.measureWidth - 50);
+                        bassVoice.draw(this.vfContext, bassStave);
+                    }
+
+                    this.vexflowStaveMap[i] = { treble: trebleStave, bass: bassStave };
+                    currentX += this.measureWidth;
+                }
+            }
+
+            renderDrums(measuresData, options) {
+                const measureCount = Math.max(measuresData.length, 1);
+                let currentX = 20;
+                
+                for (let i = 0; i < measureCount; i++) {
+                    this.measureXPositions.push(currentX);
+                    const measureNotesData = measuresData[i] || [];
+                    
+                    const vexNotesForMeasure = this.renderDrumNotes(measureNotesData, i);
+                    
+                    this.vexflowBeams[i] = this.createBeamsForNotes(vexNotesForMeasure, measureNotesData);
+                    this.processTies(measureNotesData);
+                    
+                    const voice = this.createVoice(vexNotesForMeasure);
+                    const stave = new Vex.Flow.Stave(currentX, 20, this.measureWidth);
+                    
+                    if (i === 0) {
+                        stave.addClef('percussion');
+                        stave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
+                        stave.setTempo({ duration: 'q', bpm: this.tempo }, -27);
+                    }
+
+                    if (i === measureCount - 1) {
+                        stave.setEndBarType(Vex.Flow.Barline.type.END);
+                    }
+
+                    stave.setContext(this.vfContext).draw();
+                    new Vex.Flow.Formatter().joinVoices([voice]).format([voice], this.measureWidth - 50);
+                    voice.draw(this.vfContext, stave);
+
+                    this.vexflowStaveMap[i] = stave;
+                    currentX += this.measureWidth;
+                }
+            }
+
+            renderDrumNotes(notesData, measureIndex) {
+                const vexNotes = [];
+                this.vexflowNoteMap[measureIndex] = { percussion: [] };
+                notesData.forEach((noteData, index) => {
+                    let vexNote;
+                    if (noteData.isRest) {
+                        vexNote = new Vex.Flow.StaveNote({ keys: ['B/4'], duration: `${noteData.duration}r`, clef: 'percussion' });
+                    } else {
+                        const { drumInstrument, duration } = noteData;
+                        const instrumentProps = this.drumInstrumentMap[drumInstrument];
+
+                        if (!instrumentProps) {
+                            console.warn(`Unknown drum instrument: ${drumInstrument}`);
+                            return;
+                        }
+                        
+                        // Create the note options object and conditionally add the 'type' property
+                        const noteOptions = {
+                            keys: instrumentProps.keys, 
+                            duration: duration,
+                            stem_direction: instrumentProps.stemDirection,
+                            clef: 'percussion'
+                        };
+
+                        if (instrumentProps.notehead && instrumentProps.notehead !== 'normal') {
+                           noteOptions.type = instrumentProps.notehead;
+                        }
+
+                        vexNote = new Vex.Flow.StaveNote(noteOptions);
+
+                        // Apply modifiers from DRUM_INSTRUMENT_MAP
+                        if (instrumentProps.modifiers && instrumentProps.modifiers.length > 0) {
+                            instrumentProps.modifiers.forEach((mod) => {
+                                if (mod.type === "articulation") {
+                                    const articulation = new Vex.Flow.Articulation(mod.symbol);
+                                    if (mod.position) {
+                                        // FIX: Use the correct `Position` enum for setting position
+                                        const positionMap = {
+                                            "above": Vex.Flow.Modifier.Position.ABOVE,
+                                            "below": Vex.Flow.Modifier.Position.BELOW
+                                        };
+                                        articulation.setPosition(positionMap[mod.position]);
+                                    }
+                                    vexNote.addModifier(articulation, 0);
+                                } else if (mod.type === "annotation") {
+                                    const annotation = new Vex.Flow.Annotation(mod.text).setFont({ family: "Arial", size: 10, weight: "bold" });
+                                    if (mod.justification) {
+                                        annotation.setJustification(mod.justification);
+                                    }
+                                    vexNote.addModifier(annotation, 0);
+                                }
+                            });
+                        }
+
+                        // Apply chord name annotation if it exists in noteData
+                        if (noteData.chordName) {
+                            const annotation = new Vex.Flow.Annotation(noteData.chordName)
+                                .setFont({ family: 'Arial', size: 12, weight: 'bold' })
+                                .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.BOTTOM);
+                            vexNote.addModifier(annotation, 0);
+                        }
+                    }
+
+                    vexNotes.push(vexNote);
+                    this.vexflowNoteMap[measureIndex].percussion.push(vexNote);
+                    this.vexflowIndexByNoteId[noteData.id] = { measureIndex, clef: 'percussion', vexflowIndex: index };
+                });
+                
+                if (vexNotes.length === 0) {
+                    vexNotes.push(new Vex.Flow.StaveNote({ keys: ['B/4'], duration: 'wr', clef: 'percussion' }));
+                }
+                return vexNotes;
+            }
+
+            renderGuitar(measuresData, options) {
+                const measureCount = Math.max(measuresData.length, 1);
+                let currentX = 20;
+
+                for (let i = 0; i < measureCount; i++) {
+                    this.measureXPositions.push(currentX);
+                    const measureNotesData = measuresData[i] || [];
+
+                    const standardStave = new Vex.Flow.Stave(currentX, 50, this.measureWidth);
+                    let tabStave = null;
+                    
+                    if (this.showTablature) {
+                        tabStave = new Vex.Flow.TabStave(currentX, 150, this.measureWidth);
+                        tabStave.addTabGlyph();
+                    }
+
+                    if (i === 0) {
+                        standardStave.addClef('treble');
+                        standardStave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
+                        standardStave.setTempo({ duration: 'q', bpm: this.tempo }, -30);
+                    }
+
+                    if (i === measureCount - 1) {
+                        standardStave.setEndBarType(Vex.Flow.Barline.type.END);
+                        if (tabStave) tabStave.setEndBarType(Vex.Flow.Barline.type.END);
+                    }
+
+                    standardStave.setContext(this.vfContext).draw();
+                    if (tabStave) tabStave.setContext(this.vfContext).draw();
+                    
+                    this.vexflowNoteMap[i] = { treble: [], tab: [] };
+
+                    const { standardNotes, tabNotes } = this.convertGuitarNotes(measureNotesData, i);
+                    this.vexflowNoteMap[i].treble = standardNotes;
+                    this.vexflowNoteMap[i].tab = tabNotes;
+
+                    this.vexflowBeams[i] = this.createBeamsForNotes(standardNotes, measureNotesData);
+                    this.processTies(measureNotesData);
+
+                    if (standardNotes.length > 0) {
+                        const standardVoice = this.createVoice(standardNotes);
+
+                        if (this.showTablature && tabNotes.length > 0) {
+                            const tabVoice = this.createVoice(tabNotes);
+
+                            new Vex.Flow.Formatter().joinVoices([standardVoice, tabVoice]).format([standardVoice, tabVoice], this.measureWidth - 50);
+
+                            standardVoice.draw(this.vfContext, standardStave);
+                            tabVoice.draw(this.vfContext, tabStave);
+                        } else {
+                            new Vex.Flow.Formatter().joinVoices([standardVoice]).format([standardVoice], this.measureWidth - 50);
+
+                            standardVoice.draw(this.vfContext, standardStave);
+                        }
+                    }
+
+                    this.vexflowStaveMap[i] = { standard: standardStave, tab: tabStave };
+                    currentX += this.measureWidth;
+                }
+            }
+
+            drawAllBeams() {
+                this.vexflowBeams.forEach((measureBeams) => {
+                    if (measureBeams) {
+                        if (typeof measureBeams === 'object' && (measureBeams.treble || measureBeams.bass)) {
+                            if (measureBeams.treble && measureBeams.treble.length > 0) {
+                                measureBeams.treble.forEach(beam => beam.setContext(this.vfContext).draw());
+                            }
+                            if (measureBeams.bass && measureBeams.bass.length > 0) {
+                                measureBeams.bass.forEach(beam => beam.setContext(this.vfContext).draw());
+                            }
+                        }
+                        else if (Array.isArray(measureBeams) && measureBeams.length > 0) {
+                            measureBeams.forEach(beam => beam.setContext(this.vfContext).draw());
+                        }
+                    }
+                });
+            }
+
+            createNoteWithModifiers(keys, duration, stemDirection, noteheadType, clef, modifiers, chordName) {
+                const noteOptions = {
+                    keys,
+                    duration,
+                    stem_direction: stemDirection,
+                    clef
+                };
+
+                if (noteheadType && noteheadType !== 'normal') {
+                    noteOptions.type = noteheadType;
+                }
+
+                const vexNote = new Vex.Flow.StaveNote(noteOptions);
+
+                if (modifiers && modifiers.length > 0) {
+                    modifiers.forEach((mod) => {
+                        if (mod.type === "articulation") {
+                            const articulation = new Vex.Flow.Articulation(mod.symbol);
+                            if (mod.position) {
+                                articulation.setPosition(mod.position === 'above' ? Vex.Flow.Modifier.Position.ABOVE : Vex.Flow.Modifier.Position.BELOW);
+                            }
+                            vexNote.addModifier(articulation, 0);
+                        } else if (mod.type === "annotation") {
+                            const annotation = new Vex.Flow.Annotation(mod.text).setFont({ family: "Arial", size: 10, weight: "bold" });
+                            if (mod.justification) {
+                                annotation.setJustification(mod.justification);
+                            }
+                            vexNote.addModifier(annotation, 0);
+                        }
+                    });
+                }
+                
+                if (chordName) {
+                    const annotation = new Vex.Flow.Annotation(chordName)
+                        .setFont({ family: 'Arial', size: 12, weight: 'bold' })
+                        .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.BOTTOM);
+                    vexNote.addModifier(annotation, 0);
+                }
+                return vexNote;
+            }
+            
+            createVexFlowNotes(notesData, measureIndex, clef) {
+                const vexNotes = [];
+                notesData.forEach((noteData, index) => {
+                    let vexNote;
+                    if (noteData.isRest) {
+                        vexNote = new Vex.Flow.StaveNote({
+                            keys: clef === 'treble' ? ['D/5'] : ['F/3'],
+                            duration: `${noteData.duration}r`,
+                            clef: clef
+                        });
+                    } else {
+                        const noteName = noteData.name;
+                        vexNote = this.createNoteWithModifiers(
+                            [this.noteToVexFlowKey(noteName)],
+                            noteData.duration,
+                            Vex.Flow.Stem.AUTO,
+                            'normal',
+                            clef,
+                            null,
+                            noteData.chordName
+                        );
+                    }
+                    vexNotes.push(vexNote);
+                    this.vexflowIndexByNoteId[noteData.id] = { measureIndex, clef, vexflowIndex: index };
+                });
+                if (vexNotes.length === 0) {
+                    vexNotes.push(new Vex.Flow.StaveNote({
+                        keys: clef === 'treble' ? ['D/5'] : ['F/3'],
+                        duration: 'wr',
+                        clef: clef
+                    }));
+                }
+                return vexNotes;
+            }
+            createVoice(notes) {
+                const voice = new Vex.Flow.Voice({ 
+                    num_beats: this.timeSignature.numerator, 
+                    beat_value: this.timeSignature.denominator 
+                });
+                voice.setStrict(false);
+                voice.addTickables(notes);
+                return voice;
+            }
+            // REVISED `processTies`
+            processTies(notesData) {
+                notesData.forEach((noteData) => {
+                    if (noteData.tie) {
+                        // A tie is a pair of notes. Let's make sure the data reflects that.
+                        if (noteData.tie.startNoteId && noteData.tie.endNoteId) {
+                            this.tieGroups.push({
+                                type: noteData.tie.type || 'tie',
+                                startNoteId: noteData.tie.startNoteId,
+                                endNoteId: noteData.tie.endNoteId
+                            });
+                        }
+                    }
+                });
+            }
+
+            // REVISED `drawTies`
+            drawTies() {
+                // Build a map of all VexFlow notes for easy lookup by ID
+                const vexNotesById = {};
+                for (const id in this.vexflowIndexByNoteId) {
+                    const info = this.vexflowIndexByNoteId[id];
+                    const vexNote = this.vexflowNoteMap[info.measureIndex][info.clef][info.vexflowIndex];
+                    vexNotesById[id] = vexNote;
+                }
+                
+                // Loop through the tie groups and draw each tie
+                this.tieGroups.forEach(tie => {
+                    const startVexNote = vexNotesById[tie.startNoteId];
+                    const endVexNote = vexNotesById[tie.endNoteId];
+                    
+                    if (startVexNote && endVexNote) {
+                        if (tie.type === 'tie') {
+                            const staveTie = new Vex.Flow.StaveTie({
+                                first_note: startVexNote,
+                                last_note: endVexNote,
+                                first_indices: [0],
+                                last_indices: [0]
+                            });
+                            staveTie.setContext(this.vfContext).draw();
+                        } else if (tie.type === 'slur') {
+                            const curve = new Vex.Flow.Curve(startVexNote, endVexNote, {
+                                x_shift: -1,
+                                y_shift: 10,
+                                position: Vex.Flow.Stem.UP,
+                                position_end: Vex.Flow.Stem.UP,
+                            });
+                            curve.setContext(this.vfContext).draw();
+                        }
+                    } else {
+                        console.warn(`Could not find start/end notes for tie:`, tie);
+                    }
+                });
+            }
+            convertGuitarNotes(measureNotesData, measureIndex) {
+                const standardNotes = [];
+                const tabNotes = [];
+                
+                measureNotesData.forEach((noteData, index) => {
+                    const { string, fret, duration, isRest, name, chordName } = noteData;
+
+                    if (isRest) {
+                        standardNotes.push(new Vex.Flow.StaveNote({
+                            keys: ['D/5'],
+                            duration: `${duration}r`,
+                            clef: 'treble'
+                        }));
+                        if (this.showTablature) {
+                            tabNotes.push(new Vex.Flow.TabNote({ positions: [], duration: `${duration}r` }));
+                        }
+                    } else {
+                        let noteName;
+                        if (name) {
+                            noteName = name;
+                        } else if (string !== undefined && fret !== undefined) {
+                            noteName = this.stringToNote(string, fret);
+                        } else {
+                            console.warn('Guitar note missing note name or string/fret information:', noteData);
+                            return;
+                        }
+                        
+                        const vexNote = this.createNoteWithModifiers(
+                            [this.noteToVexFlowKey(noteName)],
+                            duration,
+                            Vex.Flow.Stem.AUTO,
+                            'normal',
+                            'treble',
+                            null,
+                            chordName
+                        );
+
+                        standardNotes.push(vexNote);
+                        this.vexflowIndexByNoteId[noteData.id] = { measureIndex, clef: 'treble', vexflowIndex: index };
+
+                        if (this.showTablature) {
+                            const tabNote = new Vex.Flow.TabNote({
+                                positions: [{ str: string, fret: fret.toString() }],
+                                duration: duration
+                            });
+                            tabNotes.push(tabNote);
+                            this.vexflowIndexByNoteId[noteData.id] = { measureIndex, clef: 'tab', vexflowIndex: index };
+                        }
+                    }
+                });
+
+                if (standardNotes.length === 0) {
+                    standardNotes.push(new Vex.Flow.StaveNote({ keys: ['D/5'], duration: 'wr', clef: 'treble' }));
+                    if (this.showTablature) {
+                        tabNotes.push(new Vex.Flow.TabNote({ positions: [], duration: 'wr' }));
+                    }
+                }
+                return { standardNotes, tabNotes };
+            }
+
+            stringToNote(stringNumber, fret) {
+                const stringIndex = stringNumber - 1;
+                const openNote = this.guitarConfig.standardTuning[stringIndex];
+                return this.transposeNote(openNote, fret);
+            }
+
+            transposeNote(note, semitones) {
+                const noteRegex = /([A-G])([#b]?)(\d+)/;
+                const match = note.match(noteRegex);
+                if (!match) return note;
+                
+                const [, noteName, accidental, octave] = match;
+                const noteValues = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+                const accidentalValue = accidental === '#' ? 1 : accidental === 'b' ? -1 : 0;
+                
+                let midiNote = noteValues[noteName] + accidentalValue + (parseInt(octave) * 12);
+                midiNote += semitones;
+                
+                const newOctave = Math.floor(midiNote / 12);
+                const newNoteValue = midiNote % 12;
+                const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                
+                return noteNames[newNoteValue] + newOctave;
+            }
+
+            noteToVexFlowKey(note) {
+                return note.replace(/(\d+)/, '/$1');
+            }
+
+            clear() {
+                const element = document.getElementById(this.elementId);
+                if (element) {
+                    element.innerHTML = "";
+                }
+                this.resetInternalState();
+            }
+        }
+
+        // Initialize and test
+        let pianoRenderer, drumRenderer, guitarRenderer;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('vexflow-version').textContent = 
+                `VexFlow Version: ${Vex.Flow.VERSION || 'Unknown'}`;
+
+            pianoRenderer = new UniversalMusicRenderer('piano-score', {
+                instrumentType: 'piano',
+                tempo: 120
+            });
+
+            drumRenderer = new UniversalMusicRenderer('drums-score', {
+                instrumentType: 'drums',
+                tempo: 120
+            });
+
+            guitarRenderer = new UniversalMusicRenderer('guitar-score', {
+                instrumentType: 'guitar',
+                showTablature: true,
+                tempo: 120
+            });
+
+            renderPiano();
+            renderDrums();
+            renderGuitar();
+        });
+
+        // Test data (updated for fixes)
+        const samplePianoData = [
+            [
+                { id: "p1-1", name: "C4", clef: "treble", duration: "q", isRest: false },
+                { id: "p1-2", name: "E4", clef: "treble", duration: "q", isRest: false },
+                { id: "p1-3", name: "G4", clef: "treble", duration: "q", isRest: false },
+                { id: "p1-4", name: "C5", clef: "treble", duration: "q", isRest: false },
+                { id: "p1-5", name: "C3", clef: "bass", duration: "w", isRest: false }
+            ]
+        ];
+
+        const samplePianoChordsData = [
+            [
+                { id: "pc1-1", name: "C4", clef: "treble", duration: "h", isRest: false, chordName: "C" },
+                { id: "pc1-2", name: "E4", clef: "treble", duration: "h", isRest: false },
+                { id: "pc1-3", name: "C3", clef: "bass", duration: "w", isRest: false }
+            ],
+            [
+                { id: "pc2-1", name: "F4", clef: "treble", duration: "h", isRest: false, chordName: "F" },
+                { id: "pc2-2", name: "A4", clef: "treble", duration: "h", isRest: false },
+                { id: "pc2-3", name: "F3", clef: "bass", duration: "w", isRest: false }
+            ]
+        ];
+
+        const samplePianoBeamsData = [
+            [
+                { id: "pb1-1", name: "C4", clef: "treble", duration: "8", isRest: false, beamGroup: 1 },
+                { id: "pb1-2", name: "D4", clef: "treble", duration: "8", isRest: false, beamGroup: 1 },
+                { id: "pb1-3", name: "E4", clef: "treble", duration: "8", isRest: false, beamGroup: 1 },
+                { id: "pb1-4", name: "F4", clef: "treble", duration: "8", isRest: false, beamGroup: 1 },
+                { id: "pb1-5", name: "G4", clef: "treble", duration: "q", isRest: false },
+                { id: "pb1-6", name: "C3", clef: "bass", duration: "h", isRest: false },
+                { id: "pb1-7", name: "G3", clef: "bass", duration: "h", isRest: false }
+            ]
+        ];
+		
+		const samplePianoTiesData = [
+            [ // Measure 1
+                { id: "p1-1", name: "C4", clef: "treble", duration: "h", isRest: false },
+                { id: "p1-2", name: "E4", clef: "treble", duration: "h", isRest: false,
+                  tie: { type: "tie", startNoteId: "p1-2", endNoteId: "p2-1" } },
+                { id: "p1-3", name: "C3", clef: "bass", duration: "w", isRest: false }
+            ],
+            [ // Measure 2
+                { id: "p2-1", name: "E4", clef: "treble", duration: "q", isRest: false },
+                { id: "p2-2", name: "G4", clef: "treble", duration: "q", isRest: false },
+                { id: "p2-3", name: "C5", clef: "treble", duration: "h", isRest: false },
+                { id: "p2-4", name: "C3", clef: "bass", duration: "w", isRest: false }
+            ]
+        ];
+
+
+        const sampleDrumBeamsData = [
+            [
+                { id: "db1-1", drumInstrument: "kick", duration: "q", isRest: false },
+                { id: "db1-2", drumInstrument: "hihat", duration: "8", isRest: false, beamGroup: 1 },
+                { id: "db1-3", drumInstrument: "hihat", duration: "8", isRest: false, beamGroup: 1 },
+                { id: "db1-4", drumInstrument: "snare", duration: "q", isRest: false },
+                { id: "db1-5", drumInstrument: "hihat", duration: "8", isRest: false, beamGroup: 2 },
+                { id: "db1-6", drumInstrument: "hihat", duration: "8", isRest: false, beamGroup: 2 }
+            ]
+        ];
+
+        const sampleGuitarBeamsData = [
+            [
+                { id: "gb1-1", name: "E4", string: 1, fret: 0, duration: "8", isRest: false, beamGroup: 1 },
+                { id: "gb1-2", name: "F4", string: 1, fret: 1, duration: "8", isRest: false, beamGroup: 1 },
+                { id: "gb1-3", name: "G4", string: 1, fret: 3, duration: "8", isRest: false, beamGroup: 1,
+                  tie: { type: "tie", startNote: "gb1-3" } },
+                { id: "gb1-4", name: "G4", string: 1, fret: 3, duration: "8", isRest: false, beamGroup: 1,
+                  tie: { type: "tie", endNote: "gb1-3" } },
+                { id: "gb1-5", name: "A4", string: 1, fret: 5, duration: "h", isRest: false }
+            ]
+        ];
+        
+        const sampleDrumModifiersData = [
+            [
+                { id: "dm1-1", drumInstrument: "kick", duration: "q", isRest: false },
+                { id: "dm1-2", drumInstrument: "hihat-open", duration: "q", isRest: false },
+                { id: "dm1-3", drumInstrument: "hihat", duration: "q", isRest: false },
+                { id: "dm1-4", drumInstrument: "snare", duration: "q", isRest: false, chordName: "Ghost" }
+            ]
+        ];
+
+        // Render functions (same as before)
+        function renderPiano() { pianoRenderer.render(samplePianoData); }
+        function renderPianoChords() { pianoRenderer.render(samplePianoChordsData); }
+        function renderPianoBeams() { pianoRenderer.render(samplePianoBeamsData); }
+        function renderPianoTies() { pianoRenderer.render(samplePianoTiesData); }
+        function clearPiano() { pianoRenderer.clear(); }
+
+        function renderDrums() { 
+            drumRenderer.render([
+                [
+                    { id: "d1-1", drumInstrument: "kick", duration: "q", isRest: false },
+                    { id: "d1-2", drumInstrument: "hihat", duration: "q", isRest: false },
+                    { id: "d1-3", drumInstrument: "snare", duration: "q", isRest: false },
+                    { id: "d1-4", drumInstrument: "hihat", duration: "q", isRest: false }
+                ]
+            ]); 
+        }
+        function renderDrumFill() { 
+            drumRenderer.render([
+                [
+                    { id: "df1-1", drumInstrument: "tom1", duration: "8", isRest: false },
+                    { id: "df1-2", drumInstrument: "tom2", duration: "8", isRest: false },
+                    { id: "df1-3", drumInstrument: "tom3", duration: "8", isRest: false },
+                    { id: "df1-4", drumInstrument: "crash", duration: "8", isRest: false }
+                ]
+            ]); 
+        }
+        function renderDrumBeams() { drumRenderer.render(sampleDrumBeamsData); }
+        function renderDrumModifiers() { drumRenderer.render(sampleDrumModifiersData); }
+        function clearDrums() { drumRenderer.clear(); }
+
+        function renderGuitar() { 
+            guitarRenderer.render([
+                [
+                    { id: "g1-1", name: "E4", string: 1, fret: 0, duration: "q", isRest: false },
+                    { id: "g1-2", name: "B3", string: 2, fret: 0, duration: "q", isRest: false },
+                    { id: "g1-3", name: "G3", string: 3, fret: 0, duration: "q", isRest: false },
+                    { id: "g1-4", name: "D3", string: 4, fret: 0, duration: "q", isRest: false }
+                ]
+            ]); 
+        }
+        function renderGuitarNoTab() {
+            const guitarNoTabRenderer = new UniversalMusicRenderer('guitar-score', {
+                instrumentType: 'guitar',
+                showTablature: false,
+                tempo: 120
+            });
+            guitarNoTabRenderer.render([
+                [
+                    { id: "gnt1-1", name: "E4", duration: "q", isRest: false },
+                    { id: "gnt1-2", name: "B3", duration: "q", isRest: false },
+                    { id: "gnt1-3", name: "G3", duration: "q", isRest: false },
+                    { id: "gnt1-4", name: "D3", duration: "q", isRest: false }
+                ]
+            ]);
+        }
+        function renderGuitarChords() { 
+            guitarRenderer.render([
+                [
+                    { id: "gc1-1", name: "E4", string: 1, fret: 0, duration: "w", isRest: false, chordName: "Em" }
+                ],
+                [
+                    { id: "gc2-1", name: "G4", string: 1, fret: 3, duration: "w", isRest: false, chordName: "G" }
+                ]
+            ]); 
+        }
+        function renderGuitarBeams() { guitarRenderer.render(sampleGuitarBeamsData); }
+        function clearGuitar() { guitarRenderer.clear(); }
+    </script>
+</body>
+</html>

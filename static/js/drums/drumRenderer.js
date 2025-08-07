@@ -79,6 +79,11 @@ export function drawAll(measures) {
             measureNotesData.forEach((noteData) => {
                 const { id } = noteData;
 
+
+
+
+
+                
                 let vexNote;
 
                 if (noteData.isRest) {
@@ -114,6 +119,7 @@ export function drawAll(measures) {
                         duration,
                         stem_direction: stemDirection,
                         note_heads: noteHeads
+                        
                     });
 
                 } else {
@@ -133,27 +139,26 @@ export function drawAll(measures) {
                         type: instrumentProps.notehead, // Set in constructor
                     });
 
-                    // Apply modifiers from DRUM_INSTRUMENT_MAP
-                    if (instrumentProps.modifiers && instrumentProps.modifiers.length > 0) {
-                        instrumentProps.modifiers.forEach((mod) => {
-                            if (mod.type === "articulation") {
-                                vexNote.addArticulation(0, new Vex.Flow.Articulation(mod.symbol)).setPosition(mod.position);
-                            } else if (mod.type === "annotation") {
-                                vexNote.addAnnotation(0, new Vex.Flow.Annotation(mod.text).setFont({ family: "Arial", size: 10, weight: "bold" })).setJustification(mod.justification);
-                            }
-                        });
+        // Apply modifiers from DRUM_INSTRUMENT_MAP - CORRECTED VERSION
+        if (instrumentProps.modifiers && instrumentProps.modifiers.length > 0) {
+            instrumentProps.modifiers.forEach((mod) => {
+                if (mod.type === "articulation") {
+                    // FIXED: Use addModifier, not addArticulation
+                    const articulation = new Vex.Flow.Articulation(mod.symbol);
+                    if (mod.position) {
+                        articulation.setPosition(mod.position);
                     }
-
-                    // Apply modifiers from individual note data
-                    if (modifiers && modifiers.length > 0) {
-                        modifiers.forEach((mod) => {
-                            if (mod.type === "stroke") {
-                                vexNote.addStroke(0, new Vex.Flow.Stroke(mod.symbol));
-                            } else if (mod.type === "annotation") {
-                                vexNote.addAnnotation(0, new Vex.Flow.Annotation(mod.text).setFont({ family: "Arial", size: 10, weight: "bold" })).setJustification(mod.justification);
-                            }
-                        });
+                    vexNote.addModifier(articulation, 0);
+                } else if (mod.type === "annotation") {
+                    const annotation = new Vex.Flow.Annotation(mod.text)
+                        .setFont({ family: "Arial", size: 10, weight: "bold" });
+                    if (mod.justification) {
+                        annotation.setJustification(mod.justification);
                     }
+                    vexNote.addModifier(annotation, 0);
+                }
+            });
+        }
                 }
 
                 vexNotesForMeasure.push(vexNote);

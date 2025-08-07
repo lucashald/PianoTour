@@ -1,7 +1,8 @@
 // scoreRenderer.js
 // This module handles rendering the musical score using VexFlow.
 // Simplified: Direct styling for selected note/measure/playback, no stored original styles.
-
+//     new StaveNote({ keys: ['g/3'], duration: '8' }).addModifier(
+//      new Annotation('Chord Name').setVerticalJustification(Annotation.VerticalJustify.BOTTOM)
 import { pianoState } from "../core/appState.js"; // ADD THIS LINE
 import {
   ALL_NOTE_INFO,

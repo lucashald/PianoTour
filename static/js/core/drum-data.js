@@ -20,6 +20,7 @@ export const DRUM_INSTRUMENT_MAP = {
     stemDirection: 1,
     midi: 61,
     filename: "BONGOLO.wav",
+    
   },
   "bass-kick": {
     name: "Bass Kick",
@@ -146,7 +147,13 @@ export const DRUM_INSTRUMENT_MAP = {
     keys: ["A/5"], // Placed adjacent to the closed hi-hat for visual grouping.
     notehead: "n",
     stemDirection: 1,
-    modifiers: [],
+        modifiers: [
+      {
+        type: "articulation", 
+        symbol: "ah",
+        position: "above"
+      }
+    ],
     midi: 46,
     filename: "hihat-open.wav",
   },
