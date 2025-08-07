@@ -8,82 +8,183 @@
     <!-- VexFlow and external dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tonal/browser/tonal.min.js"></script>
-    
-    <style>
-        body {
-            margin: 10;
-            font-family: Arial, sans-serif;
-        }
-        
-        #score {
-            display: flex;
-            flex-direction: column;
-            align-items: left;
-        }
-    </style>
 </head>
 <body>
-    <div id="score"></div>
+    
+    <div id="piano-section" class="score-section" style="display: none;">
+        <div class="section-header">
+            <h2>Piano Score</h2>
+        </div>
+        <div id="piano-score" class="score-container"></div>
+    </div>
+    
+    <div id="drum-section" class="score-section" style="display: none;">
+        <div class="section-header">
+            <h2>Drum Score</h2>
+        </div>
+        <div id="drum-score" class="score-container"></div>
+    </div>
 
-  <script type="module">
-      // Import all necessary modules
-      import { 
-          getMeasures, 
-          processAndSyncScore 
-      } from '/static/js/score/scoreWriter.js';
+    <script type="module">
+        // Import piano modules
+        import { 
+            getMeasures as getPianoMeasures, 
+            processAndSyncScore as processAndSyncPianoScore 
+        } from '/static/js/score/scoreWriter.js';
 
-      import { renderPrintScore } from '/static/js/utils/print.js';
-      import { pianoState } from '/static/js/core/appState.js';
+        // Import drum modules
+        import { 
+            getDrumMeasures, 
+            processAndSyncScore as processAndSyncDrumScore,
+            AUTOSAVE_KEY as DRUM_AUTOSAVE_KEY
+        } from '/static/js/drums/drumsScoreWriter.js';
 
-      // Load score from localStorage and render
-      document.addEventListener("DOMContentLoaded", () => {
-          console.log("Print page loaded, attempting to load score from localStorage...");
+        import { UniversalMusicRenderer } from '/static/js/classes/UniversalMusicRenderer.js';
+        import { pianoState, drumsState } from '/static/js/core/appState.js';
 
-          const savedScoreJSON = localStorage.getItem("autosavedScore");
-          if (savedScoreJSON) {
-              try {
-                  const savedData = JSON.parse(savedScoreJSON);
+        const PIANO_AUTOSAVE_KEY = 'autosavedScore';
 
-                  // Handle both old format (just measures array) and new format (object with measures + metadata)
-                  const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+        // Function to render piano score for printing
+        function renderPrintPianoScore(measuresData) {
+            console.log("Rendering piano score for printing...");
+            
+            if (!measuresData || measuresData.length === 0) {
+                console.warn("No piano measures to render");
+                return false;
+            }
 
-                  if (processAndSyncScore(measures)) {
-                      // Apply key signature and minor mode if saved data is in new format (object, not array)
-                      if (!Array.isArray(savedData)) {
-                          const keySignature = savedData.keySignature || 'C';
-                          const isMinorChordMode = savedData.isMinorChordMode || false;
-                          const title = savedData.title || null;
+            const renderer = new UniversalMusicRenderer('piano-score', {
+                instrumentType: 'piano',
+                measuresPerSystem: 3,
+                measureWidth: 350,
+                showTablature: false,
+                timeSignature: pianoState.timeSignature,
+                tempo: pianoState.tempo,
+                keySignature: pianoState.keySignature || 'C'
+            });
 
-                          pianoState.keySignature = keySignature;
-                          pianoState.isMinorChordMode = isMinorChordMode;
-                          console.log(`Key signature loaded: ${keySignature}, Minor mode: ${isMinorChordMode}`);
+            try {
+                renderer.render(measuresData);
+                console.log("✅ Piano score rendered successfully for printing");
+                return true;
+            } catch (error) {
+                console.error("❌ Error rendering piano score:", error);
+                document.getElementById('piano-score').innerHTML = 
+                    '<div class="error">Error rendering piano score: ' + error.message + '</div>';
+                return false;
+            }
+        }
 
-                          // Future: use title if it exists
-                          if (title) {
-                              console.log(`Score title loaded: ${title}`);
-                              // Future: Set document title or display title
-                              // document.title = `Piano Tour - Print Score - ${title}`;
-                          }
-                      }
+        // Function to render drum score for printing
+        function renderPrintDrumScore(measuresData) {
+            console.log("Rendering drum score for printing...");
+            
+            if (!measuresData || measuresData.length === 0) {
+                console.warn("No drum measures to render");
+                return false;
+            }
 
-                      console.log("Score successfully synchronized from localStorage.");
-                      renderPrintScore(getMeasures());
-                      console.log("Score rendered for printing.");
-                  } else {
-                      console.error("Failed to process score data.");
-                      document.body.innerHTML = "<div style='text-align: center; margin-top: 50px;'>Error: Could not load score data.<br><button onclick=\"window.location.href='/'\" style=\"margin-top: 20px; padding: 10px 20px; background: #1db954; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;\">← Back to Piano Tour</button></div>";
-                  }
-              } catch (e) {
-                  console.error("Failed to parse autosaved score:", e);
-                  document.body.innerHTML = "<div style='text-align: center; margin-top: 50px;'>Error: Invalid score data in localStorage.<br><button onclick=\"window.location.href='/'\" style=\"margin-top: 20px; padding: 10px 20px; background: #1db954; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;\">← Back to Piano Tour</button></div>";
-              }
-          } else {
-              console.log("No saved score found in localStorage.");
-            document.body.innerHTML = "<div style='text-align: center; margin-top: 50px;'>No score to print<br><small>Please create a score in the main application first.</small><br><button onclick=\"window.location.href='/'\" style=\"margin-top: 20px; padding: 10px 20px; background: #1db954; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600;\">← Back to Piano Tour</button></div>";
-          }
-      });
-  </script>
-  
+            const renderer = new UniversalMusicRenderer('drum-score', {
+                instrumentType: 'drums',
+                measuresPerSystem: 4,
+                measureWidth: 320,
+                showTablature: false,
+                timeSignature: drumsState.timeSignature,
+                tempo: drumsState.tempo,
+                keySignature: drumsState.keySignature || 'C'
+            });
+
+            try {
+                renderer.render(measuresData);
+                console.log("✅ Drum score rendered successfully for printing");
+                return true;
+            } catch (error) {
+                console.error("❌ Error rendering drum score:", error);
+                document.getElementById('drum-score').innerHTML = 
+                    '<div class="error">Error rendering drum score: ' + error.message + '</div>';
+                return false;
+            }
+        }
+
+        // Load and render both scores from localStorage
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("Print page loaded, attempting to load piano and drum scores...");
+
+            let pianoLoaded = false;
+            let drumLoaded = false;
+
+            // Load Piano Score
+            const savedPianoScoreJSON = localStorage.getItem(PIANO_AUTOSAVE_KEY);
+            if (savedPianoScoreJSON) {
+                try {
+                    const savedData = JSON.parse(savedPianoScoreJSON);
+                    const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+
+                    if (processAndSyncPianoScore(measures)) {
+                        // Apply piano-specific settings if saved data is in new format
+                        if (!Array.isArray(savedData)) {
+                            pianoState.keySignature = savedData.keySignature || 'C';
+                            pianoState.isMinorChordMode = savedData.isMinorChordMode || false;
+                            pianoState.tempo = savedData.tempo || 120;
+                            pianoState.timeSignature = savedData.timeSignature || { numerator: 4, denominator: 4 };
+                        }
+
+                        pianoLoaded = renderPrintPianoScore(getPianoMeasures());
+                        if (pianoLoaded) {
+                            document.getElementById('piano-section').style.display = 'block';
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to parse piano score:", e);
+                }
+            }
+
+            // Load Drum Score
+            const savedDrumScoreJSON = localStorage.getItem(DRUM_AUTOSAVE_KEY);
+            if (savedDrumScoreJSON) {
+                try {
+                    const savedData = JSON.parse(savedDrumScoreJSON);
+                    const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+
+                    if (processAndSyncDrumScore(measures)) {
+                        // Apply drum-specific settings if saved data is in new format
+                        if (!Array.isArray(savedData)) {
+                            drumsState.tempo = savedData.tempo || 120;
+                            drumsState.timeSignature = savedData.timeSignature || { numerator: 4, denominator: 4 };
+                        }
+
+                        drumLoaded = renderPrintDrumScore(getDrumMeasures());
+                        if (drumLoaded) {
+                            document.getElementById('drum-section').style.display = 'block';
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to parse drum score:", e);
+                }
+            }
+
+            // Handle cases where no scores were loaded
+            if (!pianoLoaded && !drumLoaded) {
+                document.body.innerHTML = `
+                    <div class="no-scores">
+                        <h2>No scores to print</h2>
+                        <p>Please create a piano or drum score in the main application first.</p>
+                        <a href="/" class="back-button">← Back to Piano</a>
+                        <a href="/drums" class="back-button">← Back to Drums</a>
+                    </div>`;
+            } else {
+                console.log(`✅ Scores loaded - Piano: ${pianoLoaded ? 'Yes' : 'No'}, Drums: ${drumLoaded ? 'Yes' : 'No'}`);
+                
+                // Update page title based on what's available
+                let titleParts = [];
+                if (pianoLoaded) titleParts.push('Piano');
+                if (drumLoaded) titleParts.push('Drums');
+                if (titleParts.length > 0) {
+                    document.title = `Piano Tour - Print ${titleParts.join(' & ')} Score`;
+                    document.querySelector('.page-header h1').innerHTML = `🎵 ${titleParts.join(' & ')} Score`;
+                }
+            }
+        });
+    </script>
 </body>
 </html>

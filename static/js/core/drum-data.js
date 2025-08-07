@@ -135,7 +135,7 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "hihat-closed": {
     name: "Closed Hat",
-    keys: ["A/5"], // A unique high position, separate from the open hi-hat.
+    keys: ["G/5"], // A unique high position, separate from the open hi-hat.
     notehead: "x",
     stemDirection: 1,
     modifiers: [],
@@ -159,9 +159,9 @@ export const DRUM_INSTRUMENT_MAP = {
   },
   "sidestick": {
     name: "Stick",
-    keys: ["G/5"], // Placed high to visually differentiate its "click" sound from the snare.
+    keys: ["C/4"], // Placed high to visually differentiate its "click" sound from the snare.
     notehead: "x",
-    stemDirection: -1,
+    stemDirection: 1,
     midi: 37,
     filename: "sidestick.wav",
   },

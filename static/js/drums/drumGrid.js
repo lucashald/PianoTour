@@ -114,9 +114,12 @@ function clearPattern() {
  * Analyzes the grid pattern and converts it to notation.
  * Handles simultaneous notes as chords and uses a fixed duration for all notes.
  */
+/**
+ * Analyzes the grid pattern and converts it to notation.
+ * Handles simultaneous notes as chords and automatically combines consecutive rests.
+ */
 function analyzePattern() {
     const notationData = [];
-    const stepDuration = "8"; // All notes and rests are 8th notes now
     let currentPosition = 0;
 
     while (currentPosition < GRID_STEPS) {
@@ -124,25 +127,80 @@ function analyzePattern() {
 
         if (activeInstruments.length > 0) {
             // This is a note (or a chord)
-            // Group all active instruments at this position into one notation object
             notationData.push({
-                drumInstruments: activeInstruments, // Use an array for a chord
-                duration: stepDuration,
+                drumInstruments: activeInstruments,
+                duration: "8", // 8th note
                 isRest: false,
                 position: currentPosition
             });
+            currentPosition++;
         } else {
-            // This is a rest
-            notationData.push({
-                duration: stepDuration,
-                isRest: true,
-                position: currentPosition
+            // This is a rest - look ahead to combine consecutive rests
+            const restCount = countConsecutiveRests(currentPosition);
+            const restDurations = convertRestCountToDurations(restCount);
+            
+            // Add the optimized rest durations
+            restDurations.forEach(duration => {
+                notationData.push({
+                    duration: duration,
+                    isRest: true,
+                    position: currentPosition
+                });
             });
+            
+            // Skip over all the combined rest positions
+            currentPosition += restCount;
         }
-        currentPosition++; // Move to the next step
     }
 
     return notationData;
+}
+
+/**
+ * Counts consecutive rests starting from the given position
+ */
+function countConsecutiveRests(startPosition) {
+    let count = 0;
+    let position = startPosition;
+    
+    while (position < GRID_STEPS) {
+        const activeInstruments = getActiveInstrumentsAtPosition(position);
+        if (activeInstruments.length === 0) {
+            count++;
+            position++;
+        } else {
+            break;
+        }
+    }
+    
+    return count;
+}
+
+/**
+ * Converts a number of 8th note rests into optimal duration notation
+ * Uses the largest possible durations first
+ */
+function convertRestCountToDurations(count) {
+    const durations = [];
+    let remaining = count;
+    
+    // Duration mapping: 8th notes per duration
+    const durationMap = [
+        { steps: 8, duration: "w" },   // Whole note = 8 eighth notes
+        { steps: 4, duration: "h" },   // Half note = 4 eighth notes  
+        { steps: 2, duration: "q" },   // Quarter note = 2 eighth notes
+        { steps: 1, duration: "8" }    // Eighth note = 1 eighth note
+    ];
+    
+    // Use the largest durations first
+    for (const { steps, duration } of durationMap) {
+        while (remaining >= steps) {
+            durations.push(duration);
+            remaining -= steps;
+        }
+    }
+    
+    return durations;
 }
 
 /**

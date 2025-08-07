@@ -37,50 +37,23 @@ export class UniversalMusicRenderer {
         return beamableDurations.includes(duration);
     }
 
-    createBeamsForNotes(vexNotes, notesData) {
-        const beams = [];
-        const beamGroups = {};
-
-        if (notesData) {
-            notesData.forEach((noteData, index) => {
-                if (noteData.beamGroup !== undefined && vexNotes[index]) {
-                    if (!beamGroups[noteData.beamGroup]) {
-                        beamGroups[noteData.beamGroup] = [];
-                    }
-                    if (this.isBeamableNote(vexNotes[index])) {
-                        beamGroups[noteData.beamGroup].push(vexNotes[index]);
-                    }
-                }
-            });
-        }
-
-        Object.values(beamGroups).forEach(groupNotes => {
-            if (groupNotes.length >= 2) {
-                beams.push(new Vex.Flow.Beam(groupNotes));
-            }
-        });
-
-        if (Object.keys(beamGroups).length === 0) {
-            let currentBeamGroup = [];
-
-            vexNotes.forEach((note) => {
-                if (this.isBeamableNote(note)) {
-                    currentBeamGroup.push(note);
-                } else {
-                    if (currentBeamGroup.length >= 2) {
-                        beams.push(new Vex.Flow.Beam(currentBeamGroup));
-                    }
-                    currentBeamGroup = [];
-                }
-            });
-
-            if (currentBeamGroup.length >= 2) {
-                beams.push(new Vex.Flow.Beam(currentBeamGroup));
-            }
-        }
-
-        return beams;
+createBeamsForNotes(vexNotes, notesData) {
+    // Filter to only beamable notes (no rests)
+    const beamableNotes = vexNotes.filter(note => this.isBeamableNote(note));
+    
+    if (beamableNotes.length < 2) {
+        return []; // Need at least 2 notes to beam
     }
+
+    // Use VexFlow's generateBeams with maintain_stem_directions
+    const beams = Vex.Flow.Beam.generateBeams(beamableNotes, {
+        beam_rests: false,                    // Don't beam over rests
+        maintain_stem_directions: true,       // ← This preserves individual stem directions!
+        groups: []                           // Let VexFlow auto-group by beat
+    });
+
+    return beams;
+}
     
     render(measuresData, options = {}) {
         console.log(`UniversalMusicRenderer: Rendering ${this.instrumentType} notation`);
@@ -108,184 +81,217 @@ export class UniversalMusicRenderer {
         }
     }
 
-    // New multi-line rendering function
-    renderMultiSystem(measuresData, options, renderSystemFunc) {
-        console.log(`UniversalMusicRenderer: Rendering multi-system ${this.instrumentType} notation`);
+renderMultiSystem(measuresData, options, renderSystemFunc) {
+    console.log(`UniversalMusicRenderer: Rendering multi-system ${this.instrumentType} notation`);
 
-        const element = document.getElementById(this.elementId);
-        if (!element) {
-            console.error(`UniversalMusicRenderer: Element #${this.elementId} not found!`);
-            return;
-        }
-
-        element.innerHTML = "";
-        this.resetInternalState();
-
-        if (typeof Vex === "undefined" || !Vex.Flow) {
-            element.innerHTML = '<div class="error">VexFlow library not loaded.</div>';
-            return;
-        }
-
-        const measureCount = measuresData.length;
-        const totalSystems = Math.ceil(measureCount / this.measuresPerSystem);
-
-        for (let systemIndex = 0; systemIndex < totalSystems; systemIndex++) {
-            const startMeasureIndex = systemIndex * this.measuresPerSystem;
-            const endMeasureIndex = Math.min(startMeasureIndex + this.measuresPerSystem, measureCount);
-            const systemMeasures = measuresData.slice(startMeasureIndex, endMeasureIndex);
-            const measuresInSystem = systemMeasures.length;
-
-            const systemDiv = document.createElement('div');
-            const systemDivId = `${this.elementId}-system-${systemIndex}`;
-            systemDiv.id = systemDivId;
-            const systemWidth = this.measureWidth * measuresInSystem + 60;
-            systemDiv.style.width = `${systemWidth}px`;
-            element.appendChild(systemDiv);
-
-            let height;
-            if (this.instrumentType === 'piano') {
-                height = 300;
-            } else if (this.instrumentType === 'drums') {
-                height = 150;
-            } else if (this.instrumentType === 'guitar') {
-                height = this.showTablature ? 280 : 200;
-            }
-
-            const factory = new Vex.Flow.Factory({
-                renderer: {
-                    elementId: systemDiv.id,
-                    width: systemWidth,
-                    height: height,
-                },
-            });
-            const context = factory.getContext();
-            this.vexFlowFactories.push(factory);
-            this.vfContexts.push(context);
-
-            renderSystemFunc(systemMeasures, factory, context, startMeasureIndex, measureCount, totalSystems, systemIndex);
-        }
-
-        this.drawAllBeams();
-        this.drawTies();
-
-        console.log(`UniversalMusicRenderer: ${this.instrumentType} rendering complete.`);
+    const element = document.getElementById(this.elementId);
+    if (!element) {
+        console.error(`UniversalMusicRenderer: Element #${this.elementId} not found!`);
+        return;
     }
 
-    renderPianoSystem(systemMeasures, factory, context, startMeasureIndex, measureCount, totalSystems, systemIndex) {
-        let currentX = 20;
+    element.innerHTML = "";
+    this.resetInternalState();
 
-        for (let i = 0; i < systemMeasures.length; i++) {
-            const globalIndex = startMeasureIndex + i;
-            const measure = systemMeasures[i];
+    if (typeof Vex === "undefined" || !Vex.Flow) {
+        element.innerHTML = '<div class="error">VexFlow library not loaded.</div>';
+        return;
+    }
 
-            this.vexflowNoteMap[globalIndex] = { treble: [], bass: [] };
+    const measureCount = measuresData.length;
+    const totalSystems = Math.ceil(measureCount / this.measuresPerSystem);
 
-            const trebleStave = new Vex.Flow.Stave(currentX, 40, this.measureWidth);
-            if (globalIndex === 0) { trebleStave.setTempo({ duration: 'q', bpm: this.tempo }, -20); }
-            const bassStave = new Vex.Flow.Stave(currentX, 160, this.measureWidth);
+    // ← ADD THIS: Collect all voices for applyAccidentals
+    const allVoices = [];
 
-            if (i === 0) {
-                trebleStave.addClef('treble').addKeySignature(this.keySignature);
-                trebleStave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
-                bassStave.addClef('bass').addKeySignature(this.keySignature);
-                bassStave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
-            }
+    for (let systemIndex = 0; systemIndex < totalSystems; systemIndex++) {
+        const startMeasureIndex = systemIndex * this.measuresPerSystem;
+        const endMeasureIndex = Math.min(startMeasureIndex + this.measuresPerSystem, measureCount);
+        const systemMeasures = measuresData.slice(startMeasureIndex, endMeasureIndex);
+        const measuresInSystem = systemMeasures.length;
 
+        const systemDiv = document.createElement('div');
+        const systemDivId = `${this.elementId}-system-${systemIndex}`;
+        systemDiv.id = systemDivId;
+        const systemWidth = this.measureWidth * measuresInSystem + 60;
+        systemDiv.style.width = `${systemWidth}px`;
+        element.appendChild(systemDiv);
 
+        let height;
+        if (this.instrumentType === 'piano') {
+            height = 300;
+        } else if (this.instrumentType === 'drums') {
+            height = 150;
+        } else if (this.instrumentType === 'guitar') {
+            height = this.showTablature ? 280 : 200;
+        }
 
-            trebleStave.setContext(context).draw();
-            bassStave.setContext(context).draw();
-            
-            // Add initial connectors only for the first measure of the first system
-            if (i === 0) {
-              const brace = new Vex.Flow.StaveConnector(trebleStave, bassStave);
-              brace.setType(Vex.Flow.StaveConnector.type.BRACE);
-              brace.setContext(context).draw();
-              const connector = new Vex.Flow.StaveConnector(trebleStave, bassStave);
-              connector.setType(Vex.Flow.StaveConnector.type.SINGLE_LEFT);
-              connector.setContext(context).draw();
-            }
+        const factory = new Vex.Flow.Factory({
+            renderer: {
+                elementId: systemDiv.id,
+                width: systemWidth,
+                height: height,
+            },
+        });
+        const context = factory.getContext();
+        this.vexFlowFactories.push(factory);
+        this.vfContexts.push(context);
 
-            // Add end connectors to the last measure of each system
-            if (i === systemMeasures.length - 1) {
-              const connectorType = systemIndex === totalSystems - 1 ? Vex.Flow.StaveConnector.type.BOLD_DOUBLE_RIGHT : Vex.Flow.StaveConnector.type.SINGLE_RIGHT;
-              const connector = new Vex.Flow.StaveConnector(trebleStave, bassStave);
-              connector.setType(connectorType);
-              connector.setContext(context).draw();
-            }
-
-            const formatterWidth = trebleStave.getNoteEndX() - trebleStave.getNoteStartX();
-            const trebleNotesData = measure.filter(n => n.clef === 'treble');
-            const bassNotesData = measure.filter(n => n.clef === 'bass');
-
-            if (trebleNotesData.length > 0) {
-                const trebleVexNotes = this.createVexFlowNotes(trebleNotesData, globalIndex, 'treble');
-                this.vexflowNoteMap[globalIndex].treble = trebleVexNotes;
-                this.vexflowBeams[globalIndex] = this.vexflowBeams[globalIndex] || {};
-                this.vexflowBeams[globalIndex].treble = this.createBeamsForNotes(trebleVexNotes, trebleNotesData);
-                this.processTies(trebleNotesData);
-
-                const trebleVoice = this.createVoice(trebleVexNotes);
-                factory.Formatter().joinVoices([trebleVoice]).format([trebleVoice], formatterWidth);
-                trebleVoice.draw(context, trebleStave);
-            }
-
-            if (bassNotesData.length > 0) {
-                const bassVexNotes = this.createVexFlowNotes(bassNotesData, globalIndex, 'bass');
-                this.vexflowNoteMap[globalIndex].bass = bassVexNotes;
-                this.vexflowBeams[globalIndex] = this.vexflowBeams[globalIndex] || {};
-                this.vexflowBeams[globalIndex].bass = this.createBeamsForNotes(bassVexNotes, bassNotesData);
-                this.processTies(bassNotesData);
-
-                const bassVoice = this.createVoice(bassVexNotes);
-                factory.Formatter().joinVoices([bassVoice]).format([bassVoice], formatterWidth);
-                bassVoice.draw(context, bassStave);
-            }
-
-            this.vexflowStaveMap[globalIndex] = { treble: trebleStave, bass: bassStave };
-            currentX += this.measureWidth;
+        // ← MODIFY renderSystemFunc to return voices
+        const systemVoices = renderSystemFunc(systemMeasures, factory, context, startMeasureIndex, measureCount, totalSystems, systemIndex);
+        
+        // ← ADD THIS: Collect voices from this system
+        if (systemVoices && Array.isArray(systemVoices)) {
+            allVoices.push(...systemVoices);
         }
     }
 
-    renderDrumsSystem(systemMeasures, factory, context, startMeasureIndex, measureCount) {
-        let currentX = 20;
-
-        for (let i = 0; i < systemMeasures.length; i++) {
-            const globalIndex = startMeasureIndex + i;
-            const measureNotesData = systemMeasures[i];
-            const staveWidth = (i === 0 && systemMeasures.length > 1) ? this.measureWidth + 60 : this.measureWidth;
-            const stave = new Vex.Flow.Stave(currentX, 20, staveWidth);
-
-            if (i === 0) {
-                stave.addClef('percussion').addKeySignature(this.keySignature);
-                stave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
-                stave.setTempo({ duration: 'q', bpm: this.tempo }, -27);
-                stave.setContext(context).draw();
-            } else {
-                stave.setContext(context).draw();
-            }
-
-            if (globalIndex === measureCount - 1) {
-                stave.setEndBarType(Vex.Flow.Barline.type.END);
-            } else if (i === systemMeasures.length - 1) {
-                stave.setEndBarType(Vex.Flow.Barline.type.DOUBLE);
-            }
-
-            const formatterWidth = stave.getNoteStartX() - stave.getX() + stave.getNoteEndX() - stave.getNoteStartX();
-
-            const vexNotesForMeasure = this.renderDrumNotes(measureNotesData, globalIndex);
-
-            this.vexflowBeams[globalIndex] = this.createBeamsForNotes(vexNotesForMeasure, measureNotesData);
-            this.processTies(measureNotesData);
-
-            const voice = this.createVoice(vexNotesForMeasure);
-            factory.Formatter().joinVoices([voice]).format([voice], formatterWidth);
-            voice.draw(context, stave);
-
-            this.vexflowStaveMap[globalIndex] = stave;
-            currentX += staveWidth;
-        }
+    // ← ADD THIS: Apply accidentals based on key signature BEFORE drawing
+    if (allVoices.length > 0) {
+        Vex.Flow.Accidental.applyAccidentals(allVoices, this.keySignature);
     }
+
+    this.drawAllBeams();
+    this.drawTies();
+
+    console.log(`UniversalMusicRenderer: ${this.instrumentType} rendering complete.`);
+}
+
+renderPianoSystem(systemMeasures, factory, context, startMeasureIndex, measureCount, totalSystems, systemIndex) {
+    let currentX = 20;
+    const systemVoices = []; // Collect voices to return
+
+    for (let i = 0; i < systemMeasures.length; i++) {
+        const globalIndex = startMeasureIndex + i;
+        const measure = systemMeasures[i];
+
+        this.vexflowNoteMap[globalIndex] = { treble: [], bass: [] };
+
+        const trebleStave = new Vex.Flow.Stave(currentX, 40, this.measureWidth);
+        if (globalIndex === 0) { 
+            trebleStave.setTempo({ duration: 'q', bpm: this.tempo }, -20); 
+        }
+        const bassStave = new Vex.Flow.Stave(currentX, 160, this.measureWidth);
+
+        if (i === 0) {
+            trebleStave.addClef('treble').addKeySignature(this.keySignature);
+            trebleStave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
+            bassStave.addClef('bass').addKeySignature(this.keySignature);
+            bassStave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
+        }
+
+        trebleStave.setContext(context).draw();
+        bassStave.setContext(context).draw();
+        
+        // Add initial connectors only for the first measure of the first system
+        if (i === 0) {
+          const brace = new Vex.Flow.StaveConnector(trebleStave, bassStave);
+          brace.setType(Vex.Flow.StaveConnector.type.BRACE);
+          brace.setContext(context).draw();
+          const connector = new Vex.Flow.StaveConnector(trebleStave, bassStave);
+          connector.setType(Vex.Flow.StaveConnector.type.SINGLE_LEFT);
+          connector.setContext(context).draw();
+        }
+
+        // Add end connectors to the last measure of each system
+        if (i === systemMeasures.length - 1) {
+          const connectorType = systemIndex === totalSystems - 1 ? Vex.Flow.StaveConnector.type.BOLD_DOUBLE_RIGHT : Vex.Flow.StaveConnector.type.SINGLE_RIGHT;
+          const connector = new Vex.Flow.StaveConnector(trebleStave, bassStave);
+          connector.setType(connectorType);
+          connector.setContext(context).draw();
+        }
+
+        const formatterWidth = trebleStave.getNoteEndX() - trebleStave.getNoteStartX();
+        
+        // ← ADD THIS: Filter notes by clef
+        const trebleNotesData = measure.filter(n => n.clef === 'treble');
+        const bassNotesData = measure.filter(n => n.clef === 'bass');
+
+        if (trebleNotesData.length > 0) {
+            const trebleVexNotes = this.createVexFlowNotes(trebleNotesData, globalIndex, 'treble');
+            this.vexflowNoteMap[globalIndex].treble = trebleVexNotes;
+            this.vexflowBeams[globalIndex] = this.vexflowBeams[globalIndex] || {};
+            this.vexflowBeams[globalIndex].treble = this.createBeamsForNotes(trebleVexNotes, trebleNotesData);
+            this.processTies(trebleNotesData);
+
+            const trebleVoice = this.createVoice(trebleVexNotes);
+            systemVoices.push(trebleVoice); // Collect voice
+            factory.Formatter().joinVoices([trebleVoice]).format([trebleVoice], formatterWidth);
+            trebleVoice.draw(context, trebleStave);
+        }
+
+        if (bassNotesData.length > 0) {
+            const bassVexNotes = this.createVexFlowNotes(bassNotesData, globalIndex, 'bass');
+            this.vexflowNoteMap[globalIndex].bass = bassVexNotes;
+            this.vexflowBeams[globalIndex] = this.vexflowBeams[globalIndex] || {};
+            this.vexflowBeams[globalIndex].bass = this.createBeamsForNotes(bassVexNotes, bassNotesData);
+            this.processTies(bassNotesData);
+
+            const bassVoice = this.createVoice(bassVexNotes);
+            systemVoices.push(bassVoice); // Collect voice
+            factory.Formatter().joinVoices([bassVoice]).format([bassVoice], formatterWidth);
+            bassVoice.draw(context, bassStave);
+        }
+
+        this.vexflowStaveMap[globalIndex] = { treble: trebleStave, bass: bassStave };
+        currentX += this.measureWidth;
+    }
+
+    return systemVoices; // Return collected voices
+}
+
+renderDrumsSystem(systemMeasures, factory, context, startMeasureIndex, measureCount, totalSystems, systemIndex) {
+    let currentX = 20;
+    const systemVoices = []; // Collect voices
+
+    for (let i = 0; i < systemMeasures.length; i++) {
+        const globalIndex = startMeasureIndex + i;
+        const measureNotesData = systemMeasures[i];
+        
+        // Use consistent width like piano system
+        const stave = new Vex.Flow.Stave(currentX, 20, this.measureWidth);
+        
+        // Add clef, key signature, time signature, and tempo only to first measure of first system
+        if (i === 0) {
+            stave.addClef('percussion').addKeySignature(this.keySignature);
+            stave.addTimeSignature(`${this.timeSignature.numerator}/${this.timeSignature.denominator}`);
+            if (globalIndex === 0) { 
+                stave.setTempo({ duration: 'q', bpm: this.tempo }, -27); 
+            }
+        }
+
+        // Add end bars to the last measure of each system (BEFORE drawing)
+        if (i === systemMeasures.length - 1) {
+            const endBarType = systemIndex === totalSystems - 1 
+                ? Vex.Flow.Barline.type.END 
+                : Vex.Flow.Barline.type.DOUBLE;
+            stave.setEndBarType(endBarType);
+        }
+
+        // NOW draw the stave (after setting end bar type)
+        stave.setContext(context).draw();
+
+        // Calculate formatter width like piano system
+        const formatterWidth = stave.getNoteEndX() - stave.getNoteStartX();
+
+        const vexNotesForMeasure = this.renderDrumNotes(measureNotesData, globalIndex);
+
+        this.vexflowBeams[globalIndex] = this.createBeamsForNotes(vexNotesForMeasure, measureNotesData);
+        this.processTies(measureNotesData);
+
+        const voice = this.createVoice(vexNotesForMeasure);
+        systemVoices.push(voice); // Collect voice
+        factory.Formatter().joinVoices([voice]).format([voice], formatterWidth);
+        voice.draw(context, stave);
+
+        this.vexflowStaveMap[globalIndex] = stave;
+        
+        // Use consistent width increment like piano
+        currentX += this.measureWidth;
+    }
+
+    return systemVoices; // Return collected voices
+}
 
     renderGuitarSystem(systemMeasures, factory, context, startMeasureIndex, measureCount) {
         let currentX = 20;
@@ -360,76 +366,152 @@ export class UniversalMusicRenderer {
         }
     }
     
-    // Remaining functions are unchanged
-    renderDrumNotes(notesData, measureIndex) {
-        const vexNotes = [];
-        this.vexflowNoteMap[measureIndex] = { percussion: [] };
-        notesData.forEach((noteData, index) => {
-            let vexNote;
-            if (noteData.isRest) {
-                vexNote = new Vex.Flow.StaveNote({ keys: ['B/4'], duration: `${noteData.duration}r`, clef: 'percussion' });
-            } else {
-                const { drumInstrument, duration } = noteData;
-                const instrumentProps = this.drumInstrumentMap[drumInstrument];
+renderDrumNotes(notesData, measureIndex) {
+    const vexNotes = [];
+    this.vexflowNoteMap[measureIndex] = { percussion: [] };
+    notesData.forEach((noteData, index) => {
+        let vexNote;
+        
+        if (noteData.isRest) {
+            vexNote = new Vex.Flow.StaveNote({ 
+                keys: ['B/4'], 
+                duration: `${noteData.duration}r`, 
+                clef: 'percussion' 
+            });
+        } else if (noteData.isChord) {
+            // NEW: Handle drum chords
+            const { notes, duration } = noteData;
 
+            const keys = notes.map((n) => {
+                const instrumentProps = this.drumInstrumentMap[n.drumInstrument];
                 if (!instrumentProps) {
-                    console.warn(`Unknown drum instrument: ${drumInstrument}`);
-                    return;
+                    console.warn(`Unknown drum instrument in chord: ${n.drumInstrument}. Skipping note ID: ${noteData.id}`);
+                    return 'B/4'; // Return a neutral key to avoid crash
                 }
+                return instrumentProps.keys[0];
+            });
+            
+            const noteHeads = notes.map((n) => {
+                const instrumentProps = this.drumInstrumentMap[n.drumInstrument];
+                return { type: instrumentProps.notehead };
+            });
 
-                const noteOptions = {
-                    keys: instrumentProps.keys,
-                    duration: duration,
-                    stem_direction: instrumentProps.stemDirection,
-                    clef: 'percussion'
-                };
+            const stemDirection = notes[0].stemDirection || Vex.Flow.Stem.UP;
 
-                if (instrumentProps.notehead && instrumentProps.notehead !== 'normal') {
-                    noteOptions.type = instrumentProps.notehead;
-                }
+            // Create the VexFlow note for the chord, passing note_heads to the constructor
+            vexNote = new Vex.Flow.StaveNote({
+                keys,
+                duration,
+                stem_direction: stemDirection,
+                note_heads: noteHeads, // ← This is the critical missing piece
+                clef: 'percussion'
+            });
 
-                vexNote = new Vex.Flow.StaveNote(noteOptions);
-
-                if (instrumentProps.modifiers && instrumentProps.modifiers.length > 0) {
-                    instrumentProps.modifiers.forEach((mod) => {
-                        if (mod.type === "articulation") {
-                            const articulation = new Vex.Flow.Articulation(mod.symbol);
-                            if (mod.position) {
-                                const positionMap = {
-                                    "above": Vex.Flow.Modifier.Position.ABOVE,
-                                    "below": Vex.Flow.Modifier.Position.BELOW
-                                };
-                                articulation.setPosition(positionMap[mod.position]);
-                            }
-                            vexNote.addModifier(articulation, 0);
-                        } else if (mod.type === "annotation") {
-                            const annotation = new Vex.Flow.Annotation(mod.text).setFont({ family: "Arial", size: 10, weight: "bold" });
-                            if (mod.justification) {
-                                annotation.setJustification(mod.justification);
-                            }
-                            vexNote.addModifier(annotation, 0);
+            // Apply modifiers from the first note's instrument (chords typically share modifiers)
+            const firstInstrumentProps = this.drumInstrumentMap[notes[0].drumInstrument];
+            if (firstInstrumentProps.modifiers && firstInstrumentProps.modifiers.length > 0) {
+                firstInstrumentProps.modifiers.forEach((mod) => {
+                    if (mod.type === "articulation") {
+                        const articulation = new Vex.Flow.Articulation(mod.symbol);
+                        if (mod.position) {
+                            const positionMap = {
+                                "above": Vex.Flow.Modifier.Position.ABOVE,
+                                "below": Vex.Flow.Modifier.Position.BELOW
+                            };
+                            articulation.setPosition(positionMap[mod.position]);
                         }
-                    });
-                }
-
-                if (noteData.chordName) {
-                    const annotation = new Vex.Flow.Annotation(noteData.chordName)
-                        .setFont({ family: 'Arial', size: 12, weight: 'bold' })
-                        .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.BOTTOM);
-                    vexNote.addModifier(annotation, 0);
-                }
+                        vexNote.addModifier(articulation, 0);
+                    } else if (mod.type === "annotation") {
+                        const annotation = new Vex.Flow.Annotation(mod.text)
+                            .setFont({ family: "Arial", size: 10, weight: "bold" });
+                        if (mod.justification) {
+                            annotation.setJustification(mod.justification);
+                        }
+                        vexNote.addModifier(annotation, 0);
+                    }
+                });
             }
 
-            vexNotes.push(vexNote);
-            this.vexflowNoteMap[measureIndex].percussion.push(vexNote);
-            this.vexflowIndexByNoteId[noteData.id] = { measureIndex, clef: 'percussion', vexflowIndex: vexNotes.length - 1 };
-        });
+            // Add chord name annotation if present
+            if (noteData.chordName) {
+                const annotation = new Vex.Flow.Annotation(noteData.chordName)
+                    .setFont({ family: 'Arial', size: 12, weight: 'bold' })
+                    .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.BOTTOM);
+                vexNote.addModifier(annotation, 0);
+            }
+        } else {
+            // Handle single drum notes (existing logic)
+            const { drumInstrument, duration } = noteData;
+            const instrumentProps = this.drumInstrumentMap[drumInstrument];
 
-        if (vexNotes.length === 0) {
-            vexNotes.push(new Vex.Flow.StaveNote({ keys: ['B/4'], duration: 'wr', clef: 'percussion' }));
+            if (!instrumentProps) {
+                console.warn(`Unknown drum instrument: ${drumInstrument}`);
+                return;
+            }
+
+            const noteOptions = {
+                keys: instrumentProps.keys,
+                duration: duration,
+                stem_direction: instrumentProps.stemDirection,
+                clef: 'percussion'
+            };
+
+            if (instrumentProps.notehead && instrumentProps.notehead !== 'normal') {
+                noteOptions.type = instrumentProps.notehead;
+            }
+
+            vexNote = new Vex.Flow.StaveNote(noteOptions);
+
+            if (instrumentProps.modifiers && instrumentProps.modifiers.length > 0) {
+                instrumentProps.modifiers.forEach((mod) => {
+                    if (mod.type === "articulation") {
+                        const articulation = new Vex.Flow.Articulation(mod.symbol);
+                        if (mod.position) {
+                            const positionMap = {
+                                "above": Vex.Flow.Modifier.Position.ABOVE,
+                                "below": Vex.Flow.Modifier.Position.BELOW
+                            };
+                            articulation.setPosition(positionMap[mod.position]);
+                        }
+                        vexNote.addModifier(articulation, 0);
+                    } else if (mod.type === "annotation") {
+                        const annotation = new Vex.Flow.Annotation(mod.text)
+                            .setFont({ family: "Arial", size: 10, weight: "bold" });
+                        if (mod.justification) {
+                            annotation.setJustification(mod.justification);
+                        }
+                        vexNote.addModifier(annotation, 0);
+                    }
+                });
+            }
+
+            if (noteData.chordName) {
+                const annotation = new Vex.Flow.Annotation(noteData.chordName)
+                    .setFont({ family: 'Arial', size: 12, weight: 'bold' })
+                    .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.BOTTOM);
+                vexNote.addModifier(annotation, 0);
+            }
         }
-        return vexNotes;
+
+        vexNotes.push(vexNote);
+        this.vexflowNoteMap[measureIndex].percussion.push(vexNote);
+        this.vexflowIndexByNoteId[noteData.id] = { 
+            measureIndex, 
+            clef: 'percussion', 
+            vexflowIndex: vexNotes.length - 1 
+        };
+    });
+
+    if (vexNotes.length === 0) {
+        vexNotes.push(new Vex.Flow.StaveNote({ 
+            keys: ['B/4'], 
+            duration: 'wr', 
+            clef: 'percussion' 
+        }));
     }
+    return vexNotes;
+}
+
 
     // Parses a string like "(C4 E4 G4)" into an array of strings like ["C/4", "E/4", "G/4"]
     _parseChordString(chordString) {
@@ -448,87 +530,80 @@ export class UniversalMusicRenderer {
         });
     }
 
-    createVexFlowNotes(notesData, measureIndex, clef) {
-        const vexNotes = [];
-        notesData.forEach((noteData, index) => {
-            let vexNote;
-            if (noteData.isRest) {
-                vexNote = new Vex.Flow.StaveNote({
-                    keys: clef === 'treble' ? ['D/5'] : ['F/3'],
-                    duration: `${noteData.duration}r`,
-                    clef: clef
-                });
-            } else {
-                let keys;
-                if (noteData.name.startsWith('(') && noteData.name.endsWith(')')) {
-                    keys = this._parseChordString(noteData.name);
-                } else {
-                    keys = [this.noteToVexFlowKey(noteData.name)];
-                }
-
-                vexNote = this.createNoteWithModifiers(
-                    keys,
-                    noteData.duration,
-                    Vex.Flow.Stem.AUTO,
-                    'normal',
-                    clef,
-                    null,
-                    noteData.chordName
-                );
-            }
-            vexNotes.push(vexNote);
-            this.vexflowIndexByNoteId[noteData.id] = { measureIndex, clef, vexflowIndex: vexNotes.length - 1 };
-        });
-        if (vexNotes.length === 0) {
-            vexNotes.push(new Vex.Flow.StaveNote({
+createVexFlowNotes(notesData, measureIndex, clef) {
+    const vexNotes = [];
+    notesData.forEach((noteData, index) => {
+        let vexNote;
+        if (noteData.isRest) {
+            vexNote = new Vex.Flow.StaveNote({
                 keys: clef === 'treble' ? ['D/5'] : ['F/3'],
-                duration: 'wr',
+                duration: `${noteData.duration}r`,
                 clef: clef
-            }));
-        }
-        return vexNotes;
-    }
-
-    createNoteWithModifiers(keys, duration, stemDirection, noteheadType, clef, modifiers, chordName) {
-        const noteOptions = {
-            keys,
-            duration,
-            stem_direction: stemDirection,
-            clef
-        };
-
-        if (noteheadType && noteheadType !== 'normal') {
-            noteOptions.type = noteheadType;
-        }
-
-        const vexNote = new Vex.Flow.StaveNote(noteOptions);
-
-        if (modifiers && modifiers.length > 0) {
-            modifiers.forEach((mod) => {
-                if (mod.type === "articulation") {
-                    const articulation = new Vex.Flow.Articulation(mod.symbol);
-                    if (mod.position) {
-                        articulation.setPosition(mod.position === 'above' ? Vex.Flow.Modifier.Position.ABOVE : Vex.Flow.Modifier.Position.BELOW);
-                    }
-                    vexNote.addModifier(articulation, 0);
-                } else if (mod.type === "annotation") {
-                    const annotation = new Vex.Flow.Annotation(mod.text).setFont({ family: "Arial", size: 10, weight: "bold" });
-                    if (mod.justification) {
-                        annotation.setJustification(mod.justification);
-                    }
-                    vexNote.addModifier(annotation, 0);
-                }
             });
-        }
+        } else {
+            let keys;
+            if (noteData.name.startsWith('(') && noteData.name.endsWith(')')) {
+                keys = this._parseChordString(noteData.name);
+            } else {
+                keys = [this.noteToVexFlowKey(noteData.name)];
+            }
 
-        if (chordName) {
-            const annotation = new Vex.Flow.Annotation(chordName)
-                .setFont({ family: 'Arial', size: 12, weight: 'bold' })
-                .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.BOTTOM);
-            vexNote.addModifier(annotation, 0);
+            vexNote = this.createNoteWithModifiers(
+                keys,
+                noteData.duration,
+                Vex.Flow.Stem.AUTO,
+                'normal',
+                clef,
+                null,
+                noteData.chordName
+            );
+
+            // ← REMOVE THIS LINE: this.addAccidentalsToNote(vexNote, keys);
         }
-        return vexNote;
+        vexNotes.push(vexNote);
+        this.vexflowIndexByNoteId[noteData.id] = { measureIndex, clef, vexflowIndex: vexNotes.length - 1 };
+    });
+
+    if (vexNotes.length === 0) {
+        vexNotes.push(new Vex.Flow.StaveNote({
+            keys: clef === 'treble' ? ['D/5'] : ['F/3'],
+            duration: 'wr',
+            clef: clef
+        }));
     }
+    return vexNotes;
+}
+
+createNoteWithModifiers(keys, duration, stemDirection, noteheadType, clef, modifiers, chordName) {
+    const noteOptions = {
+        keys,
+        duration,
+        stem_direction: stemDirection,
+        clef
+    };
+
+    if (noteheadType && noteheadType !== 'normal') {
+        noteOptions.type = noteheadType;
+    }
+
+    const vexNote = new Vex.Flow.StaveNote(noteOptions);
+
+    // ← REMOVE THIS: this.addAccidentalsToNote(vexNote, keys);
+
+    if (modifiers && modifiers.length > 0) {
+        modifiers.forEach((mod) => {
+            // ... existing modifier code ...
+        });
+    }
+
+    if (chordName) {
+        const annotation = new Vex.Flow.Annotation(chordName)
+            .setFont({ family: 'Arial', size: 12, weight: 'bold' })
+            .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.BOTTOM);
+        vexNote.addModifier(annotation, 0);
+    }
+    return vexNote;
+}
 
     convertGuitarNotes(measureNotesData, measureIndex) {
         const standardNotes = [];
