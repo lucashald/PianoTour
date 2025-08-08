@@ -502,12 +502,12 @@ const formatterWidth = trebleStave.getNoteEndX() - trebleStave.getNoteStartX() -
         notesData.forEach((noteData, index) => {
             let vexNote;
             
-            if (noteData.isRest) {
-                vexNote = new Vex.Flow.StaveNote({ 
-                    keys: ['B/4'], 
-                    duration: `${noteData.duration}r`, 
-                    clef: 'percussion' 
-                });
+if (noteData.isRest) {
+    vexNote = new Vex.Flow.StaveNote({ 
+        keys: ['B/4'], 
+        duration: `${noteData.duration.replace(/r$/, '')}r`, // Remove any existing 'r' first
+        clef: 'percussion' 
+    });
             } else if (noteData.isChord) {
                 // Handle drum chords
                 const { notes, duration } = noteData;
@@ -661,12 +661,12 @@ const formatterWidth = trebleStave.getNoteEndX() - trebleStave.getNoteStartX() -
         const vexNotes = [];
         notesData.forEach((noteData, index) => {
             let vexNote;
-            if (noteData.isRest) {
-                vexNote = new Vex.Flow.StaveNote({
-                    keys: clef === 'treble' ? ['D/5'] : ['F/3'],
-                    duration: `${noteData.duration}r`,
-                    clef: clef
-                });
+if (noteData.isRest) {
+    vexNote = new Vex.Flow.StaveNote({
+        keys: clef === 'treble' ? ['D/5'] : ['F/3'],
+        duration: `${noteData.duration.replace(/r$/, '')}r`, // Remove any existing 'r' first
+        clef: clef
+    });
             } else {
                 let keys;
                 if (noteData.name.startsWith('(') && noteData.name.endsWith(')')) {

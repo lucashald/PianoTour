@@ -40,8 +40,8 @@ export class InstrumentControl {
                     release: 0.8,     // Natural decay of strings
 
                     // Piano effects
-                    reverb: { enabled: true, roomSize: 0.7, wet: 0.25 },
-                    compression: { enabled: true, threshold: -15, ratio: 1.5, attack: 0.1, release: 0.3 },
+                    reverb: { enabled: true, roomSize: 0.15, wet: 0.15 },
+                    compression: { enabled: true, threshold: -15, ratio: 1.15, attack: 0.1, release: 0.3 },
                     eq: { enabled: true, low: -1, mid: 1, high: 0 }
                 }
             },

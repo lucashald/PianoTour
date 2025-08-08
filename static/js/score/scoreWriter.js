@@ -189,29 +189,43 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
 
     const existingNote = measuresData[measureIndex][noteIndex];
 
-// If the name is being changed, strip the chordName
-if (newNoteData.name && newNoteData.name !== existingNote.name) {
-    console.log('Note Data changed');
-    let identifiedChord = undefined;
-    
-    // Parse the name - could be single note "C4" or chord "(C4 E4 G4)"
-    if (newNoteData.name.startsWith('(') && newNoteData.name.endsWith(')')) {
-        console.log('chord detected');
-        // It's a chord - extract the note names
-        const noteNames = newNoteData.name
-            .slice(1, -1) // Remove parentheses
-            .split(' ');  // Split by spaces
+    // If the name is being changed, update the chordName with fallback logic
+    if (newNoteData.name && newNoteData.name !== existingNote.name) {
+        console.log('Note Data changed');
+        let chordName = undefined;
         
-        identifiedChord = identifyChordStrict(noteNames) || undefined;
-        console.log('chord identified as', identifiedChord);
+        // Parse the name - could be single note "C4" or chord "(C4 E4 G4)"
+        if (newNoteData.name.startsWith('(') && newNoteData.name.endsWith(')')) {
+            console.log('chord detected');
+            // It's a chord - extract the note names
+            const noteNames = newNoteData.name
+                .slice(1, -1) // Remove parentheses
+                .split(' ');  // Split by spaces
+            
+            // Try to identify the chord
+            chordName = identifyChordStrict(noteNames);
+            
+            // If no chord identified, use the formatted note names as fallback
+            if (!chordName) {
+                chordName = newNoteData.name; // Use the full formatted name like "(C4 E4 G4)"
+            }
+            
+            console.log('chord identified as', chordName);
+        } else {
+            // It's a single note - use the note name directly
+            chordName = newNoteData.name;
+        }
+        
+        // Special handling for rests
+        if (newNoteData.isRest) {
+            chordName = "Rest";
+        }
+        
+        newNoteData = { 
+            ...newNoteData, 
+            chordName: chordName 
+        };
     }
-    // If it's a single note, don't try to identify a chord
-    
-    newNoteData = { 
-        ...newNoteData, 
-        chordName: identifiedChord 
-    };
-}
 
     // Create a temporary copy to test for overflow
     const tempMeasure = JSON.parse(JSON.stringify(measuresData[measureIndex]));
@@ -239,7 +253,6 @@ if (newNoteData.name && newNoteData.name !== existingNote.name) {
 
     return true;
 }
-
 // ===================================================================
 // Helper Function for Side Effects
 // ===================================================================
@@ -284,16 +297,31 @@ export function undoLastWrite() {
     }
 }
 
-/**
-* Writes a note or rest to the score. This function handles auto-advancing measures
-* and creating ties when notes would overflow the current measure.
-* @param {object} obj - The note/rest object { clef, duration, notes, chordName, isRest }.
-*/
 export function writeNote(obj) {
     console.log('writeNote input: obj =', obj);
 
     const { clef, duration, notes, chordName, isRest = false } = obj;
     const beats = BEAT_VALUES[duration];
+
+    // Ensure `notes` are always an array and create formatted name
+    const notesArray = Array.isArray(notes) ? notes : [notes];
+    const formattedName = notesArray.length > 1
+        ? `(${notesArray.sort((a, b) => NOTES_BY_NAME[a] - NOTES_BY_NAME[b]).join(' ')})`
+        : notesArray[0];
+
+    // Determine the display name - use chordName if provided, otherwise try to identify chord, otherwise use note name(s)
+    let displayName = chordName;
+    if (!displayName && !isRest) {
+        // Try to identify chord if multiple notes
+        if (notesArray.length > 1) {
+            displayName = identifyChordStrict(notesArray) || formattedName;
+        } else {
+            // For single notes, just use the note name
+            displayName = notesArray[0];
+        }
+    } else if (!displayName && isRest) {
+        displayName = "Rest";
+    }
 
     const currentBeatsForClef = clef === 'treble' ? currentTrebleBeats : currentBassBeats;
     const availableBeats = pianoState.timeSignature.numerator - currentBeatsForClef;
@@ -305,12 +333,6 @@ export function writeNote(obj) {
         if (splitResult) {
             console.log(`writeNote: Splitting note across measures. First: ${splitResult.firstDuration}, Second: ${splitResult.secondDuration}`);
             
-            // Ensure `notes` are always an array
-            const notesArray = Array.isArray(notes) ? notes : [notes];
-            const formattedName = notesArray.length > 1
-                ? `(${notesArray.sort((a, b) => NOTES_BY_NAME[a] - NOTES_BY_NAME[b]).join(' ')})`
-                : notesArray[0];
-
             // Create first note (fits in current measure)
             const firstNoteId = generateUniqueId();
             const firstNoteEntry = { 
@@ -320,7 +342,7 @@ export function writeNote(obj) {
                 duration: splitResult.firstDuration, 
                 measure: currentIndex, 
                 isRest: false,
-                chordName: chordName
+                chordName: displayName  // Use the resolved display name
             };
 
             measuresData[currentIndex] ??= []; 
@@ -348,7 +370,7 @@ export function writeNote(obj) {
                 duration: splitResult.secondDuration, 
                 measure: currentIndex, 
                 isRest: false,
-                chordName: chordName
+                chordName: displayName  // Use the resolved display name
             };
 
             measuresData[currentIndex].push(secondNoteEntry);
@@ -365,7 +387,7 @@ export function writeNote(obj) {
 
             // Save history and handle side effects
             saveStateToHistory();
-            updateNowPlayingDisplay(`${chordName} (tied)`);
+            updateNowPlayingDisplay(`${displayName} (tied)`);
             handleSideEffects();
             
             console.log(`writeNote output: Created tied notes across measures. First ID: ${firstNoteId}, Second ID: ${secondNoteId}`);
@@ -385,12 +407,6 @@ export function writeNote(obj) {
         console.log('writeNote: measure advanced due to overflow. New currentIndex:', currentIndex);
     }
 
-    // Rest of the original writeNote logic...
-    const notesArray = Array.isArray(notes) ? notes : [notes];
-    const formattedName = notesArray.length > 1
-        ? `(${notesArray.sort((a, b) => NOTES_BY_NAME[a] - NOTES_BY_NAME[b]).join(' ')})`
-        : notesArray[0];
-
     const newNoteId = generateUniqueId(); 
     const noteEntry = { 
         id: newNoteId,
@@ -399,7 +415,7 @@ export function writeNote(obj) {
         duration, 
         measure: currentIndex, 
         isRest,
-        chordName: chordName
+        chordName: displayName  // Use the resolved display name
     };
 
     measuresData[currentIndex] ??= []; 
@@ -412,11 +428,10 @@ export function writeNote(obj) {
     }
 
     saveStateToHistory();
-    updateNowPlayingDisplay(chordName);
+    updateNowPlayingDisplay(displayName);  // Use the resolved display name
     handleSideEffects();
     console.log(`writeNote output: Note written. Beats status - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}`);
 }
-
 // ===================================================================
 // Editor Functions
 // ===================================================================
