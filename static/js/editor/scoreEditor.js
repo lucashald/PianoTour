@@ -1,6 +1,6 @@
 // scoreEditor.js
 // This module handles the interactive UI for editing notes within a measure.
-// REFACTORED to use the new BEM HTML structure.
+// REFACTORED to use the new BEM HTML structure and now includes slur support.
 
 // ===================================================================
 // Imports
@@ -16,7 +16,7 @@ import {
     enableScoreInteraction,
     scrollToMeasure
 } from '../score/scoreRenderer.js';
-import { addNoteToMeasure, getMeasures, moveNoteBetweenMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, updateNoteInMeasure, createTie } from '../score/scoreWriter.js';
+import { addNoteToMeasure, getMeasures, moveNoteBetweenMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, updateNoteInMeasure, createTie, removeTie } from '../score/scoreWriter.js';
 
 // ===================================================================
 // Internal State
@@ -24,6 +24,8 @@ import { addNoteToMeasure, getMeasures, moveNoteBetweenMeasures, removeNoteFromM
 
 let editorSelectedNoteId = null; // ID of the currently selected note
 let editorSelectedMeasureIndex = 0;
+let slurMode = false; // Track if we're in slur creation mode
+let slurStartNoteId = null; // Track the first note for slur creation
 
 // ===================================================================
 // Helper Functions
@@ -95,6 +97,285 @@ function parseSingleNoteName(noteName) {
     return { letter, accidental, octave };
 }
 
+/**
+ * Finds the next note of the same pitch and clef to tie to
+ * @param {number} measureIndex - Current measure index
+ * @param {string} noteId - Current note ID
+ * @returns {object|null} {measureIndex, noteId} of target note or null if not found
+ */
+function findNextNotesToTie(measureIndex, noteId) {
+    const measures = getMeasures();
+    const currentMeasure = measures[measureIndex];
+    if (!currentMeasure) return null;
+
+    const currentNote = currentMeasure.find(note => note.id === noteId);
+    if (!currentNote || currentNote.isRest) return null;
+
+    // First, check for the next note in the same measure and clef
+    const notesInSameClef = currentMeasure.filter(note => note.clef === currentNote.clef);
+    const currentIndex = notesInSameClef.findIndex(note => note.id === noteId);
+    
+    if (currentIndex !== -1 && currentIndex < notesInSameClef.length - 1) {
+        const nextNote = notesInSameClef[currentIndex + 1];
+        if (nextNote.name === currentNote.name && !nextNote.isRest) {
+            return { measureIndex, noteId: nextNote.id };
+        }
+    }
+
+    // If not found in same measure, check subsequent measures
+    for (let i = measureIndex + 1; i < measures.length; i++) {
+        const measure = measures[i];
+        if (!measure) continue;
+
+        const firstNoteInClef = measure.find(note => 
+            note.clef === currentNote.clef && 
+            note.name === currentNote.name && 
+            !note.isRest
+        );
+
+        if (firstNoteInClef) {
+            return { measureIndex: i, noteId: firstNoteInClef.id };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Finds the next suitable note for slurring (any note in same clef, different pitch ok)
+ * @param {number} measureIndex - Current measure index
+ * @param {string} noteId - Current note ID
+ * @returns {object|null} {measureIndex, noteId} of target note or null if not found
+ */
+function findNextNoteToSlur(measureIndex, noteId) {
+    const measures = getMeasures();
+    const currentMeasure = measures[measureIndex];
+    if (!currentMeasure) return null;
+
+    const currentNote = currentMeasure.find(note => note.id === noteId);
+    if (!currentNote || currentNote.isRest) return null;
+
+    // First, check for the next note in the same measure and clef (any pitch)
+    const notesInSameClef = currentMeasure.filter(note => note.clef === currentNote.clef);
+    const currentIndex = notesInSameClef.findIndex(note => note.id === noteId);
+    
+    if (currentIndex !== -1 && currentIndex < notesInSameClef.length - 1) {
+        const nextNote = notesInSameClef[currentIndex + 1];
+        if (!nextNote.isRest) {
+            return { measureIndex, noteId: nextNote.id };
+        }
+    }
+
+    // If not found in same measure, check subsequent measures
+    for (let i = measureIndex + 1; i < measures.length; i++) {
+        const measure = measures[i];
+        if (!measure) continue;
+
+        const firstNoteInClef = measure.find(note => 
+            note.clef === currentNote.clef && 
+            !note.isRest
+        );
+
+        if (firstNoteInClef) {
+            return { measureIndex: i, noteId: firstNoteInClef.id };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Handles creating a tie from the currently selected note
+ */
+function handleAddTie() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for tying');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote) {
+        console.warn('Selected note not found');
+        return;
+    }
+
+    if (selectedNote.isRest) {
+        console.warn('Cannot tie rests');
+        return;
+    }
+
+    // Check if this note already has a tie
+    if (selectedNote.tie) {
+        console.log('Note already has a tie');
+        return;
+    }
+
+    const targetNote = findNextNotesToTie(editorSelectedMeasureIndex, editorSelectedNoteId);
+    
+    if (targetNote) {
+        const success = createTie(editorSelectedNoteId, targetNote.noteId, 'tie');
+        if (success) {
+            console.log(`Tie created from ${editorSelectedNoteId} to ${targetNote.noteId}`);
+            renderNoteEditBox(false);
+        } else {
+            console.warn('Failed to create tie');
+        }
+    } else {
+        console.log('No suitable note found to tie to (must be same pitch)');
+    }
+}
+
+/**
+ * Handles slur creation - can be automatic or manual
+ */
+function handleAddSlur() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for slurring');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote) {
+        console.warn('Selected note not found');
+        return;
+    }
+
+    if (selectedNote.isRest) {
+        console.warn('Cannot slur rests');
+        return;
+    }
+
+    if (!slurMode) {
+        // Start slur mode - user will select the second note
+        slurMode = true;
+        slurStartNoteId = editorSelectedNoteId;
+        console.log('Slur mode activated. Select the end note for the slur.');
+        updateSlurModeUI(true);
+    } else {
+        // Complete the slur
+        if (slurStartNoteId && slurStartNoteId !== editorSelectedNoteId) {
+            const success = createTie(slurStartNoteId, editorSelectedNoteId, 'slur');
+            if (success) {
+                console.log(`Slur created from ${slurStartNoteId} to ${editorSelectedNoteId}`);
+                renderNoteEditBox(false);
+            } else {
+                console.warn('Failed to create slur');
+            }
+        } else {
+            console.warn('Invalid slur selection');
+        }
+        
+        // Exit slur mode
+        slurMode = false;
+        slurStartNoteId = null;
+        updateSlurModeUI(false);
+    }
+}
+
+/**
+ * Handles automatic slur creation (finds next note automatically)
+ */
+function handleAddAutoSlur() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for slurring');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote) {
+        console.warn('Selected note not found');
+        return;
+    }
+
+    if (selectedNote.isRest) {
+        console.warn('Cannot slur rests');
+        return;
+    }
+
+    // Check if this note already has a slur
+    if (selectedNote.tie && selectedNote.tie.type === 'slur') {
+        console.log('Note already has a slur');
+        return;
+    }
+
+    const targetNote = findNextNoteToSlur(editorSelectedMeasureIndex, editorSelectedNoteId);
+    
+    if (targetNote) {
+        const success = createTie(editorSelectedNoteId, targetNote.noteId, 'slur');
+        if (success) {
+            console.log(`Auto slur created from ${editorSelectedNoteId} to ${targetNote.noteId}`);
+            renderNoteEditBox(false);
+        } else {
+            console.warn('Failed to create auto slur');
+        }
+    } else {
+        console.log('No suitable note found to slur to');
+    }
+}
+
+/**
+ * Handles removing ties or slurs from the selected note
+ */
+function handleRemoveTie() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for tie/slur removal');
+        return;
+    }
+
+    const removed = removeTie(editorSelectedNoteId);
+    if (removed > 0) {
+        console.log(`Removed ${removed} ties/slurs for note ${editorSelectedNoteId}`);
+        renderNoteEditBox(false);
+    } else {
+        console.log('No ties or slurs found to remove');
+    }
+}
+
+/**
+ * Updates UI to show slur mode status
+ */
+function updateSlurModeUI(isActive) {
+    const slurBtn = document.getElementById('editorAddSlur');
+    const cancelSlurBtn = document.getElementById('editorCancelSlur');
+    
+    if (slurBtn) {
+        slurBtn.classList.toggle('btn--warning', isActive);
+        slurBtn.textContent = isActive ? 'Select End Note' : 'Add Slur';
+    }
+    
+    if (cancelSlurBtn) {
+        cancelSlurBtn.style.display = isActive ? 'inline-block' : 'none';
+    }
+    
+    // Update the expanded editor display
+    const editorExpandedEditor = document.getElementById('editorExpandedEditor');
+    if (editorExpandedEditor) {
+        editorExpandedEditor.classList.toggle('slur-mode', isActive);
+    }
+}
+
+/**
+ * Cancels slur creation mode
+ */
+function cancelSlurMode() {
+    slurMode = false;
+    slurStartNoteId = null;
+    updateSlurModeUI(false);
+    console.log('Slur mode cancelled');
+}
+
 function renderNoteEditBox(smoothScroll = true) {
     const measures = getMeasures();
     if (editorSelectedMeasureIndex >= measures.length) {
@@ -146,6 +427,22 @@ function renderNoteEditBox(smoothScroll = true) {
             buttonText = note.name;
         }
 
+        // Add tie/slur indicators if note has them
+        if (note.tie) {
+            if (note.tie.type === 'slur') {
+                buttonText += ' ⌒s'; // slur indicator
+                btn.classList.add('note-with-slur');
+            } else {
+                buttonText += ' ⌒'; // tie indicator
+                btn.classList.add('note-with-tie');
+            }
+        }
+
+        // Highlight if this is the slur start note
+        if (slurMode && note.id === slurStartNoteId) {
+            btn.classList.add('slur-start-note');
+        }
+
         btn.textContent = buttonText;
 
         if (note.id === editorSelectedNoteId) {
@@ -192,8 +489,7 @@ function renderNoteEditBox(smoothScroll = true) {
         bassNotesContainer.appendChild(noteWrapper);
     });
 
-// End
-
+    // Rest of the existing renderNoteEditBox logic...
     const editorExpandedEditor = document.getElementById('editorExpandedEditor');
     const singleNoteControls = document.getElementById('singleNoteControls');
     const chordNotesEditor = document.getElementById('chordNotesEditor');
@@ -255,6 +551,9 @@ function renderNoteEditBox(smoothScroll = true) {
         editorSelectedNoteId = null;
     }
 
+    // Update slur mode UI
+    updateSlurModeUI(slurMode);
+
     highlightSelectedMeasure(editorSelectedMeasureIndex);
     if (selectedNote) {
         highlightSelectedNote(editorSelectedMeasureIndex, selectedNote.clef, selectedNote.id);
@@ -262,7 +561,7 @@ function renderNoteEditBox(smoothScroll = true) {
         clearSelectedNoteHighlight();
         pianoState.currentSelectedNote = null;
     }
-    scrollToMeasure(editorSelectedMeasureIndex, smoothScroll); // Don't animate scroll
+    scrollToMeasure(editorSelectedMeasureIndex, smoothScroll);
     console.log('scrolling to', editorSelectedMeasureIndex)
 }
 
@@ -272,11 +571,33 @@ function renderNoteEditBox(smoothScroll = true) {
 
 function handleEditorNoteSelectClick(measureIndex, clef, noteId) {
     editorSelectedMeasureIndex = measureIndex;
+    
+    if (slurMode && noteId !== null) {
+        // If in slur mode, complete the slur
+        if (slurStartNoteId && slurStartNoteId !== noteId) {
+            const success = createTie(slurStartNoteId, noteId, 'slur');
+            if (success) {
+                console.log(`Slur created from ${slurStartNoteId} to ${noteId}`);
+            } else {
+                console.warn('Failed to create slur');
+            }
+        }
+        // Exit slur mode
+        slurMode = false;
+        slurStartNoteId = null;
+        updateSlurModeUI(false);
+        // Select the end note
+        editorSelectedNoteId = noteId;
+        renderNoteEditBox();
+        return;
+    }
+    
     if (noteId === null) {
         editorSelectedNoteId = null;
         renderNoteEditBox();
         return;
     }
+    
     const currentMeasureNotes = getMeasures()[measureIndex] || [];
     const foundNote = currentMeasureNotes.find(note => note.id === noteId);
     if (!foundNote || foundNote.clef !== clef) {
@@ -355,98 +676,6 @@ function removeNoteFromChordUI(noteIndexToRemove) {
         updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
     }
     renderNoteEditBox(false);
-}
-
-/**
- * Finds the next note of the same pitch and clef to tie to
- * @param {number} measureIndex - Current measure index
- * @param {string} noteId - Current note ID
- * @returns {object|null} {measureIndex, noteId} of target note or null if not found
- */
-function findNextNotesToTie(measureIndex, noteId) {
-    const measures = getMeasures();
-    const currentMeasure = measures[measureIndex];
-    if (!currentMeasure) return null;
-
-    const currentNote = currentMeasure.find(note => note.id === noteId);
-    if (!currentNote || currentNote.isRest) return null;
-
-    // First, check for the next note in the same measure and clef
-    const notesInSameClef = currentMeasure.filter(note => note.clef === currentNote.clef);
-    const currentIndex = notesInSameClef.findIndex(note => note.id === noteId);
-    
-    if (currentIndex !== -1 && currentIndex < notesInSameClef.length - 1) {
-        const nextNote = notesInSameClef[currentIndex + 1];
-        if (nextNote.name === currentNote.name && !nextNote.isRest) {
-            return { measureIndex, noteId: nextNote.id };
-        }
-    }
-
-    // If not found in same measure, check subsequent measures
-    for (let i = measureIndex + 1; i < measures.length; i++) {
-        const measure = measures[i];
-        if (!measure) continue;
-
-        const firstNoteInClef = measure.find(note => 
-            note.clef === currentNote.clef && 
-            note.name === currentNote.name && 
-            !note.isRest
-        );
-
-        if (firstNoteInClef) {
-            return { measureIndex: i, noteId: firstNoteInClef.id };
-        }
-    }
-
-    return null;
-}
-
-/**
- * Handles creating a tie from the currently selected note
- */
-function handleAddTie() {
-    if (!editorSelectedNoteId) {
-        console.warn('No note selected for tying');
-        return;
-    }
-
-    const measures = getMeasures();
-    const currentMeasure = measures[editorSelectedMeasureIndex];
-    if (!currentMeasure) return;
-
-    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
-    if (!selectedNote) {
-        console.warn('Selected note not found');
-        return;
-    }
-
-    if (selectedNote.isRest) {
-        console.warn('Cannot tie rests');
-        // You could show a user message here
-        return;
-    }
-
-    // Check if this note already has a tie
-    if (selectedNote.tie) {
-        console.log('Note already has a tie');
-        // You could show a user message or remove the existing tie
-        return;
-    }
-
-    const targetNote = findNextNotesToTie(editorSelectedMeasureIndex, editorSelectedNoteId);
-    
-    if (targetNote) {
-        const success = createTie(editorSelectedNoteId, targetNote.noteId, 'tie');
-        if (success) {
-            console.log(`Tie created from ${editorSelectedNoteId} to ${targetNote.noteId}`);
-            renderNoteEditBox(false);
-        } else {
-            console.warn('Failed to create tie');
-        }
-    } else {
-        console.log('No suitable note found to tie to');
-        // You could show a user message here
-    }
 }
 
 // ===================================================================
@@ -528,8 +757,21 @@ export function initializeMusicEditor() {
             }
         }
 
+        // NEW: Tie and Slur handlers
         if (target.id === 'editorAddTie') {
             handleAddTie();
+        }
+        if (target.id === 'editorAddSlur') {
+            handleAddSlur();
+        }
+        if (target.id === 'editorAddAutoSlur') {
+            handleAddAutoSlur();
+        }
+        if (target.id === 'editorRemoveTie') {
+            handleRemoveTie();
+        }
+        if (target.id === 'editorCancelSlur') {
+            cancelSlurMode();
         }
 
         if (target.id === 'addNoteToChordBtn') addNoteToChordUI();
@@ -538,7 +780,6 @@ export function initializeMusicEditor() {
             removeNoteFromChordUI(noteIndex);
         }
     });
-    
 
     editorContainer.addEventListener('change', (event) => {
     const target = event.target;
@@ -684,5 +925,5 @@ export function initializeMusicEditor() {
             octaveDropdown.appendChild(option);
         }
     }
-    console.log("✓ scoreEditor.js initialized successfully");
+    console.log("✓ scoreEditor.js initialized successfully with slur support");
 }

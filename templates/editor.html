@@ -145,19 +145,28 @@
         </div>
         <div class="button-group">
             <button id="editorToggleRest" class="btn btn--compact">Toggle Rest</button>
-            <button id="editorAddTie" class="btn btn--compact btn--primary">Add Tie</button>
         </div>
     </div>
     <div class="control-group">
         <label>Move Note:</label>
-        <div class="control-group">
+        <div class="button-group">
             <button id="editorMoveToPrevMeasure" class="btn btn--compact btn--info">← Previous Measure</button>
             <button id="editorMoveToNextMeasure" class="btn btn--compact btn--info">Next Measure →</button>
         </div>
-    </div>
+        </div>
+        <!-- NEW: Tie and Slur Controls -->
+<div class="control-group">
+  <label>Ties & Slurs:</label>
+  <div class="button-group">
+    <button id="editorAddTie" class="btn btn--compact btn--primary">Add Tie</button>
+    <button id="editorAddSlur" class="btn btn--compact btn--secondary">Add Slur</button>
   </div>
-
-</div>
+  <div class="button-group">
+    <button id="editorAddAutoSlur" class="btn btn--compact btn--info">Auto Slur</button>
+    <button id="editorRemoveTie" class="btn btn--compact btn--warning">Remove Tie/Slur</button>
+    <button id="editorCancelSlur" class="btn btn--compact btn--danger" style="display: none;">Cancel Slur</button>
+  </div>
+  </div>
 
 <!-- Floating Editing Panel -->
 <div class="floating-panel hidden" id="editingPanel">

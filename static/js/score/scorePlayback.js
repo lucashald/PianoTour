@@ -78,7 +78,7 @@ function buildTieMap(measures) {
   // First pass: collect all tie relationships
   measures.forEach((measure, measureIndex) => {
     measure.forEach(note => {
-      if (note.tie && note.tie.startNoteId && note.tie.endNoteId) {
+if (note.tie && note.tie.type === 'tie' && note.tie.startNoteId && note.tie.endNoteId) {
         const startId = note.tie.startNoteId;
         const endId = note.tie.endNoteId;
         
