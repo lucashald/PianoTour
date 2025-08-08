@@ -16,7 +16,7 @@ import {
     enableScoreInteraction,
     scrollToMeasure
 } from '../score/scoreRenderer.js';
-import { addNoteToMeasure, getMeasures, moveNoteBetweenMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, updateNoteInMeasure } from '../score/scoreWriter.js';
+import { addNoteToMeasure, getMeasures, moveNoteBetweenMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, updateNoteInMeasure, createTie } from '../score/scoreWriter.js';
 
 // ===================================================================
 // Internal State
@@ -357,6 +357,98 @@ function removeNoteFromChordUI(noteIndexToRemove) {
     renderNoteEditBox(false);
 }
 
+/**
+ * Finds the next note of the same pitch and clef to tie to
+ * @param {number} measureIndex - Current measure index
+ * @param {string} noteId - Current note ID
+ * @returns {object|null} {measureIndex, noteId} of target note or null if not found
+ */
+function findNextNotesToTie(measureIndex, noteId) {
+    const measures = getMeasures();
+    const currentMeasure = measures[measureIndex];
+    if (!currentMeasure) return null;
+
+    const currentNote = currentMeasure.find(note => note.id === noteId);
+    if (!currentNote || currentNote.isRest) return null;
+
+    // First, check for the next note in the same measure and clef
+    const notesInSameClef = currentMeasure.filter(note => note.clef === currentNote.clef);
+    const currentIndex = notesInSameClef.findIndex(note => note.id === noteId);
+    
+    if (currentIndex !== -1 && currentIndex < notesInSameClef.length - 1) {
+        const nextNote = notesInSameClef[currentIndex + 1];
+        if (nextNote.name === currentNote.name && !nextNote.isRest) {
+            return { measureIndex, noteId: nextNote.id };
+        }
+    }
+
+    // If not found in same measure, check subsequent measures
+    for (let i = measureIndex + 1; i < measures.length; i++) {
+        const measure = measures[i];
+        if (!measure) continue;
+
+        const firstNoteInClef = measure.find(note => 
+            note.clef === currentNote.clef && 
+            note.name === currentNote.name && 
+            !note.isRest
+        );
+
+        if (firstNoteInClef) {
+            return { measureIndex: i, noteId: firstNoteInClef.id };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Handles creating a tie from the currently selected note
+ */
+function handleAddTie() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for tying');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote) {
+        console.warn('Selected note not found');
+        return;
+    }
+
+    if (selectedNote.isRest) {
+        console.warn('Cannot tie rests');
+        // You could show a user message here
+        return;
+    }
+
+    // Check if this note already has a tie
+    if (selectedNote.tie) {
+        console.log('Note already has a tie');
+        // You could show a user message or remove the existing tie
+        return;
+    }
+
+    const targetNote = findNextNotesToTie(editorSelectedMeasureIndex, editorSelectedNoteId);
+    
+    if (targetNote) {
+        const success = createTie(editorSelectedNoteId, targetNote.noteId, 'tie');
+        if (success) {
+            console.log(`Tie created from ${editorSelectedNoteId} to ${targetNote.noteId}`);
+            renderNoteEditBox(false);
+        } else {
+            console.warn('Failed to create tie');
+        }
+    } else {
+        console.log('No suitable note found to tie to');
+        // You could show a user message here
+    }
+}
+
 // ===================================================================
 // Initialization Function (Exported)
 // ===================================================================
@@ -436,12 +528,17 @@ export function initializeMusicEditor() {
             }
         }
 
+        if (target.id === 'editorAddTie') {
+            handleAddTie();
+        }
+
         if (target.id === 'addNoteToChordBtn') addNoteToChordUI();
         if (target.classList.contains('remove-chord-note-btn')) {
             const noteIndex = parseInt(target.dataset.noteIndex, 10);
             removeNoteFromChordUI(noteIndex);
         }
     });
+    
 
     editorContainer.addEventListener('change', (event) => {
     const target = event.target;

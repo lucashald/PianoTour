@@ -65,6 +65,12 @@ let TREBLE_STAFF_BOTTOM_Y = null;
 let BASS_STAFF_TOP_Y = null;
 let BASS_STAFF_BOTTOM_Y = null;
 
+let vexflowBeams = []; // Store beams for each measure
+let enableBeaming = false; // Control beaming on/off
+
+// --- Tie State ---
+let tieGroups = []; // Store tie information for drawing
+
 // Drag threshold to differentiate between click and drag
 const DRAG_THRESHOLD = 5; // pixels
 
@@ -297,8 +303,11 @@ export function setKeySignature(keySignature) {
 
   return true;
 }
-export function drawAll(measures, noScroll = false) {
+
+export function drawAll(measures, noScroll = false, beaming = false) {
   console.log("drawAll: START");
+  enableBeaming = beaming; // Store the beaming preference
+  
   const out = document.getElementById("score");
   if (!out) {
     console.error("drawAll: Score rendering element #score not found!");
@@ -310,6 +319,8 @@ export function drawAll(measures, noScroll = false) {
   measureXPositions = [];
   vexflowStaveMap = [];
   vexflowIndexByNoteId = {}; // Clear the ID mapping
+  vexflowBeams = []; // Clear beams array
+  tieGroups = []; // Clear ties array
 
   const measureWidth = 340;
   const measureCount = measures.length > 0 ? measures.length : 1;
@@ -368,6 +379,25 @@ export function drawAll(measures, noScroll = false) {
       vexflowNoteMap[i].treble = trebleVexNotes;
       vexflowNoteMap[i].bass = bassVexNotes;
 
+      // NEW: Create beams for this measure if beaming is enabled
+      if (enableBeaming) {
+        vexflowBeams[i] = {};
+        if (trebleNotesData.length > 0) {
+          vexflowBeams[i].treble = createBeamsForNotes(trebleVexNotes, trebleNotesData);
+        }
+        if (bassNotesData.length > 0) {
+          vexflowBeams[i].bass = createBeamsForNotes(bassVexNotes, bassNotesData);
+        }
+      }
+
+      // NEW: Process ties for this measure
+      if (trebleNotesData.length > 0) {
+        processTies(trebleNotesData);
+      }
+      if (bassNotesData.length > 0) {
+        processTies(bassNotesData);
+      }
+
       // Build ID to VexFlow index mapping
       trebleNotesData.forEach((noteData, vexflowIndex) => {
         if (noteData.id) {
@@ -397,12 +427,14 @@ export function drawAll(measures, noScroll = false) {
       const staveTreble = system.addStave({ voices: [trebleVoice] });
       const staveBass = system.addStave({ voices: [bassVoice] });
       vexflowStaveMap[i] = { treble: staveTreble, bass: staveBass };
+      
       function formatTimeSignature() {
         return `${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`;
       }
       function formatTempo() {
         return pianoState.tempo;
       }
+      
       if (i === 0) {
         const timeSignature = formatTimeSignature();
         const tempo = formatTempo();
@@ -415,9 +447,11 @@ export function drawAll(measures, noScroll = false) {
         staveBass.addKeySignature(keySignature);
         staveTreble.setTempo({ duration: 'q', bpm: pianoState.tempo }, -27);
       }
+      
       if (i === measureCount - 1) {
         system.addConnector("boldDoubleRight");
       }
+      
       currentX += measureWidth;
     }
 
@@ -428,12 +462,23 @@ export function drawAll(measures, noScroll = false) {
     vexFlowFactory.draw();
     console.log("drawAll: VexFlow drawing complete.");
 
+    // NEW: Draw beams after the main score is drawn
+    if (enableBeaming) {
+      drawAllBeams();
+      console.log("drawAll: Beam drawing complete.");
+    }
+
+    // NEW: Draw ties after beams
+    drawTies();
+    console.log("drawAll: Tie drawing complete.");
+
     if (pianoState.currentSelectedMeasure !== -1) {
       console.log(
         `drawAll: Restoring measure highlight for measure ${pianoState.currentSelectedMeasure}`
       );
       highlightSelectedMeasure(pianoState.currentSelectedMeasure);
     }
+    
     if (pianoState.currentSelectedNote) {
       console.log(
         `drawAll: Restoring selected note highlight for note`,
@@ -445,6 +490,7 @@ export function drawAll(measures, noScroll = false) {
         pianoState.currentSelectedNote.noteId
       );
     }
+    
     // NEW: Restore all notes from the playback Set
     for (const noteKey of pianoState.currentPlaybackNotes) {
       const [measureIndex, clef, noteId] = noteKey.split("-");
@@ -458,24 +504,34 @@ export function drawAll(measures, noScroll = false) {
     }
 
     const scoreWrap = document.getElementById("scoreWrap");
-    if (!noScroll) {scoreWrap.scrollLeft = scoreWrap.scrollWidth - scoreWrap.clientWidth;
+    if (!noScroll) {
+      scoreWrap.scrollLeft = scoreWrap.scrollWidth - scoreWrap.clientWidth;
     }
   } catch (e) {
     console.error("drawAll: VexFlow rendering error:", e);
   }
+  
   calibrateStaffPositions();
   console.log(`drawAll end: scroll position is ${scoreWrap?.scrollLeft}`);
 }
+
 /**
  * A safe redraw that preserves the current selection and all highlight states.
  */
-export function safeRedraw() {
+export function safeRedraw(beaming = false) {
   console.log("safeRedraw: Called. Triggering full drawAll.");
   const scoreData = getMeasures();
-  // drawAll now explicitly handles re-applying pianoState.currentSelectedMeasure, pianoState.currentSelectedNote, and pianoState.currentPlaybackNote
-  drawAll(scoreData);
+  drawAll(scoreData, false, beaming);
 }
-
+/**
+ * Sets the beaming preference and redraws the score
+ * @param {boolean} enabled - Whether to enable automatic beaming
+ */
+export function setBeaming(enabled) {
+  enableBeaming = enabled;
+  safeRedraw(enabled);
+  console.log(`Beaming ${enabled ? 'enabled' : 'disabled'}`);
+}
 export function enableScoreInteraction(onMeasureClick, onNoteClick) {
   console.log("enableScoreInteraction: Attaching unified event listeners.");
   const scoreElement = document.getElementById("score");
@@ -1386,6 +1442,152 @@ export function scrollToMeasure(measureIndex, smoothScroll = true) {
 
 // end scrolltomeasure function
 
+// Beam functions
+/**
+ * Checks if a VexFlow note can be beamed (8th, 16th, 32nd, 64th, 128th notes, and not rests)
+ * @param {Vex.Flow.StaveNote} vexNote - The VexFlow note to check
+ * @returns {boolean} True if the note can be beamed
+ */
+function isBeamableNote(vexNote) {
+  if (!vexNote || vexNote.isRest()) return false;
+
+  const duration = vexNote.getDuration();
+  const beamableDurations = ['8', '16', '32', '64', '128'];
+  return beamableDurations.includes(duration);
+}
+
+/**
+ * Creates beam objects for beamable notes in a measure
+ * @param {Array} vexNotes - Array of VexFlow notes
+ * @param {Array} notesData - Array of note data from the model
+ * @returns {Array} Array of VexFlow beam objects
+ */
+function createBeamsForNotes(vexNotes, notesData) {
+  // Filter to only beamable notes (no rests)
+  const beamableNotes = vexNotes.filter(note => isBeamableNote(note));
+  
+  if (beamableNotes.length < 2) {
+    return []; // Need at least 2 notes to beam
+  }
+
+  // Use VexFlow's generateBeams with maintain_stem_directions
+  const beams = Vex.Flow.Beam.generateBeams(beamableNotes, {
+    beam_rests: false,                    // Don't beam over rests
+    maintain_stem_directions: true,       // Preserve individual stem directions
+    groups: []                           // Let VexFlow auto-group by beat
+  });
+
+  return beams;
+}
+
+/**
+ * Draws all stored beams for all measures
+ */
+function drawAllBeams() {
+  if (!enableBeaming) return;
+  
+  vexflowBeams.forEach((measureBeams, index) => {
+    if (measureBeams && vfContext) {
+      if (typeof measureBeams === 'object' && (measureBeams.treble || measureBeams.bass)) {
+        // Handle separate treble and bass beams
+        if (measureBeams.treble && measureBeams.treble.length > 0) {
+          measureBeams.treble.forEach(beam => beam.setContext(vfContext).draw());
+        }
+        if (measureBeams.bass && measureBeams.bass.length > 0) {
+          measureBeams.bass.forEach(beam => beam.setContext(vfContext).draw());
+        }
+      } else if (Array.isArray(measureBeams) && measureBeams.length > 0) {
+        // Handle array of beams
+        measureBeams.forEach(beam => beam.setContext(vfContext).draw());
+      }
+    }
+  });
+}
+
+/**
+ * Processes tie data from note objects and stores them for later rendering
+ * @param {Array} notesData - Array of note data objects that may contain tie information
+ */
+function processTies(notesData) {
+  notesData.forEach((noteData) => {
+    if (noteData.tie) {
+      if (noteData.tie.startNoteId && noteData.tie.endNoteId) {
+        tieGroups.push({
+          type: noteData.tie.type || 'tie',
+          startNoteId: noteData.tie.startNoteId,
+          endNoteId: noteData.tie.endNoteId
+        });
+      }
+    }
+  });
+}
+
+/**
+ * Draws all stored ties and slurs
+ */
+function drawTies() {
+  if (tieGroups.length === 0) return;
+
+  // Build a lookup map from note ID to VexFlow note object
+  const vexNotesById = {};
+  for (const id in vexflowIndexByNoteId) {
+    const vexflowIndex = vexflowIndexByNoteId[id];
+    
+    // Find the note in the measures data to get its measure index and clef
+    const measuresData = getMeasures();
+    let foundNote = null;
+    let measureIndex = -1;
+    let clef = null;
+
+    for (let i = 0; i < measuresData.length; i++) {
+      const measure = measuresData[i];
+      for (const note of measure) {
+        if (note.id === id) {
+          foundNote = note;
+          measureIndex = i;
+          clef = note.clef;
+          break;
+        }
+      }
+      if (foundNote) break;
+    }
+
+    if (foundNote && measureIndex !== -1 && clef) {
+      const vexNote = vexflowNoteMap[measureIndex]?.[clef]?.[vexflowIndex];
+      if (vexNote) {
+        vexNotesById[id] = vexNote;
+      }
+    }
+  }
+
+  // Draw each tie/slur
+  tieGroups.forEach(tie => {
+    const startVexNote = vexNotesById[tie.startNoteId];
+    const endVexNote = vexNotesById[tie.endNoteId];
+
+    if (startVexNote && endVexNote) {
+      if (tie.type === 'tie') {
+        const staveTie = new Vex.Flow.StaveTie({
+          first_note: startVexNote,
+          last_note: endVexNote,
+          first_indices: [0],
+          last_indices: [0]
+        });
+        staveTie.setContext(vfContext).draw();
+      } else if (tie.type === 'slur') {
+        const curve = new Vex.Flow.Curve(startVexNote, endVexNote, {
+          x_shift: -1,
+          y_shift: 10,
+          position: Vex.Flow.Stem.UP,
+          position_end: Vex.Flow.Stem.UP,
+        });
+        curve.setContext(vfContext).draw();
+      }
+    } else {
+      console.warn(`Could not find start/end notes for tie:`, tie);
+    }
+  });
+}
 
 export function setPaletteDragState(isDragging, type, duration) {
   isPaletteDrag = isDragging;

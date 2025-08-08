@@ -286,14 +286,8 @@ export function undoLastWrite() {
 
 /**
 * Writes a note or rest to the score. This function handles auto-advancing measures
-* based on the running beat count for each clef.
+* and creating ties when notes would overflow the current measure.
 * @param {object} obj - The note/rest object { clef, duration, notes, chordName, isRest }.
-* - notes: Array of note names (e.g., ['C4']) or a single note for single notes
-* For chords, it's an array of note names (e.g., ['C4', 'E4', 'G4']).
-* - clef: 'treble' or 'bass'
-* - duration: 'q', 'h', 'w', etc.
-* - chordName: The display name of the chord (e.g., 'C Major', 'Am7') or single note name.
-* - isRest: boolean, true if it's a rest.
 */
 export function writeNote(obj) {
     console.log('writeNote input: obj =', obj);
@@ -302,35 +296,104 @@ export function writeNote(obj) {
     const beats = BEAT_VALUES[duration];
 
     const currentBeatsForClef = clef === 'treble' ? currentTrebleBeats : currentBassBeats;
+    const availableBeats = pianoState.timeSignature.numerator - currentBeatsForClef;
 
-    // If adding the new note would overflow the measure for its specific clef,
-    // advance to the next measure for both staves.
+    // Check if the note would overflow and if it can be split with a tie
+    if (availableBeats > 0 && beats > availableBeats && !isRest) {
+        const splitResult = splitNoteForTie(duration, availableBeats);
+        
+        if (splitResult) {
+            console.log(`writeNote: Splitting note across measures. First: ${splitResult.firstDuration}, Second: ${splitResult.secondDuration}`);
+            
+            // Ensure `notes` are always an array
+            const notesArray = Array.isArray(notes) ? notes : [notes];
+            const formattedName = notesArray.length > 1
+                ? `(${notesArray.sort((a, b) => NOTES_BY_NAME[a] - NOTES_BY_NAME[b]).join(' ')})`
+                : notesArray[0];
+
+            // Create first note (fits in current measure)
+            const firstNoteId = generateUniqueId();
+            const firstNoteEntry = { 
+                id: firstNoteId,
+                name: formattedName, 
+                clef, 
+                duration: splitResult.firstDuration, 
+                measure: currentIndex, 
+                isRest: false,
+                chordName: chordName
+            };
+
+            measuresData[currentIndex] ??= []; 
+            measuresData[currentIndex].push(firstNoteEntry);
+
+            // Update beats for current measure
+            if (clef === 'treble') {
+                currentTrebleBeats += BEAT_VALUES[splitResult.firstDuration];
+            } else {
+                currentBassBeats += BEAT_VALUES[splitResult.firstDuration];
+            }
+
+            // Advance to next measure
+            currentIndex++;
+            measuresData[currentIndex] = [];
+            currentTrebleBeats = 0;
+            currentBassBeats = 0;
+
+            // Create second note (in new measure)
+            const secondNoteId = generateUniqueId();
+            const secondNoteEntry = { 
+                id: secondNoteId,
+                name: formattedName, 
+                clef, 
+                duration: splitResult.secondDuration, 
+                measure: currentIndex, 
+                isRest: false,
+                chordName: chordName
+            };
+
+            measuresData[currentIndex].push(secondNoteEntry);
+
+            // Update beats for new measure
+            if (clef === 'treble') {
+                currentTrebleBeats += BEAT_VALUES[splitResult.secondDuration];
+            } else {
+                currentBassBeats += BEAT_VALUES[splitResult.secondDuration];
+            }
+
+            // Create the tie between the two notes
+            createTieBetweenNotes(firstNoteId, secondNoteId, 'tie');
+
+            // Save history and handle side effects
+            saveStateToHistory();
+            updateNowPlayingDisplay(`${chordName} (tied)`);
+            handleSideEffects();
+            
+            console.log(`writeNote output: Created tied notes across measures. First ID: ${firstNoteId}, Second ID: ${secondNoteId}`);
+            return;
+        }
+    }
+
+    // If we can't split or don't need to split, use original logic
     if (currentBeatsForClef + beats > pianoState.timeSignature.numerator) {
-        // Only advance if the current measure has any notes in it.
-        // This prevents creating empty measures if the first note already overflows.
+        // Only advance if the current measure has any notes in it
         if (measuresData[currentIndex] && (measuresData[currentIndex].length > 0 || currentTrebleBeats > 0 || currentBassBeats > 0)) {
             currentIndex++;
         }
-        measuresData[currentIndex] = []; // Initialize new measure
+        measuresData[currentIndex] = [];
         currentTrebleBeats = 0;
         currentBassBeats = 0;
         console.log('writeNote: measure advanced due to overflow. New currentIndex:', currentIndex);
     }
 
-    // Ensure `notes` are always an array before mapping
+    // Rest of the original writeNote logic...
     const notesArray = Array.isArray(notes) ? notes : [notes];
-
-    // Format for VexFlow: chords are `(N1 O1 N2 O2 ...)` (space-separated notes inside parentheses)
-    // Single notes are just "Nn"
     const formattedName = notesArray.length > 1
         ? `(${notesArray.sort((a, b) => NOTES_BY_NAME[a] - NOTES_BY_NAME[b]).join(' ')})`
         : notesArray[0];
 
-    // Generate a unique ID for the new note entry
     const newNoteId = generateUniqueId(); 
-
     const noteEntry = { 
-        id: newNoteId, // Add the unique ID here
+        id: newNoteId,
         name: formattedName, 
         clef, 
         duration, 
@@ -348,12 +411,10 @@ export function writeNote(obj) {
         currentBassBeats += beats;
     }
 
-    // Save history AFTER the change is made, so undo can restore to current state
     saveStateToHistory();
-
     updateNowPlayingDisplay(chordName);
     handleSideEffects();
-    console.log(`writeNote output: Note written. Beats status - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}. measuresData:`, measuresData);
+    console.log(`writeNote output: Note written. Beats status - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}`);
 }
 
 // ===================================================================
@@ -446,21 +507,21 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
 
 /**
 * Removes a note from a specified measure by its ID.
-* @param {number} measureIndex - The index of the measure to modify.
-* @param {string} noteId - The ID of the note to remove.
-* @returns {object|null} The removed note object, or null if not found.
+* Also removes any ties involving this note.
 */
 export function removeNoteFromMeasure(measureIndex, noteId) {
     console.log('removeNoteFromMeasure input: measureIndex=', measureIndex, 'noteId=', noteId);
 
+    // Remove ties first
+    removeTiesForNote(noteId);
+
     const removedNote = doRemoveNote(measureIndex, noteId);
 
     if (removedNote) {
-        // Save history AFTER the change is made
         saveStateToHistory();
-            drawAll(measuresData, true);
-    saveToLocalStorage();
-        console.log(`removeNoteFromMeasure output: Note with ID ${noteId} removed from measure ${measureIndex}. Removed note:`, removedNote);
+        drawAll(measuresData, true);
+        saveToLocalStorage();
+        console.log(`removeNoteFromMeasure output: Note with ID ${noteId} removed from measure ${measureIndex}. Ties also removed.`);
     } else {
         console.log('removeNoteFromMeasure output: null (note not found)');
     }
@@ -469,17 +530,16 @@ export function removeNoteFromMeasure(measureIndex, noteId) {
 }
 
 /**
-* Updates an existing note's properties by its ID. This function prevents updates
-* that would cause a measure to exceed its beat capacity.
-* @param {number} measureIndex - The index of the measure containing the note.
-* @param {string} noteId - The ID of the note to update.
-* @param {object} newNoteData - An object containing the new properties for the note.
-* @returns {boolean} True if the update was successful, false otherwise.
+* Updates an existing note's properties by its ID.
+* Removes any existing ties involving this note.
 */
 export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
     console.log('updateNoteInMeasure input: measureIndex=', measureIndex, 'noteId=', noteId, 'newNoteData=', newNoteData);
 
-    // Check if update would cause overflow BEFORE making changes
+    // Remove ties when note is updated (since the note characteristics might change)
+    removeTiesForNote(noteId);
+
+    // Rest of the existing updateNoteInMeasure logic...
     if (!measuresData[measureIndex]) {
         console.warn(`Attempted to update note in non-existent measure ${measureIndex}.`);
         return false;
@@ -505,14 +565,12 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
         return false;
     }
 
-    // Make the change
     const success = doUpdateNote(measureIndex, noteId, newNoteData);
     if (success) {
-        // Save history AFTER the change is made
         saveStateToHistory();
-    drawAll(measuresData, true);
-    saveToLocalStorage();
-        console.log(`updateNoteInMeasure output: Note with ID ${noteId} updated at measure ${measureIndex}. Current beats - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}.`);
+        drawAll(measuresData, true);
+        saveToLocalStorage();
+        console.log(`updateNoteInMeasure output: Note with ID ${noteId} updated. Ties removed due to update.`);
     }
 
     return success;
@@ -520,43 +578,34 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
 
 /**
 * Moves a note from one measure to another.
-* @param {number} fromMeasureIndex - The index of the source measure.
-* @param {string} fromNoteId - The ID of the note to move within the source measure.
-* @param {number} toMeasureIndex - The index of the target measure.
-* @param {string|null} [insertBeforeNoteId=null] - The ID of the note to insert before in the target measure. If null, appends.
-* @returns {boolean} True if the move was successful, false otherwise.
+* Removes any ties involving this note.
 */
 export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId = null) {
-    console.log('moveNoteBetweenMeasures input: fromMeasureIndex=', fromMeasureIndex, 'fromNoteId=', fromNoteId, 'toMeasureIndex=', toMeasureIndex, 'insertBeforeNoteId=', insertBeforeNoteId);
+    console.log('moveNoteBetweenMeasures input: fromMeasureIndex=', fromMeasureIndex, 'fromNoteId=', fromNoteId, 'toMeasureIndex=', toMeasureIndex);
 
-    // Do the move operation using core functions (no side effects)
+    // Remove ties when note is moved
+    removeTiesForNote(fromNoteId);
+
+    // Rest of the existing moveNoteBetweenMeasures logic...
     const noteToMove = doRemoveNote(fromMeasureIndex, fromNoteId);
     if (!noteToMove) {
         console.error('Note not found at source for moving (ID:', fromNoteId, ').');
-        console.log('moveNoteBetweenMeasures output: false');
         return false;
     }
 
-    // Update the note's measure property
     noteToMove.measure = toMeasureIndex;
 
-    // Ensure the target measure exists
     while (measuresData.length <= toMeasureIndex) {
         measuresData.push([]);
         console.log(`moveNoteBetweenMeasures: Created new empty measure at index ${measuresData.length - 1}`);
     }
 
-    // Add the note to the target measure
     doAddNote(toMeasureIndex, noteToMove, insertBeforeNoteId);
-
-    // Save history AFTER the complete move operation is done
     saveStateToHistory();
-
-    // Handle side effects once at the end
     drawAll(measuresData, true);
     saveToLocalStorage();
 
-    console.log(`moveNoteBetweenMeasures output: true. Note with ID ${fromNoteId} moved successfully.`);
+    console.log(`moveNoteBetweenMeasures output: Note moved successfully. Ties removed due to move.`);
     return true;
 }
 
@@ -704,4 +753,181 @@ export function fillRests() {
   });
   
   console.log(`fillRests: Added ${restDuration} rest to ${isBassBehind ? 'bass' : 'treble'} clef`);
+}
+
+
+// ===================================================================
+// Tie Management Functions
+// ===================================================================
+
+/**
+ * Splits a note duration into two parts for tying across measures
+ * @param {string} duration - Original duration (e.g., 'h', 'q', '8')
+ * @param {number} availableBeats - How many beats are available in current measure
+ * @returns {object|null} {firstDuration, secondDuration} or null if can't split
+ */
+function splitNoteForTie(duration, availableBeats) {
+    const totalBeats = BEAT_VALUES[duration];
+    if (!totalBeats || availableBeats >= totalBeats) {
+        return null; // No split needed
+    }
+    
+    const remainingBeats = totalBeats - availableBeats;
+    
+    // Find the best duration values for each part
+    const firstDuration = findBestDuration(availableBeats);
+    const secondDuration = findBestDuration(remainingBeats);
+    
+    if (firstDuration && secondDuration) {
+        return { firstDuration, secondDuration };
+    }
+    
+    return null;
+}
+
+/**
+ * Finds the best duration string for a given number of beats
+ * @param {number} beats - Number of beats
+ * @returns {string|null} Duration string or null if no exact match
+ */
+function findBestDuration(beats) {
+    // Find exact matches first
+    for (const [duration, value] of Object.entries(BEAT_VALUES)) {
+        if (value === beats) {
+            return duration;
+        }
+    }
+    
+    // For complex beats, try to use the largest possible duration
+    // This is a simplified approach - you might want to expand this
+    if (beats === 3.5) return 'w.'; // 3.5 beats (dotted whole in 4/4)
+    if (beats === 2.5) return 'h.'; // 2.5 beats (dotted half)
+    if (beats === 1.25) return 'q.'; // 1.25 beats (dotted quarter)
+    
+    return null;
+}
+
+/**
+ * Removes all ties involving a specific note
+ * @param {string} noteId - ID of the note whose ties should be removed
+ */
+function removeTiesForNote(noteId) {
+    let tiesRemoved = 0;
+    
+    // Go through all measures and remove tie information
+    measuresData.forEach(measure => {
+        if (measure) {
+            measure.forEach(note => {
+                if (note.tie) {
+                    // If this note is involved in the tie, remove the tie
+                    if (note.tie.startNoteId === noteId || note.tie.endNoteId === noteId) {
+                        delete note.tie;
+                        tiesRemoved++;
+                    }
+                }
+            });
+        }
+    });
+    
+    console.log(`removeTiesForNote: Removed ${tiesRemoved} tie references for note ${noteId}`);
+    return tiesRemoved;
+}
+
+/**
+ * Creates a tie between two notes
+ * @param {string} startNoteId - ID of the first note
+ * @param {string} endNoteId - ID of the second note
+ * @param {string} type - Type of tie ('tie' or 'slur')
+ */
+function createTieBetweenNotes(startNoteId, endNoteId, type = 'tie') {
+    // Find and update the start note
+    let startNoteFound = false;
+    let endNoteFound = false;
+    
+    measuresData.forEach(measure => {
+        if (measure) {
+            measure.forEach(note => {
+                if (note.id === startNoteId) {
+                    note.tie = {
+                        type: type,
+                        startNoteId: startNoteId,
+                        endNoteId: endNoteId
+                    };
+                    startNoteFound = true;
+                }
+                if (note.id === endNoteId) {
+                    // End note can also store tie info for reference
+                    note.tie = {
+                        type: type,
+                        startNoteId: startNoteId,
+                        endNoteId: endNoteId
+                    };
+                    endNoteFound = true;
+                }
+            });
+        }
+    });
+    
+    console.log(`createTieBetweenNotes: Created ${type} between ${startNoteId} and ${endNoteId}. Start found: ${startNoteFound}, End found: ${endNoteFound}`);
+    return startNoteFound && endNoteFound;
+}
+
+/**
+ * Creates a tie between two existing notes
+ * @param {string} startNoteId - ID of the first note
+ * @param {string} endNoteId - ID of the second note
+ * @param {string} type - Type of connection ('tie' or 'slur')
+ * @returns {boolean} True if tie was created successfully
+ */
+export function createTie(startNoteId, endNoteId, type = 'tie') {
+    const success = createTieBetweenNotes(startNoteId, endNoteId, type);
+    if (success) {
+        saveStateToHistory();
+        drawAll(measuresData, true);
+        saveToLocalStorage();
+        console.log(`createTie: Successfully created ${type} between ${startNoteId} and ${endNoteId}`);
+    }
+    return success;
+}
+
+/**
+ * Removes ties involving a specific note
+ * @param {string} noteId - ID of the note
+ * @returns {number} Number of ties removed
+ */
+export function removeTie(noteId) {
+    const removed = removeTiesForNote(noteId);
+    if (removed > 0) {
+        saveStateToHistory();
+        drawAll(measuresData, true);
+        saveToLocalStorage();
+        console.log(`removeTie: Removed ${removed} ties for note ${noteId}`);
+    }
+    return removed;
+}
+
+function doAddNote(measureIndex, noteData, insertBeforeNoteId = null) {
+    if (!measuresData[measureIndex]) {
+        measuresData[measureIndex] = [];
+    }
+
+    const targetMeasure = measuresData[measureIndex];
+    let insertIndex = -1;
+
+    if (insertBeforeNoteId !== null) {
+        insertIndex = targetMeasure.findIndex(note => note.id === insertBeforeNoteId);
+    }
+
+    if (insertIndex === -1) {
+        targetMeasure.push(noteData);
+    } else {
+        targetMeasure.splice(insertIndex, 0, noteData);
+    }
+
+    // Update current beats if this is the current measure
+    if (measureIndex === currentIndex) {
+        const updatedBeats = calculateMeasureBeats(measuresData[currentIndex]);
+        currentTrebleBeats = updatedBeats.trebleBeats;
+        currentBassBeats = updatedBeats.bassBeats;
+    }
 }
