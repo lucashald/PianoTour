@@ -23,7 +23,8 @@ export class VolumeControl {
         
         bindEvents() {
     // Container click - fallback for any missed clicks
-    this.container.addEventListener('click', (e) => {
+        this.container.addEventListener('click', (e) => {
+            e.preventDefault();
         // Only handle if no other element handled it
         if (e.target === this.container) {
             this.handleClick('Container');
@@ -31,7 +32,8 @@ export class VolumeControl {
     });
     
     // Slider - handle both initialization and volume changes
-    this.slider.addEventListener('click', (e) => {
+        this.slider.addEventListener('click', (e) => {
+            e.preventDefault();
         e.stopPropagation(); // Prevent container click
         this.handleClick('Slider');
     });
@@ -43,13 +45,15 @@ export class VolumeControl {
 });
 
     // Volume value - handle clicks on the number
-    this.volumeValue.addEventListener('click', (e) => {
+        this.volumeValue.addEventListener('click', (e) => {
+            e.preventDefault();
         e.stopPropagation();
         this.handleClick('Volume value');
     });
     
     // Icon - handle mute toggle or initialization
-    this.volumeIcon.addEventListener('click', (e) => {
+        this.volumeIcon.addEventListener('click', (e) => {
+            e.preventDefault();
         e.stopPropagation();
         if (this.audioStatus === 'ready') {
             this.toggleMute();

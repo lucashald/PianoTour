@@ -11,7 +11,7 @@ import { triggerDrum, unlockAndExecuteDrum } from "./drumAudio.js";
 // ===================================================================
 
 const GRID_INSTRUMENTS = [
-    'bass-kick',
+    'box-kick',
     'snare',
     'sidestick', // New instrument
     'hihat-closed', // Added hi hat

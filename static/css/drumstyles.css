@@ -292,7 +292,7 @@
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px #f1c40f;
 }
 
-.pattern-grid__cell[data-instrument="bass-kick"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="box-kick"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
 .pattern-grid__cell[data-instrument="sidestick"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
 .pattern-grid__cell[data-instrument="snare"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
 .pattern-grid__cell[data-instrument="tom-low"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
@@ -363,4 +363,12 @@
         transform: scale(1.05);
         opacity: 1;
     }
+}
+
+.drum-step-button,
+.drum-step-label {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }

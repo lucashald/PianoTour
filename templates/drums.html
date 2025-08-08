@@ -31,9 +31,9 @@
     <div class="drum-switches-container" id="drumButtonContainer" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5em;">
       
       <!-- Drum Instruments -->
-      <div class="drum-step-button" data-drum="bass-kick">
+      <div class="drum-step-button" data-drum="box-kick">
         <div class="indicator"></div>
-        <span class="drum-step-button-label">Box Kick</span>
+        <span class="drum-step-button-label">Kick</span>
       </div>
 
       <div class="drum-step-button" data-drum="snare">
@@ -53,7 +53,7 @@
         <span class="drum-step-button-label">High Tom</span>
       </div>
 
-            <div class="drum-step-button" data-drum="sidestick">
+      <div class="drum-step-button" data-drum="sidestick">
         <div class="indicator"></div>
         <span class="drum-step-button-label">Stick</span>
       </div>
@@ -171,7 +171,8 @@
     processAndSyncScore as processAndSyncDrumScore,
     undoLastWrite as undoDrumLastWrite,
   } from '{{ url_for("static", filename="js/drums/drumsScoreWriter.js") }}';
-  import { drawAll as drawAllDrums } from '{{ url_for("static", filename="js/drums/drumRenderer.js") }}';
+  // ← REPLACE OLD IMPORT WITH NEW UNIVERSAL RENDERER
+  import { UniversalMusicRenderer } from '{{ url_for("static", filename="js/classes/UniversalMusicRenderer.js") }}';
   import {
     initializeDrumAudioModule,
     handleDrumPlayback,
@@ -179,13 +180,56 @@
   import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drumGrid.js") }}';
   import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
 
+  // ← ADD: Create the drum renderer instance
+  let drumRenderer = null;
+
+  // ← ADD: Initialize drum renderer
+  function initializeDrumRenderer() {
+    drumRenderer = new UniversalMusicRenderer('drums-score', {
+      instrumentType: 'drums',
+      disableScrolling: false,
+      timeSignature: drumsState.timeSignature,
+      tempo: drumsState.tempo,
+      keySignature: drumsState.keySignature || 'C'
+    });
+    console.log('🥁 Drum renderer initialized with 3 measures per system, scrolling disabled');
+  }
+
+  
+  function renderDrums(measuresData = null) {
+  if (!drumRenderer) {
+    initializeDrumRenderer();
+  }
+
+  const measures = measuresData || getDrumMeasures();
+  
+  // Debug: Log the measures data
+  console.log('🔍 Drum measures data:', JSON.stringify(measures, null, 2));
+  
+  // Update renderer settings with current state
+  drumRenderer.timeSignature = drumsState.timeSignature;
+  drumRenderer.tempo = drumsState.tempo;
+  drumRenderer.keySignature = drumsState.keySignature || 'C';
+  
+  try {
+    drumRenderer.render(measures);
+    console.log('🥁 Drums rendered successfully using UniversalMusicRenderer');
+  } catch (error) {
+    console.error('🥁 Error rendering drums:', error);
+  }
+}
+
   // Set instrument type
   const templateInstrument = "{{ instrument }}" || "piano";
   pianoState.instrument = templateInstrument;
   console.log("Set instrument to:", templateInstrument);
+
 // Wait for base initialization to complete
 document.addEventListener("pianoTourBaseReady", () => {
   console.log("🥁 Base ready, initializing drum-specific components...");
+  
+  // Initialize drum renderer
+  initializeDrumRenderer();
   
   // Initialize drum-specific modules
   initializeDrumAudioModule();
@@ -195,9 +239,10 @@ document.addEventListener("pianoTourBaseReady", () => {
   // Add drum-specific control buttons to the existing controls
   addDrumControlButtons();
   
-  // RESTORED: Original drum button click handling from drumsIndex.html
-  document.querySelectorAll(".drum-step-button").forEach((button) => {
-    button.addEventListener("click", function () {
+  document.querySelectorAll(".drum-step-button, .drum-step-label").forEach((button) => {
+    button.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
       // Determine if it's a drum instrument or a duration button
       const drumType = this.dataset.drum;
       const durationType = this.dataset.duration;
@@ -288,14 +333,14 @@ document.addEventListener("pianoTourBaseReady", () => {
     }
   }
 
-  // Load drum score from localStorage
+  // ← UPDATED: Load drum score from localStorage using new renderer
   async function loadDrumScoreFromStorage() {
     const savedDrumScoreJSON = localStorage.getItem(AUTOSAVE_KEY);
     if (!savedDrumScoreJSON) {
       console.log("📝 No saved drum score found");
-      // Initialize with empty score
+      // Initialize with empty score using new renderer
       try {
-        drawAllDrums([]);
+        renderDrums([]);
       } catch (e) {
         console.error("Initial drum render error:", e);
       }
@@ -308,27 +353,27 @@ document.addEventListener("pianoTourBaseReady", () => {
       const measures = Array.isArray(savedData) ? savedData : savedData.measures;
       
       if (processAndSyncDrumScore(measures)) {
-        drawAllDrums(getDrumMeasures());
+        renderDrums(getDrumMeasures());
         console.log("✅ Drum score loaded successfully");
       } else {
         localStorage.removeItem(AUTOSAVE_KEY);
         console.log("⚠️ Invalid drum score data, cleared");
-        drawAllDrums([]);
+        renderDrums([]);
       }
     } catch (e) {
       console.error("❌ Failed to load drum score:", e);
       localStorage.removeItem(AUTOSAVE_KEY);
-      drawAllDrums([]);
+      renderDrums([]);
     }
   }
 
-  // Override the resize handler to include drums
+  // ← UPDATED: Override the resize handler to use new renderer
   let drumResizeTimeout;
   window.addEventListener("resize", () => {
     clearTimeout(drumResizeTimeout);
     drumResizeTimeout = setTimeout(() => {
       console.log("📏 Handling resize for drums...");
-      drawAllDrums(getDrumMeasures());
+      renderDrums(getDrumMeasures());
     }, 150);
   });
 

@@ -344,7 +344,8 @@ class AudioSettingsController {
         // Reset button
         const resetButton = document.getElementById('resetButton');
         if (resetButton) {
-            resetButton.addEventListener('click', () => {
+                        resetButton.addEventListener('click', (e) => {
+                            e.preventDefault();
                 this.resetToDefaults();
             });
         }
@@ -352,14 +353,16 @@ class AudioSettingsController {
         // Preset buttons
         const concertHallButton = document.getElementById('concertHallButton');
         if (concertHallButton) {
-            concertHallButton.addEventListener('click', () => {
+                        concertHallButton.addEventListener('click', (e) => {
+                            e.preventDefault();
                 this.applyPreset('concertHall');
             });
         }
 
         const studioButton = document.getElementById('studioButton');
         if (studioButton) {
-            studioButton.addEventListener('click', () => {
+                        studioButton.addEventListener('click', (e) => {
+                            e.preventDefault();
                 this.applyPreset('studio');
             });
         }

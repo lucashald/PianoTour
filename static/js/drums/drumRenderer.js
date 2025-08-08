@@ -38,7 +38,7 @@ export function drawAll(measures) {
     vexflowStaveMap = []; // Will store single stave per measure
     vexflowIndexByNoteId = {}; // Clear the ID mapping for fresh render
 
-    const measureWidth = 340;
+    const measureWidth = 450;
     const measureCount = measures.length > 0 ? measures.length : 1;
 
     // Check if Vex.Flow is available globally

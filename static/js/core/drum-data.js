@@ -22,8 +22,8 @@ export const DRUM_INSTRUMENT_MAP = {
     filename: "BONGOLO.wav",
     
   },
-  "bass-kick": {
-    name: "Bass Kick",
+  "box-kick": {
+    name: "Box Kick",
     keys: ["F/4"],
     notehead: "n",
     stemDirection: -1,

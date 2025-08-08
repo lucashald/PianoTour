@@ -36,11 +36,11 @@
       </div>
       {% endfor %}
 
-      <div class="pattern-grid__instrument-label" data-instrument="bass-kick"><span>Box Kick</span></div>
+      <div class="pattern-grid__instrument-label" data-instrument="box-kick"><span>Kick</span></div>
       {% for step in range(1, 9) %}
-      <div class="pattern-grid__cell" data-instrument="bass-kick" data-step="{{ step }}">
-        <input type="checkbox" class="pattern-grid__checkbox" id="grid-bass-kick-{{ step }}" data-instrument="bass-kick" data-step="{{ step }}" aria-label="Box Kick step {{ step }}" />
-        <label for="grid-bass-kick-{{ step }}" class="pattern-grid__cell-label"></label>
+      <div class="pattern-grid__cell" data-instrument="box-kick" data-step="{{ step }}">
+        <input type="checkbox" class="pattern-grid__checkbox" id="grid-box-kick-{{ step }}" data-instrument="box-kick" data-step="{{ step }}" aria-label="Box Kick step {{ step }}" />
+        <label for="grid-box-kick-{{ step }}" class="pattern-grid__cell-label"></label>
       </div>
       {% endfor %}
 

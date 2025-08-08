@@ -57,6 +57,7 @@ function createChordButton(chord, guitarInstance) {
   if (!audioManager.isAudioReady()) {
     // Audio not ready - use handleInitialGuitar
     button.addEventListener('click', (e) => {
+      e.preventDefault();
       if (chord.frets && guitarInstance) {
         guitarInstance.setChord(chord.frets);
         const notes = guitarInstance.getCurrentNotes();
@@ -117,6 +118,7 @@ export function initializeGuitarControls(containerSelector, guitarInstance = win
     if (!audioManager.isAudioReady()) {
         // Audio not ready - use handleInitialGuitar
         strumDown.addEventListener('click', (e) => {
+          e.preventDefault();
             const notes = guitarInstance.getCurrentNotes() || ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
             handleInitialGuitar(e, {
                 type: 'strum',
@@ -126,6 +128,7 @@ export function initializeGuitarControls(containerSelector, guitarInstance = win
         });
         
         strumUp.addEventListener('click', (e) => {
+          e.preventDefault();
             const notes = guitarInstance.getCurrentNotes() || ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'];
             handleInitialGuitar(e, {
                 type: 'strum',

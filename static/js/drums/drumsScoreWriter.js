@@ -1,13 +1,12 @@
 // drumsScoreWriter.js
-// This module manages the drum score data, including writing, undo, and state synchronization.
+// This module manages the drum score data, including writing, undo, state synchronization, and tie support.
 
 // ===================================================================
 // Imports
 // ===================================================================
 import { drumsState } from "../core/appState.js";
 import { updateNowPlayingDisplay } from '../ui/uiHelpers.js';
-// import { saveToLocalStorage } from '../utils/ioHelpers.js';
-import { drawAll as drawAllDrums } from './drumRenderer.js';
+import { UniversalMusicRenderer } from '../classes/UniversalMusicRenderer.js';
 import { DRUM_INSTRUMENT_MAP } from '../core/drum-data.js';
 
 // ===================================================================
@@ -21,6 +20,12 @@ const BEAT_VALUES = {
     "8": 0.5, "8.": 0.75,   // Eighth, Dotted Eighth
     "16": 0.25, "16.": 0.375, // Sixteenth, Dotted Sixteenth
     "32": 0.125, "32.": 0.1875 // Thirty-second, Dotted Thirty-second
+};
+
+const BEATS_TO_DURATION = {
+    4: "w", 6: "w.", 2: "h", 3: "h.", 1: "q", 1.5: "q.",
+    0.5: "8", 0.75: "8.", 0.25: "16", 0.375: "16.",
+    0.125: "32", 0.1875: "32."
 };
 
 export const AUTOSAVE_KEY = 'autosavedDrumScore'; // Exported for external use
@@ -88,6 +93,15 @@ function durationToBeats(duration) {
 }
 
 /**
+ * Converts beat values back to duration strings
+ * @param {number} beats - Beat value to convert
+ * @returns {string|null} Duration string or null if no exact match
+ */
+function beatsToDuration(beats) {
+    return BEATS_TO_DURATION[beats] || null;
+}
+
+/**
  * Gets the maximum beats allowed per measure based on time signature.
  * @returns {number} Maximum beats per measure.
 */
@@ -146,6 +160,88 @@ function ensureMeasureExists(measureIndex) {
 }
 
 // ===================================================================
+// Duration and Tie Helper Functions
+// ===================================================================
+
+/**
+ * Splits a duration into two parts based on available space
+ * @param {string} originalDuration - Original duration to split
+ * @param {number} availableBeats - Available beats in current measure
+ * @returns {object|null} Object with {firstDuration, secondDuration} or null if can't split
+ */
+function splitDuration(originalDuration, availableBeats) {
+    const totalBeats = durationToBeats(originalDuration);
+    
+    if (totalBeats <= availableBeats) {
+        return null; // No split needed
+    }
+    
+    const remainingBeats = totalBeats - availableBeats;
+    
+    // Find valid durations for both parts
+    const firstDuration = beatsToDuration(availableBeats);
+    const secondDuration = beatsToDuration(remainingBeats);
+    
+    if (firstDuration && secondDuration) {
+        return { firstDuration, secondDuration };
+    }
+    
+    // If we can't find exact matches, try combinations
+    return findBestDurationSplit(availableBeats, remainingBeats);
+}
+
+/**
+ * Finds the best way to split beats into valid durations
+ * @param {number} firstBeats - Beats for first part
+ * @param {number} secondBeats - Beats for second part
+ * @returns {object|null} Split result or null
+ */
+function findBestDurationSplit(firstBeats, secondBeats) {
+    // List of valid beat values in descending order
+    const validBeats = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.375, 0.25, 0.1875, 0.125];
+    
+    // Try to find the largest duration that fits in the first part
+    for (const beats of validBeats) {
+        if (beats <= firstBeats) {
+            const firstDuration = beatsToDuration(beats);
+            if (firstDuration) {
+                // For the second part, try to find a matching duration
+                const secondDuration = beatsToDuration(secondBeats);
+                if (secondDuration) {
+                    return { firstDuration, secondDuration };
+                }
+                
+                // If second part doesn't have an exact match, use the largest possible
+                for (const secondBeat of validBeats) {
+                    if (secondBeat <= secondBeats) {
+                        const fallbackSecond = beatsToDuration(secondBeat);
+                        if (fallbackSecond) {
+                            return { firstDuration, secondDuration: fallbackSecond };
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    return null; // Can't split effectively
+}
+
+/**
+ * Creates tie information between two notes
+ * @param {string} startNoteId - ID of the first note
+ * @param {string} endNoteId - ID of the second note
+ * @returns {object} Tie object for the start note
+ */
+function createTieData(startNoteId, endNoteId) {
+    return {
+        type: 'tie',
+        startNoteId: startNoteId,
+        endNoteId: endNoteId
+    };
+}
+
+// ===================================================================
 // Core Data Operations
 // ===================================================================
 
@@ -188,7 +284,7 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
             noteData = restToInsert;
         }
         
-        // This is the key fix: check for a chord OR a single note in an array
+        // Check for a chord OR a single note in an array
         const isChord = noteData.drumInstruments && Array.isArray(noteData.drumInstruments) && noteData.drumInstruments.length > 1;
         const isSingleNoteInArray = noteData.drumInstruments && Array.isArray(noteData.drumInstruments) && noteData.drumInstruments.length === 1;
 
@@ -225,7 +321,7 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
                 duration: notesToInsert[0].duration,
             };
         } else {
-            // This block now handles both single-note objects AND single-note arrays
+            // Handle both single-note objects AND single-note arrays
             const instrument = noteData.drumInstrument || noteData.drumInstruments[0];
             const instrumentProps = DRUM_INSTRUMENT_MAP[instrument];
             if (!instrumentProps) {
@@ -267,17 +363,80 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
         const maxBeats = getMaxBeatsPerMeasure();
 
         if (totalBeatsAfterInsert > maxBeats) {
-            const newMeasureIndex = measuresData.length;
-            if (objectToInsert.isChord) {
-                objectToInsert.notes.forEach(n => n.measure = newMeasureIndex);
+            // Calculate available space in current measure
+            const currentMeasureBeats = calculateMeasureBeats(targetMeasure);
+            const availableBeats = maxBeats - currentMeasureBeats;
+            
+            console.log(`Note overflow detected. Available beats: ${availableBeats}, Note beats: ${noteBeatValue}`);
+            
+            // Try to split the duration
+            const splitResult = splitDuration(objectToInsert.duration, availableBeats);
+            
+            if (splitResult && availableBeats > 0) {
+                console.log(`Splitting note: ${objectToInsert.duration} -> ${splitResult.firstDuration} + ${splitResult.secondDuration}`);
+                
+                // Create the first part (fits in current measure)
+                const firstPartId = generateUniqueId();
+                const secondPartId = generateUniqueId();
+                
+                const firstPart = {
+                    ...objectToInsert,
+                    id: firstPartId,
+                    duration: splitResult.firstDuration,
+                    tie: createTieData(firstPartId, secondPartId)
+                };
+                
+                // Update chord notes if applicable
+                if (firstPart.isChord) {
+                    firstPart.notes = firstPart.notes.map(note => ({
+                        ...note,
+                        id: firstPartId,
+                        duration: splitResult.firstDuration
+                    }));
+                }
+                
+                // Create the second part (goes to next measure)
+                const secondPart = {
+                    ...objectToInsert,
+                    id: secondPartId,
+                    duration: splitResult.secondDuration,
+                    measure: measuresData.length // Next measure index
+                };
+                
+                // Update chord notes if applicable
+                if (secondPart.isChord) {
+                    secondPart.notes = secondPart.notes.map(note => ({
+                        ...note,
+                        id: secondPartId,
+                        duration: splitResult.secondDuration,
+                        measure: measuresData.length
+                    }));
+                }
+                
+                // Add first part to current measure
+                measuresData[actualTargetMeasureIndex].splice(insertIndex, 0, firstPart);
+                
+                // Create new measure with second part
+                measuresData.push([secondPart]);
+                currentIndex = measuresData.length - 1;
+                currentDrumBeats = durationToBeats(splitResult.secondDuration);
+                
+                console.log(`Note split successfully across measures ${actualTargetMeasureIndex} and ${currentIndex}`);
+                return true;
             } else {
-                objectToInsert.measure = newMeasureIndex;
+                // Fallback: create new measure with entire note (original behavior)
+                const newMeasureIndex = measuresData.length;
+                if (objectToInsert.isChord) {
+                    objectToInsert.notes.forEach(n => n.measure = newMeasureIndex);
+                } else {
+                    objectToInsert.measure = newMeasureIndex;
+                }
+                measuresData.push([objectToInsert]);
+                currentIndex = newMeasureIndex;
+                currentDrumBeats = noteBeatValue;
+                console.log(`New measure created at index ${newMeasureIndex} (could not split note)`);
+                return true;
             }
-            measuresData.push([objectToInsert]);
-            currentIndex = newMeasureIndex;
-            currentDrumBeats = noteBeatValue;
-            console.log(`New measure created at index ${newMeasureIndex}.`);
-            return true;
         } else {
             measuresData[actualTargetMeasureIndex].splice(insertIndex, 0, objectToInsert);
             if (actualTargetMeasureIndex === currentIndex) {
@@ -316,6 +475,12 @@ function doRemoveNote(measureIndex, noteId) {
         }
 
         const removedNote = measuresData[measureIndex].splice(noteIndex, 1)[0];
+
+        // Handle tied notes - if this note has a tie, we should consider removing the tied note too
+        if (removedNote.tie && removedNote.tie.endNoteId) {
+            console.log(`Removed note has a tie to ${removedNote.tie.endNoteId}. Consider removing tied note.`);
+            // For now, we'll leave the tied note - could be enhanced to ask user or auto-remove
+        }
 
         if (measuresData[measureIndex].length === 0) {
             if (measureIndex > 0) {
@@ -392,6 +557,7 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
                 isChord: true,
                 notes: notes,
                 duration: newNoteData.duration || existingNote.duration,
+                tie: existingNote.tie // Preserve existing ties
             };
         } else {
             const instrument = newNoteData.drumInstrument || (newNoteData.drumInstruments ? newNoteData.drumInstruments[0] : null);
@@ -402,7 +568,7 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
                     return false;
                 }
             } else {
-                instrumentProps = {}; // Ensure it's an object if no instrument is found
+                instrumentProps = {};
             }
 
             updatedNote = {
@@ -448,7 +614,15 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
  */
 function handleSideEffects() {
     try {
-        drawAllDrums(measuresData);
+        // Use UniversalMusicRenderer instead of old drumRenderer
+        const renderer = new UniversalMusicRenderer('drums-score', {
+            instrumentType: 'drums',
+            timeSignature: drumsState.timeSignature,
+            tempo: drumsState.tempo,
+            keySignature: drumsState.keySignature || 'C'
+        });
+        
+        renderer.render(measuresData);
         saveDrums();
     } catch (error) {
         console.error('handleSideEffects: Error handling side effects', error);
@@ -623,7 +797,7 @@ export function resetDrumScore() {
 
     localStorage.removeItem(AUTOSAVE_KEY);
     updateNowPlayingDisplay('');
-    drawAllDrums(measuresData);
+    handleSideEffects();
 
     console.log('resetDrumScore: Complete');
 }
@@ -699,9 +873,8 @@ export function saveDrums() {
     }
 }
 
-
 // ===================================================================
-// Event Listeners (These remain the same, as they dispatch, not directly call)
+// Event Listeners
 // ===================================================================
 
 document.addEventListener("addDrumNoteToScore", (event) => {
