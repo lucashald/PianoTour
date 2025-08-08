@@ -342,7 +342,9 @@ export function writeNote(obj) {
                 duration: splitResult.firstDuration, 
                 measure: currentIndex, 
                 isRest: false,
-                chordName: displayName  // Use the resolved display name
+                chordName: displayName,
+                performedDuration: pianoState.staccatoTime,
+                velocity: pianoState.velocity
             };
 
             measuresData[currentIndex] ??= []; 
@@ -370,7 +372,9 @@ export function writeNote(obj) {
                 duration: splitResult.secondDuration, 
                 measure: currentIndex, 
                 isRest: false,
-                chordName: displayName  // Use the resolved display name
+                chordName: displayName,
+                performedDuration: pianoState.staccatoTime,
+                velocity: pianoState.velocity
             };
 
             measuresData[currentIndex].push(secondNoteEntry);
@@ -415,7 +419,9 @@ export function writeNote(obj) {
         duration, 
         measure: currentIndex, 
         isRest,
-        chordName: displayName  // Use the resolved display name
+        chordName: displayName,
+        performedDuration: pianoState.staccatoTime,
+        velocity: pianoState.velocity
     };
 
     measuresData[currentIndex] ??= []; 
@@ -428,7 +434,7 @@ export function writeNote(obj) {
     }
 
     saveStateToHistory();
-    updateNowPlayingDisplay(displayName);  // Use the resolved display name
+    updateNowPlayingDisplay(displayName);
     handleSideEffects();
     console.log(`writeNote output: Note written. Beats status - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}`);
 }
@@ -436,14 +442,6 @@ export function writeNote(obj) {
 // Editor Functions
 // ===================================================================
 
-/**
-* Inserts a new note at a specified position within a measure.
-* This function handles ID generation, overflow checking, and creates new measures if needed.
-* @param {number} measureIndex - The index of the measure to modify.
-* @param {object} noteData - The note object to insert (without ID).
-* @param {string|null} [insertBeforeNoteId=null] - The ID of the note to insert before. If null, appends to end.
-* @returns {object|null} Object with {noteId, measureIndex, clef} of the added note, or null if not added due to overflow.
-*/
 export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = null) {
     console.log('addNoteToMeasure input: measureIndex=', measureIndex, 'noteData=', noteData, 'insertBeforeNoteId=', insertBeforeNoteId);
 
@@ -456,6 +454,14 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
     // Generate unique ID for the note if it doesn't have one
     if (!noteData.id) {
         noteData.id = generateUniqueId();
+    }
+
+    // Add default performedDuration and velocity if not present
+    if (noteData.performedDuration === undefined) {
+        noteData.performedDuration = pianoState.staccatoTime;
+    }
+    if (noteData.velocity === undefined) {
+        noteData.velocity = pianoState.velocity;
     }
 
     const targetMeasure = measuresData[measureIndex];
@@ -782,6 +788,11 @@ export function fillRests() {
  * @returns {object|null} {firstDuration, secondDuration} or null if can't split
  */
 function splitNoteForTie(duration, availableBeats) {
+    // Check if ties are enabled
+    if (!pianoState.enableTies) {
+        return null;
+    }
+    
     const totalBeats = BEAT_VALUES[duration];
     if (!totalBeats || availableBeats >= totalBeats) {
         return null; // No split needed
@@ -945,4 +956,190 @@ function doAddNote(measureIndex, noteData, insertBeforeNoteId = null) {
         currentTrebleBeats = updatedBeats.trebleBeats;
         currentBassBeats = updatedBeats.bassBeats;
     }
+}
+
+/**
+ * Creates a slur between two existing notes and updates intermediate notes to legato
+ * The last note in the slur keeps its normal articulation for phrase separation
+ * @param {string} startNoteId - ID of the first note
+ * @param {string} endNoteId - ID of the second note
+ * @param {string} type - Type of connection ('tie' or 'slur')
+ * @returns {boolean} True if slur was created successfully
+ */
+export function createSlur(startNoteId, endNoteId, type = 'slur') {
+    // Find the start and end notes
+    let startNote = null;
+    let endNote = null;
+    let startMeasureIndex = -1;
+    let endMeasureIndex = -1;
+    
+    measuresData.forEach((measure, measureIndex) => {
+        if (measure) {
+            measure.forEach(note => {
+                if (note.id === startNoteId) {
+                    startNote = note;
+                    startMeasureIndex = measureIndex;
+                }
+                if (note.id === endNoteId) {
+                    endNote = note;
+                    endMeasureIndex = measureIndex;
+                }
+            });
+        }
+    });
+    
+    if (!startNote || !endNote) {
+        console.warn(`createSlur: Could not find start note ${startNoteId} or end note ${endNoteId}`);
+        return false;
+    }
+    
+    if (startNote.clef !== endNote.clef) {
+        console.warn(`createSlur: Cannot create slur between different clefs`);
+        return false;
+    }
+    
+    // Find all notes between start and end in the same clef
+    const notesToSlur = [];
+    let foundStart = false;
+    
+    for (let measureIndex = startMeasureIndex; measureIndex <= endMeasureIndex; measureIndex++) {
+        const measure = measuresData[measureIndex];
+        if (measure) {
+            measure.forEach(note => {
+                if (note.clef === startNote.clef) {
+                    if (note.id === startNoteId) {
+                        foundStart = true;
+                    }
+                    
+                    if (foundStart) {
+                        notesToSlur.push(note);
+                    }
+                    
+                    if (note.id === endNoteId) {
+                        foundStart = false; // Stop collecting
+                    }
+                }
+            });
+        }
+    }
+    
+    // Create the slur connection between start and end notes
+    const success = createTieBetweenNotes(startNoteId, endNoteId, type);
+    
+    if (success) {
+        // Update notes in the slur to use legato timing EXCEPT the last note
+        notesToSlur.forEach((note, index) => {
+            if (index < notesToSlur.length - 1) {
+                // All notes except the last one get legato timing (smooth connection)
+                note.performedDuration = pianoState.legatoTime;
+            }
+            // Last note keeps its current performedDuration (usually staccato for phrase separation)
+        });
+        
+        saveStateToHistory();
+        drawAll(measuresData, true);
+        saveToLocalStorage();
+        console.log(`createSlur: Successfully created ${type} between ${startNoteId} and ${endNoteId}, updated ${notesToSlur.length - 1} notes to legato (excluding last note for phrase separation)`);
+    }
+    
+    return success;
+}
+
+/**
+ * Removes a slur and resets all involved notes back to staccato timing
+ * @param {string} noteId - ID of any note involved in the slur
+ * @returns {number} Number of notes updated
+ */
+export function removeSlur(noteId) {
+    let slurFound = false;
+    let startNoteId = null;
+    let endNoteId = null;
+    let clef = null;
+    
+    // Find the slur information
+    measuresData.forEach(measure => {
+        if (measure) {
+            measure.forEach(note => {
+                if (note.id === noteId && note.tie && note.tie.type === 'slur') {
+                    startNoteId = note.tie.startNoteId;
+                    endNoteId = note.tie.endNoteId;
+                    clef = note.clef;
+                    slurFound = true;
+                }
+            });
+        }
+    });
+    
+    if (!slurFound) {
+        console.warn(`removeSlur: No slur found for note ${noteId}`);
+        return 0;
+    }
+    
+    // Find all notes in the slur and reset them to staccato
+    const notesToUpdate = [];
+    let foundStart = false;
+    
+    measuresData.forEach(measure => {
+        if (measure) {
+            measure.forEach(note => {
+                if (note.clef === clef) {
+                    if (note.id === startNoteId) {
+                        foundStart = true;
+                    }
+                    
+                    if (foundStart) {
+                        notesToUpdate.push(note);
+                    }
+                    
+                    if (note.id === endNoteId) {
+                        foundStart = false;
+                    }
+                }
+            });
+        }
+    });
+    
+    // Reset all notes to staccato timing
+    notesToUpdate.forEach(note => {
+        note.performedDuration = pianoState.staccatoTime;
+    });
+    
+    // Remove the slur tie information
+    const tiesRemoved = removeTiesForNote(noteId);
+    
+    if (tiesRemoved > 0) {
+        saveStateToHistory();
+        drawAll(measuresData, true);
+        saveToLocalStorage();
+        console.log(`removeSlur: Removed slur and reset ${notesToUpdate.length} notes to staccato timing`);
+    }
+    
+    return notesToUpdate.length;
+}
+
+/**
+ * Updates the performedDuration of all notes in the score
+ * @param {number} newPerformedDuration - New performed duration (0.0 to 1.0)
+ * @returns {number} Number of notes updated
+ */
+export function updateAllNotesPerformedDuration(newPerformedDuration) {
+    let notesUpdated = 0;
+    
+    measuresData.forEach(measure => {
+        if (measure) {
+            measure.forEach(note => {
+                note.performedDuration = newPerformedDuration;
+                notesUpdated++;
+            });
+        }
+    });
+    
+    if (notesUpdated > 0) {
+        saveStateToHistory();
+        drawAll(measuresData, true);
+        saveToLocalStorage();
+        console.log(`updateAllNotesPerformedDuration: Updated ${notesUpdated} notes to performedDuration ${newPerformedDuration}`);
+    }
+    
+    return notesUpdated;
 }

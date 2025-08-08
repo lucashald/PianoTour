@@ -23,21 +23,6 @@ import { initMidiWhenReady } from "../instrument/midi-controller.js";
 // Constants
 // ===================================================================
 
-const DURATION_TO_TONE = {
-  w: "1n",
-  "w.": "1n.",
-  h: "2n",
-  "h.": "2n.",
-  q: "4n",
-  "q.": "4n.",
-  8: "8n",
-  "8.": "8n.",
-  16: "16n",
-  "16.": "16n.",
-  32: "32n",
-  "32.": "32n.",
-};
-
 const DURATION_TO_BEATS = {
   w: 4,
   "w.": 6,
@@ -63,50 +48,19 @@ let lastScrolledMeasureIndex = -1;
 let currentPlayingVexFlowNotes = new Set();
 
 // ===================================================================
-// Tie Analysis Functions
+// Tie Analysis Functions (simplified - only for audio sustain)
 // ===================================================================
 
 /**
- * Builds a map of tie relationships for all notes in the score
+ * Builds a simple map of tie relationships for audio sustain
  * @param {Array} measures - All measures in the score
  * @returns {Map} noteId -> tieInfo object
  */
 function buildTieMap(measures) {
   const tieMap = new Map();
-  const tieChains = new Map(); // startNoteId -> array of all connected notes
   
-  // First pass: collect all tie relationships
-  measures.forEach((measure, measureIndex) => {
-    measure.forEach(note => {
-if (note.tie && note.tie.type === 'tie' && note.tie.startNoteId && note.tie.endNoteId) {
-        const startId = note.tie.startNoteId;
-        const endId = note.tie.endNoteId;
-        
-        // Initialize tie info for both notes
-        if (!tieMap.has(startId)) {
-          tieMap.set(startId, { isStart: false, isEnd: false, connections: [] });
-        }
-        if (!tieMap.has(endId)) {
-          tieMap.set(endId, { isStart: false, isEnd: false, connections: [] });
-        }
-        
-        // Mark the start note
-        const startInfo = tieMap.get(startId);
-        startInfo.isStart = true;
-        startInfo.endNoteId = endId;
-        startInfo.connections.push(endId);
-        
-        // Mark the end note
-        const endInfo = tieMap.get(endId);
-        endInfo.isEnd = true;
-        endInfo.startNoteId = startId;
-        endInfo.connections.push(startId);
-      }
-    });
-  });
-  
-  // Second pass: build complete tie chains and calculate total durations
-  const noteDetails = new Map(); // noteId -> {note, measureIndex, timing}
+  // Build note details map first
+  const noteDetails = new Map();
   let currentTime = 0;
   
   measures.forEach((measure, measureIndex) => {
@@ -131,7 +85,32 @@ if (note.tie && note.tie.type === 'tie' && note.tie.startNoteId && note.tie.endN
       }
     });
     
-    currentTime += pianoState.timeSignature.numerator; // Add measure duration
+    currentTime += pianoState.timeSignature.numerator;
+  });
+  
+  // Collect tie relationships (only for audio sustain)
+  measures.forEach((measure, measureIndex) => {
+    measure.forEach(note => {
+      if (note.tie && note.tie.type === 'tie' && note.tie.startNoteId && note.tie.endNoteId) {
+        const startId = note.tie.startNoteId;
+        const endId = note.tie.endNoteId;
+        
+        if (!tieMap.has(startId)) {
+          tieMap.set(startId, { isStart: false, isEnd: false });
+        }
+        if (!tieMap.has(endId)) {
+          tieMap.set(endId, { isStart: false, isEnd: false });
+        }
+        
+        const startInfo = tieMap.get(startId);
+        startInfo.isStart = true;
+        startInfo.endNoteId = endId;
+        
+        const endInfo = tieMap.get(endId);
+        endInfo.isEnd = true;
+        endInfo.startNoteId = startId;
+      }
+    });
   });
   
   // Calculate total durations for tied note chains
@@ -140,7 +119,6 @@ if (note.tie && note.tie.type === 'tie' && note.tie.startNoteId && note.tie.endN
       const chain = [];
       let currentNoteId = noteId;
       
-      // Follow the tie chain
       while (currentNoteId && tieMap.has(currentNoteId)) {
         const currentTieInfo = tieMap.get(currentNoteId);
         const noteDetail = noteDetails.get(currentNoteId);
@@ -154,14 +132,12 @@ if (note.tie && note.tie.type === 'tie' && note.tie.startNoteId && note.tie.endN
         
         currentNoteId = currentTieInfo.endNoteId;
         if (!currentNoteId || chain.some(item => item.noteId === currentNoteId)) {
-          break; // Prevent infinite loops
+          break;
         }
       }
       
-      // Calculate total duration for the chain
       const totalDuration = chain.reduce((sum, item) => sum + item.duration, 0);
       
-      // Update all notes in the chain with total duration info
       chain.forEach(item => {
         const info = tieMap.get(item.noteId);
         if (info) {
@@ -181,8 +157,7 @@ if (note.tie && note.tie.type === 'tie' && note.tie.startNoteId && note.tie.endN
 // ===================================================================
 
 /**
- * Schedules individual note events (audio, piano key, score highlight) for playback.
- * Now handles tied notes properly.
+ * Schedules individual note events using performedDuration and velocity from note data
  */
 function scheduleNoteEvents(
   note,
@@ -204,29 +179,38 @@ function scheduleNoteEvents(
   const noteStartTime = currentTransportTime + clefOffset;
   const noteKey = `${measureIndex}-${note.clef}-${noteId}`;
 
-  // Determine if this note should trigger audio
-  const shouldTriggerAudio = !note.isRest && (!tieInfo || !tieInfo.isEnd || tieInfo.isChainStart);
-  
-  // Calculate the actual duration for audio (including tied notes)
-  const audioDurationInSeconds = tieInfo && tieInfo.totalDuration 
-    ? tieInfo.totalDuration * secondsPerBeat 
-    : noteDurationInSeconds;
-
   if (!note.isRest) {
     const notesToPlay = note.name
       .replace(/[()]/g, "")
       .split(" ")
       .filter(Boolean);
 
-    if (shouldTriggerAudio) {
-      // Schedule the "note on" event (audio + spectrum) - only for note that starts the tie chain
-      Tone.Transport.scheduleOnce((time) => {
-        // ✅ FIXED: Use envelope for score playback (4th parameter = true)
-        trigger(notesToPlay, true, 100, true);
+    // Get the performed duration from the note (defaults to 0.75 if not set)
+    const performedDuration = note.performedDuration || pianoState.staccatoTime || 0.75;
+    
+    // Get the velocity from the note (defaults to 100 if not set)
+    const velocity = note.velocity || pianoState.velocity || 100;
 
+    // For ties: only trigger audio on the first note, sustain for full tied duration
+    const shouldTriggerAudio = !tieInfo || !tieInfo.isEnd || tieInfo.isChainStart;
+    
+    if (shouldTriggerAudio) {
+      // Calculate audio duration based on performed duration
+      let audioDurationInSeconds;
+      
+      if (tieInfo && tieInfo.totalDuration) {
+        // For tied notes, sustain for the full tied duration
+        audioDurationInSeconds = tieInfo.totalDuration * secondsPerBeat;
+      } else {
+        // For regular notes, use performedDuration (can exceed 1.0 for sustain/pedal effects)
+        audioDurationInSeconds = noteDurationInSeconds * performedDuration;
+      }
+
+      // Schedule the "note on" event
+      Tone.Transport.scheduleOnce((time) => {
+        trigger(notesToPlay, true, velocity, true);
         startSpectrumIfReady();
 
-        // Track this note as an active playback note for spectrum management
         pianoState.activeDiatonicChords[noteKey] = {
           notes: notesToPlay,
           startTime: performance.now(),
@@ -246,16 +230,13 @@ function scheduleNoteEvents(
         });
       }, noteStartTime);
 
-      // Schedule the "note off" event using the total duration for tied notes
+      // Schedule the "note off" event
       const noteEndTime = noteStartTime + audioDurationInSeconds;
-
+      
       Tone.Transport.scheduleOnce((time) => {
-        // ✅ FIXED: Use envelope for score playback
-        trigger(notesToPlay, false, 100, true);
-
+        trigger(notesToPlay, false, velocity, true);
         delete pianoState.activeDiatonicChords[noteKey];
 
-        // Account for sampler release time before checking spectrum stop
         setTimeout(() => {
           const hasActiveNotes =
             Object.keys(pianoState.activeNotes).length > 0 ||
@@ -280,7 +261,7 @@ function scheduleNoteEvents(
       }, noteEndTime);
     }
 
-    // Always schedule score highlighting for each note (even tied ones)
+    // Always schedule score highlighting for each note
     Tone.Transport.scheduleOnce((time) => {
       Tone.Draw.schedule(() => {
         addPlaybackHighlight(
@@ -291,14 +272,14 @@ function scheduleNoteEvents(
         );
 
         const displayName = note.chordName || note.name;
-        // Show tied indicator in display
-        const tieIndicator = tieInfo && tieInfo.isEnd && !tieInfo.isChainStart ? " (tied)" : "";
-        updateNowPlayingDisplay(displayName + tieIndicator);
+        // Show tied indicator if applicable
+        const indicator = (tieInfo && tieInfo.isEnd && !tieInfo.isChainStart) ? " (tied)" : "";
+        updateNowPlayingDisplay(displayName + indicator);
         currentPlayingVexFlowNotes.add(noteKey);
       }, time);
     }, noteStartTime);
 
-    // Schedule individual note un-highlighting (based on visual duration, not audio duration)
+    // Schedule visual un-highlighting (based on written duration, not performed duration)
     const visualEndTime = noteStartTime + noteDurationInSeconds;
     Tone.Transport.scheduleOnce((time) => {
       Tone.Draw.schedule(() => {
@@ -348,8 +329,7 @@ function scheduleNoteEvents(
 }
 
 /**
- * Schedules the entire score for playback using Tone.js and provides visual feedback.
- * Now properly handles tied notes.
+ * Schedules the entire score for playback using note.performedDuration and note.velocity
  */
 export function playScore(measures, bpm = pianoState.tempo) {
   if (!audioManager.isAudioReady()) {
@@ -380,7 +360,7 @@ export function playScore(measures, bpm = pianoState.tempo) {
   clearAllHighlights();
   startSpectrumIfReady();
 
-  // Build tie map for the entire score
+  // Build tie map (only for audio sustain, not articulation)
   const tieMap = buildTieMap(measures);
   console.log("Tie map built:", tieMap);
 
@@ -455,7 +435,7 @@ export function playScore(measures, bpm = pianoState.tempo) {
     }, maxEndTime + 0.1);
   }
 
-  console.log("Score playback has been scheduled with tie support. Call Tone.Transport.start() to play.");
+  console.log("Score playback scheduled using note performedDuration and velocity properties.");
 }
 
 /**
@@ -471,7 +451,6 @@ export function stopPlayback() {
     if (pianoState.sampler.releaseAll) {
       pianoState.sampler.releaseAll();
     } else {
-      // ✅ FIXED: Call sampler.triggerRelease, not envelope.triggerRelease
       for (let midi = 21; midi <= 108; midi++) {
         try {
           pianoState.sampler.triggerRelease(
@@ -484,7 +463,7 @@ export function stopPlayback() {
     }
   }
 
-  // ✅ FIXED: Also release envelope if it exists
+  // Also release envelope if it exists
   if (pianoState.envelope) {
     pianoState.envelope.triggerRelease();
   }

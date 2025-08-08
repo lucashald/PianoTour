@@ -66,7 +66,6 @@ let BASS_STAFF_TOP_Y = null;
 let BASS_STAFF_BOTTOM_Y = null;
 
 let vexflowBeams = []; // Store beams for each measure
-let enableBeaming = true; // Control beaming on/off
 
 // --- Tie State ---
 let tieGroups = []; // Store tie information for drawing
@@ -304,9 +303,8 @@ export function setKeySignature(keySignature) {
   return true;
 }
 
-export function drawAll(measures, noScroll = false, beaming = true) {
+export function drawAll(measures, noScroll = false) {
   console.log("drawAll: START");
-  enableBeaming = beaming; // Store the beaming preference
   
   const out = document.getElementById("score");
   if (!out) {
@@ -380,7 +378,7 @@ export function drawAll(measures, noScroll = false, beaming = true) {
       vexflowNoteMap[i].bass = bassVexNotes;
 
       // NEW: Create beams for this measure if beaming is enabled
-      if (enableBeaming) {
+      if (pianoState.enableBeaming) {
         vexflowBeams[i] = {};
         if (trebleNotesData.length > 0) {
           vexflowBeams[i].treble = createBeamsForNotes(trebleVexNotes, trebleNotesData);
@@ -463,7 +461,7 @@ export function drawAll(measures, noScroll = false, beaming = true) {
     console.log("drawAll: VexFlow drawing complete.");
 
     // NEW: Draw beams after the main score is drawn
-    if (enableBeaming) {
+    if (pianoState.enableBeaming) {
       drawAllBeams();
       console.log("drawAll: Beam drawing complete.");
     }
@@ -523,15 +521,7 @@ export function safeRedraw(beaming = false) {
   const scoreData = getMeasures();
   drawAll(scoreData, false, beaming);
 }
-/**
- * Sets the beaming preference and redraws the score
- * @param {boolean} enabled - Whether to enable automatic beaming
- */
-export function setBeaming(enabled) {
-  enableBeaming = enabled;
-  safeRedraw(enabled);
-  console.log(`Beaming ${enabled ? 'enabled' : 'disabled'}`);
-}
+
 export function enableScoreInteraction(onMeasureClick, onNoteClick) {
   console.log("enableScoreInteraction: Attaching unified event listeners.");
   const scoreElement = document.getElementById("score");
@@ -1461,7 +1451,7 @@ function createBeamsForNotes(vexNotes, notesData) {
  * Draws all stored beams for all measures
  */
 function drawAllBeams() {
-  if (!enableBeaming) return;
+  if (!pianoState.enableBeaming) return;
   
   vexflowBeams.forEach((measureBeams, index) => {
     if (measureBeams && vfContext) {
