@@ -150,23 +150,20 @@ autoScrollToEnd() {
         return beamableDurations.includes(duration);
     }
 
-    createBeamsForNotes(vexNotes, notesData) {
-        // Filter to only beamable notes (no rests)
-        const beamableNotes = vexNotes.filter(note => this.isBeamableNote(note));
-        
-        if (beamableNotes.length < 2) {
-            return []; // Need at least 2 notes to beam
-        }
-
-        // Use VexFlow's generateBeams with maintain_stem_directions
-        const beams = Vex.Flow.Beam.generateBeams(beamableNotes, {
-            beam_rests: false,                    // Don't beam over rests
-            maintain_stem_directions: true,       // ← This preserves individual stem directions!
-            groups: []                           // Let VexFlow auto-group by beat
-        });
-
-        return beams;
+createBeamsForNotes(vexNotes, notesData) {
+    if (vexNotes.length < 2) {
+        return []; // Need at least 2 notes to potentially beam
     }
+
+    // DON'T filter here - let VexFlow see the full context
+    const beams = Vex.Flow.Beam.generateBeams(vexNotes, {
+        beam_rests: false,                    // Don't beam over rests
+        maintain_stem_directions: true,       // Preserve individual stem directions
+        groups: []                           // Let VexFlow auto-group by beat
+    });
+
+    return beams;
+}
     
     render(measuresData, options = {}) {
         console.log(`UniversalMusicRenderer: Rendering ${this.instrumentType} notation`);

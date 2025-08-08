@@ -66,7 +66,7 @@ let BASS_STAFF_TOP_Y = null;
 let BASS_STAFF_BOTTOM_Y = null;
 
 let vexflowBeams = []; // Store beams for each measure
-let enableBeaming = false; // Control beaming on/off
+let enableBeaming = true; // Control beaming on/off
 
 // --- Tie State ---
 let tieGroups = []; // Store tie information for drawing
@@ -304,7 +304,7 @@ export function setKeySignature(keySignature) {
   return true;
 }
 
-export function drawAll(measures, noScroll = false, beaming = false) {
+export function drawAll(measures, noScroll = false, beaming = true) {
   console.log("drawAll: START");
   enableBeaming = beaming; // Store the beaming preference
   
@@ -1442,42 +1442,19 @@ export function scrollToMeasure(measureIndex, smoothScroll = true) {
 
 // end scrolltomeasure function
 
-// Beam functions
-/**
- * Checks if a VexFlow note can be beamed (8th, 16th, 32nd, 64th, 128th notes, and not rests)
- * @param {Vex.Flow.StaveNote} vexNote - The VexFlow note to check
- * @returns {boolean} True if the note can be beamed
- */
-function isBeamableNote(vexNote) {
-  if (!vexNote || vexNote.isRest()) return false;
-
-  const duration = vexNote.getDuration();
-  const beamableDurations = ['8', '16', '32', '64', '128'];
-  return beamableDurations.includes(duration);
-}
-
-/**
- * Creates beam objects for beamable notes in a measure
- * @param {Array} vexNotes - Array of VexFlow notes
- * @param {Array} notesData - Array of note data from the model
- * @returns {Array} Array of VexFlow beam objects
- */
 function createBeamsForNotes(vexNotes, notesData) {
-  // Filter to only beamable notes (no rests)
-  const beamableNotes = vexNotes.filter(note => isBeamableNote(note));
-  
-  if (beamableNotes.length < 2) {
-    return []; // Need at least 2 notes to beam
-  }
+    if (vexNotes.length < 2) {
+        return []; // Need at least 2 notes to potentially beam
+    }
 
-  // Use VexFlow's generateBeams with maintain_stem_directions
-  const beams = Vex.Flow.Beam.generateBeams(beamableNotes, {
-    beam_rests: false,                    // Don't beam over rests
-    maintain_stem_directions: true,       // Preserve individual stem directions
-    groups: []                           // Let VexFlow auto-group by beat
-  });
+    // DON'T filter here - let VexFlow see the full context
+    const beams = Vex.Flow.Beam.generateBeams(vexNotes, {
+        beam_rests: false,                    // Don't beam over rests
+        maintain_stem_directions: true,       // Preserve individual stem directions
+        groups: []                           // Let VexFlow auto-group by beat
+    });
 
-  return beams;
+    return beams;
 }
 
 /**
