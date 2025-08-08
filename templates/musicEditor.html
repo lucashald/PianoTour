@@ -1,0 +1,404 @@
+{% extends "musicIndex.html" %}
+
+{% block title %}Piano Tour - Editor{% endblock %}
+{% block head %}
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/editor.css') }}"
+    />
+{% endblock %}
+{% block side %}
+<!-- Editor Panel Content -->
+<div id="editorContainer">
+  
+<!-- Time Signature & Measure Controls -->
+<section class="editor-widget">
+  <h3 class="editor-widget__title">Score Controls</h3>
+  <div class="editor-widget__content">
+    
+    <!-- Time Signature Row -->
+    <div class="control-row">
+      <label class="control-label">Time Signature</label>
+      <div class="time-signature-controls">
+          <select id="time-signature-numerator" class="time-signature-select">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select>
+        <span class="time-signature-separator">/</span>
+        <select id="time-signature-denominator" class="time-signature-select">
+          <option value="2">2</option>
+          <option value="4" selected>4</option>
+          <option value="8">8</option>
+          <option value="16">16</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tempo Row -->
+    <div class="control-row">
+      <label class="control-label">Tempo (BPM)</label>
+      <div class="tempo-controls">
+        <select id="tempo-input" class="tempo-input">
+          <option value="60">60</option>
+          <option value="70">70</option>
+          <option value="80">80</option>
+          <option value="90">90</option>
+          <option value="100">100</option>
+          <option value="110">110</option>
+          <option value="120" selected>120</option>
+          <option value="130">130</option>
+          <option value="140">140</option>
+          <option value="150">150</option>
+          <option value="160">160</option>
+          <option value="170">170</option>
+          <option value="180">180</option>
+          <option value="190">190</option>
+          <option value="200">200</option>
+          <option value="220">220</option>
+          <option value="240">240</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Measure Navigation Row -->
+    <div class="control-row">
+      <label class="control-label">Measure</label>
+      <div class="measure-controls">
+        <button id="editorPrevBtn" class="btn btn--compact" title="Previous measure">◀</button>
+        <input type="number" id="editorNumberInput" value="1" min="1" class="measure-input">
+        <button id="editorNextBtn" class="btn btn--compact" title="Next measure">▶</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+  <!-- Treble Clef Notes Widget -->
+  <section class="editor-widget">
+    <h3 class="editor-widget__title">Treble Clef Notes</h3>
+    <div class="editor-widget__content editor-widget__content--note-list" id="editorTrebleNotesContainer">
+      <!-- Treble clef notes will be populated by JavaScript -->
+    </div>
+  </section>
+
+  <!-- Bass Clef Notes Widget -->
+  <section class="editor-widget">
+    <h3 class="editor-widget__title">Bass Clef Notes</h3>
+    <div class="editor-widget__content editor-widget__content--note-list" id="editorBassNotesContainer">
+      <!-- Bass clef notes will be populated by JavaScript -->
+    </div>
+  </section>
+
+  <!-- Docking area for the floating editor panel -->
+  <section class="editor-widget hidden" id="dockedEditingContainer">
+    <h3 class="editor-widget__title">Edit Note</h3>
+  </section>
+
+  <!-- Note Editor -->
+  <div class="note-editor hidden" id="editorExpandedEditor">
+    <div class="note-editor__header">
+      Editing: <span id="editorSelectedNoteDisplay"></span>
+    </div>
+
+    <!-- Controls for a single note's properties -->
+    <div class="note-editor__controls" id="singleNoteControls">
+      <div class="control-group">
+        <label for="editorNoteLetter">Letter:</label>
+        <select id="editorNoteLetter" class="dropdown-select">
+          <option value="C">C</option><option value="D">D</option><option value="E">E</option>
+          <option value="F">F</option><option value="G">G</option><option value="A">A</option>
+          <option value="B">B</option><option value="R">R (Rest)</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="editorAccidentalDropdown">Accidental:</label>
+        <select id="editorAccidentalDropdown" class="dropdown-select">
+          <option value="">None</option><option value="#">#</option><option value="b">b</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="editorOctaveDropdown">Octave:</label>
+        <select id="editorOctaveDropdown" class="dropdown-select">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+          <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Controls for editing the notes within a chord -->
+    <div class="note-editor__controls hidden" id="chordNotesEditor">
+      <h4>Chord Notes:</h4>
+      <div id="chordNotesContainer">
+        <!-- Chord note inputs will be dynamically populated here -->
+      </div>
+      <button id="addNoteToChordBtn" class="btn btn--compact btn--primary">Add Note to Chord</button>
+    </div>
+
+    <!-- Common controls for duration and actions -->
+    <div class="control-group">
+      <label for="editorDurationDropdown">Duration:</label>
+      <select id="editorDurationDropdown" class="dropdown-select">
+        <!-- Duration options will be populated by JavaScript -->
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Actions:</label>
+      <div class="button-group">
+        <button id="editorRemoveNote" class="btn btn--compact btn--danger">Remove</button>
+        <button id="editorToggleClef" class="btn btn--compact">Treble</button>
+        <button id="editorToggleRest" class="btn btn--compact">Toggle Rest</button>
+      </div>
+    </div>
+    <div class="control-group">
+        <label>Move Note:</label>
+        <div class="button-group">
+            <button id="editorMoveToPrevMeasure" class="btn btn--compact btn--info">← Previous Measure</button>
+            <button id="editorMoveToNextMeasure" class="btn btn--compact btn--info">Next Measure →</button>
+        </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Floating Editing Panel -->
+<div class="floating-panel hidden" id="editingPanel">
+  <div class="floating-panel__header">
+    <span class="floating-panel__title">Edit Note</span>
+    <div class="floating-panel__actions">
+      <button class="panel-dock btn btn--compact" aria-label="Dock to sidebar">◀</button>
+      <button class="panel-close btn btn--compact" aria-label="Close panel">✕</button>
+    </div>
+  </div>
+  <div class="floating-panel__content">
+    <!-- All the same control groups from the docked editor would go here -->
+  </div>
+</div>
+{% endblock %}
+
+{% block palette %}
+    {% include 'partials/_palette.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+    // Simple, recursion-safe initialization
+    let editorInitialized = false;
+    let musicEditorInstance = null;
+    
+    // Simple polling-based wait instead of recursive event listeners
+    function waitForBase() {
+        return new Promise((resolve) => {
+            const checkBase = () => {
+                if (window.pianoTourInitState && window.pianoTourInitState.baseInitialized) {
+                    resolve();
+                } else {
+                    setTimeout(checkBase, 100);
+                }
+            };
+            checkBase();
+        });
+    }
+    
+    function waitForHeavy() {
+        return new Promise((resolve) => {
+            const checkHeavy = () => {
+                if (window.pianoTourInitState && window.pianoTourInitState.heavyInitialized) {
+                    resolve();
+                } else {
+                    setTimeout(checkHeavy, 100);
+                }
+            };
+            checkHeavy();
+        });
+    }
+    
+    async function initializeEditor() {
+        if (editorInitialized) {
+            console.log('Editor already initialized');
+            return;
+        }
+        
+        try {
+            console.log('Waiting for base initialization...');
+            await waitForBase();
+            
+            console.log('Waiting for heavy initialization...');
+            await waitForHeavy();
+            
+            console.log('Initializing music editor...');
+            
+            // Import the music editor module
+            const { initializeMusicEditor, getMusicEditor } = await import(
+                '{{ url_for("static", filename="js/editor/musicEditor.js") }}'
+            );
+            
+            // Initialize
+            initializeMusicEditor();
+            
+            // Wait for editor to be ready
+            let attempts = 0;
+            while (attempts < 50) { // 5 second timeout
+                musicEditorInstance = getMusicEditor();
+                if (musicEditorInstance) {
+                    break;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (!musicEditorInstance) {
+                throw new Error('Editor failed to initialize within timeout');
+            }
+            
+            console.log('Setting up editor features...');
+            setupEditorFeatures();
+            
+            editorInitialized = true;
+            console.log('Editor initialization complete!');
+            
+        } catch (error) {
+            console.error('Editor initialization failed:', error);
+            showError(error);
+        }
+    }
+    
+    function setupEditorFeatures() {
+        try {
+            setupPaletteDrag();
+            setupFloatingPanel();
+            setupKeyboardShortcuts();
+        } catch (error) {
+            console.warn('Some editor features failed to setup:', error);
+        }
+    }
+    
+    function setupPaletteDrag() {
+        if (!musicEditorInstance) return;
+        
+        const paletteNotes = document.querySelectorAll('.palette-note');
+        
+        paletteNotes.forEach(note => {
+            note.addEventListener('dragstart', (event) => {
+                const type = event.target.dataset.type;
+                const duration = event.currentTarget.dataset.duration || 'q';
+                musicEditorInstance.setPaletteDragState(true, type, duration);
+                event.dataTransfer.setData('text/plain', type);
+            });
+            
+            note.addEventListener('dragend', () => {
+                musicEditorInstance.setPaletteDragState(false, null, null);
+            });
+        });
+
+        // Handle palette drop
+        document.addEventListener('paletteDropped', async (event) => {
+            try {
+                const { measureIndex, clef, note, duration, type } = event.detail;
+                
+                const { addNoteToMeasure } = await import(
+                    '{{ url_for("static", filename="js/score/musicWriter.js") }}'
+                );
+                
+                const newNote = {
+                    name: type === 'rest' ? 'R' : note,
+                    clef: clef,
+                    duration: duration,
+                    isRest: type === 'rest',
+                    id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                };
+                
+                addNoteToMeasure(measureIndex, newNote, null, (measures) => {
+                    if (musicEditorInstance) {
+                        musicEditorInstance.render(measures);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Palette drop error:', error);
+            }
+        });
+    }
+    
+    function setupFloatingPanel() {
+        const editingPanel = document.getElementById('editingPanel');
+        if (!editingPanel) return;
+        
+        const closeBtn = editingPanel.querySelector('.panel-close');
+        const dockBtn = editingPanel.querySelector('.panel-dock');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', hideNoteEditor);
+        }
+        
+        if (dockBtn) {
+            dockBtn.addEventListener('click', toggleDockPanel);
+        }
+        
+        // Click outside to close
+        document.addEventListener('click', (e) => {
+            if (!editingPanel.contains(e.target) && 
+                !e.target.closest('#editorContainer') &&
+                !editingPanel.classList.contains('hidden')) {
+                hideNoteEditor();
+            }
+        });
+    }
+    
+    function setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (event) => {
+            if (event.target.matches('input, select, textarea')) return;
+            
+            if (event.key === 'Escape') {
+                hideNoteEditor();
+                event.preventDefault();
+            }
+        });
+    }
+    
+    function hideNoteEditor() {
+        const editingPanel = document.getElementById('editingPanel');
+        if (editingPanel) {
+            editingPanel.classList.add('hidden');
+            editingPanel.classList.remove('visible');
+        }
+    }
+    
+    function toggleDockPanel() {
+        const editingPanel = document.getElementById('editingPanel');
+        const dockedContainer = document.getElementById('dockedEditingContainer');
+        
+        if (!editingPanel || !dockedContainer) return;
+        
+        if (editingPanel.classList.contains('docked')) {
+            editingPanel.classList.remove('docked');
+            dockedContainer.classList.add('hidden');
+            document.body.appendChild(editingPanel);
+        } else {
+            editingPanel.classList.add('docked');
+            dockedContainer.classList.remove('hidden');
+            dockedContainer.appendChild(editingPanel);
+        }
+    }
+    
+    function showError(error) {
+        const container = document.getElementById('editorContainer');
+        if (container) {
+            container.innerHTML = `
+                <div style="color: red; padding: 20px; text-align: center;">
+                    <h3>Editor Failed to Load</h3>
+                    <p>Error: ${error.message}</p>
+                    <button onclick="location.reload()">Reload Page</button>
+                </div>
+            `;
+        }
+    }
+    
+    // Simple initialization - no recursion
+    setTimeout(initializeEditor, 1000);
+</script>
+{% endblock %}
