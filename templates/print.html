@@ -179,10 +179,6 @@
                 let titleParts = [];
                 if (pianoLoaded) titleParts.push('Piano');
                 if (drumLoaded) titleParts.push('Drums');
-                if (titleParts.length > 0) {
-                    document.title = `Piano Tour - Print ${titleParts.join(' & ')} Score`;
-                    document.querySelector('.page-header h1').innerHTML = `🎵 ${titleParts.join(' & ')} Score`;
-                }
             }
         });
     </script>

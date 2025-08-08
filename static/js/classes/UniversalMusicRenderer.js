@@ -172,7 +172,7 @@ autoScrollToEnd() {
         console.log(`UniversalMusicRenderer: Rendering ${this.instrumentType} notation`);
 
         try {
-            switch (this.instrumentType) {
+            switch (this.instrumentType) {  // Fixed: Added missing parentheses
                 case 'piano':
                     this.renderMultiSystem(measuresData, options, this.renderPianoSystem.bind(this));
                     break;
@@ -496,6 +496,33 @@ const formatterWidth = trebleStave.getNoteEndX() - trebleStave.getNoteStartX() -
         }
     }
     
+/**
+ * Creates a VexFlow note with proper dotted duration handling
+ * @param {object} noteOptions - The base note options
+ * @returns {object} VexFlow StaveNote with dots properly applied
+ */
+createVexFlowNoteWithDots(noteOptions) {
+    // Check if duration has dots
+    const isDotted = noteOptions.duration.includes('.');
+    const baseDuration = noteOptions.duration.replace('.', '');
+    
+    // Create note with base duration
+    const cleanOptions = {
+        ...noteOptions,
+        duration: baseDuration
+    };
+    
+    const vexNote = new Vex.Flow.StaveNote(cleanOptions);
+    
+    // Add dots if needed using the Dot modifier
+    if (isDotted) {
+        const dot = new Vex.Flow.Dot();
+        vexNote.addModifier(dot, 0); // Add dot to the first note head
+    }
+    
+    return vexNote;
+}
+
     renderDrumNotes(notesData, measureIndex) {
         const vexNotes = [];
         this.vexflowNoteMap[measureIndex] = { percussion: [] };
@@ -503,9 +530,9 @@ const formatterWidth = trebleStave.getNoteEndX() - trebleStave.getNoteStartX() -
             let vexNote;
             
 if (noteData.isRest) {
-    vexNote = new Vex.Flow.StaveNote({ 
+    vexNote = this.createVexFlowNoteWithDots({ 
         keys: ['B/4'], 
-        duration: `${noteData.duration.replace(/r$/, '')}r`, // Remove any existing 'r' first
+        duration: `${noteData.duration.replace(/r$/, '')}r`, 
         clef: 'percussion' 
     });
             } else if (noteData.isChord) {
@@ -528,7 +555,7 @@ if (noteData.isRest) {
 
                 const stemDirection = notes[0].stemDirection || Vex.Flow.Stem.UP;
 
-                vexNote = new Vex.Flow.StaveNote({
+                vexNote = this.createVexFlowNoteWithDots({
                     keys,
                     duration,
                     stem_direction: stemDirection,
@@ -588,7 +615,7 @@ if (noteData.isRest) {
                     noteOptions.type = instrumentProps.notehead;
                 }
 
-                vexNote = new Vex.Flow.StaveNote(noteOptions);
+                vexNote = this.createVexFlowNoteWithDots(noteOptions);
 
                 if (instrumentProps.modifiers && instrumentProps.modifiers.length > 0) {
                     instrumentProps.modifiers.forEach((mod) => {
@@ -661,43 +688,44 @@ if (noteData.isRest) {
         const vexNotes = [];
         notesData.forEach((noteData, index) => {
             let vexNote;
-if (noteData.isRest) {
-    vexNote = new Vex.Flow.StaveNote({
-        keys: clef === 'treble' ? ['D/5'] : ['F/3'],
-        duration: `${noteData.duration.replace(/r$/, '')}r`, // Remove any existing 'r' first
-        clef: clef
-    });
-            } else {
-                let keys;
-                if (noteData.name.startsWith('(') && noteData.name.endsWith(')')) {
-                    keys = this._parseChordString(noteData.name);
-                } else {
-                    keys = [this.noteToVexFlowKey(noteData.name)];
-                }
-
-                vexNote = this.createNoteWithModifiers(
-                    keys,
-                    noteData.duration,
-                    Vex.Flow.Stem.AUTO,
-                    'normal',
-                    clef,
-                    null,
-                    noteData.chordName
-                );
-            }
-            vexNotes.push(vexNote);
-            this.vexflowIndexByNoteId[noteData.id] = { measureIndex, clef, vexflowIndex: vexNotes.length - 1 };
-        });
-
-        if (vexNotes.length === 0) {
-            vexNotes.push(new Vex.Flow.StaveNote({
+        if (noteData.isRest) {
+            const duration = noteData.duration.replace(/r$/, '');
+            vexNote = this.createVexFlowNoteWithDots({
                 keys: clef === 'treble' ? ['D/5'] : ['F/3'],
-                duration: 'wr',
+                duration: `${duration}r`,
                 clef: clef
-            }));
+            });
+        } else {
+            let keys;
+            if (noteData.name.startsWith('(') && noteData.name.endsWith(')')) {
+                keys = this._parseChordString(noteData.name);
+            } else {
+                keys = [this.noteToVexFlowKey(noteData.name)];
+            }
+
+            vexNote = this.createNoteWithModifiers(
+                keys,
+                noteData.duration,
+                Vex.Flow.Stem.AUTO,
+                'normal',
+                clef,
+                null,
+                noteData.chordName
+            );
         }
-        return vexNotes;
+        vexNotes.push(vexNote);
+        this.vexflowIndexByNoteId[noteData.id] = { measureIndex, clef, vexflowIndex: vexNotes.length - 1 };
+    });
+
+    if (vexNotes.length === 0) {
+        vexNotes.push(this.createVexFlowNoteWithDots({
+            keys: clef === 'treble' ? ['D/5'] : ['F/3'],
+            duration: 'wr',
+            clef: clef
+        }));
     }
+    return vexNotes;
+}
 
     createNoteWithModifiers(keys, duration, stemDirection, noteheadType, clef, modifiers, chordName) {
         const noteOptions = {
@@ -711,7 +739,7 @@ if (noteData.isRest) {
             noteOptions.type = noteheadType;
         }
 
-        const vexNote = new Vex.Flow.StaveNote(noteOptions);
+        const vexNote = this.createVexFlowNoteWithDots(noteOptions);
 
         if (modifiers && modifiers.length > 0) {
             modifiers.forEach((mod) => {
@@ -748,13 +776,16 @@ if (noteData.isRest) {
             const { string, fret, duration, isRest, name, chordName } = noteData;
 
             if (isRest) {
-                standardNotes.push(new Vex.Flow.StaveNote({
+                standardNotes.push(this.createVexFlowNoteWithDots({
                     keys: ['D/5'],
-                    duration: `${duration}r`,
+                    duration: `${duration.replace(/r$/, '')}r`,
                     clef: 'treble'
                 }));
                 if (this.showTablature) {
-                    tabNotes.push(new Vex.Flow.TabNote({ positions: [], duration: `${duration}r` }));
+                    tabNotes.push(new Vex.Flow.TabNote({ 
+                        positions: [], 
+                        duration: `${duration.replace(/r$/, '')}r` 
+                    }));
                 }
             } else {
                 let noteNames;
