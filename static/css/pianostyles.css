@@ -979,15 +979,6 @@ h4 {
     -webkit-touch-callout: none;
 }
 
-/* But allow normal touch behavior on the gate */
-#gate {
-    -webkit-user-select: auto !important;
-    -moz-user-select: auto !important;
-    user-select: auto !important;
-    -webkit-touch-callout: default !important;
-    touch-action: auto !important;
-}
-
  .volume-control {
     width: 100%;
     max-width: var(--max-width-main);

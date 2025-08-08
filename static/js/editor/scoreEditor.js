@@ -742,20 +742,6 @@ export function initializeMusicEditor() {
             }
             renderNoteEditBox(false);
         }
-        if (target.id === 'editorMoveToPrevMeasure') {
-            if (editorSelectedNoteId !== null && editorSelectedMeasureIndex > 0) {
-                moveNoteBetweenMeasures(editorSelectedMeasureIndex, editorSelectedNoteId, editorSelectedMeasureIndex - 1);
-                editorSelectedNoteId = null;
-                renderNoteEditBox(false);
-            }
-        }
-        if (target.id === 'editorMoveToNextMeasure') {
-            if (editorSelectedNoteId !== null) {
-                moveNoteBetweenMeasures(editorSelectedMeasureIndex, editorSelectedNoteId, editorSelectedMeasureIndex + 1);
-                editorSelectedNoteId = null;
-                renderNoteEditBox(false);
-            }
-        }
 
         // NEW: Tie and Slur handlers
         if (target.id === 'editorAddTie') {
