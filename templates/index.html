@@ -366,15 +366,12 @@
 
         setKeySignature(keySignature);
         pianoState.isMinorChordMode = isMinorChordMode;
-
-        console.log(
-          `Applied metadata: ${keySignature}, Minor: ${isMinorChordMode}`
-        );
-
-        if (title) {
-          console.log(`Score title: ${title}`);
-        }
+        updateUI("Score loaded", {
+          updateKeySignature: true,
+          updateMinorMode: true,
+        });
       }
+
 
       function updateLoadingMessage(message) {
         const scoreElement = document.getElementById("score");
