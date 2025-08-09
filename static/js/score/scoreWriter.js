@@ -657,15 +657,13 @@ export function processAndSyncScore(loadedData) {
 
     try {
         measuresData = JSON.parse(JSON.stringify(loadedData));
-        
-        // FIXED: Start at the FIRST measure, not the last
-        currentIndex = 0;
+        currentIndex = measuresData.length > 0 ? measuresData.length - 1 : 0;
 
-        // FIXED: Recalculate current beats based on the FIRST measure of loaded data
-        if (measuresData[0] && measuresData[0].length > 0) {
-            const firstMeasureBeats = calculateMeasureBeats(measuresData[0]);
-            currentTrebleBeats = firstMeasureBeats.trebleBeats;
-            currentBassBeats = firstMeasureBeats.bassBeats;
+        // Recalculate current beats based on the last measure of loaded data
+        if (measuresData[currentIndex]) {
+            const lastMeasureBeats = calculateMeasureBeats(measuresData[currentIndex]);
+            currentTrebleBeats = lastMeasureBeats.trebleBeats;
+            currentBassBeats = lastMeasureBeats.bassBeats;
         } else {
             currentTrebleBeats = 0;
             currentBassBeats = 0;
@@ -675,8 +673,7 @@ export function processAndSyncScore(loadedData) {
         // Save the loaded state as the initial state for undo
         saveStateToHistory();
 
-        console.log(`Score state successfully synchronized. Starting at measure 0 of ${measuresData.length} measures.`);
-        console.log('First measure content:', measuresData[0]);
+        console.log("Score state successfully synchronized.");
         console.log('processAndSyncScore output: true');
         return true;
 
