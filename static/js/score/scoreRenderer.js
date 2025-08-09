@@ -692,33 +692,73 @@ document.addEventListener("mouseup", (event) => {
     event.preventDefault(); // Allow drop
   });
 
-  scoreElement.addEventListener("drop", (event) => {
-    event.preventDefault();
-    if (isPaletteDrag) {
-      const rect = scoreElement.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      handlePaletteDrop(x, y);
+scoreElement.addEventListener("drop", (event) => {
+  event.preventDefault();
+  if (isPaletteDrag) {
+    const rect = scoreElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    handlePaletteDrop(x, y, event); // Pass the event
 
-      // Reset palette drag state
-      isPaletteDrag = false;
-      paletteDragType = null;
-      scoreElement.style.cursor = "default";
-      clearDragPreview();
-    }
-  });
+    // Reset palette drag state
+    isPaletteDrag = false;
+    paletteDragType = null;
+    scoreElement.style.cursor = "default";
+    clearDragPreview();
+  }
+});
 }
 
 
-/**
- * Handles the drop event for items dragged from the palette.
- * @param {number} endX - The final X coordinate of the drop.
- * @param {number} endY - The final Y coordinate of the drop.
- */
-function handlePaletteDrop(endX, endY) {
+function handlePaletteDrop(endX, endY, event) {
   console.log("handlePaletteDrop: Processing palette drop at", endX, endY);
   clearDragPreview();
 
+  // Check for chord data in the drag event
+  const chordData = event ? event.dataTransfer.getData('application/chord') : null;
+  
+  if (chordData) {
+    // Handle chord drop
+    try {
+      const parsedChordData = JSON.parse(chordData);
+      const chordObj = parsedChordData.chord;
+      const chordDisplayName = parsedChordData.displayName;
+      
+      const targetMeasureIndex = detectMeasureClick(endX, endY);
+      if (targetMeasureIndex === -1) {
+        console.log("handlePaletteDrop: Chord dropped outside a valid measure area.");
+        return;
+      }
+
+      const clef = detectClefRegion(endY);
+      const notesToUse = getChordNotesForClef(chordObj, clef);
+      
+      if (notesToUse.length === 0) {
+        console.warn('No suitable notes found for chord in target clef');
+        return;
+      }
+      
+      // Create the chord note
+      const chordNote = {
+        name: formatChordForScore(notesToUse, chordDisplayName),
+        clef: clef,
+        duration: selectedDuration,
+        isRest: false,
+        chordName: chordDisplayName
+      };
+      
+      // Add the chord to the measure
+      addNoteToMeasure(targetMeasureIndex, chordNote);
+      console.log(`Added ${chordDisplayName} chord to ${clef} clef:`, notesToUse);
+      return;
+      
+    } catch (error) {
+      console.error('Failed to parse chord drop data:', error);
+      // Fall through to regular handling
+    }
+  }
+
+  // Original palette drop logic for non-chord items
   const targetMeasureIndex = detectMeasureClick(endX, endY);
   if (targetMeasureIndex === -1) {
     console.log("handlePaletteDrop: Dropped outside a valid measure area.");
@@ -728,9 +768,7 @@ function handlePaletteDrop(endX, endY) {
   const clef = detectClefRegion(endY);
   const nearestPosition = findNearestStaffPosition(endY, clef);
   if (!nearestPosition) {
-    console.warn(
-      "handlePaletteDrop: Could not determine staff position for the drop."
-    );
+    console.warn("handlePaletteDrop: Could not determine staff position for the drop.");
     return;
   }
 
@@ -740,23 +778,18 @@ function handlePaletteDrop(endX, endY) {
   const newNote = {
     name: newNoteName,
     clef: clef,
-    duration: selectedDuration, // Use the stored duration
+    duration: selectedDuration,
     isRest: paletteDragType === "rest",
-    id: Date.now().toString(), // Generate a unique ID
+    id: Date.now().toString(),
   };
 
   if (paletteDragType === "major" || paletteDragType === "minor") {
-    // For now, just add the root note
-    console.log(
-      `Chord drop (${paletteDragType}) detected. Creating single note for now.`
-    );
+    console.log(`Chord drop (${paletteDragType}) detected. Creating single note for now.`);
   }
 
-  // Find insertion position (simplified: for now, append to the clef)
   addNoteToMeasure(targetMeasureIndex, newNote);
   console.log("handlePaletteDrop: Added new note to measure:", newNote);
 }
-//start of drag preview code
 
 function updateDragPreview(x, snapY, noteName) {
 // Early exit if we're not actually dragging
@@ -1587,3 +1620,37 @@ export function getVexflowIndexByNoteId() {
 }
 
 console.log("✓ scoreRenderer.js loaded successfully");
+
+// Add this to your note-data.js or scoreEditor.js
+export function getChordNotesForClef(chordObj, targetClef) {
+    if (!chordObj || !chordObj.treble || !chordObj.bass) {
+        console.warn('Invalid chord object for clef selection');
+        return [];
+    }
+    
+    // If the target clef has notes, use them
+    if (targetClef === 'treble' && chordObj.treble.length > 0) {
+        return chordObj.treble;
+    } else if (targetClef === 'bass' && chordObj.bass.length > 0) {
+        return chordObj.bass;
+    }
+    
+    // Fallback: if the target clef is empty, use the other clef
+    if (targetClef === 'treble') {
+        return chordObj.bass.length > 0 ? chordObj.bass : [];
+    } else {
+        return chordObj.treble.length > 0 ? chordObj.treble : [];
+    }
+}
+
+function formatChordForScore(noteNames, chordDisplayName) {
+    if (!noteNames || noteNames.length === 0) return null;
+    
+    // If it's a single note, return it directly
+    if (noteNames.length === 1) {
+        return noteNames[0];
+    }
+    
+    // For multiple notes, format as a chord
+    return `(${noteNames.join(' ')})`;
+}

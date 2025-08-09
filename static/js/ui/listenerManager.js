@@ -63,6 +63,9 @@ export function addBasicKeyboardListeners() {
  * Adds advanced keyboard listeners for full functionality
  */
 export function addAdvancedKeyboardListeners() {
+  if (window.keyboardDisabled) {
+    return; // Skip if keyboard is disabled
+}
   document.addEventListener("keydown", handleKeyDown);
   document.addEventListener("keyup", handleKeyUp);
   document.removeEventListener("keydown", handleInitialKeyboard);

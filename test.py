@@ -78,7 +78,7 @@ def index():
 
 @app.route('/editor')
 def editor():
-    return render_template('editor.html', show_side_panel=True)
+    return render_template('editor.html', show_side_panel=True, disable_keyboard=True)
 
 
 @app.route('/json')

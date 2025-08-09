@@ -6,6 +6,7 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/editor.css') }}"
     />
+  
 {% endblock %}
 {% block side %}
 <!-- Editor Panel Content -->
@@ -179,8 +180,13 @@
     {% include 'partials/_palette.html' %}
 {% endblock %}
 
+{% block top %}
+    {% include 'partials/_chords.html' %}
+{% endblock %}
+
 {% block scripts %}
 <script type="module">
+  window.keyboardDisabled = {{ 'true' if disable_keyboard else 'false' }};
     
     // Wait for base initialization to complete
     function waitForBaseInit() {

@@ -814,12 +814,65 @@ export function initializeMusicEditor() {
     renderNoteEditBox(false);
 });
 
-    document.addEventListener('noteDropped', (event) => {
-        // Fix: Use insertBeforeNoteId instead of insertPosition
-        const { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId, clefChanged, pitchChanged, newClef, newPitch } = event.detail;
-        const measures = getMeasures();
-        const originalNote = measures[fromMeasureIndex]?.find(note => note.id === fromNoteId);
-        if (!originalNote) return;
+document.addEventListener('noteDropped', (event) => {
+    const { 
+        fromMeasureIndex, 
+        fromNoteId, 
+        toMeasureIndex, 
+        insertBeforeNoteId, 
+        clefChanged, 
+        pitchChanged, 
+        newClef, 
+        newPitch,
+        droppedData
+    } = event.detail;
+
+    // Handle chord drops
+    if (droppedData && droppedData.startsWith('application/chord:')) {
+        try {
+            const chordData = JSON.parse(droppedData.replace('application/chord:', ''));
+            const chordObj = chordData.chord;
+            const chordDisplayName = chordData.displayName;
+            
+            // Determine which notes to use based on the target clef
+            const targetClef = newClef || 'treble'; // Default to treble if not specified
+            const notesToUse = getChordNotesForClef(chordObj, targetClef);
+            
+            if (notesToUse.length === 0) {
+                console.warn('No suitable notes found for chord in target clef');
+                return;
+            }
+            
+            // Create the chord note
+            const chordNote = {
+                name: formatChordForScore(notesToUse, chordDisplayName),
+                clef: targetClef,
+                duration: "q", // Default to quarter note
+                isRest: false,
+                chordName: chordDisplayName // Store the original chord name
+            };
+            
+            // Add the chord to the measure
+            const result = addNoteToMeasure(toMeasureIndex, chordNote, insertBeforeNoteId);
+            if (result) {
+                editorSelectedMeasureIndex = result.measureIndex;
+                editorSelectedNoteId = result.noteId;
+                renderNoteEditBox(false);
+            }
+            
+            console.log(`Added ${chordDisplayName} chord to ${targetClef} clef:`, notesToUse);
+            return;
+            
+        } catch (error) {
+            console.error('Failed to parse chord drop data:', error);
+            // Fall through to regular note handling
+        }
+    }
+
+    // Existing note drop handling code...
+    const measures = getMeasures();
+    const originalNote = measures[fromMeasureIndex]?.find(note => note.id === fromNoteId);
+    if (!originalNote) return;
 
         if (fromMeasureIndex !== toMeasureIndex) {
             // Moving between measures - maintain chord structure
@@ -888,4 +941,38 @@ export function initializeMusicEditor() {
         }
     }
     console.log("✓ scoreEditor.js initialized successfully with slur support");
+}
+
+// Add this to your note-data.js or scoreEditor.js
+export function getChordNotesForClef(chordObj, targetClef) {
+    if (!chordObj || !chordObj.treble || !chordObj.bass) {
+        console.warn('Invalid chord object for clef selection');
+        return [];
+    }
+    
+    // If the target clef has notes, use them
+    if (targetClef === 'treble' && chordObj.treble.length > 0) {
+        return chordObj.treble;
+    } else if (targetClef === 'bass' && chordObj.bass.length > 0) {
+        return chordObj.bass;
+    }
+    
+    // Fallback: if the target clef is empty, use the other clef
+    if (targetClef === 'treble') {
+        return chordObj.bass.length > 0 ? chordObj.bass : [];
+    } else {
+        return chordObj.treble.length > 0 ? chordObj.treble : [];
+    }
+}
+
+function formatChordForScore(noteNames, chordDisplayName) {
+    if (!noteNames || noteNames.length === 0) return null;
+    
+    // If it's a single note, return it directly
+    if (noteNames.length === 1) {
+        return noteNames[0];
+    }
+    
+    // For multiple notes, format as a chord
+    return `(${noteNames.join(' ')})`;
 }

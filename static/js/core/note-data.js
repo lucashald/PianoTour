@@ -4557,49 +4557,22 @@ export function transposeNote(noteName, semitones) {
   return newNoteInfo ? newNoteInfo.name : noteName;
 }
 
+const MINOR_TO_RELATIVE_MAJOR = {
+  "A": "C", "E": "G", "B": "D", "F#": "A", "C#": "E", "G#": "B", "D#": "F#", "A#": "C#",
+  "D": "F", "G": "Bb", "C": "Eb", "F": "Ab", "Bb": "Db", "Eb": "Gb", "Ab": "Cb"
+};
+
+const MAJOR_TO_RELATIVE_MINOR = {
+  "C": "Am", "G": "Em", "D": "Bm", "A": "F#m", "E": "C#m", "B": "G#m", "F#": "D#m", "C#": "A#m",
+  "F": "Dm", "Bb": "Gm", "Eb": "Cm", "Ab": "Fm", "Db": "Bbm", "Gb": "Ebm", "Cb": "Abm"
+};
+
 export function getKeySignature() {
   const keySignature = pianoState.keySignature;
   const isMinor = pianoState.isMinorKey;
 
-  // Map minor keys to their relative majors
-  const minorToRelativeMajor = {
-    "A": "C", // A minor → C major (0 sharps/flats)
-    "E": "G", // E minor → G major (1 sharp)
-    "B": "D", // B minor → D major (2 sharps)
-    "F#": "A", // F# minor → A major (3 sharps)
-    "C#": "E", // C# minor → E major (4 sharps)
-    "G#": "B", // G# minor → B major (5 sharps)
-    "D#": "F#", // D# minor → F# major (6 sharps)
-    "A#": "C#", // A# minor → C# major (7 sharps)
-    "D": "F", // D minor → F major (1 flat)
-    "G": "Bb", // G minor → Bb major (2 flats)
-    "C": "Eb", // C minor → Eb major (3 flats)
-    "F": "Ab", // F minor → Ab major (4 flats)
-    "Bb": "Db", // Bb minor → Db major (5 flats)
-    "Eb": "Gb", // Eb minor → Gb major (6 flats)
-    "Ab": "Cb", // Ab minor → Cb major (7 flats)
-  };
-
-  const majorToRelativeMinor = {
-    "C": "Am",   // C major → A minor
-    "G": "Em",   // G major → E minor  
-    "D": "Bm",   // D major → B minor
-    "A": "F#m",  // A major → F# minor
-    "E": "C#m",  // E major → C# minor
-    "B": "G#m",  // B major → G# minor
-    "F#": "D#m", // F# major → D# minor
-    "C#": "A#m", // C# major → A# minor
-    "F": "Dm",   // F major → D minor
-    "Bb": "Gm",  // Bb major → G minor
-    "Eb": "Cm",  // Eb major → C minor
-    "Ab": "Fm",  // Ab major → F minor
-    "Db": "Bbm", // Db major → Bb minor
-    "Gb": "Ebm", // Gb major → Eb minor
-    "Cb": "Abm", // Cb major → Ab minor
-  }
-
-  if (isMinor && majorToRelativeMinor[keySignature]) {
-    return majorToRelativeMinor[keySignature];
+  if (isMinor && MAJOR_TO_RELATIVE_MINOR[keySignature]) {
+    return MAJOR_TO_RELATIVE_MINOR[keySignature];
   }
 
   return keySignature;
@@ -4609,46 +4582,8 @@ export function getCurrentVexFlowKeySignature() {
   const pitchClass = pianoState.keySignature.replace(/\d+$/, ""); // Remove octave
   const isMinor = pianoState.isMinorChordMode;
 
-  // Map minor keys to their relative majors for VexFlow
-  const minorToRelativeMajor = {
-    A: "C", // A minor → C major (0 sharps/flats)
-    E: "G", // E minor → G major (1 sharp)
-    B: "D", // B minor → D major (2 sharps)
-    "F#": "A", // F# minor → A major (3 sharps)
-    "C#": "E", // C# minor → E major (4 sharps)
-    "G#": "B", // G# minor → B major (5 sharps)
-    "D#": "F#", // D# minor → F# major (6 sharps)
-    "A#": "C#", // A# minor → C# major (7 sharps)
-
-    D: "F", // D minor → F major (1 flat)
-    G: "Bb", // G minor → Bb major (2 flats)
-    C: "Eb", // C minor → Eb major (3 flats)
-    F: "Ab", // F minor → Ab major (4 flats)
-    Bb: "Db", // Bb minor → Db major (5 flats)
-    Eb: "Gb", // Eb minor → Gb major (6 flats)
-    Ab: "Cb", // Ab minor → Cb major (7 flats)
-  };
-
-  const majorToRelativeMinor = {
-    "C": "Am",   // C major → A minor
-    "G": "Em",   // G major → E minor  
-    "D": "Bm",   // D major → B minor
-    "A": "F#m",  // A major → F# minor
-    "E": "C#m",  // E major → C# minor
-    "B": "G#m",  // B major → G# minor
-    "F#": "D#m", // F# major → D# minor
-    "C#": "A#m", // C# major → A# minor
-    "F": "Dm",   // F major → D minor
-    "Bb": "Gm",  // Bb major → G minor
-    "Eb": "Cm",  // Eb major → C minor
-    "Ab": "Fm",  // Ab major → F minor
-    "Db": "Bbm", // Db major → Bb minor
-    "Gb": "Ebm", // Gb major → Eb minor
-    "Cb": "Abm", // Cb major → Ab minor
-  }
-
-  if (isMinor && minorToRelativeMajor[pitchClass]) {
-    return minorToRelativeMajor[pitchClass];
+  if (isMinor && MINOR_TO_RELATIVE_MAJOR[pitchClass]) {
+    return MINOR_TO_RELATIVE_MAJOR[pitchClass];
   }
 
   // Handle enharmonic equivalents for major keys
@@ -4661,19 +4596,19 @@ export function getCurrentVexFlowKeySignature() {
   return enharmonicMap[pitchClass] || pitchClass;
 }
 
-export function getChordByDegree(degree = 1) {
+export function getChordByDegree(degree = 1, keySignature = null) {
   // Validate degree
   if (degree < 1 || degree > 7) {
     console.warn(`Invalid scale degree ${degree}. Must be 1-7`);
     return null;
   }
 
-  // Get scale data directly
-  const keySignature = getKeySignature();
-  const scaleData = DIATONIC_SCALES[keySignature];
+  // Use provided key signature or fall back to current key signature
+  const keyToUse = keySignature || getKeySignature();
+  const scaleData = DIATONIC_SCALES[keyToUse];
 
   if (!scaleData) {
-    console.warn(`Scale data not found for key: ${keySignature}`);
+    console.warn(`Scale data not found for key: ${keyToUse}`);
     return null;
   }
 
@@ -4704,6 +4639,32 @@ export function getChordByDegree(degree = 1) {
   console.warn(`Chord ${chordName} not found in CHORD_DEFINITIONS`);
   return null;
 }
+
+export function getRelativeKey() {
+  const keySignature = pianoState.keySignature;
+  const isMinor = pianoState.isMinorKey;
+
+  if (isMinor) {
+    // Current key is minor, return its relative major
+    return MINOR_TO_RELATIVE_MAJOR[keySignature] || keySignature;
+  } else {
+    // Current key is major, return its relative minor
+    return MAJOR_TO_RELATIVE_MINOR[keySignature] || keySignature;
+  }
+}
+
+export function getScale() {  // Get scale data directly
+  const keySignature = getKeySignature();
+  const scaleData = DIATONIC_SCALES[keySignature];
+
+  if (!scaleData) {
+    console.warn(`Scale data not found for key: ${keySignature}`);
+    return null;
+  }
+
+  return scaleData;
+}
+
 
 /**
  * Splits an array of notes between bass and treble clefs for optimal notation display
