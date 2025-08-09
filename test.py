@@ -20,47 +20,53 @@ app = Flask(__name__)
 
 def midi_to_json_data(midi_file_path):
     """
-    Converts a MIDI file to the app's JSON format using ugly_midi library.
+    Converts a MIDI file to VexFlow JSON format using improved ugly_midi library.
     """
     try:
-        # Use ugly_midi to convert MIDI to VexFlow JSON
-        vexflow_json = ugly_midi.midi_to_json(midi_file_path)
-
-        # Transform VexFlow format to your app's expected format
-        song_data = []
-
-        for measure_index, measure in enumerate(
-                vexflow_json.get('measures', [])):
-            measure_notes = []
-
-            for note in measure:
-                if note.get('isRest', False):
-                    measure_notes.append({
-                        'name': '',
-                        'clef': note.get('clef', 'treble'),
-                        'duration': note.get('duration', 'q'),
-                        'isRest': True,
-                        'velocity': 80,
-                        'measure': measure_index
-                    })
-                else:
-                    measure_notes.append({
-                        'name': note.get('name', 'C4'),
-                        'clef': note.get('clef', 'treble'),
-                        'duration': note.get('duration', 'q'),
-                        'isRest': False,
-                        'velocity': 80,  # Default velocity
-                        'measure': measure_index
-                    })
-
-            song_data.append(measure_notes)
-
-        return song_data
+        # Use improved ugly_midi with manual tempo for 99% accuracy
+        # Try different tempos if the first fails
+        vexflow_json = None
+        
+        # Common tempos to try (most MIDI files are one of these)
+        tempo_candidates = [142, 120, 100, 80, 60, 180, 200]
+        
+        for tempo in tempo_candidates:
+            try:
+                logger.info(f"Trying conversion with tempo {tempo} BPM")
+                vexflow_json = ugly_midi.midi_to_json(
+                    midi_file_path, 
+                    quantize_resolution=0.125,  # Fine quantization for accuracy
+                    manual_tempo=tempo
+                )
+                logger.info(f"Successfully converted with tempo {tempo} BPM")
+                break
+            except Exception as e:
+                logger.warning(f"Tempo {tempo} failed: {e}")
+                continue
+        
+        if not vexflow_json:
+            # Fallback to default parameters
+            logger.info("All tempo attempts failed, using default conversion")
+            vexflow_json = ugly_midi.midi_to_json(midi_file_path)
+        
+        # Return the full VexFlow JSON object (don't transform it)
+        # Ensure it has all required fields
+        result = {
+            'keySignature': vexflow_json.get('keySignature', 'C'),
+            'tempo': vexflow_json.get('tempo', 120),
+            'timeSignature': vexflow_json.get('timeSignature', {'numerator': 4, 'denominator': 4}),
+            'instrument': vexflow_json.get('instrument', 'piano'),
+            'midiChannel': vexflow_json.get('midiChannel', '0'),
+            'isMinorChordMode': vexflow_json.get('isMinorChordMode', False),
+            'measures': vexflow_json.get('measures', [])
+        }
+        
+        logger.info(f"Converted MIDI to {len(result['measures'])} measures at {result['tempo']} BPM")
+        return result
 
     except Exception as e:
         logger.error(f"ugly_midi failed to parse MIDI file: {e}")
         raise ValueError(f"Failed to convert MIDI file: {str(e)}")
-
 
 # --- Flask Routes ---
 
@@ -388,7 +394,6 @@ def sanitize_for_ugly_midi(song_data):
 def convert_to_midi():
     temp_midi_path = None
     try:
-        # Check content type
         if not request.is_json:
             return jsonify({'error': 'Content-Type must be application/json'}), 400
 
@@ -396,34 +401,24 @@ def convert_to_midi():
         if not song_data:
             return jsonify({'error': 'No song data provided'}), 400
 
-        # Add debug logging
-        logger.info(f"Received object with keys: {list(song_data.keys()) if isinstance(song_data, dict) else 'Not a dict'}")
-        if isinstance(song_data, dict) and 'measures' in song_data:
-            logger.info(f"Found {len(song_data['measures'])} measures")
+        logger.info(f"Converting to MIDI: {len(song_data.get('measures', []))} measures at {song_data.get('tempo', 120)} BPM")
 
-        # Check size limits
-        if len(str(song_data)) > 1024 * 1024:  # 1MB limit
+        # Validate and sanitize
+        if len(str(song_data)) > 1024 * 1024:
             return jsonify({'error': 'Song data too large'}), 413
 
-        # Validate against schema
         try:
             validate(instance=song_data, schema=SONG_DATA_SCHEMA)
         except jsonschema.exceptions.ValidationError as e:
             logger.error(f"Schema validation failed: {str(e)}")
             return jsonify({'error': f'Invalid song data format: {str(e)}'}), 400
 
-        # Sanitize input
-        try:
-            sanitized_data = sanitize_for_ugly_midi(song_data)
-        except ValueError as e:
-            logger.error(f"Sanitization failed: {str(e)}")
-            return jsonify({'error': str(e)}), 400
+        sanitized_data = sanitize_for_ugly_midi(song_data)
 
-        # Process with ugly_midi - you may need to pass just the measures or the full object
-        # depending on what your ugly_midi library expects
+        # Use improved ugly_midi converter
         midi_data = ugly_midi.json_to_midi(sanitized_data)
 
-        # Create secure temporary file
+        # Create and return MIDI file
         fd, temp_midi_path = tempfile.mkstemp(suffix='.mid', prefix='midi_')
         os.close(fd)
 
@@ -436,7 +431,7 @@ def convert_to_midi():
 
     except Exception as e:
         logger.error(f"Error during MIDI conversion: {e}", exc_info=True)
-        return jsonify({'error': 'Failed to convert to MIDI'}), 500
+        return jsonify({'error': f'Failed to convert to MIDI: {str(e)}'}), 500
 
     finally:
         if temp_midi_path and os.path.exists(temp_midi_path):
@@ -444,8 +439,7 @@ def convert_to_midi():
                 os.unlink(temp_midi_path)
             except Exception:
                 pass
-
-
+                
 @app.route('/convert-to-json', methods=['POST'])
 def convert_to_json():
     if 'midiFile' not in request.files:

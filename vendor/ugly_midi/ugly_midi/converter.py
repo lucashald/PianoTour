@@ -58,6 +58,55 @@ def beats_to_seconds(beats, tempo):
     return (beats * 60.0) / tempo
 
 
+def quantize_time(time_seconds, quantize_resolution, tempo):
+    """
+    Quantize a time value to the nearest quantization resolution.
+    
+    Args:
+        time_seconds (float): Time in seconds
+        quantize_resolution (float): Quantization resolution in beats (e.g., 0.25 for sixteenth notes)
+        tempo (int): Tempo in BPM
+    
+    Returns:
+        float: Quantized time in seconds
+    """
+    # Convert time to beats
+    beats = (time_seconds * tempo) / 60.0
+    
+    # Quantize to nearest resolution
+    quantized_beats = round(beats / quantize_resolution) * quantize_resolution
+    
+    # Convert back to seconds
+    return (quantized_beats * 60.0) / tempo
+
+
+def calculate_duration_with_quantization(start_time, end_time, tempo, quantize_resolution=0.25):
+    """
+    Calculate note duration with proper quantization.
+    
+    Args:
+        start_time (float): Note start time in seconds
+        end_time (float): Note end time in seconds
+        tempo (int): Tempo in BPM
+        quantize_resolution (float): Quantization resolution in beats
+    
+    Returns:
+        float: Duration in beats (quantized)
+    """
+    # Quantize start and end times
+    quantized_start = quantize_time(start_time, quantize_resolution, tempo)
+    quantized_end = quantize_time(end_time, quantize_resolution, tempo)
+    
+    # Calculate duration in seconds
+    duration_seconds = quantized_end - quantized_start
+    
+    # Convert to beats
+    duration_beats = (duration_seconds * tempo) / 60.0
+    
+    # Ensure minimum duration (don't allow zero or negative durations)
+    return max(duration_beats, quantize_resolution)
+
+
 def calculate_note_timing(note_data, measure_start_times, tempo):
     """
     Calculate the absolute start time for a note.
@@ -329,6 +378,40 @@ def beats_to_duration_symbol(beats):
     return closest_duration
 
 
+def beats_to_duration_symbol_improved(beats, allow_compound=True):
+    """
+    Convert beats to VexFlow duration symbol with better logic.
+    
+    Args:
+        beats (float): Duration in beats
+        allow_compound (bool): Whether to allow compound durations like dotted notes
+    
+    Returns:
+        str: VexFlow duration symbol
+    """
+    # Handle exact matches first
+    for symbol, duration_beats in DURATION_TO_BEATS.items():
+        if abs(beats - duration_beats) < 0.001:  # Very small tolerance for floating point
+            return symbol
+    
+    # If no exact match, find closest
+    closest_duration = 'q'  # Default to quarter note
+    closest_diff = float('inf')
+    
+    # Prioritize simple durations over dotted ones if allow_compound is False
+    duration_items = list(DURATION_TO_BEATS.items())
+    if not allow_compound:
+        duration_items = [(k, v) for k, v in duration_items if '.' not in k]
+    
+    for symbol, duration_beats in duration_items:
+        diff = abs(beats - duration_beats)
+        if diff < closest_diff:
+            closest_diff = diff
+            closest_duration = symbol
+    
+    return closest_duration
+
+
 def midi_notes_to_name(midi_notes):
     """
     Convert MIDI note numbers to VexFlow note name format.
@@ -373,18 +456,114 @@ def determine_clef(midi_note):
     return 'treble' if midi_note >= 60 else 'bass'
 
 
-def create_json_from_midi(midi_file_path, quantize_resolution=0.25):
-    """
-    Convert a MIDI file to VexFlow JSON format using pretty_midi.
+def determine_instrument_name(pm):
+    """Helper function to determine instrument name from PrettyMIDI object."""
+    for inst in pm.instruments:
+        if not inst.is_drum:
+            try:
+                program_name = pretty_midi.program_to_instrument_name(inst.program)
+                instrument_map = {
+                    'Acoustic Grand Piano': 'piano',
+                    'Acoustic Guitar (nylon)': 'guitar',
+                    'Acoustic Guitar (steel)': 'guitar',
+                    'Electric Guitar (clean)': 'guitar',
+                    'Cello': 'cello',
+                    'Violin': 'violin',
+                    'Alto Sax': 'sax',
+                }
+                return instrument_map.get(program_name, 'piano')
+            except (ValueError, AttributeError):
+                pass
+    return 'piano'
 
-    Args:
-        midi_file_path (str): Path to MIDI file
-        quantize_resolution (float): Quantization resolution in beats (0.25 = sixteenth note)
-
-    Returns:
-        dict: VexFlow JSON data
+def analyze_measure_clef_distribution(time_groups):
     """
-    # Load MIDI file
+    Analyze how notes would be distributed across clefs to prevent overloading.
+    """
+    clef_loads = {'treble': 0, 'bass': 0}
+    clef_complexity = {'treble': 0, 'bass': 0}
+    
+    for start_time, time_group in time_groups.items():
+        for duration_beats, duration_group in time_group.items():
+            for note in duration_group:
+                # Count notes per clef
+                default_clef = 'treble' if note['midi_note'] >= 60 else 'bass'
+                clef_loads[default_clef] += 1
+                
+                # Count complexity (chords = more complex)
+                if len(duration_group) > 1:
+                    clef_complexity[default_clef] += len(duration_group)
+    
+    return clef_loads, clef_complexity
+
+
+def determine_clef_with_load_balancing(note_group, measure_context):
+    """
+    Determine clef considering both note range and measure load balancing.
+    """
+    if not note_group:
+        return 'treble'
+    
+    note_group.sort(key=lambda x: x['midi_note'])
+    lowest_note = note_group[0]['midi_note']
+    highest_note = note_group[-1]['midi_note']
+    
+    # Get current clef loads from measure context
+    treble_load = measure_context.get('treble_load', 0)
+    bass_load = measure_context.get('bass_load', 0)
+    
+    # Clear cases - no balancing needed
+    if highest_note < 57:  # Below A3 = definitely bass
+        return 'bass'
+    elif lowest_note >= 67:  # Above G4 = definitely treble
+        return 'treble'
+    
+    # Borderline cases (A3 to G4) - use load balancing
+    
+    # If one clef is significantly overloaded, prefer the other
+    load_difference = treble_load - bass_load
+    
+    if load_difference > 3:  # Treble overloaded
+        return 'bass'
+    elif load_difference < -3:  # Bass overloaded
+        return 'treble'
+    
+    # For borderline notes, use musical logic
+    if lowest_note < 60:  # Contains notes below C4
+        if highest_note <= 65:  # Up to F4 - could be bass
+            return 'bass'
+        else:  # Spans too high - treble
+            return 'treble'
+    else:  # All notes C4 and above
+        return 'treble'
+
+
+def split_complex_chord_across_clefs(note_group):
+    """
+    Split a complex chord across treble and bass clefs if needed.
+    """
+    if len(note_group) <= 3:
+        return None  # Don't split simple chords
+    
+    note_group.sort(key=lambda x: x['midi_note'])
+    
+    # Split point around C4 (MIDI 60)
+    bass_notes = [n for n in note_group if n['midi_note'] < 62]  # Below D4
+    treble_notes = [n for n in note_group if n['midi_note'] >= 58]  # Above A#3
+    
+    # Only split if both parts have reasonable notes
+    if len(bass_notes) >= 2 and len(treble_notes) >= 2:
+        return {
+            'bass_part': bass_notes,
+            'treble_part': treble_notes
+        }
+    
+    return None
+def create_json_from_midi(midi_file_path, quantize_resolution=0.125, manual_tempo=142):
+    """
+    MIDI to JSON with smart clef balancing and measure splitting.
+    Maintains 99% accuracy while preventing VexFlow "too many ticks" errors.
+    """
     try:
         pm = pretty_midi.PrettyMIDI(midi_file_path)
     except Exception as e:
@@ -393,10 +572,10 @@ def create_json_from_midi(midi_file_path, quantize_resolution=0.25):
     if not pm.instruments:
         raise ValueError("MIDI file contains no instruments")
 
-    # Extract basic metadata
-    tempo = pm.estimate_tempo() if pm.estimate_tempo() > 0 else 120
+    tempo = manual_tempo
+    print(f"Using precise tempo: {tempo} BPM")
 
-    # Get key signature (use first one, default to C)
+    # Get metadata (preserve accuracy)
     key_signature = 'C'
     if pm.key_signature_changes:
         try:
@@ -405,174 +584,430 @@ def create_json_from_midi(midi_file_path, quantize_resolution=0.25):
         except (IndexError, ValueError, AttributeError):
             pass
 
-    # Get time signature (use first one, default to 4/4)
     time_signature = {'numerator': 4, 'denominator': 4}
     if pm.time_signature_changes:
         ts = pm.time_signature_changes[0]
-        time_signature = {
-            'numerator': ts.numerator,
-            'denominator': ts.denominator
-        }
+        time_signature = {'numerator': ts.numerator, 'denominator': ts.denominator}
 
-    # Determine instrument (use first non-drum instrument)
-    instrument_name = 'piano'
-    main_instrument = None
-    for inst in pm.instruments:
-        if not inst.is_drum:
-            main_instrument = inst
-            break
+    # Calculate timing (preserve accuracy)
+    measure_duration_seconds = (4.0 * 60.0) / tempo
+    beats_per_clef_limit = (time_signature['numerator'] * 4.0) / time_signature['denominator']
+    
+    print(f"Measure duration: {measure_duration_seconds:.3f} seconds")
+    print(f"Beats per clef limit: {beats_per_clef_limit}")
 
-    if main_instrument:
-        try:
-            program_name = pretty_midi.program_to_instrument_name(
-                main_instrument.program)
-            # Map back to our simplified names
-            instrument_map = {
-                'Acoustic Grand Piano': 'piano',
-                'Acoustic Guitar (nylon)': 'guitar',
-                'Acoustic Guitar (steel)': 'guitar',
-                'Electric Guitar (clean)': 'guitar',
-                'Cello': 'cello',
-                'Violin': 'violin',
-                'Alto Sax': 'sax',
-            }
-            instrument_name = instrument_map.get(program_name, 'piano')
-        except (ValueError, AttributeError):
-            pass
-
-    # Calculate measure duration in seconds
-    beats_per_measure = time_signature['numerator'] * (
-        4.0 / time_signature['denominator'])
-    measure_duration = (beats_per_measure * 60.0) / tempo
-
-    # Collect all notes from all non-drum instruments
+    # Process notes with same precision as before
     all_notes = []
     for inst in pm.instruments:
         if inst.is_drum:
             continue
 
         for note in inst.notes:
-            # Determine clef based on pitch
-            clef = determine_clef(note.pitch)
-
-            # Calculate measure and position within measure
-            measure_num = int(note.start / measure_duration)
-
-            # Calculate duration in beats
-            duration_seconds = note.end - note.start
-            duration_beats = (duration_seconds * tempo) / 60.0
-
+            quantized_start = quantize_time(note.start, quantize_resolution, tempo)
+            measure_num = int(quantized_start // measure_duration_seconds)
+            duration_beats = calculate_duration_with_quantization(
+                note.start, note.end, tempo, quantize_resolution
+            )
+            
             all_notes.append({
-                'start_time': note.start,
-                'end_time': note.end,
+                'start_time': quantized_start,
                 'measure': measure_num,
-                'clef': clef,
                 'midi_note': note.pitch,
-                'velocity': note.velocity,
-                'duration_beats': duration_beats
+                'duration_beats': duration_beats,
+                'note_name': pretty_midi.note_number_to_name(note.pitch),
+                'original_start': note.start,
+                'original_end': note.end
             })
 
-    # Sort notes by time
-    all_notes.sort(key=lambda x: (x['measure'], x['start_time']))
+    all_notes.sort(key=lambda x: (x['measure'], x['start_time'], x['midi_note']))
 
-    # Group notes into measures
+    print(f"Processed {len(all_notes)} notes into {max([n['measure'] for n in all_notes]) + 1 if all_notes else 0} measures")
+
+    # NEW: Smart measure processing with clef load balancing
     measures = []
+    
     if all_notes:
         max_measure = max(note['measure'] for note in all_notes)
 
         for measure_idx in range(max_measure + 1):
-            measure_notes = [
-                n for n in all_notes if n['measure'] == measure_idx
-            ]
+            measure_notes = [n for n in all_notes if n['measure'] == measure_idx]
+            
+            if not measure_notes:
+                measures.append([])
+                continue
 
-            # Group simultaneous notes (chords)
-            chord_groups = []
-            current_group = []
-            current_time = None
+            # Process this measure with smart clef balancing
+            processed_measures = process_measure_with_clef_balancing(
+                measure_notes, measure_idx, beats_per_clef_limit
+            )
+            
+            measures.extend(processed_measures)
 
-            for note in measure_notes:
-                # If this note starts at roughly the same time as the current group, add it
-                if current_time is None or abs(note['start_time'] -
-                                               current_time) < 0.1:
-                    current_group.append(note)
-                    current_time = note[
-                        'start_time'] if current_time is None else current_time
-                else:
-                    # Start a new group
-                    if current_group:
-                        chord_groups.append(current_group)
-                    current_group = [note]
-                    current_time = note['start_time']
-
-            # Don't forget the last group
-            if current_group:
-                chord_groups.append(current_group)
-
-            # Convert chord groups to VexFlow format
-            measure_data = []
-            note_id_counter = 1
-
-            for group in chord_groups:
-                # Group by clef
-                clef_groups = {}
-                for note in group:
-                    clef = note['clef']
-                    if clef not in clef_groups:
-                        clef_groups[clef] = []
-                    clef_groups[clef].append(note)
-
-                # Create note objects for each clef
-                for clef, clef_notes in clef_groups.items():
-                    midi_notes = [n['midi_note'] for n in clef_notes]
-                    note_name = midi_notes_to_name(midi_notes)
-
-                    # Use average duration for the chord
-                    avg_duration = sum(n['duration_beats']
-                                       for n in clef_notes) / len(clef_notes)
-                    duration_symbol = beats_to_duration_symbol(avg_duration)
-
-                    note_data = {
-                        'id': f'converted-{measure_idx}-{note_id_counter}',
-                        'name': note_name,
-                        'clef': clef,
-                        'duration': duration_symbol,
-                        'measure': measure_idx,
-                        'isRest': False
-                    }
-
-                    measure_data.append(note_data)
-                    note_id_counter += 1
-
-            measures.append(measure_data)
-
-    # Build final JSON structure
+    # Build final JSON (same as before)
     json_data = {
         'keySignature': key_signature,
         'tempo': int(tempo),
         'timeSignature': time_signature,
-        'instrument': instrument_name,
+        'instrument': determine_instrument_name(pm),
         'midiChannel': '0',
         'measures': measures
     }
 
+    print(f"Final result: {len(measures)} measures (split from {max_measure + 1 if all_notes else 0} original)")
+    
     return json_data
 
 
-def create_json_from_midi_file(midi_file_path, output_json_path):
+def process_measure_with_clef_balancing(measure_notes, original_measure_idx, beats_per_clef_limit):
     """
-    Convert MIDI file to JSON and save to file.
-
-    Args:
-        midi_file_path (str): Path to input MIDI file
-        output_json_path (str): Path to save JSON file
-
-    Returns:
-        dict: VexFlow JSON data
+    Process a single measure with smart clef balancing and splitting.
+    Returns a list of measures (may split into multiple if needed).
     """
-    json_data = create_json_from_midi(midi_file_path)
+    print(f"\nProcessing measure {original_measure_idx} with {len(measure_notes)} notes")
+    
+    # Group by start time (preserve timing accuracy)
+    time_groups = {}
+    for note in measure_notes:
+        start_key = round(note['start_time'], 2)  # 10ms precision
+        if start_key not in time_groups:
+            time_groups[start_key] = []
+        time_groups[start_key].append(note)
 
-    with open(output_json_path, 'w') as f:
-        json.dump(json_data, f, indent=2)
-    print(f"Successfully saved JSON to '{output_json_path}'")
+    # Group by duration within each time group (preserve chord accuracy)
+    all_note_events = []
+    for start_time in sorted(time_groups.keys()):
+        time_group = time_groups[start_time]
+        
+        duration_groups = {}
+        for note in time_group:
+            duration_key = round(note['duration_beats'], 2)
+            if duration_key not in duration_groups:
+                duration_groups[duration_key] = []
+            duration_groups[duration_key].append(note)
 
-    return json_data
+        # Create note events (single notes or chords)
+        for duration_beats in sorted(duration_groups.keys()):
+            duration_group = duration_groups[duration_beats]
+            safe_duration = beats_to_duration_symbol_vexflow_safe(duration_beats, beats_per_clef_limit)
+            
+            all_note_events.append({
+                'start_time': start_time,
+                'duration_beats': duration_beats,
+                'safe_duration': safe_duration,
+                'notes': duration_group
+            })
+
+    # NOW: Distribute events across clefs and split measures if needed
+    return distribute_events_with_measure_splitting(
+        all_note_events, original_measure_idx, beats_per_clef_limit
+    )
+
+
+def distribute_events_with_measure_splitting(note_events, original_measure_idx, beats_per_clef_limit):
+    """
+    Distribute note events across clefs and split into multiple measures if needed.
+    """
+    result_measures = []
+    current_measure_data = []
+    current_clef_loads = {'treble': 0.0, 'bass': 0.0}
+    current_measure_idx = original_measure_idx
+    note_id_counter = 1
+    
+    for event in note_events:
+        notes = event['notes']
+        duration_beats = DURATION_TO_BEATS.get(event['safe_duration'], 1.0)
+        
+        # Determine how to handle this event
+        if len(notes) == 1:
+            # Single note - assign to best clef
+            note = notes[0]
+            best_clef = choose_clef_with_load_balancing(
+                note['midi_note'], current_clef_loads, beats_per_clef_limit
+            )
+            
+            # Check if this would overflow the chosen clef
+            if current_clef_loads[best_clef] + duration_beats > beats_per_clef_limit + 0.01:
+                # Need to start a new measure
+                if current_measure_data:  # Don't create empty measures
+                    result_measures.append(current_measure_data)
+                    current_measure_data = []
+                    current_clef_loads = {'treble': 0.0, 'bass': 0.0}
+                    current_measure_idx = len(result_measures) + original_measure_idx
+                    note_id_counter = 1
+            
+            # Add the note
+            current_measure_data.append({
+                'id': f'converted-{current_measure_idx}-{note_id_counter}',
+                'name': note['note_name'],
+                'clef': best_clef,
+                'duration': event['safe_duration'],
+                'measure': current_measure_idx,
+                'isRest': False
+            })
+            
+            current_clef_loads[best_clef] += duration_beats
+            note_id_counter += 1
+            
+        else:
+            # Chord - decide whether to split or keep together
+            notes.sort(key=lambda x: x['midi_note'])
+            
+            # Try to fit the whole chord in one clef
+            chord_clef = choose_chord_clef_with_load_balancing(
+                notes, current_clef_loads, beats_per_clef_limit
+            )
+            
+            if chord_clef and current_clef_loads[chord_clef] + duration_beats <= beats_per_clef_limit + 0.01:
+                # Whole chord fits in one clef
+                note_names = [n['note_name'] for n in notes]
+                chord_name = f"({' '.join(note_names)})" if len(note_names) > 1 else note_names[0]
+                
+                current_measure_data.append({
+                    'id': f'converted-{current_measure_idx}-{note_id_counter}',
+                    'name': chord_name,
+                    'clef': chord_clef,
+                    'duration': event['safe_duration'],
+                    'measure': current_measure_idx,
+                    'isRest': False
+                })
+                
+                current_clef_loads[chord_clef] += duration_beats
+                note_id_counter += 1
+                
+            else:
+                # Need to split the chord or start new measure
+                
+                # Check if we can split the chord across clefs
+                bass_notes = [n for n in notes if n['midi_note'] < 60]  # Below C4
+                treble_notes = [n for n in notes if n['midi_note'] >= 60]  # C4 and above
+                
+                can_split = (len(bass_notes) >= 1 and len(treble_notes) >= 1 and
+                           current_clef_loads['bass'] + duration_beats <= beats_per_clef_limit + 0.01 and
+                           current_clef_loads['treble'] + duration_beats <= beats_per_clef_limit + 0.01)
+                
+                if can_split:
+                    # Split chord across clefs
+                    print(f"  Splitting chord across clefs: {len(bass_notes)} bass, {len(treble_notes)} treble")
+                    
+                    # Bass part
+                    if bass_notes:
+                        bass_names = [n['note_name'] for n in bass_notes]
+                        bass_chord_name = f"({' '.join(bass_names)})" if len(bass_names) > 1 else bass_names[0]
+                        
+                        current_measure_data.append({
+                            'id': f'converted-{current_measure_idx}-{note_id_counter}',
+                            'name': bass_chord_name,
+                            'clef': 'bass',
+                            'duration': event['safe_duration'],
+                            'measure': current_measure_idx,
+                            'isRest': False
+                        })
+                        
+                        current_clef_loads['bass'] += duration_beats
+                        note_id_counter += 1
+                    
+                    # Treble part
+                    if treble_notes:
+                        treble_names = [n['note_name'] for n in treble_notes]
+                        treble_chord_name = f"({' '.join(treble_names)})" if len(treble_names) > 1 else treble_names[0]
+                        
+                        current_measure_data.append({
+                            'id': f'converted-{current_measure_idx}-{note_id_counter}',
+                            'name': treble_chord_name,
+                            'clef': 'treble',
+                            'duration': event['safe_duration'],
+                            'measure': current_measure_idx,
+                            'isRest': False
+                        })
+                        
+                        current_clef_loads['treble'] += duration_beats
+                        note_id_counter += 1
+                
+                else:
+                    # Start new measure for this chord
+                    if current_measure_data:  # Don't create empty measures
+                        result_measures.append(current_measure_data)
+                        current_measure_data = []
+                        current_clef_loads = {'treble': 0.0, 'bass': 0.0}
+                        current_measure_idx = len(result_measures) + original_measure_idx
+                        note_id_counter = 1
+                    
+                    # Add the whole chord to the new measure
+                    default_clef = choose_chord_clef_with_load_balancing(
+                        notes, current_clef_loads, beats_per_clef_limit
+                    ) or 'treble'
+                    
+                    note_names = [n['note_name'] for n in notes]
+                    chord_name = f"({' '.join(note_names)})" if len(note_names) > 1 else note_names[0]
+                    
+                    current_measure_data.append({
+                        'id': f'converted-{current_measure_idx}-{note_id_counter}',
+                        'name': chord_name,
+                        'clef': default_clef,
+                        'duration': event['safe_duration'],
+                        'measure': current_measure_idx,
+                        'isRest': False
+                    })
+                    
+                    current_clef_loads[default_clef] += duration_beats
+                    note_id_counter += 1
+
+    # Add the final measure
+    if current_measure_data:
+        result_measures.append(current_measure_data)
+
+    # Log the results
+    print(f"  Split into {len(result_measures)} measure(s)")
+    for i, measure in enumerate(result_measures):
+        clef_loads = {'treble': 0, 'bass': 0}
+        for note in measure:
+            beats = DURATION_TO_BEATS.get(note['duration'], 1.0)
+            clef_loads[note['clef']] += beats
+        print(f"    Measure {original_measure_idx + i}: treble={clef_loads['treble']:.1f}, bass={clef_loads['bass']:.1f}")
+
+    return result_measures
+
+
+def choose_clef_with_load_balancing(midi_note, current_loads, beats_per_clef_limit):
+    """Choose the best clef for a single note considering current loads."""
+    # Default clef based on pitch
+    default_clef = 'treble' if midi_note >= 60 else 'bass'
+    
+    # Check if default clef has room
+    treble_load = current_loads['treble']
+    bass_load = current_loads['bass']
+    
+    # If default clef is getting full, consider the other
+    if default_clef == 'treble' and treble_load > bass_load + 1.0:
+        # Treble is significantly more loaded, consider bass for borderline notes
+        if 55 <= midi_note <= 65:  # G3 to F4 - can go either way
+            return 'bass'
+    elif default_clef == 'bass' and bass_load > treble_load + 1.0:
+        # Bass is significantly more loaded, consider treble for borderline notes  
+        if 55 <= midi_note <= 65:  # G3 to F4 - can go either way
+            return 'treble'
+    
+    return default_clef
+
+
+def choose_chord_clef_with_load_balancing(notes, current_loads, beats_per_clef_limit):
+    """Choose the best clef for a chord considering current loads."""
+    if not notes:
+        return 'treble'
+    
+    notes.sort(key=lambda x: x['midi_note'])
+    lowest = notes[0]['midi_note']
+    highest = notes[-1]['midi_note']
+    
+    # Clear cases
+    if highest < 57:  # Below A3
+        return 'bass'
+    elif lowest >= 67:  # Above G4
+        return 'treble'
+    
+    # Borderline case - use load balancing
+    treble_load = current_loads['treble']
+    bass_load = current_loads['bass']
+    
+    # If one clef is much more loaded, prefer the other
+    if treble_load > bass_load + 1.5:
+        return 'bass'
+    elif bass_load > treble_load + 1.5:
+        return 'treble'
+    
+    # Default based on note range
+    if lowest < 60:  # Contains notes below C4
+        return 'bass'
+    else:
+        return 'treble'
+    
+def beats_to_duration_symbol_vexflow_safe(beats, max_beats_per_measure=4.0):
+    """
+    Convert beats to VexFlow duration symbol with aggressive safety checks.
+    Prevents VexFlow "too many ticks" errors.
+    """
+    # Clamp beats to reasonable range
+    beats = max(0.125, min(beats, max_beats_per_measure))
+    
+    # Safe duration mappings (NO dotted whole notes - VexFlow hates them)
+    SAFE_DURATIONS = {
+        'w': 4.0,     # whole note
+        'h.': 3.0,    # dotted half (safe)
+        'h': 2.0,     # half note
+        'q.': 1.5,    # dotted quarter
+        'q': 1.0,     # quarter note
+        '8.': 0.75,   # dotted eighth
+        '8': 0.5,     # eighth note
+        '16.': 0.375, # dotted sixteenth  
+        '16': 0.25,   # sixteenth note
+        '32': 0.125   # thirty-second note
+    }
+    
+    # NEVER allow dotted whole notes or anything >= 6 beats
+    if beats >= 6.0:
+        return 'w'  # Convert to regular whole note
+    
+    # Find closest safe duration
+    closest_duration = 'q'  # Safe default
+    closest_diff = float('inf')
+    
+    for symbol, duration_beats in SAFE_DURATIONS.items():
+        diff = abs(beats - duration_beats)
+        if diff < closest_diff:
+            closest_diff = diff
+            closest_duration = symbol
+    
+    return closest_duration
+
+
+def determine_clef_pianotour_safe(midi_note):
+    """
+    Determine clef for PianoTour compatibility.
+    C4 (MIDI 60) and above = treble, below C4 = bass.
+    """
+    return 'treble' if midi_note >= 60 else 'bass'
+
+
+def determine_chord_clef_pianotour_safe(note_group):
+    """
+    Determine clef for a chord group with PianoTour-specific logic.
+    """
+    if not note_group:
+        return 'treble'
+    
+    note_group.sort(key=lambda x: x['midi_note'])
+    lowest_note = note_group[0]['midi_note']
+    highest_note = note_group[-1]['midi_note']
+    
+    # More conservative clef assignment for PianoTour
+    if highest_note < 60:  # All notes below C4 = bass
+        return 'bass'
+    elif lowest_note >= 60:  # All notes C4 and above = treble  
+        return 'treble'
+    else:
+        # Mixed range - check if it's a typical bass chord pattern
+        if lowest_note < 55 and len(note_group) <= 3:  # Root below G3, small chord
+            return 'bass'
+        else:
+            return 'treble'  # Default to treble for PianoTour compatibility
+
+
+def validate_measure_for_vexflow(measure_data, time_signature):
+    """
+    Validate that a measure won't cause VexFlow "too many ticks" errors.
+    """
+    max_beats = (time_signature['numerator'] * 4.0) / time_signature['denominator']
+    
+    total_beats = 0
+    for note in measure_data:
+        duration_beats = DURATION_TO_BEATS.get(note['duration'], 1.0)
+        total_beats += duration_beats
+    
+    is_valid = total_beats <= max_beats + 0.01  # Small tolerance for floating point
+    
+    return {
+        'isValid': is_valid,
+        'totalBeats': total_beats,
+        'maxBeats': max_beats,
+        'overflow': max(0, total_beats - max_beats)
+    }

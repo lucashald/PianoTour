@@ -256,6 +256,7 @@ async function loadJsonFile(file) {
         // Use scoreManager to process and validate the score
         const processedScore = await scoreManager.processScore(text, {
             fileName: file.name,
+            skipBeatValidation: true,
             onProgress: (current, total, message) => {
                 updateProgress(current, total, message);
             }
@@ -356,12 +357,11 @@ async function applyProcessedScore(processedScore) {
     }
 }
 
-// Load MIDI file with scoreManager processing (same as JSON files)
+// Load MIDI file with scoreManager processing (simplified)
 async function loadMidiFile(file) {
     const formData = new FormData();
     formData.append('midiFile', file);
     
-    // Show progress for all MIDI files since they need more processing
     showProgressModal();
     updateProgress(0, 1, 'Converting MIDI file...', 'Server processing');
    
@@ -374,7 +374,6 @@ async function loadMidiFile(file) {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             
-            // Handle specific server errors gracefully
             if (response.status === 500) {
                 console.error('Server error during MIDI conversion:', errorData);
                 throw new Error('The MIDI file could not be processed. It may be too complex or corrupted.');
@@ -387,41 +386,36 @@ async function loadMidiFile(file) {
             throw new Error(errorData.error || `Server error (${response.status}). Please try again.`);
         }
 
-        const jsonDataFromServer = await response.json();
+        const vexflowJsonFromServer = await response.json();
         console.log("MIDI conversion successful, processing through scoreManager...");
         
         updateProgress(0.3, 1, 'Processing converted data...', 'Running validation');
 
-        // Convert the raw server response to the format expected by scoreManager
-        const scoreDataForManager = {
-            keySignature: jsonDataFromServer.keySignature || 'C',
-            tempo: jsonDataFromServer.tempo || 120,
-            timeSignature: jsonDataFromServer.timeSignature || { numerator: 4, denominator: 4 },
-            instrument: jsonDataFromServer.instrument || 'piano',
-            midiChannel: jsonDataFromServer.midiChannel || 0,
-            isMinorChordMode: jsonDataFromServer.isMinorChordMode || false,
-            measures: Array.isArray(jsonDataFromServer) ? jsonDataFromServer : jsonDataFromServer.measures || []
-        };
+        // Server now returns proper VexFlow format - no transformation needed!
+        // Just validate it has the required structure
+        if (!vexflowJsonFromServer.measures || !Array.isArray(vexflowJsonFromServer.measures)) {
+            throw new Error('Invalid server response - missing measures array');
+        }
 
-        // Process through scoreManager (same as JSON files)
-        const processedScore = await scoreManager.processScore(JSON.stringify(scoreDataForManager), {
-            fileName: file.name.replace('.mid', '.json'), // Treat as JSON for processing
-            onProgress: (current, total, message) => {
-                // Map scoreManager progress to 30-90% of total progress
-                const adjustedCurrent = 0.3 + (current / total) * 0.6;
-                updateProgress(adjustedCurrent, 1, message, `Processing measure ${current} of ${total}`);
-            }
-        });
+        // Process through scoreManager with splitting disabled for MIDI files
+const processedScore = await scoreManager.processScore(JSON.stringify(vexflowJsonFromServer), {
+    fileName: file.name.replace('.mid', '.json'),
+    disableSplitting: true,  // Disable measure splitting for MIDI files
+    onProgress: (current, total, message) => {
+        const adjustedCurrent = 0.3 + (current / total) * 0.6;
+        updateProgress(adjustedCurrent, 1, message, `Processing measure ${current} of ${total}`);
+    }
+});
 
         updateProgress(0.9, 1, 'Applying to score...', 'Almost done');
 
-        // Apply the processed score using the same logic as JSON files
+        // Apply the processed score
         await applyProcessedScore(processedScore);
         
-        // Handle validation issues like JSON files
+        // Handle validation issues
         if (processedScore.validationErrors && processedScore.validationErrors.length > 0) {
             console.warn('MIDI validation warnings:', processedScore.validationErrors);
-            setTimeout(hideProgressModal, 3000); // Show issues for 3 seconds
+            setTimeout(hideProgressModal, 3000);
         } else {
             hideProgressModal();
         }
@@ -432,16 +426,12 @@ async function loadMidiFile(file) {
         console.error('MIDI loading failed:', error);
         hideProgressModal();
         
-        // Show user-friendly error message
         const userMessage = getUserFriendlyMidiError(error, file);
         alert(userMessage);
         
-        // Don't re-throw - just log and show message
         return false;
-        
     }
 }
-
 // Generate user-friendly error messages for MIDI
 function getUserFriendlyMidiError(error, file) {
     const fileName = file ? file.name : 'MIDI file';
