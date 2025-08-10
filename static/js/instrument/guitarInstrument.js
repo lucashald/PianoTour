@@ -12,7 +12,8 @@ const FRET_COUNT = 20;
 const STRING_COUNT = 6;
 
 // Standard guitar tuning (MIDI numbers) - Indexed 0-5 for strings 1-6 (thinnest to thickest)
-const GUITAR_TUNING = [
+// Changed from const to let so it can be modified
+let GUITAR_TUNING = [
   64, // E4 (high E) - STRING 1, thinnest
   59, // B3           - STRING 2
   55, // G3           - STRING 3
@@ -20,6 +21,19 @@ const GUITAR_TUNING = [
   45, // A2           - STRING 5
   40  // E2 (low E)  - STRING 6, thickest
 ];
+
+// Preset tunings - names match the chord database exactly
+const PRESET_TUNINGS = {
+  standard: [64, 59, 55, 50, 45, 40],      // E4, B3, G3, D3, A2, E2
+  drop_d: [64, 59, 55, 50, 45, 38],        // E4, B3, G3, D3, A2, D2
+  open_g: [67, 59, 55, 50, 43, 38],        // G4, B3, G3, D3, G2, D2
+  open_d: [62, 57, 55, 50, 45, 38],        // D4, A3, G3, D3, A2, D2
+  open_e: [64, 60, 56, 52, 47, 40],        // E4, C4, G#3, E3, B2, E2
+  open_a: [64, 61, 57, 52, 45, 40],        // E4, C#4, A3, E3, A2, E2 (assuming this tuning)
+  dadgad: [62, 57, 55, 50, 45, 38],        // D4, A3, G3, D3, A2, D2
+  half_step_down: [63, 58, 54, 49, 44, 39], // Eb4, Bb3, Gb3, Db3, Ab2, Eb2
+  full_step_down: [62, 57, 53, 48, 43, 38]  // D4, A3, F3, C3, G2, D2
+};
 
 // Convert MIDI to note name
 function midiToNoteName(midiNumber) {
@@ -36,6 +50,90 @@ const guitarState = {
   mutedStrings: [false, false, false, false, false, false],
   sustainMode: false
 };
+
+/**
+ * Set guitar tuning
+ * @param {Array|string} tuning - Array of 6 MIDI numbers or preset name
+ * @returns {boolean} Success
+ */
+function setGuitarTuning(tuning) {
+  let newTuning;
+  
+  if (typeof tuning === 'string') {
+    // Use preset tuning
+    if (PRESET_TUNINGS[tuning]) {
+      newTuning = [...PRESET_TUNINGS[tuning]];
+      console.log(`🎸 Setting guitar to ${tuning} tuning:`, newTuning.map(midi => midiToNoteName(midi)));
+    } else {
+      console.error(`❌ Unknown preset tuning: ${tuning}`);
+      console.log('Available presets:', Object.keys(PRESET_TUNINGS));
+      return false;
+    }
+  } else if (Array.isArray(tuning)) {
+    // Use custom tuning array
+    if (tuning.length !== 6) {
+      console.error('❌ Tuning must have exactly 6 strings');
+      return false;
+    }
+    
+    // Validate MIDI numbers (reasonable range for guitar)
+    const validRange = tuning.every(midi => 
+      Number.isInteger(midi) && midi >= 24 && midi <= 84
+    );
+    
+    if (!validRange) {
+      console.error('❌ Invalid MIDI numbers in tuning (must be integers between 24-84)');
+      return false;
+    }
+    
+    newTuning = [...tuning];
+    console.log('🎸 Setting custom guitar tuning:', newTuning.map(midi => midiToNoteName(midi)));
+  } else {
+    console.error('❌ Tuning must be an array of MIDI numbers or preset name');
+    return false;
+  }
+  
+  // Update the tuning
+  GUITAR_TUNING = newTuning;
+  
+  // Update any existing guitar instance
+  if (window.guitarInstance) {
+    window.guitarInstance.updateAfterTuningChange();
+  }
+  
+  return true;
+}
+
+/**
+ * Get current guitar tuning
+ * @returns {Array} Current tuning as MIDI numbers
+ */
+function getCurrentTuning() {
+  return [...GUITAR_TUNING];
+}
+
+/**
+ * Get current tuning as note names
+ * @returns {Array} Current tuning as note names
+ */
+function getCurrentTuningNotes() {
+  return GUITAR_TUNING.map(midi => midiToNoteName(midi));
+}
+
+/**
+ * Get available preset tunings
+ * @returns {Object} Object with preset names and their tunings
+ */
+function getPresetTunings() {
+  const presets = {};
+  for (const [name, tuning] of Object.entries(PRESET_TUNINGS)) {
+    presets[name] = {
+      midi: [...tuning],
+      notes: tuning.map(midi => midiToNoteName(midi))
+    };
+  }
+  return presets;
+}
 
 class GuitarInstrument {
   constructor(containerId) {
@@ -70,6 +168,23 @@ class GuitarInstrument {
     } else {
       this.setupAudioEventListeners();
     }
+  }
+
+  // NEW: Method to update guitar after tuning change
+  updateAfterTuningChange() {
+    console.log('🎸 Updating guitar display after tuning change');
+    
+    // Clear all current finger positions
+    for (let stringNum = 1; stringNum <= STRING_COUNT; stringNum++) {
+      this.clearFingerPosition(stringNum);
+      guitarState.currentFrets[stringNum - 1] = 0;
+      guitarState.mutedStrings[stringNum - 1] = false;
+    }
+    
+    // Update all string labels with new tuning
+    this.updateStringLabels();
+    
+    console.log('✅ Guitar updated for new tuning:', getCurrentTuningNotes());
   }
 
   createFretboard() {
@@ -443,7 +558,7 @@ updateStringLabel(stringNum) {
   }
 
   // NEW: Start strum method
-  startStrum(direction = 'down') {0
+  startStrum(direction = 'down') {
     if (!audioManager.isAudioReady()) {
       return;
     }
@@ -557,6 +672,7 @@ setChord(fretData) {
     return notes;
   }
 }
+
 export function handleInitialGuitar(e, actionData = null) {
   e.stopPropagation();
   e.preventDefault();
@@ -670,4 +786,11 @@ export function initializeGuitar(containerSelector = '#instrument') {
     return guitar;
 }
 
-export { GuitarInstrument, guitarState };
+export { 
+  GuitarInstrument, 
+  guitarState, 
+  setGuitarTuning, 
+  getCurrentTuning, 
+  getCurrentTuningNotes, 
+  getPresetTunings 
+};

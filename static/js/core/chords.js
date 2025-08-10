@@ -1,10 +1,12 @@
-// chords.js
-import { initializeGuitar, GuitarInstrument, guitarState } from '../instrument/guitarInstrument.js';
+// chords.js - Simple chord database with guitar tuning integration
+import { setGuitarTuning, getCurrentTuningNotes, getPresetTunings } from '../instrument/guitarInstrument.js';
 
 let chordsDatabase = null;
-let guitarInstance = null;
 
-// Load the chord database
+/**
+ * Load the chord database from JSON file
+ * @returns {Promise<Object>} The loaded chord database
+ */
 async function loadChordDatabase() {
     if (chordsDatabase === null) {
         try {
@@ -22,50 +24,83 @@ async function loadChordDatabase() {
     return chordsDatabase;
 }
 
-// Initialize guitar instrument
-async function initializeGuitarInstrument(containerId = 'instrument') {
-    if (!guitarInstance) {
-        try {
-            guitarInstance = initializeGuitar(`#${containerId}`);
-            if (guitarInstance) {
-                console.log('✅ Guitar instrument integrated with chord database');
-            } else {
-                console.warn('⚠️  Guitar instrument not available - continuing without guitar integration');
-            }
-        } catch (error) {
-            console.warn('⚠️  Could not initialize guitar instrument:', error);
-        }
+/**
+ * Initialize the chord database
+ * @returns {Promise<boolean>} True if successful
+ */
+async function initializeChordDatabase() {
+    try {
+        await loadChordDatabase();
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to initialize chord database:', error);
+        return false;
     }
-    return guitarInstance;
 }
 
 /**
  * Get available tunings from the database
- * @returns {Array} - Array of tuning names
+ * @returns {Promise<Array>} Array of tuning names
  */
 async function getAvailableTunings() {
     await loadChordDatabase();
     
     const tunings = new Set();
     
+    // Add tunings from chord database
     for (const chordData of Object.values(chordsDatabase || {})) {
         const chordTunings = chordData.tunings || {};
         Object.keys(chordTunings).forEach(tuning => tunings.add(tuning));
+    }
+    
+    // Also add preset tunings from guitarInstrument (even if no chords available)
+    try {
+        const presetTunings = getPresetTunings();
+        Object.keys(presetTunings).forEach(tuning => tunings.add(tuning));
+    } catch (error) {
+        console.warn('Could not get preset tunings:', error);
     }
     
     return Array.from(tunings).sort();
 }
 
 /**
- * Get the best fingering for a chord in a specific tuning
- * Priority: ID "0" (best) > ID "1" > etc. > fallback
- * @param {string} chordName - The chord name
- * @param {string} tuning - The tuning name (default: "standard")
- * @param {boolean} setOnGuitar - Whether to automatically set the chord on the guitar (default: true)
- * @returns {Object} - Fingering object with frets, fingers, and metadata
+ * Change guitar tuning and update display
+ * @param {string} tuningName - Name of the tuning
+ * @returns {Promise<boolean>} True if successful
  */
-async function getBestFingering(chordName, tuning = "standard", setOnGuitar = true) {
+async function changeGuitarTuning(tuningName) {
+    try {
+        console.log(`🔧 Changing guitar tuning to: ${tuningName}`);
+        
+        // Try to set the tuning using guitarInstrument
+        const success = setGuitarTuning(tuningName);
+        
+        if (success) {
+            const currentNotes = getCurrentTuningNotes();
+            console.log(`✅ Guitar tuning changed to ${tuningName}:`, currentNotes);
+            
+            // Trigger a custom event that the UI can listen to
+            window.dispatchEvent(new CustomEvent('guitarTuningChanged', {
+                detail: { tuning: tuningName, notes: currentNotes }
+            }));
+            
+            return true;
+        } else {
+            console.error(`❌ Failed to set tuning: ${tuningName}`);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Error changing guitar tuning:', error);
+        return false;
+    }
+}
+
+async function getBestFingering(chordName, tuning = "standard") {
     await loadChordDatabase();
+    
+    // Map the tuning name to database format
+    const dbTuningName = mapTuningName(tuning);
     
     // Fallback fingering if nothing else works
     const fallbackFingering = {
@@ -74,27 +109,19 @@ async function getBestFingering(chordName, tuning = "standard", setOnGuitar = tr
         id: "FALLBACK",
         isFallback: true,
         chordName,
-        tuning
+        tuning: dbTuningName
     };
     
     if (!chordsDatabase || !chordsDatabase[chordName]) {
         console.warn(`⚠️  Chord "${chordName}" not found in database`);
-        if (setOnGuitar && guitarInstance) {
-            const guitarOrderFrets = convertToGuitarOrder(fallbackFingering.frets);
-            guitarInstance.setChord(guitarOrderFrets);
-        }
         return fallbackFingering;
     }
     
     const chord = chordsDatabase[chordName];
-    const fingerings = chord.tunings?.[tuning] || [];
+    const fingerings = chord.tunings?.[dbTuningName] || [];
     
     if (!fingerings || fingerings.length === 0) {
-        console.warn(`⚠️  No fingerings found for "${chordName}" in ${tuning} tuning`);
-        if (setOnGuitar && guitarInstance) {
-            const guitarOrderFrets = convertToGuitarOrder(fallbackFingering.frets);
-            guitarInstance.setChord(guitarOrderFrets);
-        }
+        console.warn(`⚠️  No fingerings found for "${chordName}" in ${dbTuningName} tuning`);
         return fallbackFingering;
     }
     
@@ -105,22 +132,11 @@ async function getBestFingering(chordName, tuning = "standard", setOnGuitar = tr
     bestFingering = {
         ...bestFingering,
         chordName,
-        tuning,
+        tuning: dbTuningName,
         displayName: chord.displayName || chordName,
         notes: chord.notes || [],
         priority: bestFingering.id
     };
-    
-    // Automatically set on guitar if enabled and guitar is available
-    if (setOnGuitar && guitarInstance && tuning === 'standard') {
-        try {
-            const guitarOrderFrets = convertToGuitarOrder(bestFingering.frets);
-            guitarInstance.setChord(guitarOrderFrets);
-            console.log(`🎸 Set ${chordName} on guitar:`, guitarOrderFrets);
-        } catch (error) {
-            console.warn('⚠️  Could not set chord on guitar:', error);
-        }
-    }
     
     return bestFingering;
 }
@@ -128,7 +144,7 @@ async function getBestFingering(chordName, tuning = "standard", setOnGuitar = tr
 /**
  * Look up a chord in the database
  * @param {string} chordName - The name of the chord (e.g., "C", "Am", "D7")
- * @returns {Object|null} - The chord data or null if not found
+ * @returns {Promise<Object|null>} The chord data or null if not found
  */
 async function getChord(chordName) {
     await loadChordDatabase();
@@ -162,8 +178,8 @@ async function getChord(chordName) {
 /**
  * Get all fingerings for a specific tuning
  * @param {string} chordName - The chord name
- * @param {string} tuning - The tuning name (default: "standard")
- * @returns {Array} - Array of fingering objects
+ * @param {string} tuning - The tuning name (guitar preset name)
+ * @returns {Promise<Array>} Array of fingering objects
  */
 async function getChordFingerings(chordName, tuning = "standard") {
     const chord = await getChord(chordName);
@@ -172,12 +188,15 @@ async function getChordFingerings(chordName, tuning = "standard") {
         return [];
     }
     
-    return chord.tunings?.[tuning] || [];
+    // Map the tuning name to database format
+    const dbTuningName = mapTuningName(tuning);
+    
+    return chord.tunings?.[dbTuningName] || [];
 }
 
 /**
  * Get all available chord names
- * @returns {Array} - Array of chord names
+ * @returns {Promise<Array>} Array of chord names
  */
 async function getAllChordNames() {
     await loadChordDatabase();
@@ -185,9 +204,18 @@ async function getAllChordNames() {
 }
 
 /**
+ * Get chord count
+ * @returns {Promise<number>} Number of chords in database
+ */
+async function getChordCount() {
+    await loadChordDatabase();
+    return Object.keys(chordsDatabase || {}).length;
+}
+
+/**
  * Search for chords by partial name match
  * @param {string} searchTerm - Partial chord name
- * @returns {Array} - Array of matching chord names
+ * @returns {Promise<Array>} Array of matching chord names
  */
 async function searchChords(searchTerm) {
     const allChords = await getAllChordNames();
@@ -199,25 +227,9 @@ async function searchChords(searchTerm) {
 }
 
 /**
- * Set a chord by name on the guitar
- * @param {string} chordName - The chord name
- * @param {string} tuning - The tuning name (default: "standard")
- * @returns {Object} - The fingering that was set
- */
-async function setChordOnGuitar(chordName, tuning = "standard") {
-    if (!guitarInstance) {
-        console.warn('⚠️  Guitar instance not available');
-        return null;
-    }
-    
-    const fingering = await getBestFingering(chordName, tuning, true); // setOnGuitar=true
-    return fingering;
-}
-
-/**
  * Get a random chord from the database
  * @param {string} tuning - Optional tuning filter
- * @returns {Object} - Random chord data with best fingering
+ * @returns {Promise<Object|null>} Random chord data with best fingering
  */
 async function getRandomChord(tuning = null) {
     await loadChordDatabase();
@@ -241,14 +253,14 @@ async function getRandomChord(tuning = null) {
     
     return {
         chordName: randomChordName,
-        fingering: await getBestFingering(randomChordName, randomTuning, false) // Don't auto-set
+        fingering: await getBestFingering(randomChordName, randomTuning)
     };
 }
 
 /**
  * Validate a fingering array
  * @param {Array} frets - Array of fret numbers (null for muted strings)
- * @returns {boolean} - True if valid
+ * @returns {boolean} True if valid
  */
 function isValidFingering(frets) {
     return Array.isArray(frets) && 
@@ -259,7 +271,7 @@ function isValidFingering(frets) {
 /**
  * Format fingering for display
  * @param {Array} frets - Fret array
- * @returns {string} - Formatted string (e.g., "x32010")
+ * @returns {string} Formatted string (e.g., "x32010")
  */
 function formatFingering(frets) {
     if (!isValidFingering(frets)) {
@@ -274,7 +286,7 @@ function formatFingering(frets) {
  * Our DB: [low_E, A, D, G, B, high_E] (strings 6,5,4,3,2,1)
  * Guitar: [high_E, B, G, D, A, low_E] (strings 1,2,3,4,5,6)
  * @param {Array} databaseFrets - Frets in database order
- * @returns {Array} - Frets in guitar order
+ * @returns {Array} Frets in guitar order
  */
 function convertToGuitarOrder(databaseFrets) {
     if (!Array.isArray(databaseFrets) || databaseFrets.length !== 6) {
@@ -288,7 +300,7 @@ function convertToGuitarOrder(databaseFrets) {
 /**
  * Convert guitar fret order to our database order
  * @param {Array} guitarFrets - Frets in guitar order
- * @returns {Array} - Frets in database order
+ * @returns {Array} Frets in database order
  */
 function convertFromGuitarOrder(guitarFrets) {
     if (!Array.isArray(guitarFrets) || guitarFrets.length !== 6) {
@@ -302,7 +314,7 @@ function convertFromGuitarOrder(guitarFrets) {
 /**
  * Get chord notes as a formatted string
  * @param {string} chordName - The chord name
- * @returns {string} - Formatted notes string
+ * @returns {Promise<string>} Formatted notes string
  */
 async function getChordNotes(chordName) {
     const chord = await getChord(chordName);
@@ -315,29 +327,51 @@ async function getChordNotes(chordName) {
 }
 
 /**
- * Initialize the chord system with guitar integration
- * @param {string} guitarContainerId - ID of the container for the guitar
- * @returns {Promise<Object>} - Initialization result
+ * Create a mapping between guitar preset names and database tuning names
+ * @returns {Object} Mapping object
  */
-async function initializeChordSystem(guitarContainerId = 'instrument') {
+function createTuningNameMapping() {
+    return {
+        // Guitar preset name -> Database tuning name
+        'standard': 'standard',
+        'dropD': 'drop_d',
+        'openG': 'open_g', 
+        'openD': 'open_d',
+        'openE': 'open_e',
+        'openA': 'open_a',
+        'dadgad': 'dadgad',
+        'halfStepDown': 'half_step_down',
+        'fullStepDown': 'full_step_down'
+    };
+}
+
+/**
+ * Convert guitar preset tuning name to database tuning name
+ * @param {string} presetName - Guitar preset name
+ * @returns {string} Database tuning name
+ */
+function mapTuningName(presetName) {
+    const mapping = createTuningNameMapping();
+    const mapped = mapping[presetName] || presetName;
+    console.log(`🔄 Mapping tuning: ${presetName} -> ${mapped}`);
+    return mapped;
+}
+
+/**
+ * Get current guitar tuning information
+ * @returns {Object} Current tuning info
+ */
+function getCurrentGuitarTuning() {
     try {
-        // Load database first
-        await loadChordDatabase();
-        
-        // Initialize guitar instrument
-        await initializeGuitarInstrument(guitarContainerId);
-        
         return {
-            success: true,
-            database: !!chordsDatabase,
-            guitar: !!guitarInstance,
-            chordCount: chordsDatabase ? Object.keys(chordsDatabase).length : 0
+            notes: getCurrentTuningNotes(),
+            presets: getPresetTunings()
         };
     } catch (error) {
-        console.error('❌ Error initializing chord system:', error);
+        console.warn('Could not get current guitar tuning:', error);
         return {
-            success: false,
-            error: error.message
+            notes: ['E4', 'B3', 'G3', 'D3', 'A2', 'E2'], // Standard tuning fallback
+            presets: {}
         };
     }
 }
@@ -345,40 +379,43 @@ async function initializeChordSystem(guitarContainerId = 'instrument') {
 // Export all functions
 export {
     loadChordDatabase,
-    initializeChordSystem,
-    initializeGuitarInstrument,
+    initializeChordDatabase,
     getChord,
     getChordFingerings,
     getBestFingering,
     getAvailableTunings,
     getAllChordNames,
+    getChordCount,
     searchChords,
-    setChordOnGuitar,
     getRandomChord,
     isValidFingering,
     formatFingering,
     convertToGuitarOrder,
     convertFromGuitarOrder,
-    getChordNotes
+    getChordNotes,
+    changeGuitarTuning,
+    getCurrentGuitarTuning
 };
 
 // For compatibility with non-module environments
 if (typeof window !== 'undefined') {
     window.ChordDatabase = {
         loadChordDatabase,
-        initializeChordSystem,
+        initializeChordDatabase,
         getChord,
         getChordFingerings,
         getBestFingering,
         getAvailableTunings,
         getAllChordNames,
+        getChordCount,
         searchChords,
-        setChordOnGuitar,
         getRandomChord,
         isValidFingering,
         formatFingering,
         convertToGuitarOrder,
         convertFromGuitarOrder,
-        getChordNotes
+        getChordNotes,
+        changeGuitarTuning,
+        getCurrentGuitarTuning
     };
 }
