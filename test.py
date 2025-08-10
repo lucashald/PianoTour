@@ -158,7 +158,10 @@ def testplayer():
 def integrated():
     return render_template('spesIndex.html')
 
-
+@app.route('/chords')
+def chords():
+    """Chords page"""
+    return render_template('chords.html', show_side_panel=True)
 # SpessaSynth expects these routes:
 
 

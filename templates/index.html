@@ -39,11 +39,12 @@
         {% block player %} {% include 'partials/_player.html' %} {% endblock %}
         {% block volume %} {% include 'partials/_volumeControl.html' %} {% endblock %}
         {% block top %}{% endblock %}
-        {% block palette %}{% endblock %}
+        
         
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
           {% block score %} {% if not hide_score %} {% include
           'partials/_score.html' %} {% endif %} {% endblock %}
+          {% block palette %}{% endblock %}
         <div class="outer-wrapper">
         <section class="instrument-panel">
           {% block spectrum %} {% if not hide_spectrum %} {% include

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord Database + Guitar Integration Test</title>
+        <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/pianostyles.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='images/favicon.ico') }}"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
+    {% block head %}{% endblock %}
+  </head>
+  <body id="page-instrument">
+    <audio id="unlock-audio" preload="auto" style="display: none">
+      <source
+        src="{{ url_for('static', filename='silence.mp3') }}"
+        type="audio/mpeg"
+      />
+    </audio>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .control-panel {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .control-panel label {
+            display: inline-block;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .control-panel input, .control-panel select, .control-panel button {
+            margin-right: 15px;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .control-panel button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .control-panel button:hover {
+            background: #0056b3;
+        }
+        
+        .results-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .result-box {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .guitar-section {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .guitar-container {
+            min-height: 300px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .random-chord-section {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* Basic guitar fretboard styles - you'll want to link to your actual guitar.css */
+        .guitar-fretboard {
+            /* Add your guitar CSS styles here or link to guitar.css */
+        }
+    </style>
+    
+    <!-- Link to your actual guitar CSS if available -->
+    <!-- <link rel="stylesheet" href="/static/css/guitar.css"> -->
+</head>
+<body>
+    <h1>🎸 Chord Database + Guitar Integration Test</h1>
+    
+    <!-- System Status -->
+    <div id="systemStatus" class="control-panel">
+        <h3>System Status</h3>
+        <span id="databaseStatus" class="status-indicator">Loading...</span>
+        <span id="guitarStatus" class="status-indicator">Loading...</span>
+    </div>
+    
+    <!-- Main Controls -->
+    <div class="control-panel">
+        <label for="chordInput">Chord Name:</label>
+        <input type="text" id="chordInput" placeholder="e.g., C, Am, Bm, F#7" value="C" />
+        
+        <label for="tuningSelect">Tuning:</label>
+        <select id="tuningSelect">
+            <option value="standard">Loading tunings...</option>
+        </select>
+        
+        <button onclick="lookupChord()">🔍 Lookup & Set</button>
+        <button onclick="getRandomChord()">🎲 Random Chord</button>
+    </div>
+    
+    <!-- Guitar Instrument -->
+    <div class="guitar-section">
+        <h3>🎸 Virtual Guitar</h3>
+        <div id="instrument" class="guitar-container">
+            <!-- Guitar fretboard will be created here -->
+        </div>
+        <p><em>The guitar will automatically update when you lookup chords. Click strings to play individual notes or use the strum area.</em></p>
+    </div>
+    
+    <!-- Results -->
+    <div class="results-section">
+        <div class="result-box">
+            <h3>🎯 Best Fingering Result</h3>
+            <div id="result">Select a chord and tuning, then click "Lookup & Set"</div>
+        </div>
+        
+        <div class="result-box">
+            <h3>📋 All Available Fingerings</h3>
+            <div id="allFingerings">Will show all available fingerings for comparison</div>
+        </div>
+    </div>
+    
+    <!-- Random Chord Practice -->
+    <div class="random-chord-section">
+        <h3>🎲 Random Chord Practice</h3>
+        <button onclick="startChordPractice()">Start Practice Session</button>
+        <button onclick="nextRandomChord()">Next Random Chord</button>
+        <div id="practiceResult" style="margin-top: 10px;">Click "Start Practice Session" to begin</div>
+    </div>
+
+    <script type="module">
+        import * as ChordDB from '/static/js/core/chords.js';
+        
+        let practiceMode = false;
+        let currentPracticeChord = null;
+        
+        // Update system status indicators
+        function updateStatus(elementId, status, text) {
+            const element = document.getElementById(elementId);
+            element.className = `status-indicator status-${status}`;
+            element.textContent = text;
+        }
+        
+        // Load available tunings into dropdown
+        async function loadTunings() {
+            try {
+                const tunings = await ChordDB.getAvailableTunings();
+                const tuningSelect = document.getElementById('tuningSelect');
+                
+                tuningSelect.innerHTML = '';
+                tunings.forEach(tuning => {
+                    const option = document.createElement('option');
+                    option.value = tuning;
+                    option.textContent = tuning.charAt(0).toUpperCase() + tuning.slice(1);
+                    if (tuning === 'standard') {
+                        option.selected = true;
+                    }
+                    tuningSelect.appendChild(option);
+                });
+                
+                console.log(`✅ Loaded ${tunings.length} tunings:`, tunings);
+            } catch (error) {
+                console.error('❌ Error loading tunings:', error);
+            }
+        }
+        
+        // Main lookup function
+        window.lookupChord = async function() {
+            const chordInput = document.getElementById('chordInput');
+            const tuningSelect = document.getElementById('tuningSelect');
+            const resultElement = document.getElementById('result');
+            const allFingeringsElement = document.getElementById('allFingerings');
+            
+            const chordName = chordInput.value.trim();
+            const tuning = tuningSelect.value;
+            
+            if (!chordName) {
+                resultElement.innerHTML = '<p style="color: red;">Please enter a chord name</p>';
+                return;
+            }
+            
+            try {
+                resultElement.innerHTML = 'Loading...';
+                allFingeringsElement.innerHTML = 'Loading...';
+                
+                // Get best fingering (this will automatically set it on the guitar if available)
+                const bestFingering = await ChordDB.getBestFingering(chordName, tuning, true);
+                
+                // Get all fingerings for comparison
+                const allFingerings = await ChordDB.getChordFingerings(chordName, tuning);
+                
+                // Display best fingering
+                const fretDisplay = ChordDB.formatFingering(bestFingering.frets);
+                const guitarOrderFrets = ChordDB.convertToGuitarOrder(bestFingering.frets);
+                const guitarOrderDisplay = ChordDB.formatFingering(guitarOrderFrets);
+                
+                let resultHTML = `
+                    <h4>${bestFingering.displayName || chordName}</h4>
+                    <p><strong>Best Fingering (ID: ${bestFingering.id || 'Unknown'}):</strong></p>
+                    <p><code>Database: [${bestFingering.frets.map(f => f === null ? 'x' : f).join(', ')}]</code></p>
+                    <p><code>Guitar:   [${guitarOrderFrets.map(f => f === null ? 'x' : f).join(', ')}]</code></p>
+                    <p><strong>Formatted:</strong> ${guitarOrderDisplay}</p>
+                `;
+                
+                if (bestFingering.notes && bestFingering.notes.length > 0) {
+                    resultHTML += `<p><strong>Notes:</strong> ${bestFingering.notes.join(', ')}</p>`;
+                }
+                
+                if (bestFingering.isFallback) {
+                    resultHTML += `<p style="color: red;">⚠️ Using fallback fingering - chord not found in database</p>`;
+                } else if (tuning === 'standard') {
+                    resultHTML += `<p style="color: green;">🎸 Automatically set on guitar!</p>`;
+                }
+                
+                if (bestFingering.recommended) {
+                    resultHTML += `<p style="color: blue;">⭐ Recommended fingering</p>`;
+                }
+                
+                resultElement.innerHTML = resultHTML;
+                
+                // Display all available fingerings
+                if (allFingerings.length > 0) {
+                    let allHTML = `<h4>All Fingerings (${allFingerings.length}):</h4>`;
+                    
+                    allFingerings.forEach((fingering) => {
+                        const frets = fingering.frets || [];
+                        const id = fingering.id || 'Unknown';
+                        const display = ChordDB.formatFingering(frets);
+                        const recommended = fingering.recommended ? ' ⭐' : '';
+                        const isGemini = fingering.gemini_recommended ? ' 🤖' : '';
+                        
+                        allHTML += `<p><strong>ID ${id}:</strong> [${frets.map(f => f === null ? 'x' : f).join(', ')}] = "${display}"${recommended}${isGemini}</p>`;
+                    });
+                    
+                    allFingeringsElement.innerHTML = allHTML;
+                } else {
+                    allFingeringsElement.innerHTML = `<p>No fingerings available for ${chordName} in ${tuning} tuning</p>`;
+                }
+                
+            } catch (error) {
+                resultElement.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                allFingeringsElement.innerHTML = '';
+                console.error('Chord lookup error:', error);
+            }
+        };
+        
+        // Get random chord
+        window.getRandomChord = async function() {
+            try {
+                const tuning = document.getElementById('tuningSelect').value;
+                const randomChord = await ChordDB.getRandomChord(tuning);
+                
+                if (randomChord) {
+                    document.getElementById('chordInput').value = randomChord.chordName;
+                    await lookupChord();
+                } else {
+                    alert('No chords available for the selected tuning');
+                }
+            } catch (error) {
+                console.error('Error getting random chord:', error);
+            }
+        };
+        
+        // Practice mode functions
+        window.startChordPractice = function() {
+            practiceMode = true;
+            nextRandomChord();
+            document.getElementById('practiceResult').innerHTML = '<p style="color: green;">Practice mode started! Try to play the chord shown above.</p>';
+        };
+        
+        window.nextRandomChord = function() {
+            if (practiceMode) {
+                getRandomChord();
+            } else {
+                startChordPractice();
+            }
+        };
+        
+        // Add enter key support
+        document.getElementById('chordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                lookupChord();
+            }
+        });
+        
+        // Auto-lookup when tuning changes
+        document.getElementById('tuningSelect').addEventListener('change', function() {
+            const chordInput = document.getElementById('chordInput');
+            if (chordInput.value.trim()) {
+                lookupChord();
+            }
+        });
+        
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            try {
+                updateStatus('databaseStatus', 'warning', 'Loading database...');
+                updateStatus('guitarStatus', 'warning', 'Initializing guitar...');
+                
+                // Initialize the complete chord system (database + guitar)
+                const initResult = await ChordDB.initializeChordSystem('instrument');
+                
+                // Update status indicators
+                if (initResult.database) {
+                    updateStatus('databaseStatus', 'success', `Database loaded (${initResult.chordCount} chords)`);
+                } else {
+                    updateStatus('databaseStatus', 'error', 'Database failed to load');
+                }
+                
+                if (initResult.guitar) {
+                    updateStatus('guitarStatus', 'success', 'Guitar ready');
+                } else {
+                    updateStatus('guitarStatus', 'warning', 'Guitar not available');
+                }
+                
+                // Load tunings and auto-lookup default chord
+                await loadTunings();
+                console.log('✅ Chord system initialized:', initResult);
+                
+                // Auto-lookup the default chord
+                lookupChord();
+                
+            } catch (error) {
+                console.error('❌ Failed to initialize chord system:', error);
+                updateStatus('databaseStatus', 'error', 'Initialization failed');
+                updateStatus('guitarStatus', 'error', 'Initialization failed');
+                document.getElementById('result').innerHTML = `<p style="color: red;">Initialization error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
