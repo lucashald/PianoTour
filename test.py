@@ -162,8 +162,11 @@ def integrated():
 def chords():
     """Chords page"""
     return render_template('chords.html', show_side_panel=True)
-# SpessaSynth expects these routes:
 
+@app.route('/chordmode')
+def chord_mode():
+    """Chord mode page"""
+    return render_template('chordMode.html', show_side_panel=True)
 
 @app.route('/getversion')
 def get_version():

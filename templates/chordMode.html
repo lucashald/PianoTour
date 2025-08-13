@@ -4,6 +4,7 @@
 
 {% block toggles %}
     {% include 'partials/_toggles.html' %}
+    <button id="mode-cycle-btn" class="btn">Single Note</button>
 {% endblock %}
 
 {% block scripts %}
@@ -20,6 +21,14 @@
     console.log("Set instrument to:", templateInstrument);
 
     addBasicKeyboardListeners();
-    
+// --- COMMON DOM READY & EVENT LISTENERS (for base template) ---
+      document.addEventListener("DOMContentLoaded", () => {
+            document
+          .getElementById("mode-cycle-btn")
+          ?.addEventListener("click", (e) => {
+            handleModeCycleClick(e);
+            document.getElementById("instrument")?.focus();
+          });
+        }
 </script>
 {% endblock %}
