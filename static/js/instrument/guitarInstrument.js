@@ -2,7 +2,7 @@
 import { pianoState } from "../core/appState.js";
 import { createChordPalette, initializeGuitarControls } from "../ui/guitarUI.js";
 import audioManager from "../core/audioManager.js";
-import { NOTES_BY_NAME, DURATION_THRESHOLDS, splitNotesIntoClefs, identifyChord } from "../core/note-data.js";
+import { NOTES_BY_NAME, DURATION_THRESHOLDS, splitNotesIntoClefs, identifyChord, notesByMidiKeyAware } from "../core/note-data.js";
 import { trigger, triggerAttackRelease } from "./playbackHelpers.js";
 import { writeNote, fillRests } from "../score/scoreWriter.js";
 import { addAdvancedGuitarListeners } from "../ui/listenerManager.js";
@@ -22,15 +22,14 @@ let GUITAR_TUNING = [
   40  // E2 (low E)  - STRING 6, thickest
 ];
 
-// Preset tunings - names match the chord database exactly
 const PRESET_TUNINGS = {
-  standard: [64, 59, 55, 50, 45, 40],      // E4, B3, G3, D3, A2, E2
-  drop_d: [64, 59, 55, 50, 45, 38],        // E4, B3, G3, D3, A2, D2
-  open_g: [67, 59, 55, 50, 43, 38],        // G4, B3, G3, D3, G2, D2
-  open_d: [62, 57, 55, 50, 45, 38],        // D4, A3, G3, D3, A2, D2
-  open_e: [64, 60, 56, 52, 47, 40],        // E4, C4, G#3, E3, B2, E2
-  open_a: [64, 61, 57, 52, 45, 40],        // E4, C#4, A3, E3, A2, E2 (assuming this tuning)
-  dadgad: [62, 57, 55, 50, 45, 38],        // D4, A3, G3, D3, A2, D2
+  standard: [64, 59, 55, 50, 45, 40],       // E4, B3, G3, D3, A2, E2
+  drop_d: [64, 59, 55, 50, 45, 38],         // E4, B3, G3, D3, A2, D2
+  open_g: [62, 59, 55, 50, 43, 38],         // D4, B3, G3, D3, G2, D2
+  open_d: [62, 57, 54, 50, 45, 38],         // D4, A3, F#3, D3, A2, D2
+  open_e: [64, 59, 56, 52, 47, 40],         // E4, B3, G#3, E3, B2, E2
+  open_a: [64, 61, 57, 52, 45, 40],         // E4, C#4, A3, E3, A2, E2
+  dadgad: [62, 57, 55, 50, 45, 38],         // D4, A3, G3, D3, A2, D2
   half_step_down: [63, 58, 54, 49, 44, 39], // Eb4, Bb3, Gb3, Db3, Ab2, Eb2
   full_step_down: [62, 57, 53, 48, 43, 38]  // D4, A3, F3, C3, G2, D2
 };
