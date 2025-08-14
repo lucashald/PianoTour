@@ -1,0 +1,1935 @@
+/* ==========================================================================
+   COMPREHENSIVE MOBILE-FIRST PIANO TOUR CSS
+   Includes: Piano, Drums, Guitar, Audio Controls, and Editor Components
+   ========================================================================== */
+
+/* ==========================================================================
+   1. CSS Custom Properties & Reset
+   ========================================================================== */
+:root {
+  /* Color Palette */
+  --color-primary: #297B51;
+  --color-secondary: #295570;
+  --color-danger: #AF563A;
+  --color-info: #295570;
+  --color-surface: #04273C;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #6F91A5;
+  --color-border: #6F91A5;
+  --color-warning: #AF7A3A;
+
+  /* Extended Color System */
+  --color-green-lightest: #76B595;
+  --color-green-light: #499770;
+  --color-green-medium: #297B51;
+  --color-green-dark: #116038;
+  --color-green-darkest: #014221;
+
+  --color-blue-lightest: #6F91A5;
+  --color-blue-light: #467089;
+  --color-blue-medium: #295570;
+  --color-blue-dark: #143E58;
+  --color-blue-darkest: #04273C;
+
+  --color-gold-lightest: #FFD7A7;
+  --color-gold-light: #D8A668;
+  --color-gold-medium: #AF7A3A;
+  --color-gold-dark: #895718;
+  --color-gold-darkest: #5E3401;
+
+  --color-peach-lightest: #FFBCA7;
+  --color-peach-light: #D88368;
+  --color-peach-medium: #AF563A;
+  --color-peach-dark: #893418;
+  --color-peach-darkest: #5E1701;
+
+  /* Drum Colors */
+  --drum-red-bright: #E60000;
+  --drum-red-medium: #CC0000;
+  --drum-orange-bright: #FF6600;
+  --drum-orange-medium: #E65C00;
+  --drum-orange-dark: #CC5200;
+  --drum-yellow: #f1c40f;
+  --drum-cream: #F0EAD6;
+  --drum-white: #FFFFFF;
+  --drum-gray: #666;
+
+  /* Mobile-First Sizing & Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+
+  /* Touch-friendly measurements */
+  --touch-target-min: 44px;
+  --touch-spacing: 8px;
+  --border-radius-sm: 4px;
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+
+  /* Typography Scale */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+  --font-size-4xl: 2.5rem;
+
+  /* Layout constraints */
+  --max-width-mobile: 100%;
+  --max-width-tablet: 768px;
+  --max-width-desktop: 1200px;
+  --container-padding: var(--spacing-md);
+
+  /* Component heights */
+  --header-height-mobile: auto;
+  --score-min-height-mobile: 200px;
+  --keyboard-min-height-mobile: 120px;
+  --controls-min-height-mobile: auto;
+
+  /* Guitar-specific */
+  --guitar-fretboard-width: 100%;
+  --guitar-fretboard-height: 200px;
+  --guitar-string-height: calc(var(--guitar-fretboard-height) / 6);
+}
+
+/* Enhanced Reset */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   2. Base Styles (Mobile First)
+   ========================================================================== */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: linear-gradient(135deg, 
+    var(--color-blue-darkest) 0%, 
+    var(--color-blue-medium) 50%, 
+    var(--color-blue-lightest) 100%);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  line-height: 1.5;
+  overflow-x: hidden;
+  touch-action: manipulation;
+}
+
+body.no-scroll {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ==========================================================================
+   3. Layout Components (Mobile First)
+   ========================================================================== */
+
+.piano-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+}
+
+.piano-app__content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--container-padding);
+  gap: var(--spacing-md);
+  width: 100%;
+  max-width: var(--max-width-mobile);
+  margin: 0 auto;
+}
+
+/* Header */
+.piano-app__header {
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.piano-app__header-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  margin-bottom: var(--spacing-md);
+  background: linear-gradient(135deg, 
+    var(--color-green-medium) 0%, 
+    var(--color-green-lightest) 50%, 
+    #FFFFFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+.piano-app__now-playing {
+  min-height: var(--touch-target-min);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   4. Wrapper Components
+   ========================================================================== */
+.outer-wrapper,
+.controls-footer {
+  background: var(--color-blue-darkest);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--container-padding);
+  gap: var(--spacing-lg);
+  width: 100%;
+  max-width: var(--max-width-desktop);
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   5. Control Sections (Mobile Optimized)
+   ========================================================================== */
+
+/* Playback Controls */
+.playback-controls,
+.guitar-controls,
+#chord-palette {
+  display: flex;
+  flex-direction: column;
+  gap: var(--touch-spacing);
+  width: 100%;
+  margin-bottom: var(--spacing-md);
+}
+
+/* ==========================================================================
+   6. Volume Control System (Horizontal & Vertical)
+   ========================================================================== */
+
+/* Horizontal Volume Control (Main) */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+}
+
+.volume-icon {
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  fill: var(--color-text-secondary);
+  cursor: pointer;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-xs);
+  transition: all 0.3s ease;
+  touch-action: manipulation;
+}
+
+.volume-icon:hover,
+.volume-icon:focus {
+  fill: var(--color-primary);
+  background-color: var(--color-blue-dark);
+  outline: none;
+}
+
+.volume-slider {
+  flex: 1;
+  height: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  outline: none;
+  border-radius: var(--border-radius);
+  background: linear-gradient(to right, 
+    var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 75%), 
+    var(--color-blue-dark) var(--value-percent, 75%));
+  touch-action: manipulation;
+}
+
+.volume-slider::-webkit-slider-track {
+  background: transparent;
+  border: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  border: 3px solid var(--color-green-medium);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.volume-slider::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+.volume-slider::-moz-range-thumb {
+  height: 32px;
+  width: 32px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  border: 3px solid var(--color-green-medium);
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+.volume-value {
+  min-width: var(--touch-target-min);
+  text-align: center;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* Vertical Volume Controls */
+.volume-control.vertical {
+  width: auto;
+  height: 200px;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-bottom: 0;
+  gap: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.08);
+  padding: var(--spacing-md);
+}
+
+.volume-control.vertical .volume-icon {
+  display: none;
+}
+
+.vertical-slider {
+  writing-mode: bt-lr;
+  -webkit-appearance: slider-vertical;
+  width: 20px;
+  height: 120px;
+  flex-grow: 0;
+  background: linear-gradient(
+    to top,
+    var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 75%),
+    var(--color-blue-dark) var(--value-percent, 75%)
+  );
+  cursor: pointer;
+  outline: none;
+  border-radius: var(--border-radius);
+  touch-action: manipulation;
+}
+
+.vertical-slider::-webkit-slider-track {
+  background: transparent;
+  border: none;
+  width: 20px;
+}
+
+.vertical-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  border: 3px solid var(--color-green-medium);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.vertical-slider::-moz-range-track {
+  background: transparent;
+  border: none;
+  width: 20px;
+  height: 120px;
+}
+
+.vertical-slider::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  border: 3px solid var(--color-green-medium);
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+.volume-control.vertical .volume-value {
+  min-width: 60px;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+/* Audio Controls Container */
+.controls-container,
+.audio-controls-container {
+  display: flex;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-md);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.control-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.control-section h3 {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.vertical-controls {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   7. Score Viewer (Mobile Optimized)
+   ========================================================================== */
+.score-viewer {
+  width: 100%;
+  min-height: var(--score-min-height-mobile);
+  background-color: #FFFFFF;
+  color: var(--color-blue-darkest);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  overflow: hidden;
+}
+
+.score-viewer__container {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.score-viewer__content {
+  display: inline-block;
+  min-width: 100%;
+}
+
+#score {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: pan-x;
+}
+
+.drums-score-viewer__container {
+  overflow-x: auto;
+  white-space: nowrap;
+  margin: var(--spacing-md) 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.drums-score-viewer__content {
+  display: inline-block;
+}
+
+/* ==========================================================================
+   8. Instrument Panel (Mobile Optimized)
+   ========================================================================== */
+.instrument-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  position: relative;
+}
+
+.instrument-panel__spectrum {
+  width: 100%;
+  min-height: 80px;
+  background-color: #000;
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-sm);
+}
+
+.instrument-panel__keyboard {
+  width: 100%;
+  min-height: var(--keyboard-min-height-mobile);
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Piano Key Styles */
+.instrument-panel__keyboard .white { 
+  fill: #FFFFFF; 
+  stroke: #444; 
+  stroke-width: 1;
+}
+
+.instrument-panel__keyboard .black { 
+  fill: #333333; 
+  stroke: #000; 
+  stroke-width: 1;
+}
+
+.instrument-panel__keyboard .white.pressed { 
+  fill: #D1D5DB; 
+}
+
+.instrument-panel__keyboard .black.pressed { 
+  fill: #555555; 
+}
+
+/* Hand Position Highlighting */
+.instrument-panel__keyboard .left-white  { fill: var(--color-blue-light) !important; }
+.instrument-panel__keyboard .left-black  { fill: var(--color-blue-dark) !important; }
+.instrument-panel__keyboard .middle      { fill: var(--color-green-light) !important; }
+.instrument-panel__keyboard .right-white { fill: var(--color-peach-light) !important; }
+.instrument-panel__keyboard .right-black { fill: var(--color-peach-dark) !important; }
+
+/* Chord Highlighting */
+.instrument-panel__keyboard .chord-root  { fill: var(--color-blue-light) !important; }
+.instrument-panel__keyboard .chord-third { fill: var(--color-green-light) !important; }
+.instrument-panel__keyboard .chord-fifth { fill: var(--color-peach-light) !important; }
+
+/* Hand Overlay */
+#handOverlay {
+  position: absolute;
+  height: 20px;
+  background: var(--color-primary);
+  border-radius: 10px;
+  top: -25px;
+  cursor: grab;
+  touch-action: none;
+  backdrop-filter: blur(2px);
+  z-index: 5;
+  min-width: var(--touch-target-min);
+}
+
+#handOverlay.chord-mode {
+  background: var(--color-primary);
+  border: 2px solid var(--color-info);
+}
+
+/* ==========================================================================
+   9. Guitar Instrument Styles
+   ========================================================================== */
+
+.guitar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  justify-content: center;
+  width: 100%;
+  margin: 0 auto;
+  flex-direction: column;
+}
+
+.guitar-fretboard {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  height: var(--guitar-fretboard-height);
+  background: linear-gradient(to bottom, #8B4513 0%, #D2691E 50%, #8B4513 100%);
+  border-radius: var(--border-radius);
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
+  user-select: none;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+.guitar-string-container {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: var(--guitar-string-height);
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(0,0,0,0.2);
+}
+
+.guitar-string-container.string-1 { top: calc(var(--guitar-fretboard-height) * 5 / 6); }
+.guitar-string-container.string-2 { top: calc(var(--guitar-fretboard-height) * 4 / 6); }
+.guitar-string-container.string-3 { top: calc(var(--guitar-fretboard-height) * 3 / 6); }
+.guitar-string-container.string-4 { top: calc(var(--guitar-fretboard-height) * 2 / 6); }
+.guitar-string-container.string-5 { top: calc(var(--guitar-fretboard-height) * 1 / 6); }
+.guitar-string-container.string-6 { 
+  top: 0; 
+  border-top: 1px solid rgba(0,0,0,0.2); 
+}
+
+.guitar-string-line {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  background: linear-gradient(to bottom, #C0C0C0, #808080, #C0C0C0);
+  z-index: 1;
+}
+
+.string-line-6 { height: 4px; }
+.string-line-5 { height: 3.5px; }
+.string-line-4 { height: 3px; }
+.string-line-3 { height: 2.5px; }
+.string-line-2 { height: 2px; }
+.string-line-1 { height: 1.5px; }
+
+.fret-position {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  z-index: 2;
+  cursor: pointer;
+  left: var(--fret-left-position);
+  width: var(--fret-width);
+  transition: background-color 0.1s ease;
+  touch-action: manipulation;
+}
+
+.fret-position.fret-nut {
+  background: linear-gradient(to bottom, #f5f5dc, #e0e0b8);
+  border-right: 4px solid #b39b7d;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+}
+
+.fret-position.fret {
+  border-left: 1px solid rgba(0,0,0,0.3);
+}
+
+.fret-position.hover {
+  background-color: rgba(255,255,255,0.1);
+}
+
+.finger-position {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, #444, #000);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.3);
+  touch-action: manipulation;
+}
+
+.strum-area {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 15%;
+  height: var(--guitar-fretboard-height);
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 1px solid rgba(0,0,0,0.1);
+  cursor: pointer;
+  z-index: 5;
+  transition: background-color 0.2s ease;
+  border-top-right-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.strum-area.hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.strum-area span {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  text-align: center;
+  pointer-events: none;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* String Control Buttons */
+.string-labels-container {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  margin-top: var(--spacing-md);
+}
+
+.string-button {
+  min-width: 80px;
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-sm);
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+  border: 1px solid #dee2e6;
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  touch-action: manipulation;
+}
+
+.string-button:hover {
+  background: linear-gradient(to right, #e9ecef, #dee2e6);
+  transform: translateY(-1px);
+}
+
+.string-button.muted {
+  opacity: 0.5;
+  text-decoration: line-through;
+  color: #666;
+}
+
+.mute-button {
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+
+.mute-button:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+.mute-button.active {
+  background: var(--color-danger);
+  color: white;
+  border-color: var(--color-danger);
+}
+
+/* Guitar String Animations */
+@keyframes vibrateJuicy {
+  0%   { 
+    transform: translateY(-50%) scaleY(1); 
+    filter: blur(0px) brightness(1);
+    box-shadow: 0 0 0px rgba(255, 255, 255, 0);
+  }
+  3%   { 
+    transform: translateY(calc(-50% - 1.8px)) scaleY(0.92); 
+    filter: blur(0.6px) brightness(1.4);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.9);
+  }
+  8%   { transform: translateY(calc(-50% + 1.5px)) scaleY(1.08); filter: blur(0.4px) brightness(1.25); }
+  15%  { transform: translateY(calc(-50% - 1.2px)) scaleY(0.95); filter: blur(0.3px) brightness(1.15); }
+  25%  { transform: translateY(calc(-50% + 1px)) scaleY(1.05); filter: blur(0.25px) brightness(1.1); }
+  35%  { transform: translateY(calc(-50% - 0.8px)) scaleY(0.97); filter: blur(0.2px) brightness(1.08); }
+  45%  { transform: translateY(calc(-50% + 0.6px)) scaleY(1.03); filter: blur(0.15px) brightness(1.06); }
+  55%  { transform: translateY(calc(-50% - 0.5px)) scaleY(0.98); filter: blur(0.1px) brightness(1.04); }
+  65%  { transform: translateY(calc(-50% + 0.3px)) scaleY(1.02); filter: blur(0.08px) brightness(1.03); }
+  75%  { transform: translateY(calc(-50% - 0.2px)) scaleY(0.99); filter: blur(0.05px) brightness(1.02); }
+  85%  { transform: translateY(calc(-50% + 0.15px)) scaleY(1.01); filter: blur(0.03px) brightness(1.015); }
+  92%  { transform: translateY(calc(-50% - 0.1px)) scaleY(0.995); filter: blur(0.02px) brightness(1.01); }
+  96%  { transform: translateY(calc(-50% + 0.05px)) scaleY(1.005); filter: blur(0.01px) brightness(1.005); }
+  98%  { transform: translateY(calc(-50% - 0.03px)) scaleY(0.998); filter: blur(0.005px) brightness(1.002); }
+  100% { 
+    transform: translateY(-50%) scaleY(1);
+    filter: blur(0px) brightness(1);
+    box-shadow: 0 0 0px rgba(255, 255, 255, 0);
+  }
+}
+
+@keyframes stringGlow {
+  0%   { box-shadow: inset 0 0 0px rgba(255, 255, 255, 0); }
+  5%   { box-shadow: inset 0 0 25px rgba(255, 255, 255, 0.2); }
+  50%  { box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.1); }
+  85%  { box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.05); }
+  100% { box-shadow: inset 0 0 0px rgba(255, 255, 255, 0); }
+}
+
+.guitar-string-container.active .guitar-string-line {
+  animation: vibrateJuicy 1.4s cubic-bezier(0, 0, 0.58, 1);
+}
+
+.guitar-string-container.active {
+  animation: stringGlow 1.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Chord Diagrams */
+.chord-diagrams-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  margin-top: var(--spacing-md);
+}
+
+.chord-diagram-container {
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  background: white;
+  padding: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   10. Drum Machine Styles
+   ========================================================================== */
+
+/* Drum Switches Container */
+.drum-switches-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: var(--color-blue-darkest);
+  border-radius: var(--border-radius);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.drum-step-button {
+  width: 100%;
+  min-height: 90px;
+  border-radius: var(--border-radius);
+  border: 2px solid #555;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  font-size: var(--font-size-lg);
+  color: #eee;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: manipulation;
+}
+
+.drum-step-button:active {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transform: scale(0.98);
+}
+
+.drum-step-button .indicator {
+  width: 15px;
+  height: 15px;
+  background-color: #333;
+  border-radius: 50%;
+  border: 1px solid #000;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  margin-bottom: var(--spacing-xs);
+}
+
+.drum-step-button.active .indicator {
+  background-color: var(--drum-red-bright);
+  box-shadow: 0 0 5px var(--drum-red-bright), inset 0 0 3px rgba(255, 0, 0, 0.7);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.drum-step-button-label {
+  font-size: var(--font-size-lg);
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Drum Button Color Assignments */
+.drum-step-button:nth-child(1),
+.drum-step-button:nth-child(2) {
+  background-color: var(--drum-red-bright);
+}
+
+.drum-step-button:nth-child(3),
+.drum-step-button:nth-child(4),
+.drum-step-button:nth-child(5) {
+  background-color: var(--drum-red-medium);
+}
+
+.drum-step-button:nth-child(6) {
+  background-color: var(--drum-orange-bright);
+}
+
+.drum-step-button:nth-child(7) {
+  background-color: var(--drum-orange-medium);
+}
+
+.drum-step-button:nth-child(8),
+.drum-step-button:nth-child(9),
+.drum-step-button:nth-child(10) {
+  background-color: var(--drum-orange-dark);
+}
+
+.drum-step-button:nth-child(11),
+.drum-step-button:nth-child(12),
+.drum-step-button:nth-child(13),
+.drum-step-button:nth-child(14) {
+  background-color: var(--drum-yellow);
+}
+
+.drum-step-button:nth-child(15) {
+  background-color: var(--drum-cream);
+  color: black;
+}
+
+.drum-step-button:nth-child(16),
+.drum-step-button:nth-child(17),
+.drum-step-button:nth-child(18),
+.drum-step-button:nth-child(19),
+.drum-step-button:nth-child(20) {
+  background-color: var(--drum-white);
+  color: black;
+}
+
+.drum-step-button:nth-child(21), 
+.drum-step-button:nth-child(22),
+.drum-step-button:nth-child(23),
+.drum-step-button:nth-child(24),
+.drum-step-button:nth-child(25) {
+  background-color: var(--drum-gray);
+  color: #FFFFFF;
+}
+
+/* Pattern Editor */
+.drum-pattern-editor {
+  background-color: var(--color-blue-darkest);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  margin: var(--spacing-md) 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  color: #eee;
+}
+
+.pattern-editor__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.pattern-editor__toggle {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: var(--font-size-xl);
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  transition: color 0.2s;
+  touch-action: manipulation;
+}
+
+.pattern-editor__toggle:hover {
+  color: var(--drum-yellow);
+}
+
+.pattern-editor__btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-sm);
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: var(--font-size-base);
+  min-height: var(--touch-target-min);
+  touch-action: manipulation;
+}
+
+.pattern-editor__btn--clear {
+  background-color: var(--drum-red-medium);
+  color: #fff;
+}
+
+.pattern-editor__btn--add {
+  background-color: var(--drum-orange-dark);
+  color: #fff;
+}
+
+.pattern-editor__btn--preview {
+  background-color: var(--color-green-lightest);
+  color: #fff;
+}
+
+.pattern-editor__btn:hover {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+.pattern-editor__btn:active {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transform: translateY(0);
+}
+
+/* Pattern Grid */
+.pattern-grid {
+  display: grid;
+  grid-template-columns: 120px repeat(8, 1fr);
+  gap: var(--spacing-sm);
+  align-items: center;
+  overflow-x: auto;
+  padding: var(--spacing-md);
+  -webkit-overflow-scrolling: touch;
+}
+
+.pattern-grid__header-cell {
+  width: 100%;
+  height: 100%;
+}
+
+.pattern-grid__step-number {
+  justify-self: center;
+  font-size: var(--font-size-sm);
+  color: #a7b7c9;
+  font-weight: 600;
+}
+
+.pattern-grid__instrument-label {
+  justify-self: end;
+  padding-right: var(--spacing-sm);
+  font-weight: bold;
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  color: #b0c4de;
+}
+
+.pattern-grid__cell {
+  width: 100%;
+  min-width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-xs);
+}
+
+.pattern-grid__checkbox {
+  display: none;
+}
+
+.pattern-grid__cell-label {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: #333;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid #555;
+  cursor: pointer;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.pattern-grid__cell-label:hover {
+  background-color: #444;
+}
+
+.pattern-grid__checkbox:checked + .pattern-grid__cell-label {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px var(--drum-yellow);
+}
+
+/* Drum Instrument Specific Colors */
+.pattern-grid__cell[data-instrument="box-kick"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="sidestick"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="snare"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="tom-low"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="tom-mid"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label {
+  background-color: var(--drum-red-bright);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px var(--drum-red-bright);
+}
+
+.pattern-grid__cell[data-instrument="tom-high"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="hihat-closed"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="hihat-open"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="crash"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="ride"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label {
+  background-color: var(--drum-orange-bright);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px var(--drum-orange-bright);
+}
+
+.pattern-grid__cell[data-instrument="bongo-low"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="bongo-high"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="clap"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
+.pattern-grid__cell[data-instrument="cowbell"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label {
+  background-color: var(--drum-yellow);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px var(--drum-yellow);
+}
+
+/* Playback Indicator */
+.pattern-grid__playback-step {
+  padding: var(--spacing-xl);
+  justify-self: center;
+  align-self: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #333;
+  border: 2px solid #555;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  transition: all 0.1s ease;
+  pointer-events: none;
+}
+
+.pattern-grid__playback-marker {
+  display: none;
+}
+
+.pattern-grid__playback-step.active {
+  background-color: var(--drum-red-bright);
+  box-shadow: 
+    0 0 5px var(--drum-red-bright), 
+    0 0 10px var(--drum-red-bright), 
+    inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  animation: 808-pulse 0.5s ease-out infinite alternate;
+}
+
+@keyframes 808-pulse {
+  from {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   11. Button System (Touch Optimized)
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: 1.2;
+  border: none;
+  border-radius: var(--border-radius);
+  background-color: var(--color-secondary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn:hover,
+.btn:focus {
+  background-color: var(--color-blue-light);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+/* Button Variants */
+.btn--primary {
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest);
+}
+
+.btn--primary:hover,
+.btn--primary:focus {
+  background-color: var(--color-green-light);
+}
+
+.btn--danger {
+  background-color: var(--color-peach-light);
+  color: var(--color-peach-darkest);
+}
+
+.btn--danger:hover,
+.btn--danger:focus {
+  background-color: var(--color-peach-medium);
+}
+
+.btn--info {
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest);
+}
+
+.btn--info:hover,
+.btn--info:focus {
+  background-color: var(--color-blue-light);
+}
+
+.btn--secondary {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.btn--secondary:hover {
+  background-color: var(--color-blue-dark);
+}
+
+.btn--compact {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  min-height: 40px;
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest);
+}
+
+.btn--toggle {
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest);
+}
+
+.btn--toggle.is-active {
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest);
+}
+
+/* ==========================================================================
+   12. Main Controls (Mobile Layout)
+   ========================================================================== */
+.main-controls {
+  width: 100%;
+  background-color: var(--color-surface);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-md);
+}
+
+.controls-button-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--touch-spacing);
+  margin-bottom: var(--spacing-md);
+}
+
+.controls-button-row:last-child {
+  margin-bottom: 0;
+}
+
+.main-controls__chord-interface {
+  width: 100%;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--spacing-md);
+}
+
+.chord-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--touch-spacing);
+  justify-content: center;
+}
+
+/* ==========================================================================
+   13. Form Controls (Touch Optimized)
+   ========================================================================== */
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.control-label {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+/* Input Styles */
+.time-signature-input,
+.tempo-input,
+.measure-input,
+.chord-input,
+.form-select {
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-sm);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  width: 100%;
+}
+
+.time-signature-input:focus,
+.tempo-input:focus,
+.measure-input:focus,
+.chord-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--color-green-lightest);
+  box-shadow: 0 0 0 3px rgba(118, 181, 149, 0.2);
+}
+
+/* Control Groups */
+.time-signature-controls,
+.tempo-controls,
+.measure-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.time-signature-separator {
+  font-size: var(--font-size-xl);
+  font-weight: bold;
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: var(--spacing-xs);
+}
+
+/* ==========================================================================
+   14. Note Palette & Editor (Mobile Optimized)
+   ========================================================================== */
+.note-palette-container {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.palette-header {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.note-palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--touch-spacing);
+  justify-items: center;
+}
+
+.palette-note {
+  width: 100%;
+  min-width: 80px;
+  min-height: var(--touch-target-min);
+  background: var(--color-green-lightest);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--border-radius);
+  color: #000;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  transition: all 0.2s ease;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.palette-note:hover,
+.palette-note:active {
+  background: var(--color-peach-light);
+  transform: scale(0.95);
+}
+
+.note-duration {
+  font-size: var(--font-size-xs);
+  margin-top: 2px;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   15. Side Panel & Editor (Mobile Adapted)
+   ========================================================================== */
+.piano-app__side-panel {
+  display: none; /* Hidden on mobile by default */
+}
+
+.floating-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 2rem);
+  max-width: 400px;
+  max-height: 80vh;
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: var(--spacing-md);
+  z-index: 1000;
+  overflow-y: auto;
+  color: white;
+}
+
+.floating-panel.visible {
+  display: block;
+  animation: panelSlideIn 0.3s ease-out forwards;
+}
+
+.floating-panel.hidden {
+  display: none;
+}
+
+@keyframes panelSlideIn {
+  from { 
+    opacity: 0; 
+    transform: translate(-50%, -50%) scale(0.98); 
+  }
+  to { 
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.editor-widget {
+  margin-bottom: var(--spacing-md);
+}
+
+.editor-widget__title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.editor-widget__content--note-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+}
+
+.note-editor {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.note-editor__header {
+  color: white;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   16. Chord Search (Mobile Optimized)
+   ========================================================================== */
+.chord-search-container {
+  position: relative;
+  margin: var(--spacing-md) 0;
+}
+
+.chord-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid var(--color-primary);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.chord-suggestion {
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  font-size: var(--font-size-base);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  color: var(--color-blue-darkest);
+  touch-action: manipulation;
+}
+
+.chord-suggestion:hover,
+.chord-suggestion.highlighted {
+  background-color: #f0f8ff;
+}
+
+.no-results {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: #666;
+  font-style: italic;
+  font-size: var(--font-size-sm);
+}
+
+/* ==========================================================================
+   17. Preset Controls
+   ========================================================================== */
+.preset-controls {
+  display: flex;
+  gap: var(--spacing-xl);
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.preset-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.preset-section h4 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.button-row {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.instrument-selector {
+  min-width: 150px;
+}
+
+/* ==========================================================================
+   18. Utility Classes
+   ========================================================================== */
+.hidden {
+  display: none !important;
+}
+
+.hidden-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--touch-spacing);
+}
+
+.audio-uninitialized .volume-slider,
+.audio-uninitialized .vertical-slider {
+  opacity: 0.7;
+  filter: grayscale(50%);
+}
+
+/* Muted States */
+.volume-control.muted .volume-slider,
+.volume-control.vertical.muted .vertical-slider {
+  --track-fill-color: var(--color-danger);
+}
+
+.volume-control.muted .volume-slider::-webkit-slider-thumb,
+.volume-control.muted .volume-slider::-moz-range-thumb,
+.volume-control.vertical.muted .vertical-slider::-webkit-slider-thumb,
+.volume-control.vertical.muted .vertical-slider::-moz-range-thumb {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.volume-control.muted .volume-icon {
+  fill: var(--color-danger);
+}
+
+/* ==========================================================================
+   19. TABLET BREAKPOINT (768px and up)
+   ========================================================================== */
+@media (min-width: 768px) {
+  :root {
+    --container-padding: var(--spacing-lg);
+    --score-min-height-mobile: 250px;
+    --keyboard-min-height-mobile: 140px;
+    --guitar-fretboard-height: 250px;
+  }
+
+  .piano-app__content-area {
+    max-width: var(--max-width-tablet);
+    padding: var(--container-padding);
+    gap: var(--spacing-lg);
+  }
+
+  .piano-app__header-title {
+    font-size: var(--font-size-4xl);
+  }
+
+  .playback-controls,
+  .guitar-controls {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .controls-button-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-sm);
+  }
+
+  .time-signature-controls,
+  .tempo-controls,
+  .measure-controls {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .note-palette {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .palette-note {
+    min-width: 100px;
+    height: 60px;
+  }
+
+  .floating-panel {
+    width: calc(100% - 4rem);
+    max-width: 500px;
+  }
+
+  .drum-switches-container {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .pattern-grid {
+    grid-template-columns: 150px repeat(8, 55px);
+  }
+
+  .guitar-wrapper {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .guitar-fretboard {
+    max-width: 1000px;
+  }
+
+  .string-labels-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .string-button {
+    min-width: 100px;
+  }
+
+  .controls-container,
+  .audio-controls-container {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .vertical-controls {
+    flex-direction: row;
+  }
+}
+
+/* ==========================================================================
+   20. DESKTOP BREAKPOINT (1024px and up)
+   ========================================================================== */
+@media (min-width: 1024px) {
+  :root {
+    --container-padding: var(--spacing-xl);
+    --score-min-height-mobile: 300px;
+    --keyboard-min-height-mobile: 160px;
+    --guitar-fretboard-height: 280px;
+  }
+
+  .piano-app {
+    flex-direction: row;
+  }
+
+  .piano-app__content-area {
+    max-width: var(--max-width-desktop);
+    gap: var(--spacing-xl);
+  }
+
+  .piano-app__side-panel {
+    display: block;
+    width: 320px;
+    min-height: 100vh;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    padding: var(--spacing-xl);
+    border-radius: 0 var(--border-radius-lg) var(--border-radius-lg) 0;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .note-palette {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .controls-button-row {
+    gap: var(--spacing-md);
+  }
+
+  .button-group {
+    flex-direction: row;
+  }
+
+  .chord-grid {
+    gap: var(--spacing-sm);
+  }
+
+  .drum-switches-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .pattern-grid {
+    grid-template-columns: 150px repeat(8, 55px);
+    gap: var(--spacing-md);
+  }
+
+  .preset-controls {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  .button-row {
+    flex-direction: row;
+  }
+}
+
+/* ==========================================================================
+   21. LARGE DESKTOP BREAKPOINT (1280px and up)
+   ========================================================================== */
+@media (min-width: 1280px) {
+  .piano-app__header-title {
+    font-size: 3.5rem;
+  }
+
+  .note-palette {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .controls-button-row {
+    gap: var(--spacing-lg);
+  }
+
+  .drum-switches-container {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* ==========================================================================
+   22. High DPI / Retina Display Optimizations
+   ========================================================================== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .instrument-panel__keyboard .white,
+  .instrument-panel__keyboard .black {
+    stroke-width: 0.5;
+  }
+
+  .volume-slider::-webkit-slider-thumb,
+  .volume-slider::-moz-range-thumb,
+  .vertical-slider::-webkit-slider-thumb,
+  .vertical-slider::-moz-range-thumb {
+    border-width: 2px;
+  }
+}
+
+/* ==========================================================================
+   23. Touch Device Optimizations
+   ========================================================================== */
+@media (pointer: coarse) {
+  :root {
+    --touch-target-min: 48px;
+    --touch-spacing: 12px;
+  }
+
+  .btn {
+    min-height: 48px;
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+
+  .volume-slider,
+  .vertical-slider {
+    height: 48px;
+  }
+
+  .volume-slider::-webkit-slider-thumb,
+  .volume-slider::-moz-range-thumb {
+    height: 36px;
+    width: 36px;
+  }
+
+  .vertical-slider::-webkit-slider-thumb,
+  .vertical-slider::-moz-range-thumb {
+    height: 24px;
+    width: 24px;
+  }
+
+  .palette-note {
+    min-height: 48px;
+  }
+
+  .chord-suggestion {
+    min-height: 48px;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .drum-step-button {
+    min-height: 100px;
+  }
+
+  .pattern-grid__cell {
+    height: 60px;
+  }
+}
+
+/* ==========================================================================
+   24. Print Styles
+   ========================================================================== */
+@media print {
+  .playback-controls,
+  .main-controls,
+  .volume-control,
+  .piano-app__side-panel,
+  .drum-pattern-editor,
+  .guitar-wrapper .string-labels-container {
+    display: none;
+  }
+
+  .score-viewer {
+    background: white;
+    box-shadow: none;
+    border: none;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+}
+
+/* ==========================================================================
+   25. Reduced Motion Support
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   26. Focus Management for Accessibility
+   ========================================================================== */
+.btn:focus-visible,
+.volume-slider:focus-visible,
+.vertical-slider:focus-visible,
+.chord-input:focus-visible,
+.form-select:focus-visible,
+.palette-note:focus-visible,
+.drum-step-button:focus-visible,
+.pattern-grid__cell-label:focus-visible,
+.guitar-fretboard *:focus-visible {
+  outline: 3px solid var(--color-green-lightest);
+  outline-offset: 2px;
+}
+
+/* Hide focus outline for mouse users */
+.btn:focus:not(:focus-visible),
+.volume-slider:focus:not(:focus-visible),
+.vertical-slider:focus:not(:focus-visible),
+.chord-input:focus:not(:focus-visible),
+.form-select:focus:not(:focus-visible),
+.palette-note:focus:not(:focus-visible),
+.drum-step-button:focus:not(:focus-visible),
+.pattern-grid__cell-label:focus:not(:focus-visible) {
+  outline: none;
+}
