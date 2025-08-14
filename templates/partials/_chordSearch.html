@@ -1,0 +1,379 @@
+<div class="chord-search-container">
+    <form id="chordForm">
+        <input 
+            type="text" 
+            id="chordInput" 
+            class="chord-input"
+            placeholder="Type a chord name (e.g., Cmaj7, Am, F#dim)..."
+            autocomplete="off"
+        >
+        <div id="chordSuggestions" class="chord-suggestions"></div>
+    </form>
+    
+    <!-- Move these outside the form to prevent submission issues -->
+    <div id="selected-chord-button-container" class="selected-chord-container"></div>
+    <div id="selected-chord-diagram-container" class="selected-chord-diagram"></div>
+</div>
+
+<script type="module">
+    import { CHORD_DEFINITIONS, getChordByDegree, getRelativeKey } from '{{ url_for("static", filename="js/core/note-data.js") }}';
+    import { createChordButton, ChordDiagramRenderer } from '{{ url_for("static", filename="js/ui/guitarUI.js") }}';
+    
+    class ChordAutocomplete {
+        constructor(inputId, suggestionsId) {
+            this.input = document.getElementById(inputId);
+            this.suggestionsContainer = document.getElementById(suggestionsId);
+            this.currentHighlight = -1;
+            this.chords = this.extractChordNames(CHORD_DEFINITIONS);
+            this.userHasTyped = false;
+            this.selectedChordObj = null;
+            
+            this.bindEvents();
+            this.setDefaultChord();
+        }
+
+        setDefaultChord() {
+            const defaultChordObj = getChordByDegree(1, getRelativeKey());
+            this.input.value = defaultChordObj.displayName;
+            this.userHasTyped = false;
+            this.selectedChordObj = defaultChordObj;
+            this.createSelectedChordElements(defaultChordObj);
+        }
+
+        // Create chord button and diagram for selected chord
+        createSelectedChordElements(chordObj) {
+            if (!chordObj) return;
+
+            // Create chord button
+            this.createSelectedChordButton(chordObj);
+            
+            // Create chord diagram
+            this.createSelectedChordDiagram(chordObj);
+        }
+
+        createSelectedChordButton(chordObj) {
+            const buttonContainer = document.getElementById('selected-chord-button-container');
+            if (!buttonContainer) return;
+
+            // Clear existing button
+            buttonContainer.innerHTML = '';
+
+            // Check if we have a guitar instance
+            const guitarInstance = window.guitarInstance;
+            if (guitarInstance && chordObj.frets) {
+                const button = createChordButton(chordObj, guitarInstance);
+                button.classList.add('selected-chord-button');
+                // Ensure it's a button type and add preventDefault
+                button.type = 'button';
+                
+                // Add additional click handler with preventDefault
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+                
+                buttonContainer.appendChild(button);
+            } else {
+                // Create a simple button if no guitar instance
+                const button = document.createElement('button');
+                button.type = 'button'; // Explicitly set button type
+                button.textContent = chordObj.displayName;
+                button.className = 'btn btn--primary selected-chord-button';
+                button.addEventListener('click', (e) => {
+                    e.preventDefault(); // Prevent any form submission
+                    e.stopPropagation();
+                    console.log('Selected chord clicked:', chordObj.displayName);
+                    // You can add custom functionality here
+                });
+                buttonContainer.appendChild(button);
+            }
+        }
+
+        createSelectedChordDiagram(chordObj) {
+            const diagramContainer = document.getElementById('selected-chord-diagram-container');
+            if (!diagramContainer || !chordObj.frets) return;
+
+            // Clear existing diagram
+            diagramContainer.innerHTML = '';
+
+            // Create chord diagram renderer
+            const renderer = new ChordDiagramRenderer(diagramContainer, {
+                width: 200,
+                height: 200,
+                lite: true,
+                showTuning: false
+            });
+
+            // Convert our chord format to the expected format
+            const chordData = {
+                key: chordObj.displayName,
+                positions: [{
+                    frets: chordObj.frets,
+                    fingers: chordObj.fingers || null,
+                    baseFret: 1,
+                    barres: [],
+                    capo: false
+                }]
+            };
+
+            // Render the chord
+            renderer.renderChord(chordData, 0);
+            
+            // Make the diagram clickable
+            diagramContainer.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const guitarInstance = window.guitarInstance;
+                if (guitarInstance && chordObj.frets) {
+                    guitarInstance.setChord(chordObj.frets);
+                    console.log('Chord diagram clicked, set chord:', chordObj.displayName);
+                }
+            });
+
+            // Add visual feedback for clickability
+            diagramContainer.style.cursor = 'pointer';
+            diagramContainer.title = `Click to play ${chordObj.displayName}`;
+        }
+
+        extractChordNames(chordData) {
+            if (Array.isArray(chordData)) {
+                return chordData.map(chord => chord.displayName);
+            } else if (typeof chordData === 'object') {
+                return Object.values(chordData).map(chord => chord.displayName);
+            }
+            return [];
+        }
+
+        normalizeSearchText(text) {
+            return text
+                .toLowerCase()
+                .replace(/sharp/g, '#')
+                .replace(/flat/g, 'b')
+                .replace(/\s+/g, '')
+                .replace(/major/g, 'maj')
+                .replace(/minor/g, 'm')
+                .replace(/diminished/g, 'dim')
+                .replace(/augmented/g, 'aug');
+        }
+
+        scoreChordMatch(chord, originalQuery, normalizedQuery) {
+            const chordLower = chord.toLowerCase();
+            const chordNormalized = this.normalizeSearchText(chord);
+            
+            if (!chordLower.includes(originalQuery) && !chordNormalized.includes(normalizedQuery)) {
+                return 0;
+            }
+            
+            if (chordLower === originalQuery || chordNormalized === normalizedQuery) {
+                return 1000;
+            }
+            
+            if (chordLower.startsWith(originalQuery) || chordNormalized.startsWith(normalizedQuery)) {
+                return 500;
+            }
+            
+            const chordFirstWord = chordLower.split(' ')[0];
+            const queryFirstWord = originalQuery.split(' ')[0];
+            if (chordFirstWord.startsWith(queryFirstWord)) {
+                return 400;
+            }
+            
+            const originalIndex = chordLower.indexOf(originalQuery);
+            const normalizedIndex = chordNormalized.indexOf(normalizedQuery);
+            
+            if (originalIndex >= 0 && originalIndex <= 2) {
+                return 300 - originalIndex;
+            }
+            
+            if (normalizedIndex >= 0 && normalizedIndex <= 2) {
+                return 250 - normalizedIndex;
+            }
+            
+            if (originalIndex >= 0) {
+                return 100 - Math.min(originalIndex, 50);
+            }
+            
+            if (normalizedIndex >= 0) {
+                return 50 - Math.min(normalizedIndex, 25);
+            }
+            
+            return 0;
+        }
+
+        handleInput(value) {
+            const query = value.trim().toLowerCase();
+            
+            if (query.length === 0) {
+                this.hideSuggestions();
+                return;
+            }
+
+            const normalizedQuery = this.normalizeSearchText(query);
+            
+            const scoredMatches = this.chords
+                .map(chord => ({
+                    chord: chord,
+                    score: this.scoreChordMatch(chord, query, normalizedQuery)
+                }))
+                .filter(item => item.score > 0)
+                .sort((a, b) => {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    return a.chord.localeCompare(b.chord);
+                })
+                .slice(0, 10)
+                .map(item => item.chord);
+
+            this.showSuggestions(scoredMatches, query);
+        }
+
+        bindEvents() {
+            // Prevent form submission
+            const form = document.getElementById('chordForm');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                });
+            }
+
+            this.input.addEventListener('click', (e) => {
+                this.input.select();
+            });
+
+            this.input.addEventListener('input', (e) => {
+                this.userHasTyped = true;
+                this.handleInput(e.target.value);
+            });
+
+            this.input.addEventListener('keydown', (e) => {
+                this.handleKeydown(e);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!this.input.contains(e.target) && !this.suggestionsContainer.contains(e.target)) {
+                    this.hideSuggestions();
+                }
+            });
+
+            this.input.addEventListener('focus', () => {
+                if (this.input.value.trim()) {
+                    this.handleInput(this.input.value);
+                }
+            });
+        }
+
+        showSuggestions(matches, query) {
+            this.currentHighlight = -1;
+            
+            if (matches.length === 0) {
+                this.suggestionsContainer.innerHTML = '<div class="no-results">No matching chords found</div>';
+            } else {
+                this.suggestionsContainer.innerHTML = matches
+                    .map((chord, index) => 
+                        `<div class="chord-suggestion" data-index="${index}" data-chord="${chord}">
+                            ${this.highlightMatch(chord, query)}
+                        </div>`
+                    ).join('');
+
+                this.suggestionsContainer.querySelectorAll('.chord-suggestion').forEach(suggestion => {
+                    suggestion.addEventListener('click', () => {
+                        this.selectChord(suggestion.dataset.chord);
+                    });
+                });
+            }
+
+            this.suggestionsContainer.style.display = 'block';
+        }
+
+        highlightMatch(chord, query) {
+            const index = chord.toLowerCase().indexOf(query.toLowerCase());
+            if (index === -1) return chord;
+            
+            return chord.substring(0, index) + 
+                   '<strong>' + chord.substring(index, index + query.length) + '</strong>' + 
+                   chord.substring(index + query.length);
+        }
+
+        handleKeydown(e) {
+            e.stopPropagation();
+            const suggestions = this.suggestionsContainer.querySelectorAll('.chord-suggestion');
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this.currentHighlight = Math.min(this.currentHighlight + 1, suggestions.length - 1);
+                    this.updateHighlight(suggestions);
+                    break;
+                    
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this.currentHighlight = Math.max(this.currentHighlight - 1, -1);
+                    this.updateHighlight(suggestions);
+                    break;
+                    
+                case 'Enter':
+                    e.preventDefault();
+                    if (this.currentHighlight >= 0 && suggestions[this.currentHighlight]) {
+                        this.selectChord(suggestions[this.currentHighlight].dataset.chord);
+                    }
+                    break;
+                    
+                case 'Escape':
+                    this.hideSuggestions();
+                    this.input.blur();
+                    break;
+            }
+        }
+
+        updateHighlight(suggestions) {
+            suggestions.forEach((suggestion, index) => {
+                suggestion.classList.toggle('highlighted', index === this.currentHighlight);
+            });
+        }
+
+        selectChord(chordName, chordObj = null) {
+            this.input.value = chordName;
+            this.userHasTyped = false;
+            this.hideSuggestions();
+            
+            if (!chordObj) {
+                if (Array.isArray(CHORD_DEFINITIONS)) {
+                    chordObj = CHORD_DEFINITIONS.find(chord => chord.displayName === chordName);
+                } else {
+                    chordObj = Object.values(CHORD_DEFINITIONS).find(chord => chord.displayName === chordName);
+                }
+            }
+            
+            this.selectedChordObj = chordObj;
+            
+            // Create chord button and diagram for selected chord
+            this.createSelectedChordElements(chordObj);
+            
+            this.input.dispatchEvent(new CustomEvent('chordSelected', {
+                detail: { 
+                    chordName: chordName,
+                    chordObject: chordObj
+                }
+            }));
+            
+            console.log('Selected chord:', chordName, chordObj);
+        }
+
+        hideSuggestions() {
+            this.suggestionsContainer.style.display = 'none';
+            this.currentHighlight = -1;
+        }
+    }
+
+    let chordAutocomplete;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        chordAutocomplete = new ChordAutocomplete('chordInput', 'chordSuggestions');
+        
+        document.getElementById('chordInput').addEventListener('chordSelected', (e) => {
+            console.log('Chord selected:', e.detail.chordName);
+            console.log('Full chord object:', e.detail.chordObject);
+        });
+    });
+</script>

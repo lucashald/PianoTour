@@ -48,7 +48,7 @@ export function createChordPalette(guitarInstance = window.guitarInstance) {
   return container;
 }
 
-function createChordButton(chord, guitarInstance) {
+export function createChordButton(chord, guitarInstance) {
   const button = document.createElement('button');
   button.textContent = chord.displayName;
   button.className = 'btn btn--compact palette-button';
@@ -83,7 +83,6 @@ function createChordButton(chord, guitarInstance) {
 }
 
 export function initializeGuitarControls(containerSelector, guitarInstance = window.guitarInstance) {
-    console.log('🎛️ Initializing Guitar Controls...');
     
     const container = document.querySelector(containerSelector);
     if (!container) {

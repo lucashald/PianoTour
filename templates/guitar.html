@@ -16,12 +16,18 @@
 <div id="chord-container" class="chord-container"></div>
 {% endblock %}
 
+{% block side %}
+    {% include 'partials/_chordSearch.html' %}
+    {% include 'partials/_changeTuning.html' %}
+    {% endblock %}
+
 {% block toggles %}
     {% include 'partials/_toggles.html' %}
 {% endblock %}
 
 {% block scripts %}
 <script type="module">
+    window.keyboardDisabled = {{ 'true' if disable_keyboard else 'false' }};
     import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
     import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
     import { initializeGuitar  } from '{{ url_for("static", filename="js/instrument/guitarInstrument.js") }}';

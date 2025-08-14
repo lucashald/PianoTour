@@ -1148,3 +1148,67 @@ h4 {
     display: none;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Nice shadow */
 }
+
+.chord-search-container {
+    position: relative;
+    margin: 20px auto;
+    font-family: Arial, sans-serif;
+}
+
+.chord-input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+
+.chord-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.chord-suggestions {
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #4CAF50;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.chord-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+.chord-suggestion:hover,
+.chord-suggestion.highlighted {
+    background-color: #f0f8ff;
+}
+
+.chord-suggestion:last-child {
+    border-bottom: none;
+}
+
+.no-results {
+    padding: 8px 12px;
+    color: #666;
+    font-style: italic;
+    font-size: 14px;
+}
+
+.search-result-button {
+    margin-top: 8px;
+}

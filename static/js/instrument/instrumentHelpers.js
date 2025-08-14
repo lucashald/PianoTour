@@ -578,7 +578,6 @@ export function startSliderDrag(e) {
   const endSliderDrag = () => {
     if (rafId) cancelAnimationFrame(rafId);
     if (isChordMode) updateLabels();
-    clearHi();
     pianoState.overlay.releasePointerCapture(e.pointerId);
     document.removeEventListener("pointermove", handleSliderMove);
   };
