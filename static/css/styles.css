@@ -1,6 +1,6 @@
 /* ==========================================================================
    COMPREHENSIVE MOBILE-FIRST PIANO TOUR CSS
-   Includes: Piano, Drums, Guitar, Audio Controls, and Editor Components
+   Includes: Piano, Guitar, Audio Controls, and Editor Components
    ========================================================================== */
 
 /* ==========================================================================
@@ -43,17 +43,6 @@
   --color-peach-dark: #893418;
   --color-peach-darkest: #5E1701;
 
-  /* Drum Colors */
-  --drum-red-bright: #E60000;
-  --drum-red-medium: #CC0000;
-  --drum-orange-bright: #FF6600;
-  --drum-orange-medium: #E65C00;
-  --drum-orange-dark: #CC5200;
-  --drum-yellow: #f1c40f;
-  --drum-cream: #F0EAD6;
-  --drum-white: #FFFFFF;
-  --drum-gray: #666;
-
   /* Mobile-First Sizing & Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -82,8 +71,8 @@
   /* Layout constraints */
   --max-width-mobile: 100%;
   --max-width-tablet: 768px;
-  --max-width-desktop: 1200px;
-  --container-padding: var(--spacing-md);
+  --max-width-desktop: 1500px;
+  --container-padding: 10px;
 
   /* Component heights */
   --header-height-mobile: auto;
@@ -211,126 +200,218 @@ body.no-scroll {
 
 /* Playback Controls */
 .playback-controls,
-.guitar-controls,
-#chord-palette {
+.guitar-controls {
   display: flex;
   flex-direction: column;
   gap: var(--touch-spacing);
   width: 100%;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
 }
 
-/* ==========================================================================
-   6. Volume Control System (Horizontal & Vertical)
-   ========================================================================== */
-
-/* Horizontal Volume Control (Main) */
 .volume-control {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  width: 100%;
-  margin-bottom: var(--spacing-md);
-  padding: var(--spacing-sm);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: var(--border-radius);
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--touch-spacing);
 }
 
 .volume-icon {
-  width: var(--touch-target-min);
-  height: var(--touch-target-min);
-  min-width: var(--touch-target-min);
-  fill: var(--color-text-secondary);
-  cursor: pointer;
-  border-radius: var(--border-radius-sm);
-  padding: var(--spacing-xs);
-  transition: all 0.3s ease;
-  touch-action: manipulation;
+    width: 40px;
+    height: 40px;
+    fill: var(--color-text-secondary);
+    flex-shrink: 0;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.3s ease;
 }
 
-.volume-icon:hover,
-.volume-icon:focus {
-  fill: var(--color-primary);
-  background-color: var(--color-blue-dark);
-  outline: none;
+.volume-icon:hover {
+    fill: var(--color-primary);
+    background-color: var(--color-blue-dark);
 }
 
 .volume-slider {
-  flex: 1;
-  height: var(--touch-target-min);
-  min-height: var(--touch-target-min);
-  -webkit-appearance: none;
-  appearance: none;
-  cursor: pointer;
-  outline: none;
-  border-radius: var(--border-radius);
-  background: linear-gradient(to right, 
-    var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 75%), 
-    var(--color-blue-dark) var(--value-percent, 75%));
-  touch-action: manipulation;
+    flex-grow: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 20px;
+    cursor: pointer;
+    outline: none;
+    border-radius: 8px;
+    background: linear-gradient(to right, 
+        var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 75%), 
+        var(--color-blue-dark) var(--value-percent, 75%)
+    );
 }
 
+/* WebKit browsers (Chrome, Safari, Edge) */
 .volume-slider::-webkit-slider-track {
-  background: transparent;
-  border: none;
+    background: transparent;
+    border: none;
 }
 
 .volume-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 32px;
-  width: 32px;
-  border-radius: 50%;
-  background: var(--color-text-primary);
-  border: 3px solid var(--color-green-medium);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-  cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 24px;
+    width: 24px;
+    margin-top: -2px;
+    border-radius: 50%;
+    background: var(--color-text-primary);
+    border: 3px solid var(--color-green-medium);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
 }
 
+/* Firefox */
 .volume-slider::-moz-range-track {
-  background: transparent;
-  border: none;
+   background: transparent;
+   border: none;
 }
 
 .volume-slider::-moz-range-thumb {
-  height: 32px;
-  width: 32px;
-  border-radius: 50%;
-  background: var(--color-text-primary);
-  border: 3px solid var(--color-green-medium);
-  cursor: pointer;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--color-text-primary);
+    border: 3px solid var(--color-green-medium);
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    border-color: inherit;
+}
+
+/* Hover & Active States */
+.volume-slider:hover::-webkit-slider-thumb {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.volume-slider:active::-webkit-slider-thumb {
+    transform: scale(1.2);
+}
+.volume-slider:hover::-moz-range-thumb {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.volume-slider:active::-moz-range-thumb {
+    transform: scale(1.2);
+}
+
+/* Focus states - Outline removed */
+.volume-slider:focus {
+    outline: none;
 }
 
 .volume-value {
-  min-width: var(--touch-target-min);
-  text-align: center;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--color-text-secondary);
+    min-width: 40px;
+    text-align: right;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    transition: color 0.3s ease;
 }
 
-/* Vertical Volume Controls */
+/* Muted state */
+.volume-control.muted .volume-slider {
+    --track-fill-color: var(--color-danger);
+}
+
+/* Muted Thumb - Background changed to make it solid */
+.volume-control.muted .volume-slider::-webkit-slider-thumb {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+}
+.volume-control.muted .volume-slider::-moz-range-thumb {
+    background: var(--color-danger);
+    border-color: var(--color-danger);
+}
+.volume-control.muted .volume-icon {
+    fill: var(--color-danger);
+}
+
+/* Touch-friendly improvements */
+@media (pointer: coarse) {
+    .volume-slider { height: 20px; }
+    .volume-slider::-webkit-slider-thumb { height: 24px; width: 24px; margin-top: -2px; }
+    .volume-slider::-moz-range-thumb { height: 24px; width: 24px; }
+    .volume-icon { width: 32px; height: 32px; padding: 12px; }
+}
+
+.volume-icon:focus {
+    outline: none;
+}
+
+.volume-control.audio-uninitialized * {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+.volume-control.audio-uninitialized .volume-slider {
+    opacity: 0.7;
+    /* Make it look disabled but keep it functional for clicks */
+    filter: grayscale(50%);
+}
+
+/* When audio is ready, restore normal appearance */
+.volume-control.audio-ready .volume-slider {
+    opacity: 1;
+    filter: none;
+}
+
+/* Container for all controls */
+.controls-container,
+.audio-controls-container {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 2);
+  padding: var(--spacing-unit);
+  flex-wrap: wrap;
+}
+
+.control-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-unit);
+}
+
+.control-section h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.vertical-controls {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 1.5);
+}
+
+/* Vertical volume control modifications */
 .volume-control.vertical {
   width: auto;
   height: 200px;
+  max-width: none;
   flex-direction: column;
   justify-content: flex-start;
   margin-bottom: 0;
-  gap: var(--spacing-sm);
-  background: rgba(255, 255, 255, 0.08);
-  padding: var(--spacing-md);
+  gap: calc(var(--spacing-unit) / 2);
 }
 
-.volume-control.vertical .volume-icon {
-  display: none;
+.control-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: 0;
+  white-space: nowrap;
 }
 
+/* Vertical slider styling */
 .vertical-slider {
-  writing-mode: bt-lr;
-  -webkit-appearance: slider-vertical;
+  writing-mode: bt-lr; /* IE */
+  -webkit-appearance: slider-vertical; /* WebKit */
   width: 20px;
   height: 120px;
   flex-grow: 0;
@@ -341,10 +422,10 @@ body.no-scroll {
   );
   cursor: pointer;
   outline: none;
-  border-radius: var(--border-radius);
-  touch-action: manipulation;
+  border-radius: 8px;
 }
 
+/* WebKit browsers (Chrome, Safari, Edge) - Vertical */
 .vertical-slider::-webkit-slider-track {
   background: transparent;
   border: none;
@@ -362,8 +443,12 @@ body.no-scroll {
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
   cursor: pointer;
+  /* Center the thumb on vertical track */
+  margin-left: 0;
+  margin-top: 0;
 }
 
+/* Firefox - Vertical */
 .vertical-slider::-moz-range-track {
   background: transparent;
   border: none;
@@ -380,49 +465,213 @@ body.no-scroll {
   cursor: pointer;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
   transition: all 0.3s ease;
+  /* Remove default border and center */
+  border-color: var(--color-green-medium);
+  margin: 0;
 }
 
+/* Hover & Active States for Vertical Sliders */
+.vertical-slider:hover::-webkit-slider-thumb,
+.vertical-slider:hover::-moz-range-thumb {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.vertical-slider:active::-webkit-slider-thumb,
+.vertical-slider:active::-moz-range-thumb {
+  transform: scale(1.2);
+}
+
+/* Focus states */
+.vertical-slider:focus {
+  outline: none;
+}
+
+/* Value display for vertical sliders */
 .volume-control.vertical .volume-value {
   min-width: 60px;
   text-align: center;
-  font-size: var(--font-size-sm);
+  font-size: 12px;
   font-weight: 500;
 }
 
-/* Audio Controls Container */
-.controls-container,
-.audio-controls-container {
-  display: flex;
-  gap: var(--spacing-xl);
-  padding: var(--spacing-md);
-  flex-wrap: wrap;
-  justify-content: center;
+/* Remove volume icon for these controls */
+.volume-control.vertical .volume-icon {
+  display: none;
 }
 
-.control-section {
+/* Muted state for vertical sliders */
+.volume-control.vertical.muted .vertical-slider {
+  --track-fill-color: var(--color-danger);
+}
+
+.volume-control.vertical.muted .vertical-slider::-webkit-slider-thumb,
+.volume-control.vertical.muted .vertical-slider::-moz-range-thumb {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+/* Touch-friendly improvements for vertical sliders */
+@media (pointer: coarse) {
+  .vertical-slider {
+    width: 24px;
+  }
+  .vertical-slider::-webkit-slider-thumb {
+    height: 24px;
+    width: 24px;
+  }
+  .vertical-slider::-moz-range-thumb {
+    height: 18px;
+    width: 18px;
+  }
+}
+
+/* Audio state classes */
+.volume-control.vertical.audio-uninitialized * {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.volume-control.vertical.audio-uninitialized .vertical-slider {
+  opacity: 0.7;
+  filter: grayscale(50%);
+}
+
+.volume-control.vertical.audio-ready .vertical-slider {
+  opacity: 1;
+  filter: none;
+}
+
+/* Wrapper and Footer */
+.controls-footer,
+.outer-wrapper {
+  background: #04273c;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Horizontally centers all direct children */
+  padding: calc(var(--spacing-unit) * 2);
+  gap: calc(var(--spacing-unit) * 1.5);
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* Preset Controls */
+.preset-controls {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 2);
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.preset-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: calc(var(--spacing-unit) * 0.5);
 }
 
-.control-section h3 {
+.preset-section h4 {
   margin: 0;
-  font-size: var(--font-size-base);
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
   text-align: center;
 }
 
-.vertical-controls {
+.button-row {
   display: flex;
-  gap: var(--spacing-lg);
+  gap: calc(var(--spacing-unit) * 0.5);
   flex-wrap: wrap;
   justify-content: center;
 }
 
+.btn--compact {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn--primary {
+  background-color: var(--color-primary, #007bff);
+  color: white;
+}
+
+.btn--primary:hover {
+  background-color: var(--color-primary-dark, #0056b3);
+}
+
+.btn--secondary {
+  background-color: var(--color-secondary, #6c757d);
+  color: white;
+}
+
+.btn--secondary:hover {
+  background-color: var(--color-secondary-dark, #545b62);
+}
+
+.instrument-selector {
+  min-width: 150px;
+  margin-bottom: var(--spacing-md);
+}
+
+.form-select {
+  padding: 8px 12px;
+  font-size: 14px;
+  background-color: #295570;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  width: 100%;
+}
+
+.form-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-select:hover {
+  border-color: var(--color-primary, #007bff);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .controls-container,
+  .audio-controls-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  .vertical-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .volume-control.vertical {
+    height: 150px;
+  }
+  .vertical-slider {
+    height: 100px;
+  }
+  .preset-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  .button-row {
+    flex-direction: column;
+    width: 100%;
+  }
+  .btn--compact {
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
 /* ==========================================================================
-   7. Score Viewer (Mobile Optimized)
+   6. Score Viewer (Mobile Optimized)
    ========================================================================== */
 .score-viewer {
   width: 100%;
@@ -458,19 +707,8 @@ body.no-scroll {
   touch-action: pan-x;
 }
 
-.drums-score-viewer__container {
-  overflow-x: auto;
-  white-space: nowrap;
-  margin: var(--spacing-md) 0;
-  -webkit-overflow-scrolling: touch;
-}
-
-.drums-score-viewer__content {
-  display: inline-block;
-}
-
 /* ==========================================================================
-   8. Instrument Panel (Mobile Optimized)
+   7. Instrument Panel (Mobile Optimized)
    ========================================================================== */
 .instrument-panel {
   width: 100%;
@@ -482,10 +720,9 @@ body.no-scroll {
 
 .instrument-panel__spectrum {
   width: 100%;
-  min-height: 80px;
+  min-height: 120px;
   background-color: #000;
   border-radius: var(--border-radius);
-  margin-bottom: var(--spacing-sm);
 }
 
 .instrument-panel__keyboard {
@@ -554,13 +791,13 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   9. Guitar Instrument Styles
+   8. Guitar Instrument Styles
    ========================================================================== */
 
 .guitar-wrapper {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   justify-content: center;
   width: 100%;
   margin: 0 auto;
@@ -569,8 +806,7 @@ body.no-scroll {
 
 .guitar-fretboard {
   position: relative;
-  width: 100%;
-  max-width: 800px;
+  width: 85%;
   height: var(--guitar-fretboard-height);
   background: linear-gradient(to bottom, #8B4513 0%, #D2691E 50%, #8B4513 100%);
   border-radius: var(--border-radius);
@@ -663,7 +899,7 @@ body.no-scroll {
   position: absolute;
   right: 0;
   top: 0;
-  width: 15%;
+  width: 9%;
   height: var(--guitar-fretboard-height);
   background: rgba(255, 255, 255, 0.05);
   border-left: 1px solid rgba(0,0,0,0.1);
@@ -699,12 +935,16 @@ body.no-scroll {
   gap: var(--spacing-xs);
   flex-wrap: wrap;
   justify-content: center;
-  width: 100%;
-  margin-top: var(--spacing-md);
+  width: 13%;
+}
+
+.string-button-container {
+  display: flex;
+  gap: var(--spacing-xs);
 }
 
 .string-button {
-  min-width: 80px;
+  min-width: 60px;
   min-height: var(--touch-target-min);
   padding: var(--spacing-sm);
   background: linear-gradient(to right, #f8f9fa, #e9ecef);
@@ -722,7 +962,6 @@ body.no-scroll {
 
 .string-button:hover {
   background: linear-gradient(to right, #e9ecef, #dee2e6);
-  transform: translateY(-1px);
 }
 
 .string-button.muted {
@@ -808,7 +1047,7 @@ body.no-scroll {
   flex-wrap: wrap;
   gap: var(--spacing-sm);
   justify-content: center;
-  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
 .chord-diagram-container {
@@ -819,343 +1058,7 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   10. Drum Machine Styles
-   ========================================================================== */
-
-/* Drum Switches Container */
-.drum-switches-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md);
-  background-color: var(--color-blue-darkest);
-  border-radius: var(--border-radius);
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-.drum-step-button {
-  width: 100%;
-  min-height: 90px;
-  border-radius: var(--border-radius);
-  border: 2px solid #555;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-sm);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
-  font-size: var(--font-size-lg);
-  color: #eee;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  box-sizing: border-box;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  touch-action: manipulation;
-}
-
-.drum-step-button:active {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transform: scale(0.98);
-}
-
-.drum-step-button .indicator {
-  width: 15px;
-  height: 15px;
-  background-color: #333;
-  border-radius: 50%;
-  border: 1px solid #000;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
-  margin-bottom: var(--spacing-xs);
-}
-
-.drum-step-button.active .indicator {
-  background-color: var(--drum-red-bright);
-  box-shadow: 0 0 5px var(--drum-red-bright), inset 0 0 3px rgba(255, 0, 0, 0.7);
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.7; }
-  100% { opacity: 1; }
-}
-
-.drum-step-button-label {
-  font-size: var(--font-size-lg);
-  font-weight: bold;
-  text-align: center;
-  line-height: 1.2;
-}
-
-/* Drum Button Color Assignments */
-.drum-step-button:nth-child(1),
-.drum-step-button:nth-child(2) {
-  background-color: var(--drum-red-bright);
-}
-
-.drum-step-button:nth-child(3),
-.drum-step-button:nth-child(4),
-.drum-step-button:nth-child(5) {
-  background-color: var(--drum-red-medium);
-}
-
-.drum-step-button:nth-child(6) {
-  background-color: var(--drum-orange-bright);
-}
-
-.drum-step-button:nth-child(7) {
-  background-color: var(--drum-orange-medium);
-}
-
-.drum-step-button:nth-child(8),
-.drum-step-button:nth-child(9),
-.drum-step-button:nth-child(10) {
-  background-color: var(--drum-orange-dark);
-}
-
-.drum-step-button:nth-child(11),
-.drum-step-button:nth-child(12),
-.drum-step-button:nth-child(13),
-.drum-step-button:nth-child(14) {
-  background-color: var(--drum-yellow);
-}
-
-.drum-step-button:nth-child(15) {
-  background-color: var(--drum-cream);
-  color: black;
-}
-
-.drum-step-button:nth-child(16),
-.drum-step-button:nth-child(17),
-.drum-step-button:nth-child(18),
-.drum-step-button:nth-child(19),
-.drum-step-button:nth-child(20) {
-  background-color: var(--drum-white);
-  color: black;
-}
-
-.drum-step-button:nth-child(21), 
-.drum-step-button:nth-child(22),
-.drum-step-button:nth-child(23),
-.drum-step-button:nth-child(24),
-.drum-step-button:nth-child(25) {
-  background-color: var(--drum-gray);
-  color: #FFFFFF;
-}
-
-/* Pattern Editor */
-.drum-pattern-editor {
-  background-color: var(--color-blue-darkest);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-xl);
-  margin: var(--spacing-md) 0;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  color: #eee;
-}
-
-.pattern-editor__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-xl);
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-}
-
-.pattern-editor__toggle {
-  background: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  font-size: var(--font-size-xl);
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  transition: color 0.2s;
-  touch-action: manipulation;
-}
-
-.pattern-editor__toggle:hover {
-  color: var(--drum-yellow);
-}
-
-.pattern-editor__btn {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--border-radius-sm);
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: var(--font-size-base);
-  min-height: var(--touch-target-min);
-  touch-action: manipulation;
-}
-
-.pattern-editor__btn--clear {
-  background-color: var(--drum-red-medium);
-  color: #fff;
-}
-
-.pattern-editor__btn--add {
-  background-color: var(--drum-orange-dark);
-  color: #fff;
-}
-
-.pattern-editor__btn--preview {
-  background-color: var(--color-green-lightest);
-  color: #fff;
-}
-
-.pattern-editor__btn:hover {
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transform: translateY(-1px);
-}
-
-.pattern-editor__btn:active {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transform: translateY(0);
-}
-
-/* Pattern Grid */
-.pattern-grid {
-  display: grid;
-  grid-template-columns: 120px repeat(8, 1fr);
-  gap: var(--spacing-sm);
-  align-items: center;
-  overflow-x: auto;
-  padding: var(--spacing-md);
-  -webkit-overflow-scrolling: touch;
-}
-
-.pattern-grid__header-cell {
-  width: 100%;
-  height: 100%;
-}
-
-.pattern-grid__step-number {
-  justify-self: center;
-  font-size: var(--font-size-sm);
-  color: #a7b7c9;
-  font-weight: 600;
-}
-
-.pattern-grid__instrument-label {
-  justify-self: end;
-  padding-right: var(--spacing-sm);
-  font-weight: bold;
-  font-size: var(--font-size-sm);
-  text-transform: uppercase;
-  color: #b0c4de;
-}
-
-.pattern-grid__cell {
-  width: 100%;
-  min-width: 50px;
-  height: 50px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: var(--spacing-xs);
-}
-
-.pattern-grid__checkbox {
-  display: none;
-}
-
-.pattern-grid__cell-label {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background-color: #333;
-  border-radius: var(--border-radius-sm);
-  border: 1px solid #555;
-  cursor: pointer;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-  transition: all 0.2s ease;
-  touch-action: manipulation;
-}
-
-.pattern-grid__cell-label:hover {
-  background-color: #444;
-}
-
-.pattern-grid__checkbox:checked + .pattern-grid__cell-label {
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px var(--drum-yellow);
-}
-
-/* Drum Instrument Specific Colors */
-.pattern-grid__cell[data-instrument="box-kick"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="sidestick"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="snare"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="tom-low"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="tom-mid"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label {
-  background-color: var(--drum-red-bright);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px var(--drum-red-bright);
-}
-
-.pattern-grid__cell[data-instrument="tom-high"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="hihat-closed"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="hihat-open"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="crash"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="ride"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label {
-  background-color: var(--drum-orange-bright);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px var(--drum-orange-bright);
-}
-
-.pattern-grid__cell[data-instrument="bongo-low"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="bongo-high"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="clap"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label,
-.pattern-grid__cell[data-instrument="cowbell"] .pattern-grid__checkbox:checked + .pattern-grid__cell-label {
-  background-color: var(--drum-yellow);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 8px var(--drum-yellow);
-}
-
-/* Playback Indicator */
-.pattern-grid__playback-step {
-  padding: var(--spacing-xl);
-  justify-self: center;
-  align-self: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background-color: #333;
-  border: 2px solid #555;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
-  transition: all 0.1s ease;
-  pointer-events: none;
-}
-
-.pattern-grid__playback-marker {
-  display: none;
-}
-
-.pattern-grid__playback-step.active {
-  background-color: var(--drum-red-bright);
-  box-shadow: 
-    0 0 5px var(--drum-red-bright), 
-    0 0 10px var(--drum-red-bright), 
-    inset 0 1px 3px rgba(0, 0, 0, 0.5);
-  animation: 808-pulse 0.5s ease-out infinite alternate;
-}
-
-@keyframes 808-pulse {
-  from {
-    transform: scale(0.95);
-    opacity: 0.8;
-  }
-  to {
-    transform: scale(1.05);
-    opacity: 1;
-  }
-}
-
-/* ==========================================================================
-   11. Button System (Touch Optimized)
+   9. Button System (Touch Optimized)
    ========================================================================== */
 .btn {
   display: inline-flex;
@@ -1184,12 +1087,11 @@ body.no-scroll {
 .btn:hover,
 .btn:focus {
   background-color: var(--color-blue-light);
-  transform: translateY(-1px);
   outline: none;
 }
 
 .btn:active {
-  transform: translateY(0);
+  /* No transform needed */
 }
 
 /* Button Variants */
@@ -1251,21 +1153,21 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   12. Main Controls (Mobile Layout)
+   10. Main Controls (Mobile Layout)
    ========================================================================== */
 .main-controls {
   width: 100%;
   background-color: var(--color-surface);
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
   border-radius: var(--border-radius);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
 .controls-button-row {
   display: flex;
   flex-direction: column;
   gap: var(--touch-spacing);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
 }
 
 .controls-button-row:last-child {
@@ -1282,18 +1184,24 @@ body.no-scroll {
 .chord-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--touch-spacing);
+  gap: var(--spacing-sm);
   justify-content: center;
 }
 
+.chord-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
 /* ==========================================================================
-   13. Form Controls (Touch Optimized)
+   11. Form Controls (Touch Optimized)
    ========================================================================== */
 .control-row {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-md);
 }
 
 .control-label {
@@ -1310,7 +1218,6 @@ body.no-scroll {
 .form-select {
   min-height: var(--touch-target-min);
   padding: var(--spacing-sm);
-  border: 2px solid var(--color-border);
   border-radius: var(--border-radius);
   font-size: var(--font-size-base);
   background: var(--color-blue-darkest);
@@ -1326,7 +1233,6 @@ body.no-scroll {
 .chord-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: var(--color-green-lightest);
   box-shadow: 0 0 0 3px rgba(118, 181, 149, 0.2);
 }
 
@@ -1348,13 +1254,11 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   14. Note Palette & Editor (Mobile Optimized)
+   12. Note Palette & Editor (Mobile Optimized)
    ========================================================================== */
 .note-palette-container {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--border-radius);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
 }
@@ -1369,6 +1273,13 @@ body.no-scroll {
   letter-spacing: 0.5px;
 }
 
+.chord-palette-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--touch-spacing);
+  justify-items: center;
+}
+
 .note-palette {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
@@ -1379,10 +1290,9 @@ body.no-scroll {
 .palette-note {
   width: 100%;
   min-width: 80px;
+  max-width: 120px;
   min-height: var(--touch-target-min);
   background: var(--color-green-lightest);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--border-radius);
   color: #000;
   cursor: pointer;
   display: flex;
@@ -1399,7 +1309,6 @@ body.no-scroll {
 .palette-note:hover,
 .palette-note:active {
   background: var(--color-peach-light);
-  transform: scale(0.95);
 }
 
 .note-duration {
@@ -1410,7 +1319,7 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   15. Side Panel & Editor (Mobile Adapted)
+   13. Side Panel & Editor (Mobile Adapted)
    ========================================================================== */
 .piano-app__side-panel {
   display: none; /* Hidden on mobile by default */
@@ -1426,8 +1335,6 @@ body.no-scroll {
   max-height: 80vh;
   background: rgba(30, 41, 59, 0.95);
   backdrop-filter: blur(20px);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: var(--spacing-md);
   z-index: 1000;
   overflow-y: auto;
@@ -1495,7 +1402,7 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   16. Chord Search (Mobile Optimized)
+   14. Chord Search (Mobile Optimized)
    ========================================================================== */
 .chord-search-container {
   position: relative;
@@ -1543,44 +1450,7 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   17. Preset Controls
-   ========================================================================== */
-.preset-controls {
-  display: flex;
-  gap: var(--spacing-xl);
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: flex-start;
-}
-
-.preset-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.preset-section h4 {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  text-align: center;
-}
-
-.button-row {
-  display: flex;
-  gap: var(--spacing-sm);
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.instrument-selector {
-  min-width: 150px;
-}
-
-/* ==========================================================================
-   18. Utility Classes
+   15. Utility Classes
    ========================================================================== */
 .hidden {
   display: none !important;
@@ -1623,7 +1493,7 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   19. TABLET BREAKPOINT (768px and up)
+   16. TABLET BREAKPOINT (768px and up)
    ========================================================================== */
 @media (min-width: 768px) {
   :root {
@@ -1679,21 +1549,9 @@ body.no-scroll {
     max-width: 500px;
   }
 
-  .drum-switches-container {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  }
-
-  .pattern-grid {
-    grid-template-columns: 150px repeat(8, 55px);
-  }
-
   .guitar-wrapper {
     flex-direction: row;
     align-items: center;
-  }
-
-  .guitar-fretboard {
-    max-width: 1000px;
   }
 
   .string-labels-container {
@@ -1717,7 +1575,7 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   20. DESKTOP BREAKPOINT (1024px and up)
+   17. DESKTOP BREAKPOINT (1024px and up)
    ========================================================================== */
 @media (min-width: 1024px) {
   :root {
@@ -1764,15 +1622,6 @@ body.no-scroll {
     gap: var(--spacing-sm);
   }
 
-  .drum-switches-container {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .pattern-grid {
-    grid-template-columns: 150px repeat(8, 55px);
-    gap: var(--spacing-md);
-  }
-
   .preset-controls {
     flex-direction: row;
     justify-content: space-around;
@@ -1784,7 +1633,7 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   21. LARGE DESKTOP BREAKPOINT (1280px and up)
+   18. LARGE DESKTOP BREAKPOINT (1280px and up)
    ========================================================================== */
 @media (min-width: 1280px) {
   .piano-app__header-title {
@@ -1798,31 +1647,20 @@ body.no-scroll {
   .controls-button-row {
     gap: var(--spacing-lg);
   }
-
-  .drum-switches-container {
-    grid-template-columns: repeat(5, 1fr);
-  }
 }
 
 /* ==========================================================================
-   22. High DPI / Retina Display Optimizations
+   19. High DPI / Retina Display Optimizations
    ========================================================================== */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
   .instrument-panel__keyboard .white,
   .instrument-panel__keyboard .black {
     stroke-width: 0.5;
   }
-
-  .volume-slider::-webkit-slider-thumb,
-  .volume-slider::-moz-range-thumb,
-  .vertical-slider::-webkit-slider-thumb,
-  .vertical-slider::-moz-range-thumb {
-    border-width: 2px;
-  }
 }
 
 /* ==========================================================================
-   23. Touch Device Optimizations
+   20. Touch Device Optimizations
    ========================================================================== */
 @media (pointer: coarse) {
   :root {
@@ -1842,14 +1680,14 @@ body.no-scroll {
 
   .volume-slider::-webkit-slider-thumb,
   .volume-slider::-moz-range-thumb {
-    height: 36px;
-    width: 36px;
+    height: 28px;
+    width: 28px;
   }
 
   .vertical-slider::-webkit-slider-thumb,
   .vertical-slider::-moz-range-thumb {
-    height: 24px;
-    width: 24px;
+    height: 22px;
+    width: 22px;
   }
 
   .palette-note {
@@ -1860,25 +1698,16 @@ body.no-scroll {
     min-height: 48px;
     padding: var(--spacing-md) var(--spacing-lg);
   }
-
-  .drum-step-button {
-    min-height: 100px;
-  }
-
-  .pattern-grid__cell {
-    height: 60px;
-  }
 }
 
 /* ==========================================================================
-   24. Print Styles
+   21. Print Styles
    ========================================================================== */
 @media print {
   .playback-controls,
   .main-controls,
   .volume-control,
   .piano-app__side-panel,
-  .drum-pattern-editor,
   .guitar-wrapper .string-labels-container {
     display: none;
   }
@@ -1896,7 +1725,7 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   25. Reduced Motion Support
+   22. Reduced Motion Support
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -1907,7 +1736,7 @@ body.no-scroll {
 }
 
 /* ==========================================================================
-   26. Focus Management for Accessibility
+   23. Focus Management for Accessibility
    ========================================================================== */
 .btn:focus-visible,
 .volume-slider:focus-visible,
@@ -1915,8 +1744,6 @@ body.no-scroll {
 .chord-input:focus-visible,
 .form-select:focus-visible,
 .palette-note:focus-visible,
-.drum-step-button:focus-visible,
-.pattern-grid__cell-label:focus-visible,
 .guitar-fretboard *:focus-visible {
   outline: 3px solid var(--color-green-lightest);
   outline-offset: 2px;
@@ -1928,8 +1755,6 @@ body.no-scroll {
 .vertical-slider:focus:not(:focus-visible),
 .chord-input:focus:not(:focus-visible),
 .form-select:focus:not(:focus-visible),
-.palette-note:focus:not(:focus-visible),
-.drum-step-button:focus:not(:focus-visible),
-.pattern-grid__cell-label:focus:not(:focus-visible) {
+.palette-note:focus:not(:focus-visible) {
   outline: none;
 }

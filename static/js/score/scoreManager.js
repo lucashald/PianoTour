@@ -122,95 +122,26 @@ const workerScriptContent = `
         return (timeSignature.numerator * 4) / timeSignature.denominator;
     }
 
-    function validateMeasureBeats(measure, beatsPerMeasure) {
-        let totalBeats = 0;
+    function calculateMeasureBeats(measure) {
+        // Group notes by clef and calculate beats for each clef separately
+        const clefBeats = {};
+        
         for (const note of measure) {
+            const clef = note.clef || 'treble';
             const duration = VALID_DURATIONS[note.duration];
+            
             if (duration) {
-                totalBeats += duration.beatValue;
-            }
-        }
-        
-        // Allow slight tolerance for floating point precision
-        const tolerance = 0.001;
-        return { 
-            totalBeats: Math.round(totalBeats * 1000) / 1000,
-            isValid: totalBeats <= beatsPerMeasure + tolerance,
-            overflow: Math.max(0, totalBeats - beatsPerMeasure)
-        };
-    }
-
-    // UPDATED: Modified to respect disableSplitting flag
-    function splitMeasureIfNeeded(measure, beatsPerMeasure, measureIndex, disableSplitting = false) {
-        // If splitting is disabled, just return the original measure
-        if (disableSplitting) {
-            console.log(\`Measure \${measureIndex}: Splitting disabled, preserving original structure\`);
-            return [measure];
-        }
-
-        const validation = validateMeasureBeats(measure, beatsPerMeasure);
-        
-        if (validation.isValid) {
-            return [measure]; // No splitting needed
-        }
-
-        // Split the measure into valid chunks (original logic)
-        const measures = [];
-        let currentMeasure = [];
-        let currentBeats = 0;
-        const tolerance = 0.001;
-
-        for (let i = 0; i < measure.length; i++) {
-            const note = measure[i];
-            const duration = VALID_DURATIONS[note.duration];
-            const noteBeats = duration ? duration.beatValue : 1;
-
-            if (currentBeats + noteBeats > beatsPerMeasure + tolerance && currentMeasure.length > 0) {
-                const remainingBeats = beatsPerMeasure - currentBeats;
-                if (remainingBeats > 0.1) {
-                    const restDuration = findBestDurationForBeats(remainingBeats);
-                    const restNote = currentMeasure.find(n => n.clef) || note;
-                    currentMeasure.push({
-                        id: \`auto-rest-\${measureIndex}-\${measures.length}-\${Date.now()}\`,
-                        name: restNote.clef === 'bass' ? 'D3' : 'B4',
-                        clef: restNote.clef || 'treble',
-                        duration: restDuration,
-                        measure: measureIndex + measures.length,
-                        isRest: true,
-                        chordName: 'Rest'
-                    });
+                if (!clefBeats[clef]) {
+                    clefBeats[clef] = 0;
                 }
-                measures.push(currentMeasure);
-                currentMeasure = [];
-                currentBeats = 0;
+                clefBeats[clef] += duration.beatValue;
             }
-
-            currentMeasure.push({
-                ...note,
-                measure: measureIndex + measures.length
-            });
-            currentBeats += noteBeats;
         }
-
-        if (currentMeasure.length > 0) {
-            const remainingBeats = beatsPerMeasure - currentBeats;
-            if (remainingBeats > 0.1) {
-                const lastNote = currentMeasure[currentMeasure.length - 1];
-                const restDuration = findBestDurationForBeats(remainingBeats);
-                currentMeasure.push({
-                    id: \`auto-rest-\${measureIndex}-final-\${Date.now()}\`,
-                    name: lastNote.clef === 'bass' ? 'D3' : 'B4',
-                    clef: lastNote.clef || 'treble',
-                    duration: restDuration,
-                    measure: measureIndex + measures.length,
-                    isRest: true,
-                    chordName: 'Rest'
-                });
-            }
-            measures.push(currentMeasure);
-        }
-
-        return measures.length > 0 ? measures : [[]];
+        
+        // The measure duration is the maximum duration across all clefs
+        // (since different clefs play simultaneously, not sequentially)
+        const maxBeats = Math.max(...Object.values(clefBeats), 0);
+        return Math.round(maxBeats * 1000) / 1000; // Round to avoid floating point precision issues
     }
 
     function findBestDurationForBeats(beats) {
@@ -224,6 +155,119 @@ const workerScriptContent = `
             }
         }
         return '32';
+    }
+
+    function splitMeasureIntoValidChunks(measure, beatsPerMeasure, measureIndex) {
+        // Group notes by clef first
+        const clefGroups = {};
+        for (const note of measure) {
+            const clef = note.clef || 'treble';
+            if (!clefGroups[clef]) {
+                clefGroups[clef] = [];
+            }
+            clefGroups[clef].push(note);
+        }
+
+        // Find which clef has the overflow
+        let maxOverflowClef = null;
+        let maxOverflow = 0;
+        
+        for (const [clef, notes] of Object.entries(clefGroups)) {
+            let clefBeats = 0;
+            for (const note of notes) {
+                const duration = VALID_DURATIONS[note.duration];
+                if (duration) {
+                    clefBeats += duration.beatValue;
+                }
+            }
+            
+            const overflow = clefBeats - beatsPerMeasure;
+            if (overflow > maxOverflow) {
+                maxOverflow = overflow;
+                maxOverflowClef = clef;
+            }
+        }
+
+        // If no overflow, return as single measure
+        if (maxOverflow <= 0.001) {
+            return [measure];
+        }
+
+        // Split the overflowing clef and reconstruct measures
+        const overflowNotes = clefGroups[maxOverflowClef];
+        const otherNotes = measure.filter(note => (note.clef || 'treble') !== maxOverflowClef);
+        
+        const measures = [];
+        let currentMeasureNotes = [];
+        let currentBeats = 0;
+        const tolerance = 0.001;
+
+        // Split the overflowing clef
+        for (let i = 0; i < overflowNotes.length; i++) {
+            const note = overflowNotes[i];
+            const duration = VALID_DURATIONS[note.duration];
+            const noteBeats = duration ? duration.beatValue : 1;
+
+            // If adding this note would exceed the measure limit and we have notes in current measure
+            if (currentBeats + noteBeats > beatsPerMeasure + tolerance && currentMeasureNotes.length > 0) {
+                // Fill remaining space with rest if significant
+                const remainingBeats = beatsPerMeasure - currentBeats;
+                if (remainingBeats > 0.1) {
+                    const restDuration = findBestDurationForBeats(remainingBeats);
+                    currentMeasureNotes.push({
+                        id: \`auto-rest-\${measureIndex}-\${measures.length}-\${Date.now()}\`,
+                        name: maxOverflowClef === 'bass' ? 'D3' : 'B4',
+                        clef: maxOverflowClef,
+                        duration: restDuration,
+                        measure: measureIndex + measures.length,
+                        isRest: true,
+                        chordName: 'Rest'
+                    });
+                }
+                
+                // Add other clef notes only to the first measure
+                const measureNotes = measures.length === 0 
+                    ? [...currentMeasureNotes, ...otherNotes.map(n => ({ ...n, measure: measureIndex }))]
+                    : currentMeasureNotes;
+                
+                measures.push(measureNotes);
+                currentMeasureNotes = [];
+                currentBeats = 0;
+            }
+
+            // Add note to current measure
+            currentMeasureNotes.push({
+                ...note,
+                measure: measureIndex + measures.length
+            });
+            currentBeats += noteBeats;
+        }
+
+        // Handle the final measure
+        if (currentMeasureNotes.length > 0) {
+            const remainingBeats = beatsPerMeasure - currentBeats;
+            if (remainingBeats > 0.1) {
+                const restDuration = findBestDurationForBeats(remainingBeats);
+                currentMeasureNotes.push({
+                    id: \`auto-rest-\${measureIndex}-final-\${Date.now()}\`,
+                    name: maxOverflowClef === 'bass' ? 'D3' : 'B4',
+                    clef: maxOverflowClef,
+                    duration: restDuration,
+                    measure: measureIndex + measures.length,
+                    isRest: true,
+                    chordName: 'Rest'
+                });
+            }
+            
+            // Add other clef notes only if this is the first (and only) split measure
+            const measureNotes = measures.length === 0 
+                ? [...currentMeasureNotes, ...otherNotes.map(n => ({ ...n, measure: measureIndex }))]
+                : currentMeasureNotes;
+                
+            measures.push(measureNotes);
+        }
+
+        return measures.length > 0 ? measures : [[]];
     }
 
     function validateNote(note, measureIndex, noteIndex) {
@@ -305,6 +349,7 @@ const workerScriptContent = `
             delete validatedNote.chordName;
         }
 
+        // Clean up null/undefined values
         Object.keys(validatedNote).forEach(key => {
             if (validatedNote[key] === null || validatedNote[key] === undefined) {
                 if (key !== 'midiNumber' && key !== 'stemDirection' && key !== 'chordName') {
@@ -321,14 +366,13 @@ const workerScriptContent = `
         };
     }
 
-    // UPDATED: Modified to respect disableSplitting flag
-    function validateMeasure(measure, measureIndex, beatsPerMeasure, disableSplitting = false) {
+    function validateMeasure(measure, measureIndex) {
         if (!Array.isArray(measure)) {
             return {
                 isValid: false,
                 errors: [\`Measure \${measureIndex} is not an array\`],
                 validatedMeasure: [],
-                needsSplit: false
+                hasCorrections: false
             };
         }
 
@@ -348,30 +392,85 @@ const workerScriptContent = `
             }
         }
 
-        // Check beat count only if splitting is enabled
-        let needsSplit = false;
-        if (!disableSplitting) {
-            const beatValidation = validateMeasureBeats(validatedNotes, beatsPerMeasure);
-            needsSplit = !beatValidation.isValid;
+        return {
+            isValid: errors.length === 0,
+            errors,
+            validatedMeasure: validatedNotes,
+            hasCorrections
+        };
+    }
 
-            if (needsSplit) {
-                errors.push(\`Measure \${measureIndex}: Contains \${beatValidation.totalBeats} beats, exceeds limit of \${beatsPerMeasure} beats\`);
+    function processMeasures(rawMeasuresData, beatsPerMeasure, allowSplitting = true) {
+        const processedMeasures = [];
+        const validationErrors = [];
+        let correctionCount = 0;
+        let splitCount = 0;
+
+        for (let i = 0; i < rawMeasuresData.length; i++) {
+            const measure = rawMeasuresData[i];
+            const measureValidation = validateMeasure(measure, i);
+            
+            validationErrors.push(...measureValidation.errors);
+            if (measureValidation.hasCorrections) {
+                correctionCount++;
             }
-        } else {
-            // Just log the beat count for info, but don't split
-            const beatValidation = validateMeasureBeats(validatedNotes, beatsPerMeasure);
-            if (!beatValidation.isValid) {
-                console.log(\`Measure \${measureIndex}: Contains \${beatValidation.totalBeats} beats (splitting disabled)\`);
+
+            let finalMeasures = [];
+
+            if (measureValidation.validatedMeasure.length === 0) {
+                // Empty measure
+                if (allowSplitting) {
+                    // Add appropriate rest for empty measure
+                    const restDuration = beatsPerMeasure >= 4 ? 'w' : beatsPerMeasure >= 2 ? 'h' : 'q';
+                    finalMeasures = [[{
+                        id: \`rest-\${i}-0-\${Date.now()}\`,
+                        name: 'B4',
+                        clef: 'treble',
+                        duration: restDuration,
+                        measure: i,
+                        isRest: true,
+                        chordName: 'Rest'
+                    }]];
+                    validationErrors.push(\`Measure \${i}: Empty measure, added \${VALID_DURATIONS[restDuration].name.toLowerCase()} rest\`);
+                } else {
+                    // Keep empty measure as empty
+                    finalMeasures = [[]];
+                }
+            } else {
+                // Measure has notes
+                if (allowSplitting) {
+                    const totalBeats = calculateMeasureBeats(measureValidation.validatedMeasure);
+                    const tolerance = 0.001;
+                    
+                    if (totalBeats > beatsPerMeasure + tolerance) {
+                        // Split the measure
+                        finalMeasures = splitMeasureIntoValidChunks(measureValidation.validatedMeasure, beatsPerMeasure, i);
+                        if (finalMeasures.length > 1) {
+                            splitCount++;
+                            validationErrors.push(\`Measure \${i}: Contains \${totalBeats} beats, split into \${finalMeasures.length} measures\`);
+                        }
+                    } else {
+                        // Measure fits, use as-is
+                        finalMeasures = [measureValidation.validatedMeasure];
+                    }
+                } else {
+                    // No splitting allowed, use measure as-is regardless of beat count
+                    const totalBeats = calculateMeasureBeats(measureValidation.validatedMeasure);
+                    if (totalBeats > beatsPerMeasure + 0.001) {
+                        console.log(\`Measure \${i}: Contains \${totalBeats} beats (exceeds \${beatsPerMeasure}), but splitting disabled\`);
+                    }
+                    finalMeasures = [measureValidation.validatedMeasure];
+                }
             }
+
+            processedMeasures.push(...finalMeasures);
         }
 
         return {
-            isValid: errors.length === 0 && !needsSplit,
-            errors,
-            validatedMeasure: validatedNotes,
-            needsSplit,
-            hasCorrections,
-            totalBeats: 0 // We'll calculate this if needed
+            measures: processedMeasures,
+            validationErrors,
+            correctionCount,
+            splitCount
         };
     }
 
@@ -380,12 +479,9 @@ const workerScriptContent = `
 
         if (command === 'processScore') {
             try {
-                // UPDATED: Extract the disableSplitting option
-                const disableSplitting = options.disableSplitting || false;
+                const allowSplitting = !options.disableSplitting; // Convert to positive logic
                 
-                if (disableSplitting) {
-                    console.log('Score processing: Measure splitting disabled');
-                }
+                console.log(\`Score processing: Measure splitting \${allowSplitting ? 'enabled' : 'disabled'}\`);
 
                 self.postMessage({ 
                     type: 'progress', 
@@ -437,87 +533,28 @@ const workerScriptContent = `
                 });
 
                 const totalMeasures = rawMeasuresData.length;
-                let processedMeasures = [];
-                const validationErrors = [];
                 const processingChunkSize = Math.max(10, Math.floor(totalMeasures / 20));
-                let correctionCount = 0;
-                let splitCount = 0;
 
-                // UPDATED: Process measures with disableSplitting flag
-                for (let i = 0; i < totalMeasures; i++) {
-                    const measure = rawMeasuresData[i];
-                    const measureValidation = validateMeasure(measure, i, beatsPerMeasure, disableSplitting);
-                    
-                    validationErrors.push(...measureValidation.errors);
-                    if (measureValidation.hasCorrections) {
-                        correctionCount++;
-                    }
-
-                    if (measureValidation.validatedMeasure.length > 0) {
-                        if (measureValidation.needsSplit && !disableSplitting) {
-                            const splitMeasures = splitMeasureIfNeeded(measureValidation.validatedMeasure, beatsPerMeasure, i, disableSplitting);
-                            if (splitMeasures.length > 1) {
-                                splitCount++;
-                                validationErrors.push(\`Measure \${i}: Split into \${splitMeasures.length} measures due to beat overflow\`);
-                            }
-                            processedMeasures.push(...splitMeasures);
-                        } else {
-                            // Just use the validated measure as-is
-                            processedMeasures.push(measureValidation.validatedMeasure);
-                        }
-                    } else {
-                        // Empty measure - add a rest only if splitting is enabled
-                        if (!disableSplitting) {
-                            const restDuration = beatsPerMeasure >= 4 ? 'w' : beatsPerMeasure >= 2 ? 'h' : 'q';
-                            processedMeasures.push([{
-                                id: \`rest-\${i}-0-\${Date.now()}\`,
-                                name: 'B4',
-                                clef: 'treble',
-                                duration: restDuration,
-                                measure: i,
-                                isRest: true,
-                                chordName: 'Rest'
-                            }]);
-                            validationErrors.push(\`Measure \${i}: Empty measure, added \${VALID_DURATIONS[restDuration].name.toLowerCase()} rest\`);
-                        } else {
-                            // Keep empty measure as empty if splitting is disabled
-                            processedMeasures.push([]);
-                        }
-                    }
-
-                    if ((i + 1) % processingChunkSize === 0 || (i + 1) === totalMeasures) {
-                        const progressPercent = ((i + 1) / totalMeasures) * 2;
-                        self.postMessage({ 
-                            type: 'progress', 
-                            payload: { 
-                                current: 2 + progressPercent, 
-                                total: 6, 
-                                message: \`Processing measures... (\${i + 1}/\${totalMeasures})\`, 
-                                scoreId 
-                            } 
-                        });
-                    }
-                }
+                // Process all measures
+                const result = processMeasures(rawMeasuresData, beatsPerMeasure, allowSplitting);
 
                 self.postMessage({ 
                     type: 'progress', 
                     payload: { current: 5, total: 6, message: 'Finalizing and indexing...', scoreId } 
                 });
 
-                // UPDATED: Only reassign measure indices if we actually split measures
-                if (splitCount > 0 && !disableSplitting) {
-                    console.log(\`Reassigning measure indices after \${splitCount} splits\`);
-                    let measureIndex = 0;
-                    processedMeasures = processedMeasures.map(measure => {
-                        const updatedMeasure = measure.map(note => ({
+                // Reassign measure indices if we split measures
+                let finalMeasures = result.measures;
+                if (result.splitCount > 0 && allowSplitting) {
+                    console.log(\`Reassigning measure indices after \${result.splitCount} splits\`);
+                    finalMeasures = result.measures.map((measure, measureIndex) => {
+                        return measure.map(note => ({
                             ...note,
                             measure: measureIndex
                         }));
-                        measureIndex++;
-                        return updatedMeasure;
                     });
                 } else {
-                    console.log('Preserving original measure assignments (no splits or splitting disabled)');
+                    console.log('Preserving original measure assignments');
                 }
 
                 self.postMessage({ 
@@ -525,26 +562,27 @@ const workerScriptContent = `
                     payload: { current: 6, total: 6, message: 'Processing complete!', scoreId } 
                 });
 
-                if (correctionCount > 0 || splitCount > 0) {
+                // Add processing summary to validation errors
+                if (result.correctionCount > 0 || result.splitCount > 0) {
                     const summaryParts = [];
-                    if (correctionCount > 0) summaryParts.push(\`\${correctionCount} measures corrected\`);
-                    if (splitCount > 0) summaryParts.push(\`\${splitCount} measures split\`);
-                    validationErrors.unshift(\`Processing Summary: \${summaryParts.join(', ')}\`);
+                    if (result.correctionCount > 0) summaryParts.push(\`\${result.correctionCount} measures corrected\`);
+                    if (result.splitCount > 0) summaryParts.push(\`\${result.splitCount} measures split\`);
+                    result.validationErrors.unshift(\`Processing Summary: \${summaryParts.join(', ')}\`);
                 }
 
                 self.postMessage({
                     type: 'scoreProcessed',
                     payload: {
                         scoreId,
-                        measures: processedMeasures,
+                        measures: finalMeasures,
                         metadata,
-                        validationErrors,
+                        validationErrors: result.validationErrors,
                         originalSize: fileContent.length,
                         stats: {
                             originalMeasures: totalMeasures,
-                            finalMeasures: processedMeasures.length,
-                            correctionCount,
-                            splitCount,
+                            finalMeasures: finalMeasures.length,
+                            correctionCount: result.correctionCount,
+                            splitCount: result.splitCount,
                             beatsPerMeasure
                         }
                     }
