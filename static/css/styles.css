@@ -74,6 +74,8 @@
   --max-width-desktop: 1500px;
   --container-padding: 10px;
 
+  --max-width-main: 1200px;
+
   /* Component heights */
   --header-height-mobile: auto;
   --score-min-height-mobile: 200px;
@@ -143,6 +145,7 @@ body.no-scroll {
   width: 100%;
   max-width: var(--max-width-mobile);
   margin: 0 auto;
+  align-items: center;
 }
 
 /* Header */
@@ -209,7 +212,7 @@ body.no-scroll {
 }
 
 .volume-control {
-    width: 100%;
+    width: 25%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -553,7 +556,7 @@ body.no-scroll {
   padding: calc(var(--spacing-unit) * 2);
   gap: calc(var(--spacing-unit) * 1.5);
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
 }
 
 /* Preset Controls */
@@ -670,9 +673,6 @@ body.no-scroll {
   }
 }
 
-/* ==========================================================================
-   6. Score Viewer (Mobile Optimized)
-   ========================================================================== */
 .score-viewer {
   width: 100%;
   min-height: var(--score-min-height-mobile);
@@ -682,7 +682,11 @@ body.no-scroll {
   border-radius: var(--border-radius);
   padding: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
-  overflow: hidden;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .score-viewer__container {
@@ -691,12 +695,15 @@ body.no-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
+  display: flex;
+  justify-content: safe center; /* This is the key fix */
+  align-items: center;
 }
 
 .score-viewer__content {
   display: inline-block;
-  min-width: 100%;
 }
 
 #score {
@@ -712,11 +719,13 @@ body.no-scroll {
    ========================================================================== */
 .instrument-panel {
   width: 100%;
+    max-width: var(--max-width-main);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
   position: relative;
 }
+
 
 .instrument-panel__spectrum {
   width: 100%;
@@ -806,7 +815,7 @@ body.no-scroll {
 
 .guitar-fretboard {
   position: relative;
-  width: 85%;
+  width: 100%;
   height: var(--guitar-fretboard-height);
   background: linear-gradient(to bottom, #8B4513 0%, #D2691E 50%, #8B4513 100%);
   border-radius: var(--border-radius);
