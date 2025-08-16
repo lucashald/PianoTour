@@ -4772,3 +4772,35 @@ export function identifyChord(notes, allowDuplicates = true) {
   
   return null;
 }
+
+const INTERVAL_DEFINITIONS = {
+    unison: { semitones: 0, displayName: 'Unison' },
+    major2: { semitones: 2, displayName: 'Major 2nd' },
+    minor3: { semitones: 3, displayName: 'Minor 3rd' },
+    major3: { semitones: 4, displayName: 'Major 3rd' },
+    perfect4: { semitones: 5, displayName: 'Perfect 4th' },
+    perfect5: { semitones: 7, displayName: 'Perfect 5th' },
+    major6: { semitones: 9, displayName: 'Major 6th' },
+    major7: { semitones: 11, displayName: 'Major 7th' },
+    octave: { semitones: 12, displayName: 'Octave' }
+};
+
+// Function to create interval chord from a root note
+export function createIntervalChord(rootNoteName, intervalType) {
+    const interval = INTERVAL_DEFINITIONS[intervalType];
+    if (!interval) return null;
+    
+    const rootMidi = NOTES_BY_NAME[rootNoteName];
+    if (rootMidi === undefined) return null;
+    
+    const intervalMidi = rootMidi + interval.semitones;
+    const intervalNote = ALL_NOTE_INFO.find(note => note.midi === intervalMidi);
+    
+    if (!intervalNote) return null;
+    
+    return {
+        displayName: `${rootNoteName} + ${interval.displayName}`,
+        treble: [rootNoteName, intervalNote.name],
+        bass: [rootNoteName, intervalNote.name]
+    };
+}

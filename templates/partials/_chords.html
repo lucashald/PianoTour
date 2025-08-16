@@ -44,15 +44,61 @@
         >
         <div id="chordSuggestions" class="chord-suggestions"></div>
         
-        <!-- Draggable result button -->
-        <div id="searchResultButton" class="palette-note palette-note-primary search-result-button" 
-             data-type="chord" draggable="true">
-            <span class="chord-symbol">♪</span>
-            <div class="note-duration">Selected Chord</div>
+        <!-- Search Result and Intervals Container -->
+        <div class="note-palette-container">
+            <div class="note-palette chord-palette">
+                <!-- Search Result Button -->
+                <div id="searchResultButton" class="palette-note palette-note-primary search-result-button" 
+                     data-type="chord" draggable="true">
+                    <span class="chord-symbol">♪</span>
+                    <div class="note-duration">Selected Chord</div>
+                </div>
+
+                <!-- Interval Buttons -->
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="unison" draggable="true">
+                    <span class="chord-symbol">1</span>
+                    <div class="note-duration">Unison</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="major2" draggable="true">
+                    <span class="chord-symbol">M2</span>
+                    <div class="note-duration">Major 2nd</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="minor3" draggable="true">
+                    <span class="chord-symbol">m3</span>
+                    <div class="note-duration">Minor 3rd</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="major3" draggable="true">
+                    <span class="chord-symbol">M3</span>
+                    <div class="note-duration">Major 3rd</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="perfect4" draggable="true">
+                    <span class="chord-symbol">P4</span>
+                    <div class="note-duration">Perfect 4th</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="perfect5" draggable="true">
+                    <span class="chord-symbol">P5</span>
+                    <div class="note-duration">Perfect 5th</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="minor6" draggable="true">
+                    <span class="chord-symbol">m6</span>
+                    <div class="note-duration">Minor 6th</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="major6" draggable="true">
+                    <span class="chord-symbol">M6</span>
+                    <div class="note-duration">Major 6th</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="major7" draggable="true">
+                    <span class="chord-symbol">M7</span>
+                    <div class="note-duration">Major 7th</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="octave" draggable="true">
+                    <span class="chord-symbol">8</span>
+                    <div class="note-duration">Octave</div>
+                </div>
+            </div>
         </div>
     </form>
 </div>
-
 <style>
 .chord-search-container {
     position: relative;
@@ -112,10 +158,6 @@
     color: #666;
     font-style: italic;
     font-size: 14px;
-}
-
-.search-result-button {
-    margin-top: 8px;
 }
 
 </style>
@@ -446,4 +488,6 @@ bindChordPaletteEvents() {
     });
 
     window.updateChordPalette = updateChordPalette;
+
 </script>
+

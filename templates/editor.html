@@ -185,7 +185,6 @@
 {% block top %}
    {% include 'partials/_chords.html' %}
 {% endblock %}
-
 {% block scripts %}
 <script type="module">
   window.keyboardDisabled = {{ 'true' if disable_keyboard else 'false' }};
@@ -255,14 +254,30 @@ const { setPaletteDragState } = await import('{{ url_for("static", filename="js/
             note.addEventListener('dragstart', (event) => {
                 const type = event.target.dataset.type;
                 const duration = event.currentTarget.dataset.duration;
-                console.log(`🎯 Starting palette drag: ${type}, duration: ${duration}`);
-                setPaletteDragState(true, type, duration);
-                event.dataTransfer.setData('text/plain', type);
+                
+                // Handle interval elements
+                if (type === 'interval') {
+                    const intervalType = event.target.dataset.interval;
+                    console.log(`🎵 Starting interval drag: ${intervalType}`);
+                    
+                    // Set interval data for transfer
+                    const intervalData = {
+                        intervalType: intervalType
+                    };
+                    event.dataTransfer.setData('application/interval', JSON.stringify(intervalData));
+                    setPaletteDragState(true, type, duration);
+                } else {
+                    // Handle all other elements (chords, notes, rests) the original way
+                    console.log(`🎯 Starting palette drag: ${type}, duration: ${duration}`);
+                    setPaletteDragState(true, type, duration);
+                    event.dataTransfer.setData('text/plain', type);
+                }
             });
+            
             note.addEventListener("dragend", (event) => {
-  console.log("Palette dragend detected, cleaning up");
-  setPaletteDragState(false, null, null);
-});
+                console.log("Palette dragend detected, cleaning up");
+                setPaletteDragState(false, null, null);
+            });
         });
     }
 

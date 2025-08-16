@@ -10,7 +10,8 @@ import {
   getNoteImagePath,
   KEY_SIGNATURES,
   NOTE_IMAGE_MAP,
-  NOTES_BY_NAME
+  NOTES_BY_NAME,
+  createIntervalChord
 } from "../core/note-data.js";
 import { saveToLocalStorage } from "../utils/ioHelpers.js";
 import {
@@ -658,6 +659,53 @@ function handlePaletteDrop(endX, endY, event) {
   console.log("handlePaletteDrop: Processing palette drop at", endX, endY);
   clearDragPreview();
 
+  // Check for interval data in the drag event
+  const intervalData = event ? event.dataTransfer.getData('application/interval') : null;
+  
+  if (intervalData) {
+    try {
+      const parsedIntervalData = JSON.parse(intervalData);
+      
+      const targetMeasureIndex = detectMeasureClick(endX, endY);
+      if (targetMeasureIndex === -1) {
+        console.log("handlePaletteDrop: Interval dropped outside a valid measure area.");
+        return;
+      }
+
+      const clef = detectClefRegion(endY);
+      const nearestPosition = findNearestStaffPosition(endY, clef);
+      if (!nearestPosition) {
+        console.warn("handlePaletteDrop: Could not determine staff position for interval drop.");
+        return;
+      }
+
+      // Create interval chord using drop position as root
+      const rootNoteName = nearestPosition.note;
+      const intervalChord = createIntervalChord(rootNoteName, parsedIntervalData.intervalType);
+      
+      if (!intervalChord) {
+        console.warn("handlePaletteDrop: Could not create interval chord.");
+        return;
+      }
+      
+      // Create the interval note
+      const intervalNote = {
+        name: `(${intervalChord.treble.join(' ')})`,
+        clef: clef,
+        duration: selectedDuration,
+        isRest: false,
+        chordName: intervalChord.displayName
+      };
+      
+      addNoteToMeasure(targetMeasureIndex, intervalNote);
+      console.log(`Added ${intervalChord.displayName} interval to ${clef} clef:`, intervalChord.treble);
+      return;
+      
+    } catch (error) {
+      console.error('Failed to parse interval drop data:', error);
+    }
+  }
+
   // Check for chord data in the drag event
   const chordData = event ? event.dataTransfer.getData('application/chord') : null;
   
@@ -698,7 +746,6 @@ function handlePaletteDrop(endX, endY, event) {
       
     } catch (error) {
       console.error('Failed to parse chord drop data:', error);
-      // Fall through to regular handling
     }
   }
 
