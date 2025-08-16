@@ -530,100 +530,67 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     return;
   }
 
-  let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for drag/click differentiation
-  let mouseDownNoteTarget = null; // Stores noteInfo if mousedown occurred on a note
-  let hasMouseMovedSinceMousedown = false; // Tracks if mouse has moved beyond threshold since mousedown
-  let isDraggingInitiated = false; // Internal flag to track if drag has begun for this sequence
+  let mouseDownInitialPos = null;
+  let mouseDownNoteTarget = null;
+  let hasMouseMovedSinceMousedown = false;
+  let isDraggingInitiated = false;
 
-  // Mouse Down Listener
+  // Cleanup function
+  function resetDragState() {
+    mouseDownInitialPos = null;
+    mouseDownNoteTarget = null;
+    hasMouseMovedSinceMousedown = false;
+    isDraggingInitiated = false;
+    isDragging = false;
+    draggedNote = null;
+    scoreElement.style.cursor = "default";
+    clearDragPreview();
+  }
+
+  // Mouse Down
   scoreElement.addEventListener("mousedown", (event) => {
-    if (event.button !== 0 || isPaletteDrag) return; // Only left-click, ignore if a palette drag is starting
+    if (event.button !== 0) return;
     event.preventDefault();
 
     const rect = scoreElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    console.log(`enableScoreInteraction: Mouse down at (${x}, ${y})`);
-
-    // Reset state for a new interaction sequence
     mouseDownInitialPos = { x, y };
     mouseDownNoteTarget = detectNoteClick(x, y);
     hasMouseMovedSinceMousedown = false;
-    isDragging = false;
     isDraggingInitiated = false;
-
-    if (mouseDownNoteTarget) {
-      console.log(
-        `enableScoreInteraction: Mouse down on target:`,
-        mouseDownNoteTarget
-      );
-    }
   });
 
-  // Mouse Move Listener
+  // Mouse Move
   scoreElement.addEventListener("mousemove", (event) => {
-    if (!mouseDownInitialPos && !isPaletteDrag) return;
-
-    // Prevent text selection and other default behaviors during drag
-  if (isDraggingInitiated || isPaletteDrag) {
-    event.preventDefault();
-  }
+    if (!mouseDownInitialPos) return;
 
     const rect = scoreElement.getBoundingClientRect();
     const currentX = event.clientX - rect.left;
     const currentY = event.clientY - rect.top;
-     console.log(`Drag coordinates: x=${currentX}, y=${currentY}`);
 
-    // --- Drag Initiation for existing notes ---
-    if (mouseDownInitialPos && !isPaletteDrag && !isDraggingInitiated) {
+    // Check for drag initiation
+    if (!isDraggingInitiated) {
       const distance = Math.sqrt(
         Math.pow(currentX - mouseDownInitialPos.x, 2) +
-          Math.pow(currentY - mouseDownInitialPos.y, 2)
+        Math.pow(currentY - mouseDownInitialPos.y, 2)
       );
-      if (
-        distance > DRAG_THRESHOLD &&
-        mouseDownNoteTarget &&
-        mouseDownNoteTarget.noteId !== null
-      ) {
+      
+      if (distance > DRAG_THRESHOLD && mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
         hasMouseMovedSinceMousedown = true;
         isDraggingInitiated = true;
         isDragging = true;
         startDrag(mouseDownNoteTarget, mouseDownInitialPos);
         scoreElement.style.cursor = "none";
-        console.log("enableScoreInteraction: Drag initiated on existing note.");
       }
     }
 
-    // --- Visual Feedback during drag ---
-    // FIX: Handle palette drag and note drag in separate blocks to respect their different contexts.
-    if (isPaletteDrag) {
-      // Logic for palette drag preview
+    // Handle drag preview
+    if (isDraggingInitiated) {
       const targetMeasureIndex = detectMeasureClick(currentX, currentY);
-      // This provides a simple hover highlight without interfering with the actual selection state
-      // It relies on a function that can clear other highlights or is non-destructive.
-      // For now, we'll just call the highlighter directly, assuming it's safe.
-      highlightSelectedMeasure(targetMeasureIndex);
-
-      const clef = detectClefRegion(currentY);
-      const nearest = findNearestStaffPosition(currentY, clef);
-      if (nearest) {
-        updateDragPreview(currentX, nearest.y, paletteDragType);
-      }
-    } else if (isDraggingInitiated && draggedNote) {
-      // Original, correct logic for dragging an existing note.
-      const targetMeasureIndex = detectMeasureClick(currentX, currentY);
-
-      if (
-        targetMeasureIndex !== -1 &&
-        targetMeasureIndex !== pianoState.currentSelectedMeasure
-      ) {
+      if (targetMeasureIndex !== -1) {
         highlightSelectedMeasure(targetMeasureIndex);
-      } else if (
-        targetMeasureIndex === -1 &&
-        pianoState.currentSelectedMeasure !== -1
-      ) {
-        clearMeasureHighlight();
       }
 
       const clef = detectClefRegion(currentY);
@@ -634,81 +601,58 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     }
   });
 
-// Mouse Up Listener - attached to document to catch releases outside score
-document.addEventListener("mouseup", (event) => {
-  if (!mouseDownInitialPos || isPaletteDrag) return;
+  // Mouse Up
+  document.addEventListener("mouseup", (event) => {
+    if (!mouseDownInitialPos) return;
 
-  const scoreRect = scoreElement.getBoundingClientRect();
-  const isOnScore = (
-    event.clientX >= scoreRect.left &&
-    event.clientX <= scoreRect.right &&
-    event.clientY >= scoreRect.top &&
-    event.clientY <= scoreRect.bottom
-  );
+    const scoreRect = scoreElement.getBoundingClientRect();
+    const isOnScore = (
+      event.clientX >= scoreRect.left &&
+      event.clientX <= scoreRect.right &&
+      event.clientY >= scoreRect.top &&
+      event.clientY <= scoreRect.bottom
+    );
 
-  if (isOnScore && isDraggingInitiated) {
-    // Mouse released on score during drag - complete the drag
-    const endX = event.clientX - scoreRect.left;
-    const endY = event.clientY - scoreRect.top;
-    console.log("enableScoreInteraction: Drag operation completed.");
-    completeDrag(endX, endY);
-  } else if (isOnScore && !hasMouseMovedSinceMousedown) {
-    // Mouse released on score without moving - this was a click
-    const endX = event.clientX - scoreRect.left;
-    const endY = event.clientY - scoreRect.top;
-    
-    if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
-      console.log("enableScoreInteraction: Pure click on EXISTING note detected.");
-      onNoteClick(
-        mouseDownNoteTarget.measureIndex,
-        mouseDownNoteTarget.clef,
-        mouseDownNoteTarget.noteId
-      );
-    } else {
-      console.log("enableScoreInteraction: Pure click on measure background detected.");
-      const measureIndex = detectMeasureClick(endX, endY);
-      if (measureIndex !== -1) {
-        onMeasureClick(measureIndex, false);
+    if (isOnScore && isDraggingInitiated) {
+      // Complete drag
+      const endX = event.clientX - scoreRect.left;
+      const endY = event.clientY - scoreRect.top;
+      completeDrag(endX, endY);
+    } else if (isOnScore && !hasMouseMovedSinceMousedown) {
+      // Handle click
+      const endX = event.clientX - scoreRect.left;
+      const endY = event.clientY - scoreRect.top;
+      
+      if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
+        onNoteClick(
+          mouseDownNoteTarget.measureIndex,
+          mouseDownNoteTarget.clef,
+          mouseDownNoteTarget.noteId
+        );
+      } else {
+        const measureIndex = detectMeasureClick(endX, endY);
+        if (measureIndex !== -1) {
+          onMeasureClick(measureIndex, false);
+        }
       }
     }
-  } else if (!isOnScore && isDraggingInitiated) {
-    // Mouse released outside score during drag - cancel the drag
-    console.log("enableScoreInteraction: Drag canceled - mouse released outside score.");
-  }
 
-  // Reset all interaction state variables
-  mouseDownInitialPos = null;
-  mouseDownNoteTarget = null;
-  hasMouseMovedSinceMousedown = false;
-  isDragging = false;
-  isDraggingInitiated = false;
-  draggedNote = null;
-  scoreElement.style.cursor = "default";
-  clearDragPreview();
-});
-
-  // Palette Drag and Drop Listeners
-  scoreElement.addEventListener("dragover", (event) => {
-    event.preventDefault(); // Allow drop
+    resetDragState();
   });
 
-scoreElement.addEventListener("drop", (event) => {
-  event.preventDefault();
-  if (isPaletteDrag) {
+  // Palette drops
+  scoreElement.addEventListener("dragover", (event) => {
+    event.preventDefault();
+  });
+
+  scoreElement.addEventListener("drop", (event) => {
+    event.preventDefault();
     const rect = scoreElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    handlePaletteDrop(x, y, event); // Pass the event
-
-    // Reset palette drag state
-    isPaletteDrag = false;
-    paletteDragType = null;
-    scoreElement.style.cursor = "default";
-    clearDragPreview();
-  }
-});
+    handlePaletteDrop(x, y, event);
+  });
 }
-
 
 function handlePaletteDrop(endX, endY, event) {
   console.log("handlePaletteDrop: Processing palette drop at", endX, endY);
@@ -1594,6 +1538,16 @@ export function setPaletteDragState(isDragging, type, duration) {
   paletteDragType = type;
   if (duration) {
     selectedDuration = duration;
+  }
+  
+  // If we're ending a palette drag, clean up immediately
+  if (!isDragging) {
+    const scoreElement = document.getElementById("score");
+    if (scoreElement) {
+      scoreElement.style.cursor = "default";
+      clearDragPreview();
+    }
+    console.log("setPaletteDragState: Cleaned up palette drag state");
   }
 }
 

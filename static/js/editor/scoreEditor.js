@@ -16,7 +16,7 @@ import {
     enableScoreInteraction,
     scrollToMeasure
 } from '../score/scoreRenderer.js';
-import { addNoteToMeasure, getMeasures, moveNoteBetweenMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, updateNoteInMeasure, createTie, removeTie, createSlur, removeSlur } from '../score/scoreWriter.js';
+import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur } from '../score/scoreWriter.js';
 
 // ===================================================================
 // Internal State
@@ -617,11 +617,11 @@ function updateChordFromUI() {
     });
 
     if (chordNotes.length === 0) {
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { isRest: true, name: "R" });
     } else if (chordNotes.length === 1 && isChord(selectedNote.name)) {
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: chordNotes[0], isRest: false });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: chordNotes[0], isRest: false });
     } else {
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: formatChord(chordNotes), isRest: false });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: formatChord(chordNotes), isRest: false });
     }
     renderNoteEditBox(false);
 }
@@ -634,7 +634,7 @@ function addNoteToChordUI() {
     if (!selectedNote) return;
     let currentChordNotes = isChord(selectedNote.name) ? parseChord(selectedNote.name) : [selectedNote.name];
     currentChordNotes.push('C4');
-    updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: formatChord(currentChordNotes), isRest: false });
+    placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: formatChord(currentChordNotes), isRest: false });
     renderNoteEditBox(false);
 }
 
@@ -647,9 +647,9 @@ function removeNoteFromChordUI(noteIndexToRemove) {
     let currentChordNotes = isChord(selectedNote.name) ? parseChord(selectedNote.name) : [selectedNote.name];
     if (currentChordNotes.length > 1) {
         currentChordNotes.splice(noteIndexToRemove, 1);
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: formatChord(currentChordNotes) });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: formatChord(currentChordNotes) });
     } else {
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { isRest: true, name: "R" });
     }
     renderNoteEditBox(false);
 }
@@ -705,7 +705,7 @@ export function initializeMusicEditor() {
         if (target.id === 'editorToggleClef') {
             const measures = getMeasures();
             const note = measures[editorSelectedMeasureIndex]?.find(n => n.id === editorSelectedNoteId);
-            if (note) updateNoteInMeasure(editorSelectedMeasureIndex, note.id, { clef: note.clef === 'treble' ? 'bass' : 'treble' });
+            if (note) placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { clef: note.clef === 'treble' ? 'bass' : 'treble' });
             renderNoteEditBox(false);
         }
         if (target.id === 'editorToggleRest') {
@@ -714,7 +714,7 @@ export function initializeMusicEditor() {
             if (note) {
                 const newIsRest = !note.isRest;
                 let newName = newIsRest ? "R" : (note.isRest ? "C4" : note.name);
-                updateNoteInMeasure(editorSelectedMeasureIndex, note.id, { isRest: newIsRest, name: newName });
+                placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { isRest: newIsRest, name: newName });
             }
             renderNoteEditBox(false);
         }
@@ -790,9 +790,9 @@ export function initializeMusicEditor() {
     const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
     if (!selectedNote) return;
 
-    if (selectedNote.isRest) {
+            if (selectedNote.isRest) {
         if (target.id === 'editorDurationDropdown') {
-            updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
+            placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { duration: target.value });
         }
         renderNoteEditBox(false);
         return;
@@ -801,14 +801,14 @@ export function initializeMusicEditor() {
     if (['editorNoteLetter', 'editorAccidentalDropdown', 'editorOctaveDropdown'].includes(target.id)) {
         let newLetter = document.getElementById('editorNoteLetter').value;
         if (newLetter === 'R') {
-            updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
+            placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { isRest: true, name: "R" });
         } else {
             let newAccidental = document.getElementById('editorAccidentalDropdown').value;
             let newOctave = document.getElementById('editorOctaveDropdown').value;
-            updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: `${newLetter}${newAccidental}${newOctave}`, isRest: false });
+            placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: `${newLetter}${newAccidental}${newOctave}`, isRest: false });
         }
     } else if (target.id === 'editorDurationDropdown') {
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { duration: target.value });
     }
     
     renderNoteEditBox(false);
@@ -874,50 +874,49 @@ document.addEventListener('noteDropped', (event) => {
     const originalNote = measures[fromMeasureIndex]?.find(note => note.id === fromNoteId);
     if (!originalNote) return;
 
-        if (fromMeasureIndex !== toMeasureIndex) {
-            // Moving between measures - maintain chord structure
-            const noteToMove = removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
-            if (noteToMove) {
-                if (clefChanged) noteToMove.clef = newClef;
-                if (pitchChanged && !originalNote.isRest) {
-                    // Handle chord transposition
-                    if (isChord(originalNote.name)) {
-                        const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
-                        const newPitchMidi = NOTES_BY_NAME[newPitch];
-                        if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
-                            const semitoneChange = newPitchMidi - originalFirstNoteMidi;
-                            noteToMove.name = transposeChord(originalNote.name, semitoneChange);
-                        }
-                    } else {
-                        noteToMove.name = newPitch;
-                    }
-                }
-                // Fix: Use insertBeforeNoteId instead of insertPosition
-                addNoteToMeasure(toMeasureIndex, noteToMove, insertBeforeNoteId);
-                editorSelectedMeasureIndex = toMeasureIndex;
-                editorSelectedNoteId = noteToMove.id;
-            }
-        } else if (clefChanged || pitchChanged) {
-            // Same measure, just changing properties
-            const updatedNoteData = {};
-            if (clefChanged) updatedNoteData.clef = newClef;
+    if (fromMeasureIndex !== toMeasureIndex) {
+        // Moving between measures - maintain chord structure
+        const noteToMove = removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
+        if (noteToMove) {
+            if (clefChanged) noteToMove.clef = newClef;
             if (pitchChanged && !originalNote.isRest) {
+                // Handle chord transposition
                 if (isChord(originalNote.name)) {
                     const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
                     const newPitchMidi = NOTES_BY_NAME[newPitch];
                     if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
                         const semitoneChange = newPitchMidi - originalFirstNoteMidi;
-                        updatedNoteData.name = transposeChord(originalNote.name, semitoneChange);
+                        noteToMove.name = transposeChord(originalNote.name, semitoneChange);
                     }
                 } else {
-                    updatedNoteData.name = newPitch;
+                    noteToMove.name = newPitch;
                 }
             }
-            updateNoteInMeasure(fromMeasureIndex, fromNoteId, updatedNoteData);
-            editorSelectedNoteId = fromNoteId;
+            addNoteToMeasure(toMeasureIndex, noteToMove, insertBeforeNoteId);
+            editorSelectedMeasureIndex = toMeasureIndex;
+            editorSelectedNoteId = noteToMove.id;
         }
-        renderNoteEditBox(false);
-    });
+    } else if (insertBeforeNoteId || clefChanged || pitchChanged) {
+        // Same measure: repositioning OR property changes - use placeNote
+        const updatedNoteData = {};
+        if (clefChanged) updatedNoteData.clef = newClef;
+        if (pitchChanged && !originalNote.isRest) {
+            if (isChord(originalNote.name)) {
+                const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
+                const newPitchMidi = NOTES_BY_NAME[newPitch];
+                if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
+                    const semitoneChange = newPitchMidi - originalFirstNoteMidi;
+                    updatedNoteData.name = transposeChord(originalNote.name, semitoneChange);
+                }
+            } else {
+                updatedNoteData.name = newPitch;
+            }
+        }
+        placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, updatedNoteData, insertBeforeNoteId);
+        editorSelectedNoteId = fromNoteId;
+    }
+    renderNoteEditBox(false);
+});
 
     const durationDropdown = document.getElementById('editorDurationDropdown');
     if (durationDropdown) {

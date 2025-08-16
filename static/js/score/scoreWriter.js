@@ -597,38 +597,157 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
     return success;
 }
 
+
 /**
-* Moves a note from one measure to another.
-* Removes any ties involving this note.
-*/
-export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId = null) {
-    console.log('moveNoteBetweenMeasures input: fromMeasureIndex=', fromMeasureIndex, 'fromNoteId=', fromNoteId, 'toMeasureIndex=', toMeasureIndex);
+ * Places a note at a specific position in the score.
+ * Can handle: adding new notes, moving existing notes between/within measures, and updating during move.
+ * @param {number|null} fromMeasureIndex - Source measure index (null for new notes)
+ * @param {string|null} fromNoteId - Source note ID (null for new notes)  
+ * @param {number} toMeasureIndex - Target measure index
+ * @param {object} noteData - Note data (required for new notes, optional updates for existing)
+ * @param {string|null} insertBeforeNoteId - ID of note to insert before (null to append)
+ * @returns {object|boolean} {noteId, measureIndex} on success, false on failure
+ */
+export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, noteData, insertBeforeNoteId = null) {
+    console.log('placeNote input:', { fromMeasureIndex, fromNoteId, toMeasureIndex, noteData, insertBeforeNoteId });
 
-    // Remove ties when note is moved
-    removeTiesForNote(fromNoteId);
+    let noteToPlace = noteData;
 
-    // Rest of the existing moveNoteBetweenMeasures logic...
-    const noteToMove = doRemoveNote(fromMeasureIndex, fromNoteId);
-    if (!noteToMove) {
-        console.error('Note not found at source for moving (ID:', fromNoteId, ').');
+    // Remove existing note if source is specified
+    if (fromMeasureIndex !== null && fromMeasureIndex !== undefined && 
+        fromNoteId !== null && fromNoteId !== undefined) {
+        
+        // Remove ties when note is moved/repositioned
+        removeTiesForNote(fromNoteId);
+        
+        const existingNote = doRemoveNote(fromMeasureIndex, fromNoteId);
+        if (!existingNote) {
+            console.error('placeNote: Note not found at source (ID:', fromNoteId, ')');
+            return false;
+        }
+        
+        // Merge existing note with any updates
+        noteToPlace = { ...existingNote, ...noteData };
+    }
+
+    // Apply chord name generation logic
+    noteToPlace = applyChordNameGeneration(noteToPlace);
+
+    // Ensure note has required properties
+    if (!noteToPlace.id) {
+        noteToPlace.id = generateUniqueId();
+    }
+    noteToPlace.measure = toMeasureIndex;
+
+    // Ensure target measure exists
+    while (measuresData.length <= toMeasureIndex) {
+        measuresData.push([]);
+        console.log(`placeNote: Created new empty measure at index ${measuresData.length - 1}`);
+    }
+
+    // Pre-check for overflow before adding
+    if (!wouldOverflowAfterAdd(toMeasureIndex, noteToPlace, insertBeforeNoteId)) {
+        console.warn('placeNote: Adding note would cause measure overflow. Operation cancelled.');
+        updateNowPlayingDisplay("Error: Placement would overflow measure!");
+        setTimeout(() => updateNowPlayingDisplay(""), 3000);
         return false;
     }
 
-    noteToMove.measure = toMeasureIndex;
-
-    while (measuresData.length <= toMeasureIndex) {
-        measuresData.push([]);
-        console.log(`moveNoteBetweenMeasures: Created new empty measure at index ${measuresData.length - 1}`);
+    // Place the note at the target position
+    const success = doAddNote(toMeasureIndex, noteToPlace, insertBeforeNoteId);
+    
+    if (!success) {
+        console.error('placeNote: Failed to add note to target measure');
+        return false;
     }
 
-    doAddNote(toMeasureIndex, noteToMove, insertBeforeNoteId);
+    // Update current beats if we modified the current measure
+    if (toMeasureIndex === currentIndex) {
+        const updatedBeats = calculateMeasureBeats(measuresData[currentIndex]);
+        currentTrebleBeats = updatedBeats.trebleBeats;
+        currentBassBeats = updatedBeats.bassBeats;
+    }
+
+    // Handle side effects
     saveStateToHistory();
     drawAll(measuresData, true);
     saveToLocalStorage();
 
-    console.log(`moveNoteBetweenMeasures output: Note moved successfully. Ties removed due to move.`);
-    return true;
+    console.log('placeNote: Note placed successfully.');
+    
+    return {
+        noteId: noteToPlace.id,
+        measureIndex: toMeasureIndex
+    };
 }
+
+/**
+ * Applies chord name generation logic
+ */
+function applyChordNameGeneration(noteData) {
+    const processedData = { ...noteData };
+
+    // If we have a name, generate the appropriate chordName
+    if (processedData.name) {
+        let chordName = undefined;
+        
+        // Parse the name - could be single note "C4" or chord "(C4 E4 G4)"
+        if (processedData.name.startsWith('(') && processedData.name.endsWith(')')) {
+            // It's a chord - extract the note names
+            const noteNames = processedData.name
+                .slice(1, -1) // Remove parentheses
+                .split(' ');  // Split by spaces
+            
+            // Try to identify the chord
+            chordName = identifyChordStrict(noteNames);
+            
+            // If no chord identified, use the formatted note names as fallback
+            if (!chordName) {
+                chordName = processedData.name;
+            }
+        } else {
+            // It's a single note - use the note name directly
+            chordName = processedData.name;
+        }
+        
+        // Special handling for rests
+        if (processedData.isRest) {
+            chordName = "Rest";
+        }
+        
+        processedData.chordName = chordName;
+    }
+
+    return processedData;
+}
+
+/**
+ * Checks if adding a note would cause measure overflow
+ */
+function wouldOverflowAfterAdd(measureIndex, noteToAdd, insertBeforeNoteId) {
+    // Create a temporary measure to test overflow
+    const tempMeasure = measuresData[measureIndex] ? 
+        JSON.parse(JSON.stringify(measuresData[measureIndex])) : [];
+    
+    // Find insertion position
+    let insertIndex = tempMeasure.length; // Default to end
+    if (insertBeforeNoteId) {
+        const beforeIndex = tempMeasure.findIndex(note => note.id === insertBeforeNoteId);
+        if (beforeIndex !== -1) {
+            insertIndex = beforeIndex;
+        }
+    }
+    
+    // Insert the note into temp measure
+    tempMeasure.splice(insertIndex, 0, noteToAdd);
+    
+    // Check for overflow
+    const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
+    
+    return trebleBeats <= pianoState.timeSignature.numerator && 
+           bassBeats <= pianoState.timeSignature.numerator;
+}
+
 
 export function resetScore() {
     console.log('resetScore called.');
@@ -931,8 +1050,9 @@ export function removeTie(noteId) {
     }
     return removed;
 }
-
 function doAddNote(measureIndex, noteData, insertBeforeNoteId = null) {
+    console.log('doAddNote: measureIndex:', measureIndex, 'insertBeforeNoteId:', insertBeforeNoteId);
+    
     if (!measuresData[measureIndex]) {
         measuresData[measureIndex] = [];
     }
@@ -942,11 +1062,15 @@ function doAddNote(measureIndex, noteData, insertBeforeNoteId = null) {
 
     if (insertBeforeNoteId !== null) {
         insertIndex = targetMeasure.findIndex(note => note.id === insertBeforeNoteId);
+        console.log('doAddNote: looking for noteId:', insertBeforeNoteId, 'found at index:', insertIndex);
+        console.log('doAddNote: available note IDs in target measure:', targetMeasure.map(n => n.id));
     }
 
     if (insertIndex === -1) {
+        console.log('doAddNote: appending to end (insertIndex = -1)');
         targetMeasure.push(noteData);
     } else {
+        console.log('doAddNote: inserting at index:', insertIndex);
         targetMeasure.splice(insertIndex, 0, noteData);
     }
 
@@ -956,6 +1080,8 @@ function doAddNote(measureIndex, noteData, insertBeforeNoteId = null) {
         currentTrebleBeats = updatedBeats.trebleBeats;
         currentBassBeats = updatedBeats.bassBeats;
     }
+
+    return true;
 }
 
 /**

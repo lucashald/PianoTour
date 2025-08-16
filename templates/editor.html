@@ -259,6 +259,10 @@ const { setPaletteDragState } = await import('{{ url_for("static", filename="js/
                 setPaletteDragState(true, type, duration);
                 event.dataTransfer.setData('text/plain', type);
             });
+            note.addEventListener("dragend", (event) => {
+  console.log("Palette dragend detected, cleaning up");
+  setPaletteDragState(false, null, null);
+});
         });
     }
 

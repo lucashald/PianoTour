@@ -16,7 +16,7 @@ import {
 import { 
     addNoteToMeasure, 
     getMeasures, 
-    moveNoteBetweenMeasures, 
+    placeNote, 
     removeNoteFromMeasure, 
     setTempo, 
     setTimeSignature, 
@@ -502,7 +502,7 @@ function setupEventListeners() {
 
         if (target.id === 'editorMoveToPrevMeasure') {
             if (editorSelectedNoteId !== null && editorSelectedMeasureIndex > 0) {
-                moveNoteBetweenMeasures(editorSelectedMeasureIndex, editorSelectedNoteId, 
+                placeNote(editorSelectedMeasureIndex, editorSelectedNoteId, 
                     editorSelectedMeasureIndex - 1, null,
                     (measures) => {
                         musicEditor.render(measures);
@@ -516,7 +516,7 @@ function setupEventListeners() {
 
         if (target.id === 'editorMoveToNextMeasure') {
             if (editorSelectedNoteId !== null) {
-                moveNoteBetweenMeasures(editorSelectedMeasureIndex, editorSelectedNoteId, 
+                placeNote(editorSelectedMeasureIndex, editorSelectedNoteId, 
                     editorSelectedMeasureIndex + 1, null,
                     (measures) => {
                         musicEditor.render(measures);

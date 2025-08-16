@@ -725,8 +725,8 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData, onUpdate 
 /**
  * Moves a note from one measure to another.
  */
-export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId = null, onUpdate = null) {
-    console.log('moveNoteBetweenMeasures input:', { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId });
+export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId = null, onUpdate = null) {
+    console.log('placeNote input:', { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId });
 
     const noteToMove = doRemoveNote(fromMeasureIndex, fromNoteId);
     if (!noteToMove) {
@@ -748,7 +748,7 @@ export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureI
     }
     saveToLocalStorage();
 
-    console.log(`moveNoteBetweenMeasures output: Note moved successfully.`);
+    console.log(`placeNote output: Note moved successfully.`);
     return true;
 }
 

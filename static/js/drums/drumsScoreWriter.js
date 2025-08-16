@@ -716,14 +716,14 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
  * @param {string|null} insertBeforeNoteId - Optional note ID to insert before.
  * @returns {boolean} Success status.
  */
-export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId = null) {
-    console.log('moveNoteBetweenMeasures: Moving note', { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId });
+export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId = null) {
+    console.log('placeNote: Moving note', { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId });
 
     saveStateToHistory();
 
     const noteToMove = doRemoveNote(fromMeasureIndex, fromNoteId);
     if (!noteToMove) {
-        console.error('moveNoteBetweenMeasures: Source note not found');
+        console.error('placeNote: Source note not found');
         if (history.length > 0) history.pop();
         return false;
     }
@@ -738,10 +738,10 @@ export function moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureI
 
     if (success) {
         handleSideEffects();
-        console.log('moveNoteBetweenMeasures: Success');
+        console.log('placeNote: Success');
         return true;
     } else {
-        console.error('moveNoteBetweenMeasures: Failed to add to target. Rolling back.');
+        console.error('placeNote: Failed to add to target. Rolling back.');
         if (noteToMove.isChord) {
             noteToMove.notes.forEach(note => note.measure = fromMeasureIndex);
         } else {
@@ -899,7 +899,7 @@ document.addEventListener("drumNoteDropped", (event) => {
         if (drumInstrumentChanged) {
             updatedNoteData.drumInstrument = newDrumInstrument;
         }
-        moveNoteBetweenMeasures(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId);
+        placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId);
     } else {
         const updatedNoteData = { ...originalNote };
         if (drumInstrumentChanged) {
