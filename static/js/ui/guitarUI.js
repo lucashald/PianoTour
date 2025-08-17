@@ -9,11 +9,25 @@ import audioManager from "../core/audioManager.js";
 // Helper Functions
 // ===================================================================
 
-function convertChordsDbToArray(fretsString) {
-  return fretsString.split('').map(fret => {
-    if (fret === 'x') return null;
-    return parseInt(fret, 10);
-  });
+function convertChordsDbToArray(frets) {
+  // If it's already an array, return it as-is (chord database format)
+  if (Array.isArray(frets)) {
+    return frets.map(fret => {
+      if (fret === 'x') return null;
+      return fret;
+    });
+  }
+  
+  // If it's a string, convert it (legacy format)  
+  if (typeof frets === 'string') {
+    return frets.split('').map(fret => {
+      if (fret === 'x') return null;
+      return parseInt(fret, 10);
+    });
+  }
+  
+  // Fallback
+  return frets;
 }
 
 // ===================================================================
@@ -113,6 +127,11 @@ export function initializeGuitarControls(containerSelector, guitarInstance = win
     clearChord.innerHTML = 'Clear Chord';
     clearChord.className = 'btn btn--danger';
 
+    // Create Show Search button
+    const search = document.createElement('button');
+    search.innerHTML = 'More Chords';
+    search.className = 'btn btn--info';
+
     // Check audio state and add appropriate listeners
     if (!audioManager.isAudioReady()) {
         // Audio not ready - use handleInitialGuitar
@@ -153,10 +172,16 @@ export function initializeGuitarControls(containerSelector, guitarInstance = win
         guitarInstance.setChord([0, 0, 0, 0, 0, 0]);
     });
 
+        // Search button (doesn't need audio)
+    search.addEventListener('click', () => {
+        guitarInstance.showControlPanel();
+    });
+
     // Append all buttons to container
     container.appendChild(strumDown);
     container.appendChild(strumUp);
     container.appendChild(clearChord);
+        container.appendChild(search);
 
     console.log('✅ Guitar controls initialized');
     return container;

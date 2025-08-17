@@ -1,6 +1,6 @@
 // chords.js - Simple chord database with guitar tuning integration
 import { setGuitarTuning, getCurrentTuningNotes, getPresetTunings } from '../instrument/guitarInstrument.js';
-
+import { getKeySignature, DIATONIC_SCALES } from './note-data.js';
 let chordsDatabase = null;
 
 /**
@@ -338,10 +338,7 @@ function createTuningNameMapping() {
         'openG': 'open_g', 
         'openD': 'open_d',
         'openE': 'open_e',
-        'openA': 'open_a',
         'dadgad': 'dadgad',
-        'halfStepDown': 'half_step_down',
-        'fullStepDown': 'full_step_down'
     };
 }
 
@@ -376,6 +373,120 @@ function getCurrentGuitarTuning() {
     }
 }
 
+// Add this function to the chords.js file
+/**
+ * Get chord by scale degree using comprehensive chord database
+ * @param {number} degree - Scale degree (1-7)
+ * @param {string} keySignature - Optional key signature, uses current if not provided
+ * @param {string} tuning - Optional tuning for fingering, defaults to 'standard'
+ * @returns {Promise<Object|null>} Enhanced chord object with database fingerings
+ */
+async function getGuitarChordByDegree(degree = 1, keySignature = null, tuning = 'standard') {
+  // Validate degree
+  if (degree < 1 || degree > 7) {
+    console.warn(`Invalid scale degree ${degree}. Must be 1-7`);
+    return null;
+  }
+
+  // Use provided key signature or fall back to current key signature
+  const keyToUse = keySignature || getKeySignature();
+  const scaleData = DIATONIC_SCALES[keyToUse];
+
+  if (!scaleData) {
+    console.warn(`Scale data not found for key: ${keyToUse}`);
+    return null;
+  }
+
+  // Get chord info directly from pre-calculated arrays
+  const chordRoot = scaleData.chordRoots[degree - 1];
+  const quality = scaleData.qualities[degree - 1];
+
+  // Build chord name based on quality
+  let chordSymbol = chordRoot;
+  switch (quality) {
+    case "min": 
+      chordSymbol += "m"; 
+      break;
+    case "dom7": 
+      chordSymbol += "7"; 
+      break;
+    case "dim": 
+      chordSymbol += "dim"; 
+      break;
+    // "maj" gets no suffix
+  }
+
+  try {
+    // Look up in comprehensive chord database
+    const chordData = await getChord(chordSymbol);
+    
+    if (!chordData) {
+      console.warn(`Chord ${chordSymbol} not found in comprehensive database`);
+      return null;
+    }
+
+    // Get best fingering for the specified tuning
+    const bestFingering = await getBestFingering(chordSymbol, tuning);
+
+    // Return enhanced chord object with database data and fingering
+    return {
+      ...chordData,
+      symbol: chordSymbol,
+      degree: degree,
+      quality: quality,
+      keySignature: keyToUse,
+      tuning: tuning,
+      frets: bestFingering.frets,
+      fingers: bestFingering.fingers,
+      isFallback: bestFingering.isFallback,
+      fingering: bestFingering
+    };
+
+  } catch (error) {
+    console.error(`Error looking up chord ${chordSymbol}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Get all chords for a scale using comprehensive chord database
+ * @param {string} keySignature - Optional key signature, uses current if not provided  
+ * @param {string} tuning - Optional tuning for fingerings, defaults to 'standard'
+ * @returns {Promise<Array>} Array of chord objects for degrees 1-7
+ */
+async function getAllScaleChords(keySignature = null, tuning = 'standard') {
+  const chords = [];
+  
+  for (let degree = 1; degree <= 7; degree++) {
+    const chord = await getGuitarChordByDegree(degree, keySignature, tuning);
+    if (chord) {
+      chords.push(chord);
+    }
+  }
+  
+  return chords;
+}
+
+/**
+ * Get chord progression using comprehensive chord database
+ * @param {Array<number>} degrees - Array of scale degrees (e.g., [1, 5, 6, 4])
+ * @param {string} keySignature - Optional key signature, uses current if not provided
+ * @param {string} tuning - Optional tuning for fingerings, defaults to 'standard'
+ * @returns {Promise<Array>} Array of chord objects for the progression
+ */
+async function getChordProgression(degrees, keySignature = null, tuning = 'standard') {
+  const progression = [];
+  
+  for (const degree of degrees) {
+    const chord = await getGuitarChordByDegree(degree, keySignature, tuning);
+    if (chord) {
+      progression.push(chord);
+    }
+  }
+  
+  return progression;
+}
+
 // Export all functions
 export {
     loadChordDatabase,
@@ -394,7 +505,10 @@ export {
     convertFromGuitarOrder,
     getChordNotes,
     changeGuitarTuning,
-    getCurrentGuitarTuning
+    getCurrentGuitarTuning,
+    getChordProgression,
+    getAllScaleChords,
+    getGuitarChordByDegree
 };
 
 // For compatibility with non-module environments
@@ -416,6 +530,9 @@ if (typeof window !== 'undefined') {
         convertFromGuitarOrder,
         getChordNotes,
         changeGuitarTuning,
-        getCurrentGuitarTuning
+        getCurrentGuitarTuning,
+        getChordProgression,
+        getAllScaleChords,
+        getGuitarChordByDegree
     };
 }

@@ -4,6 +4,7 @@
 // Centralized state object for all mutable variables
 export const pianoState = {
     // UI Interaction State
+    show_side_panel: false,
     toggleLabels: false,
     isMajorChordMode: false,
     isMinorChordMode: false,

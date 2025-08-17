@@ -1,0 +1,174 @@
+/* Guitar Control Panel Styles - Extends existing styles.css */
+
+.guitar-control-panel {
+    max-width: 1400px;
+    margin: 0 auto;
+    background-color: var(--color-surface, #2d2d2d);
+    border-radius: var(--border-radius, 8px);
+}
+
+/* Status bar */
+.status-bar {
+    display: flex;
+    gap: var(--spacing-unit, 10px);
+    flex-wrap: wrap;
+}
+
+.status-indicator {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-success {
+    background: var(--color-green-light, #d4edda);
+    color: var(--color-green-darkest, #155724);
+}
+
+.status-warning {
+    background: var(--color-gold-light, #fff3cd);
+    color: var(--color-gold-darkest, #856404);
+}
+
+.status-error {
+    background: var(--color-peach-light, #f8d7da);
+    color: var(--color-peach-darkest, #721c24);
+}
+
+/* Control sections */
+.simple-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-unit, 15px);
+    margin-bottom: var(--spacing-unit, 20px);
+    padding: var(--spacing-unit, 15px);
+    background: var(--color-surface, #2d2d2d);
+    border: 1px solid var(--color-border, #444);
+    border-radius: var(--border-radius, 8px);
+}
+
+.simple-controls label {
+    font-weight: bold;
+    color: var(--color-text-primary, #ffffff);
+    min-width: 60px;
+}
+
+.tuning-select {
+    padding: 8px 12px;
+    border: 1px solid var(--color-border, #555);
+    border-radius: var(--border-radius, 4px);
+    background: var(--color-background, #1a1a1a);
+    color: var(--color-text-primary, #ffffff);
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+    min-width: 150px;
+}
+
+.tuning-select:focus {
+    outline: none;
+    border-color: var(--color-primary, #007bff);
+}
+
+.tuning-select:hover {
+    border-color: var(--color-border-hover, #999);
+}
+
+.chord-search-section {
+    background: var(--color-surface, #2d2d2d);
+    border: 1px solid var(--color-border, #444);
+    border-radius: var(--border-radius, 8px);
+    padding: var(--spacing-unit, 20px);
+    margin-bottom: var(--spacing-unit, 20px);
+}
+
+/* Chord search styles */
+.chord-search-container {
+    position: relative;
+}
+
+.chord-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--color-border, #555);
+    border-radius: var(--border-radius, 4px);
+    background: var(--color-background, #1a1a1a);
+    color: var(--color-text-primary, #ffffff);
+    font-size: 16px;
+}
+
+.chord-input:focus {
+    outline: none;
+    border-color: var(--color-primary, #007bff);
+}
+
+.chord-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-surface, #2d2d2d);
+    border: 1px solid var(--color-border, #555);
+    border-top: none;
+    border-radius: 0 0 var(--border-radius, 4px) var(--border-radius, 4px);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.chord-suggestion {
+    padding: 10px 12px;
+    cursor: pointer;
+    color: var(--color-text-primary, #ffffff);
+    border-bottom: 1px solid var(--color-border, #444);
+}
+
+.chord-suggestion:hover,
+.chord-suggestion.highlighted {
+    background: var(--color-primary, #007bff);
+    color: white;
+}
+
+.chord-suggestion:last-child {
+    border-bottom: none;
+}
+
+.no-results {
+    padding: 10px 12px;
+    color: var(--color-text-secondary, #888);
+    font-style: italic;
+}
+
+.selected-chord-container {
+    margin-top: var(--spacing-unit, 15px);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.selected-chord-button,
+.recent-chord-button {
+    margin: 0 !important;
+}
+
+@media (max-width: 480px) {
+    .selected-chord-container {
+        gap: 8px;
+        justify-content: center;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .simple-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .simple-controls label {
+        min-width: auto;
+    }
+}

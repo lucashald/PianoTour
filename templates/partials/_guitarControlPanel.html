@@ -1,0 +1,36 @@
+<div class="guitar-control-panel hidden">
+
+
+
+        <!-- Chord search with autocomplete -->
+        <div class="chord-search-section">
+            <div class="chord-search-container">
+                <form id="chordForm">
+                    <input 
+                        type="text" 
+                        id="chordSearchInput" 
+                        class="chord-input"
+                        placeholder="Type a chord name (e.g., Cmaj7, Am, F#dim)..."
+                        autocomplete="off"
+                    >
+                    <div id="chordSuggestions" class="chord-suggestions"></div>
+                </form>
+                
+                <!-- Selected chord and recent chords buttons -->
+                <div id="selected-chord-button-container" class="selected-chord-container"></div>
+                
+                <!-- Hidden diagram container (for compatibility) -->
+                <div id="selected-chord-diagram-container" style="display: none;"></div>
+            </div>
+        </div>
+
+                <!-- Simple tuning selector -->
+        <div class="simple-controls">
+            <label for="guitarTuningSelect">Tuning:</label>
+            <select id="guitarTuningSelect" class="tuning-select">
+                <option value="">Loading tunings...</option>
+            </select>
+        </div>
+    </div>
+
+    <script type="module" src="/static/js/ui/guitarControlPanel.js"></script>

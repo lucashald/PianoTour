@@ -8,6 +8,9 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/guitar.css') }}"    />
       -->
+        <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/guitarControlPanel.css') }}"    />
       <script type="module" src="{{ url_for('static', filename='js/instrument/guitarInstrument.js') }}"></script>
 {% endblock %}
 
@@ -18,11 +21,14 @@
 -->
 <div id="guitar-controls" class="guitar-controls"></div>
 <div id="chord-container" class="chord-container"></div>
+{% include 'partials/_guitarControlPanel.html' %}
 {% endblock %}
 
 {% block side %}
-    {% include 'partials/_chordSearch.html' %}
-    {% include 'partials/_changeTuning.html' %}
+    {% endblock %}
+
+    {% block after %}
+    
     {% endblock %}
 
 {% block toggles %}

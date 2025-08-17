@@ -21,7 +21,7 @@
             color: #ffffff;
         }
         
-        .control-panel {
+        .guitar-control-panel {
             background: #2d2d2d;
             border: 1px solid #444;
             padding: 20px;
@@ -29,14 +29,14 @@
             margin-bottom: 20px;
         }
         
-        .control-panel label {
+        .guitar-control-panel label {
             display: inline-block;
             margin-right: 10px;
             font-weight: bold;
             color: #ffffff;
         }
         
-        .control-panel input, .control-panel select, .control-panel button {
+        .guitar-control-panel input, .guitar-control-panel select, .guitar-control-panel button {
             margin-right: 15px;
             padding: 8px 12px;
             border: 1px solid #555;
@@ -45,14 +45,14 @@
             color: #ffffff;
         }
         
-        .control-panel button {
+        .guitar-control-panel button {
             background: #007bff;
             color: white;
             cursor: pointer;
             border: 1px solid #007bff;
         }
         
-        .control-panel button:hover {
+        .guitar-control-panel button:hover {
             background: #0056b3;
             border-color: #0056b3;
         }
@@ -209,7 +209,7 @@
     <h1>🎸 Guitar Score Renderer + Interactive Fretboard</h1>
     
     <!-- System Status -->
-    <div id="systemStatus" class="control-panel">
+    <div id="systemStatus" class="guitar-control-panel">
         <h3>System Status</h3>
         <span id="databaseStatus" class="status-indicator">Loading...</span>
         <span id="guitarStatus" class="status-indicator">Loading...</span>
@@ -219,7 +219,7 @@
     </div>
     
     <!-- Chord Lookup Controls -->
-    <div class="control-panel">
+    <div class="guitar-control-panel">
         <h3>🎸 Chord Lookup & Guitar Controls</h3>
         <label for="chordInput">Chord Name:</label>
         <input type="text" id="chordInput" placeholder="e.g., C, Am, Bm, F#7" value="C" />
@@ -245,7 +245,7 @@
     </div>
     
     <!-- Score Renderer Controls -->
-    <div class="control-panel">
+    <div class="guitar-control-panel">
         <h3>🎵 Score Renderer Controls</h3>
         <label for="measuresPerSystem">Measures per System:</label>
         <select id="measuresPerSystem">

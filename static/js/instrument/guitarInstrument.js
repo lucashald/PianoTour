@@ -6,6 +6,7 @@ import { NOTES_BY_NAME, DURATION_THRESHOLDS, splitNotesIntoClefs, identifyChord,
 import { trigger, triggerAttackRelease } from "./playbackHelpers.js";
 import { writeNote, fillRests } from "../score/scoreWriter.js";
 import { addAdvancedGuitarListeners } from "../ui/listenerManager.js";
+import * as ChordDB from '/static/js/core/chords.js';
 
 // Guitar-specific constants
 const FRET_COUNT = 20;
@@ -28,10 +29,7 @@ const PRESET_TUNINGS = {
   open_g: [62, 59, 55, 50, 43, 38],         // D4, B3, G3, D3, G2, D2
   open_d: [62, 57, 54, 50, 45, 38],         // D4, A3, F#3, D3, A2, D2
   open_e: [64, 59, 56, 52, 47, 40],         // E4, B3, G#3, E3, B2, E2
-  open_a: [64, 61, 57, 52, 45, 40],         // E4, C#4, A3, E3, A2, E2
   dadgad: [62, 57, 55, 50, 45, 38],         // D4, A3, G3, D3, A2, D2
-  half_step_down: [63, 58, 54, 49, 44, 39], // Eb4, Bb3, Gb3, Db3, Ab2, Eb2
-  full_step_down: [62, 57, 53, 48, 43, 38]  // D4, A3, F3, C3, G2, D2
 };
 
 // Convert MIDI to note name
@@ -143,6 +141,7 @@ class GuitarInstrument {
     this.stringLabelsContainer = null;
     this.strumArea = null;
     this.isPlayingChord = false;
+    this.controlPanelVisible = false;
 
     // NEW: Timing tracking for score writing
     this.activeStrings = {}; // Track individual string timing
@@ -670,6 +669,53 @@ setChord(fretData) {
     }
     return notes;
   }
+
+async showControlPanel() {
+    // Get the DOM elements
+    const chordContainer = document.getElementById('chord-container');
+    const controlPanel = document.querySelector('.guitar-control-panel');
+    
+    // Early return if elements don't exist
+    if (!chordContainer) {
+        console.warn('Chord container element not found');
+        return false;
+    }
+    
+    if (!controlPanel) {
+        console.warn('Guitar control panel element not found');
+        return false;
+    }
+    
+    // Initialize controlPanelVisible if it doesn't exist
+    if (this.controlPanelVisible === undefined) {
+        this.controlPanelVisible = false;
+    }
+    
+    // Toggle the visibility
+    this.controlPanelVisible = !this.controlPanelVisible;
+    
+    if (this.controlPanelVisible) {
+        // Show control panel, hide chord container
+        chordContainer.classList.add('hidden');
+        controlPanel.classList.remove('hidden');
+        console.log('✅ Guitar control panel shown');
+    } else {
+        // Hide control panel, show chord container
+        // Switch back to standard tuning for chord container compatibility
+        try {
+            await ChordDB.changeGuitarTuning('standard');
+            console.log('🎸 Switched back to standard tuning for chord container');
+        } catch (error) {
+            console.warn('Could not switch to standard tuning:', error);
+        }
+        
+        chordContainer.classList.remove('hidden');
+        controlPanel.classList.add('hidden');
+        console.log('✅ Chord container shown');
+    }
+    
+    return this.controlPanelVisible;
+}
 }
 
 export function handleInitialGuitar(e, actionData = null) {

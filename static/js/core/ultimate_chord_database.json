@@ -197,30 +197,6 @@
           "id": "2"
         }
       ],
-      "open_a": [
-        {
-          "frets": [
-            0,
-            0,
-            0,
-            0,
-            0,
-            0
-          ],
-          "fingers": [
-            0,
-            0,
-            0,
-            0,
-            0,
-            0
-          ],
-          "id": "0",
-          "added_by_script": true,
-          "note": "All open strings for home chord in open tuning",
-          "recommended": true
-        }
-      ],
       "open_d": [
         {
           "frets": [

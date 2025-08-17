@@ -22,7 +22,7 @@ import { handleInitialGuitar } from "../instrument/guitarInstrument.js";
 
 import { initializeGuitarControls, createChordPalette } from "./guitarUI.js";
 
-import { toggleIsMinorKey } from "../ui/uiHelpers.js";
+import { toggleIsMinorKey, show_side_panel } from "../ui/uiHelpers.js";
 
 let instrumentDiv;
 
@@ -155,9 +155,12 @@ export function addButtonListeners() {
   document
     .getElementById("mode-cycle-btn")
     ?.addEventListener("click", handleModeCycleClick);
-    document
+  document
     .getElementById("is-minor-key-btn")
     ?.addEventListener("click", toggleIsMinorKey);
+  document
+    .getElementById("show-side-panel-btn")
+    ?.addEventListener("click", show_side_panel);
   window.addEventListener("resize", handleWindowResize);
   addAudioStatusListeners();
 }

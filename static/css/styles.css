@@ -1604,7 +1604,7 @@ body.no-scroll {
   }
 
   .piano-app__side-panel {
-    display: block;
+    display: hidden;
     width: 320px;
     min-height: 100vh;
     background: rgba(30, 41, 59, 0.95);
@@ -1614,6 +1614,10 @@ body.no-scroll {
     overflow-y: auto;
     flex-shrink: 0;
   }
+
+.piano-app__side-panel.visible {
+    display: block;
+}
 
   .note-palette {
     grid-template-columns: repeat(6, 1fr);
