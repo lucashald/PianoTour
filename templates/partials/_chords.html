@@ -383,7 +383,7 @@ bindChordPaletteEvents() {
             if (index === -1) return chord;
             
             return chord.substring(0, index) + 
-                   '<strong>' + chord.substring(index, index + query.length) + '</strong>' + 
+                   '' + chord.substring(index, index + query.length) + '' + 
                    chord.substring(index + query.length);
         }
 
