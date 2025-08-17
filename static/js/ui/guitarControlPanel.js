@@ -2,7 +2,7 @@
 
 // Import required modules
 import { createChordButton, ChordDiagramRenderer } from '/static/js/ui/guitarUI.js';
-import { setGuitarTuning, getPresetTunings, getCurrentTuningNotes } from '/static/js/instrument/guitarInstrument.js';
+import { setGuitarTuning, getPresetTunings, getCurrentTuningPreset, getCurrentTuningNotes } from '/static/js/instrument/guitarInstrument.js';
 import * as ChordDB from '/static/js/core/chords.js';
 
 // ===================================================================
@@ -124,8 +124,8 @@ class ChordAutocomplete {
         this.input = document.getElementById(inputId);
         this.suggestionsContainer = document.getElementById(suggestionsId);
         this.currentHighlight = -1;
-        this.chordSymbols = []; // Will store chord symbols from database
-        this.chordData = new Map(); // Will store symbol -> chord data mapping
+        this.chordList = []; // Will store {symbol, displayName} objects
+        this.chordData = new Map(); // Will store symbol -> chord data mapping for caching
         this.userHasTyped = false;
         this.selectedChordSymbol = null;
         this.selectedChordObj = null;
@@ -144,24 +144,18 @@ class ChordAutocomplete {
 
     async loadChordData() {
         try {
-            // Get all chord symbols from database
-            this.chordSymbols = await ChordDB.getAllChordNames();
+            // Get all chord symbols and display names from database
+            this.chordList = await ChordDB.getAllChordDisplayNames();
             
-            // Pre-load display names for common chords to improve search performance
-            const commonChords = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'Cm', 'Dm', 'Em', 'Fm', 'Gm', 'Am', 'Bm'];
-            for (const symbol of commonChords) {
-                if (this.chordSymbols.includes(symbol)) {
-                    const chordData = await ChordDB.getChord(symbol);
-                    if (chordData) {
-                        this.chordData.set(symbol, chordData);
-                    }
-                }
-            }
-            
-            console.log(`✅ Loaded ${this.chordSymbols.length} chords for autocomplete`);
+            console.log(`✅ Loaded ${this.chordList.length} chords for autocomplete`);
         } catch (error) {
             console.error('❌ Error loading chord data for autocomplete:', error);
-            this.chordSymbols = ['C', 'G', 'Am', 'F']; // Fallback
+            this.chordList = [
+                { symbol: 'C', displayName: 'C Major' },
+                { symbol: 'G', displayName: 'G Major' },
+                { symbol: 'Am', displayName: 'A Minor' },
+                { symbol: 'F', displayName: 'F Major' }
+            ]; // Fallback
         }
     }
 
@@ -171,8 +165,8 @@ class ChordAutocomplete {
             let currentTuning = 'standard'; // fallback
             const guitarInstance = window.guitarInstance;
             
-            if (guitarInstance && guitarInstance.getCurrentTuning) {
-                currentTuning = guitarInstance.getCurrentTuning();
+            if (guitarInstance && getCurrentTuningPreset) {
+                currentTuning = getCurrentTuningPreset();
             } else {
                 // Fallback to dropdown value if guitar instance method not available
                 currentTuning = document.getElementById('guitarTuningSelect')?.value || 'standard';
@@ -457,69 +451,66 @@ class ChordAutocomplete {
             .replace(/augmented/g, 'aug');
     }
 
-    async scoreChordMatch(symbol, originalQuery, normalizedQuery) {
-        // Get or load chord data
-        let chordData = this.chordData.get(symbol);
-        if (!chordData) {
-            try {
-                chordData = await ChordDB.getChord(symbol);
-                if (chordData) {
-                    this.chordData.set(symbol, chordData);
-                }
-            } catch (error) {
-                console.warn(`Could not load chord data for ${symbol}`);
-                return 0;
-            }
-        }
-
-        if (!chordData) return 0;
-
-        const displayName = chordData.displayName.toLowerCase();
+    scoreChordMatch(chordInfo, originalQuery, normalizedQuery) {
+        const { symbol, displayName } = chordInfo;
         const symbolLower = symbol.toLowerCase();
-        const displayNormalized = this.normalizeSearchText(chordData.displayName);
+        const displayNameLower = displayName.toLowerCase();
         const symbolNormalized = this.normalizeSearchText(symbol);
+        const displayNameNormalized = this.normalizeSearchText(displayName);
         
         // Check if query matches either symbol or display name
         const matchesSymbol = symbolLower.includes(originalQuery) || symbolNormalized.includes(normalizedQuery);
-        const matchesDisplay = displayName.includes(originalQuery) || displayNormalized.includes(normalizedQuery);
+        const matchesDisplayName = displayNameLower.includes(originalQuery) || displayNameNormalized.includes(normalizedQuery);
         
-        if (!matchesSymbol && !matchesDisplay) {
+        if (!matchesSymbol && !matchesDisplayName) {
             return 0;
         }
         
         // Exact matches get highest score
-        if (symbolLower === originalQuery || displayName === originalQuery || 
-            symbolNormalized === normalizedQuery || displayNormalized === normalizedQuery) {
+        if (symbolLower === originalQuery || displayNameLower === originalQuery || 
+            symbolNormalized === normalizedQuery || displayNameNormalized === normalizedQuery) {
             return 1000;
         }
         
-        // Symbol matches get priority over display name matches
-        if (symbolLower.startsWith(originalQuery) || symbolNormalized.startsWith(normalizedQuery)) {
-            return 800;
+        // Symbol matches get priority over display name matches for short queries
+        if (originalQuery.length <= 2) {
+            if (symbolLower.startsWith(originalQuery) || symbolNormalized.startsWith(normalizedQuery)) {
+                return 800;
+            }
         }
         
-        if (displayName.startsWith(originalQuery) || displayNormalized.startsWith(normalizedQuery)) {
+        // Display name matches for longer queries
+        if (displayNameLower.startsWith(originalQuery) || displayNameNormalized.startsWith(normalizedQuery)) {
             return 600;
         }
         
-        // Early position matches
+        // Symbol prefix matches
+        if (symbolLower.startsWith(originalQuery) || symbolNormalized.startsWith(normalizedQuery)) {
+            return 500;
+        }
+        
+        // Early position matches in display name
+        const displayNameIndex = displayNameLower.indexOf(originalQuery);
+        if (displayNameIndex >= 0 && displayNameIndex <= 2) {
+            return 400 - displayNameIndex;
+        }
+        
+        // Early position matches in symbol
         const symbolIndex = symbolLower.indexOf(originalQuery);
-        const displayIndex = displayName.indexOf(originalQuery);
-        
         if (symbolIndex >= 0 && symbolIndex <= 2) {
-            return 400 - symbolIndex;
+            return 300 - symbolIndex;
         }
         
-        if (displayIndex >= 0 && displayIndex <= 2) {
-            return 300 - displayIndex;
-        }
-        
-        // General matches
-        if (matchesSymbol) {
+        // General matches (prioritize display name for longer queries)
+        if (originalQuery.length > 2 && matchesDisplayName) {
             return 200;
         }
         
-        if (matchesDisplay) {
+        if (matchesSymbol) {
+            return 150;
+        }
+        
+        if (matchesDisplayName) {
             return 100;
         }
         
@@ -538,12 +529,10 @@ class ChordAutocomplete {
         
         // Score and sort matches
         const scoredMatches = [];
-        for (const symbol of this.chordSymbols) {
-            const score = await this.scoreChordMatch(symbol, query, normalizedQuery);
+        for (const chordInfo of this.chordList) {
+            const score = this.scoreChordMatch(chordInfo, query, normalizedQuery);
             if (score > 0) {
-                const chordData = this.chordData.get(symbol);
-                const displayName = chordData ? chordData.displayName : symbol;
-                scoredMatches.push({ symbol, displayName, score });
+                scoredMatches.push({ ...chordInfo, score });
             }
         }
         
@@ -627,12 +616,8 @@ class ChordAutocomplete {
     }
 
     highlightMatch(displayName, query) {
-        const index = displayName.toLowerCase().indexOf(query.toLowerCase());
-        if (index === -1) return displayName;
-        
-        return displayName.substring(0, index) + 
-               '<strong>' + displayName.substring(index, index + query.length) + '</strong>' + 
-               displayName.substring(index + query.length);
+        // Simply return the display name without any highlighting markup
+        return displayName;
     }
 
     handleKeydown(e) {
@@ -675,7 +660,7 @@ class ChordAutocomplete {
 
     async selectChord(chordSymbol) {
         try {
-            // Get chord data from database
+            // Get chord data from database or cache
             let chordData = this.chordData.get(chordSymbol);
             if (!chordData) {
                 chordData = await ChordDB.getChord(chordSymbol);
@@ -920,6 +905,7 @@ window.guitarDebug = {
     getCurrentTuning: ChordDB.getCurrentGuitarTuning,
     getRandomChord: () => window.guitarControlPanel?.getRandomChord(),
     getAllChords: ChordDB.getAllChordNames,
+    getAllChordDisplayNames: ChordDB.getAllChordDisplayNames,
     getChord: ChordDB.getChord,
     getRecentChords: () => window.guitarControlPanel?.chordAutocomplete?.recentChords,
     clearRecentChords: () => {

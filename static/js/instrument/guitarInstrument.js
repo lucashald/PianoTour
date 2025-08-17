@@ -117,6 +117,39 @@ function getCurrentTuningNotes() {
   return GUITAR_TUNING.map(midi => midiToNoteName(midi));
 }
 
+function getCurrentTuningPreset() {
+    try {
+        const currentNotes = getCurrentTuningNotes();
+        const presetTunings = getPresetTunings();
+        
+        // Compare current tuning against all presets
+        for (const [presetName, tuningData] of Object.entries(presetTunings)) {
+            if (arraysEqual(currentNotes, tuningData.notes)) {
+                return presetName;
+            }
+        }
+        
+        // If no preset matches, return "custom"
+        return "custom";
+        
+    } catch (error) {
+        console.warn('Could not determine current tuning preset:', error);
+        return "standard"; // Safe fallback
+    }
+}
+
+/**
+ * Helper function to compare two arrays for equality
+ * @param {Array} arr1 
+ * @param {Array} arr2 
+ * @returns {boolean}
+ */
+function arraysEqual(arr1, arr2) {
+    return Array.isArray(arr1) && Array.isArray(arr2) && 
+           arr1.length === arr2.length && 
+           arr1.every((val, index) => val === arr2[index]);
+}
+
 /**
  * Get available preset tunings
  * @returns {Object} Object with preset names and their tunings
@@ -837,5 +870,6 @@ export {
   setGuitarTuning, 
   getCurrentTuning, 
   getCurrentTuningNotes, 
-  getPresetTunings 
+  getPresetTunings,
+  getCurrentTuningPreset
 };

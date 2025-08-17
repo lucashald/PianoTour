@@ -204,6 +204,34 @@ async function getAllChordNames() {
 }
 
 /**
+ * Get all available chord names with their display names
+ * @returns {Promise<Array>} Array of objects with {symbol, displayName}
+ */
+async function getAllChordDisplayNames() {
+    await loadChordDatabase();
+    
+    if (!chordsDatabase) {
+        console.warn('Chord database not loaded, returning empty array');
+        return [];
+    }
+    
+    const chordList = [];
+    
+    for (const [symbol, chordData] of Object.entries(chordsDatabase)) {
+        chordList.push({
+            symbol: symbol,
+            displayName: chordData.displayName || symbol
+        });
+    }
+    
+    // Sort by display name for better user experience
+    chordList.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    
+    console.log(`✅ Retrieved ${chordList.length} chord display names`);
+    return chordList;
+}
+
+/**
  * Get chord count
  * @returns {Promise<number>} Number of chords in database
  */
@@ -496,6 +524,7 @@ export {
     getBestFingering,
     getAvailableTunings,
     getAllChordNames,
+    getAllChordDisplayNames,
     getChordCount,
     searchChords,
     getRandomChord,
@@ -521,6 +550,7 @@ if (typeof window !== 'undefined') {
         getBestFingering,
         getAvailableTunings,
         getAllChordNames,
+        getAllChordDisplayNames,
         getChordCount,
         searchChords,
         getRandomChord,
