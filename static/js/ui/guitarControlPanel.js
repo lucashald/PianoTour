@@ -295,8 +295,8 @@ class ChordAutocomplete {
                 data: chordData
             });
             
-            // Keep only the 3 most recent
-            if (this.recentChords.length > 3) {
+            // Keep only the 7 most recent
+            if (this.recentChords.length > 7) {
                 this.recentChords.pop();
             }
         }
