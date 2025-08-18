@@ -1604,7 +1604,7 @@ body.no-scroll {
   }
 
   .piano-app__side-panel {
-    display: hidden;
+    display: block;
     width: 320px;
     min-height: 100vh;
     background: rgba(30, 41, 59, 0.95);
