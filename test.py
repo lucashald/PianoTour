@@ -77,7 +77,7 @@ def index():
 
 @app.route('/fret')
 def fret():
-    return render_template('fret.html')
+    return render_template('fret.html', instrument='guitar')
 
 @app.route('/editor')
 def editor():

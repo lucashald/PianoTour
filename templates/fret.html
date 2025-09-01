@@ -1,0 +1,826 @@
+{% extends "index.html" %}
+
+{% block title %}Interactive Guitar Fretboard - Piano Tour{% endblock %}
+
+{% block head %}
+    <!-- Add minimal fret map specific styles -->
+    <style>
+        body {
+            background-color: var(--color-surface);
+            color: var(--color-text-primary);
+            padding: var(--spacing-lg);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fret-map-container {
+            width: 100%;
+            max-width: var(--max-width-desktop);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+            align-items: center;
+        }
+
+        .fret-map-title {
+            font-size: var(--font-size-2xl);
+            font-weight: bold;
+            text-align: center;
+            color: var(--color-text-primary);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* Override guitar fretboard height for better note visibility */
+        .guitar-fretboard {
+            height: 300px !important;
+            position: relative !important;
+            overflow: visible !important;
+        }
+
+        /* Adjust string positioning for taller fretboard - force with !important */
+        .guitar-string-container {
+            position: absolute !important;
+            height: calc(300px / 6) !important;
+            width: 100% !important;
+        }
+        /* Place thickest string (6) on top visually */
+        .guitar-string-container.string-1 { top: calc(300px * 5 / 6) !important; }
+        .guitar-string-container.string-2 { top: calc(300px * 4 / 6) !important; }
+        .guitar-string-container.string-3 { top: calc(300px * 3 / 6) !important; }
+        .guitar-string-container.string-4 { top: calc(300px * 2 / 6) !important; }
+        .guitar-string-container.string-5 { top: calc(300px * 1 / 6) !important; }
+        .guitar-string-container.string-6 { 
+            top: calc(300px * 0 / 6) !important; 
+            border-top: 1px solid rgba(0,0,0,0.2); 
+        }
+
+        /* Fret position styling */
+        .fret-position {
+            position: absolute !important;
+            height: 100% !important;
+            left: var(--fret-left-position) !important;
+            width: var(--fret-width) !important;
+        }
+
+        /* Guitar string lines */
+        .guitar-string-line {
+            position: absolute !important;
+            top: 50% !important;
+            left: 0 !important;
+            right: 0 !important;
+            height: 2px !important;
+            background: var(--color-border) !important;
+            z-index: 1 !important;
+        }
+
+        /* Note markers using finger-position as base but styled as note buttons */
+        .note-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            background: var(--color-blue-darkest);
+            color: var(--color-text-primary);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            cursor: pointer;
+            border: 2px solid var(--color-border);
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            line-height: 1;
+            transition: all 0.1s ease;
+        }
+
+        .note-marker:hover {
+            background-color: var(--color-blue-medium);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
+        .note-marker.highlight {
+            background-color: var(--color-green-medium);
+            border-color: var(--color-green-light);
+            box-shadow: 0 0 12px var(--color-green-medium);
+        }
+
+        /* Audio feedback styles for fretMap.js */
+        .note-marker.playing {
+            background-color: var(--color-green-light);
+            transform: translate(-50%, -50%) scale(1.2);
+            box-shadow: 0 0 10px var(--color-green-medium);
+        }
+
+        .note-marker.sustained {
+            background-color: var(--color-yellow-medium);
+            border-color: var(--color-yellow-light);
+            box-shadow: 0 0 15px var(--color-yellow-medium);
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { opacity: 0.8; }
+            to { opacity: 1; }
+        }
+
+        /* Playback (score) highlighting - distinct from .highlight */
+        .note-marker.playback-highlight {
+            outline: 3px solid var(--color-blue-light);
+            box-shadow: 0 0 14px var(--color-blue-light);
+            filter: saturate(1.2);
+        }
+
+        /* String labels container */
+        .fret-string-labels {
+            display: flex;
+            flex-direction: column;
+            gap: calc(300px / 6 - 16px);
+            margin-right: var(--spacing-md);
+            align-items: center;
+            padding-top: calc(300px / 12);
+        }
+
+        .fret-string-label {
+            font-size: var(--font-size-lg);
+            font-weight: bold;
+            color: var(--color-text-primary);
+            width: 40px;
+            text-align: center;
+            background: var(--color-blue-medium);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-xs);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Guitar control panel styles */
+        .guitar-control-panel {
+            background: var(--color-surface-secondary);
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-lg);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .guitar-control-panel h3 {
+            color: var(--color-text-primary);
+            margin-top: 0;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .guitar-control-panel label {
+            display: inline-block;
+            margin-right: var(--spacing-sm);
+            font-weight: bold;
+            color: var(--color-text-primary);
+        }
+        
+        .guitar-control-panel input, 
+        .guitar-control-panel select, 
+        .guitar-control-panel button {
+            margin-right: var(--spacing-md);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            background: var(--color-surface);
+            color: var(--color-text-primary);
+        }
+        
+        .guitar-control-panel button {
+            background: var(--color-blue-medium);
+            color: var(--color-text-primary);
+            cursor: pointer;
+            border: 1px solid var(--color-blue-medium);
+            transition: all 0.2s ease;
+        }
+        
+        .guitar-control-panel button:hover {
+            background: var(--color-blue-light);
+            border-color: var(--color-blue-light);
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            display: inline-block;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius);
+            font-size: var(--font-size-sm);
+            font-weight: bold;
+            margin-right: var(--spacing-sm);
+        }
+        
+        .status-success {
+            background: var(--color-green-light);
+            color: var(--color-green-darkest);
+        }
+        
+        .status-warning {
+            background: var(--color-yellow-light);
+            color: var(--color-yellow-darkest);
+        }
+        
+        .status-error {
+            background: var(--color-red-light);
+            color: var(--color-red-darkest);
+        }
+
+        /* Tuning info display */
+        .tuning-info {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius);
+            margin-top: var(--spacing-sm);
+            font-family: monospace;
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+
+    <div class="fret-map-container">
+        
+    <!-- System Status removed per request -->
+        
+        <!-- Guitar Controls -->
+        <div class="guitar-control-panel">
+            <h3>🎸 Guitar Controls</h3>
+            <label for="chordInput">Chord Name:</label>
+            <input type="text" id="chordInput" placeholder="e.g., C, Am, Bm, F#7" value="C" />
+            
+            <label for="tuningSelect">Tuning:</label>
+            <select id="tuningSelect">
+                <option value="standard">Loading tunings...</option>
+            </select>
+            
+            <button id="lookupBtn">🔍 Lookup & Set</button>
+            <button id="randomBtn">🎲 Random Chord</button>
+            <button id="clearFretboardBtn">🗑️ Clear Fretboard</button>
+        </div>
+        
+        <div class="guitar-wrapper">
+            <!-- The Fretboard using existing guitar CSS -->
+            <div class="guitar-fretboard">
+                <!-- String 6 (Low E) -->
+                <div class="guitar-string-container string-6">
+                    <div class="guitar-string-line string-line-6"></div>
+                    <!-- Fret 0 (nut) - open string note -->
+                    <div class="fret-position fret-nut string-6 fret-0" style="--fret-width: 5%; --fret-left-position: 0%;" data-string="6" data-fret="0">
+                        <button class="note-marker" data-note="E">E</button>
+                    </div>
+                    <!-- Fret 1 -->
+                    <div class="fret-position fret string-6 fret-1" style="--fret-width: 7%; --fret-left-position: 5%;" data-string="6" data-fret="1">
+                        <button class="note-marker" data-note="F">F</button>
+                    </div>
+                    <!-- Fret 2 -->
+                    <div class="fret-position fret string-6 fret-2" style="--fret-width: 7%; --fret-left-position: 12%;" data-string="6" data-fret="2">
+                        <button class="note-marker" data-note="F#_Gb">F#</button>
+                    </div>
+                    <!-- Fret 3 -->
+                    <div class="fret-position fret string-6 fret-3" style="--fret-width: 7%; --fret-left-position: 19%;" data-string="6" data-fret="3">
+                        <button class="note-marker" data-note="G">G</button>
+                    </div>
+                    <!-- Fret 4 -->
+                    <div class="fret-position fret string-6 fret-4" style="--fret-width: 7%; --fret-left-position: 26%;" data-string="6" data-fret="4">
+                        <button class="note-marker" data-note="G#_Ab">G#</button>
+                    </div>
+                    <!-- Fret 5 -->
+                    <div class="fret-position fret string-6 fret-5" style="--fret-width: 7%; --fret-left-position: 33%;" data-string="6" data-fret="5">
+                        <button class="note-marker" data-note="A">A</button>
+                    </div>
+                    <!-- Fret 6 -->
+                    <div class="fret-position fret string-6 fret-6" style="--fret-width: 6%; --fret-left-position: 40%;" data-string="6" data-fret="6">
+                        <button class="note-marker" data-note="A#_Bb">A#</button>
+                    </div>
+                    <!-- Fret 7 -->
+                    <div class="fret-position fret string-6 fret-7" style="--fret-width: 6%; --fret-left-position: 46%;" data-string="6" data-fret="7">
+                        <button class="note-marker" data-note="B">B</button>
+                    </div>
+                    <!-- Fret 8 -->
+                    <div class="fret-position fret string-6 fret-8" style="--fret-width: 6%; --fret-left-position: 52%;" data-string="6" data-fret="8">
+                        <button class="note-marker" data-note="C">C</button>
+                    </div>
+                    <!-- Fret 9 -->
+                    <div class="fret-position fret string-6 fret-9" style="--fret-width: 6%; --fret-left-position: 58%;" data-string="6" data-fret="9">
+                        <button class="note-marker" data-note="C#_Db">C#</button>
+                    </div>
+                    <!-- Fret 10 -->
+                    <div class="fret-position fret string-6 fret-10" style="--fret-width: 6%; --fret-left-position: 64%;" data-string="6" data-fret="10">
+                        <button class="note-marker" data-note="D">D</button>
+                    </div>
+                    <!-- Fret 11 -->
+                    <div class="fret-position fret string-6 fret-11" style="--fret-width: 6%; --fret-left-position: 70%;" data-string="6" data-fret="11">
+                        <button class="note-marker" data-note="D#_Eb">D#</button>
+                    </div>
+                    <!-- Fret 12 -->
+                    <div class="fret-position fret string-6 fret-12" style="--fret-width: 6%; --fret-left-position: 76%;" data-string="6" data-fret="12">
+                        <button class="note-marker" data-note="E">E</button>
+                    </div>
+                </div>
+
+                <!-- String 5 (B) -->
+                <div class="guitar-string-container string-5">
+                    <div class="guitar-string-line string-line-5"></div>
+                    <div class="fret-position fret-nut string-5 fret-0" style="--fret-width: 5%; --fret-left-position: 0%;" data-string="5" data-fret="0"><button class="note-marker" data-note="B">B</button></div>
+                    <div class="fret-position fret string-5 fret-1" style="--fret-width: 7%; --fret-left-position: 5%;" data-string="5" data-fret="1"><button class="note-marker" data-note="C">C</button></div>
+                    <div class="fret-position fret string-5 fret-2" style="--fret-width: 7%; --fret-left-position: 12%;" data-string="5" data-fret="2"><button class="note-marker" data-note="C#_Db">C#</button></div>
+                    <div class="fret-position fret string-5 fret-3" style="--fret-width: 7%; --fret-left-position: 19%;" data-string="5" data-fret="3"><button class="note-marker" data-note="D">D</button></div>
+                    <div class="fret-position fret string-5 fret-4" style="--fret-width: 7%; --fret-left-position: 26%;" data-string="5" data-fret="4"><button class="note-marker" data-note="D#_Eb">D#</button></div>
+                    <div class="fret-position fret string-5 fret-5" style="--fret-width: 7%; --fret-left-position: 33%;" data-string="5" data-fret="5"><button class="note-marker" data-note="E">E</button></div>
+                    <div class="fret-position fret string-5 fret-6" style="--fret-width: 6%; --fret-left-position: 40%;" data-string="5" data-fret="6"><button class="note-marker" data-note="F">F</button></div>
+                    <div class="fret-position fret string-5 fret-7" style="--fret-width: 6%; --fret-left-position: 46%;" data-string="5" data-fret="7"><button class="note-marker" data-note="F#_Gb">F#</button></div>
+                    <div class="fret-position fret string-5 fret-8" style="--fret-width: 6%; --fret-left-position: 52%;" data-string="5" data-fret="8"><button class="note-marker" data-note="G">G</button></div>
+                    <div class="fret-position fret string-5 fret-9" style="--fret-width: 6%; --fret-left-position: 58%;" data-string="5" data-fret="9"><button class="note-marker" data-note="G#_Ab">G#</button></div>
+                    <div class="fret-position fret string-5 fret-10" style="--fret-width: 6%; --fret-left-position: 64%;" data-string="5" data-fret="10"><button class="note-marker" data-note="A">A</button></div>
+                    <div class="fret-position fret string-5 fret-11" style="--fret-width: 6%; --fret-left-position: 70%;" data-string="5" data-fret="11"><button class="note-marker" data-note="A#_Bb">A#</button></div>
+                    <div class="fret-position fret string-5 fret-12" style="--fret-width: 6%; --fret-left-position: 76%;" data-string="5" data-fret="12"><button class="note-marker" data-note="B">B</button></div>
+                </div>
+
+                <!-- String 4 (E) -->
+                <div class="guitar-string-container string-4">
+                    <div class="guitar-string-line string-line-4"></div>
+                    <div class="fret-position fret-nut string-4 fret-0" style="--fret-width: 5%; --fret-left-position: 0%;" data-string="4" data-fret="0"><button class="note-marker" data-note="E">E</button></div>
+                    <div class="fret-position fret string-4 fret-1" style="--fret-width: 7%; --fret-left-position: 5%;" data-string="4" data-fret="1"><button class="note-marker" data-note="F">F</button></div>
+                    <div class="fret-position fret string-4 fret-2" style="--fret-width: 7%; --fret-left-position: 12%;" data-string="4" data-fret="2"><button class="note-marker" data-note="F#_Gb">F#</button></div>
+                    <div class="fret-position fret string-4 fret-3" style="--fret-width: 7%; --fret-left-position: 19%;" data-string="4" data-fret="3"><button class="note-marker" data-note="G">G</button></div>
+                    <div class="fret-position fret string-4 fret-4" style="--fret-width: 7%; --fret-left-position: 26%;" data-string="4" data-fret="4"><button class="note-marker" data-note="G#_Ab">G#</button></div>
+                    <div class="fret-position fret string-4 fret-5" style="--fret-width: 7%; --fret-left-position: 33%;" data-string="4" data-fret="5"><button class="note-marker" data-note="A">A</button></div>
+                    <div class="fret-position fret string-4 fret-6" style="--fret-width: 6%; --fret-left-position: 40%;" data-string="4" data-fret="6"><button class="note-marker" data-note="A#_Bb">A#</button></div>
+                    <div class="fret-position fret string-4 fret-7" style="--fret-width: 6%; --fret-left-position: 46%;" data-string="4" data-fret="7"><button class="note-marker" data-note="B">B</button></div>
+                    <div class="fret-position fret string-4 fret-8" style="--fret-width: 6%; --fret-left-position: 52%;" data-string="4" data-fret="8"><button class="note-marker" data-note="C">C</button></div>
+                    <div class="fret-position fret string-4 fret-9" style="--fret-width: 6%; --fret-left-position: 58%;" data-string="4" data-fret="9"><button class="note-marker" data-note="C#_Db">C#</button></div>
+                    <div class="fret-position fret string-4 fret-10" style="--fret-width: 6%; --fret-left-position: 64%;" data-string="4" data-fret="10"><button class="note-marker" data-note="D">D</button></div>
+                    <div class="fret-position fret string-4 fret-11" style="--fret-width: 6%; --fret-left-position: 70%;" data-string="4" data-fret="11"><button class="note-marker" data-note="D#_Eb">D#</button></div>
+                    <div class="fret-position fret string-4 fret-12" style="--fret-width: 6%; --fret-left-position: 76%;" data-string="4" data-fret="12"><button class="note-marker" data-note="E">E</button></div>
+                </div>
+
+                <!-- String 3 (G#) -->
+                <div class="guitar-string-container string-3">
+                    <div class="guitar-string-line string-line-3"></div>
+                    <div class="fret-position fret-nut string-3 fret-0" style="--fret-width: 5%; --fret-left-position: 0%;" data-string="3" data-fret="0"><button class="note-marker" data-note="G#_Ab">G#</button></div>
+                    <div class="fret-position fret string-3 fret-1" style="--fret-width: 7%; --fret-left-position: 5%;" data-string="3" data-fret="1"><button class="note-marker" data-note="A">A</button></div>
+                    <div class="fret-position fret string-3 fret-2" style="--fret-width: 7%; --fret-left-position: 12%;" data-string="3" data-fret="2"><button class="note-marker" data-note="A#_Bb">A#</button></div>
+                    <div class="fret-position fret string-3 fret-3" style="--fret-width: 7%; --fret-left-position: 19%;" data-string="3" data-fret="3"><button class="note-marker" data-note="B">B</button></div>
+                    <div class="fret-position fret string-3 fret-4" style="--fret-width: 7%; --fret-left-position: 26%;" data-string="3" data-fret="4"><button class="note-marker" data-note="C">C</button></div>
+                    <div class="fret-position fret string-3 fret-5" style="--fret-width: 7%; --fret-left-position: 33%;" data-string="3" data-fret="5"><button class="note-marker" data-note="C#_Db">C#</button></div>
+                    <div class="fret-position fret string-3 fret-6" style="--fret-width: 6%; --fret-left-position: 40%;" data-string="3" data-fret="6"><button class="note-marker" data-note="D">D</button></div>
+                    <div class="fret-position fret string-3 fret-7" style="--fret-width: 6%; --fret-left-position: 46%;" data-string="3" data-fret="7"><button class="note-marker" data-note="D#_Eb">D#</button></div>
+                    <div class="fret-position fret string-3 fret-8" style="--fret-width: 6%; --fret-left-position: 52%;" data-string="3" data-fret="8"><button class="note-marker" data-note="E">E</button></div>
+                    <div class="fret-position fret string-3 fret-9" style="--fret-width: 6%; --fret-left-position: 58%;" data-string="3" data-fret="9"><button class="note-marker" data-note="F">F</button></div>
+                    <div class="fret-position fret string-3 fret-10" style="--fret-width: 6%; --fret-left-position: 64%;" data-string="3" data-fret="10"><button class="note-marker" data-note="F#_Gb">F#</button></div>
+                    <div class="fret-position fret string-3 fret-11" style="--fret-width: 6%; --fret-left-position: 70%;" data-string="3" data-fret="11"><button class="note-marker" data-note="G">G</button></div>
+                    <div class="fret-position fret string-3 fret-12" style="--fret-width: 6%; --fret-left-position: 76%;" data-string="3" data-fret="12"><button class="note-marker" data-note="G#_Ab">G#</button></div>
+                </div>
+
+                <!-- String 2 (B) -->
+                <div class="guitar-string-container string-2">
+                    <div class="guitar-string-line string-line-2"></div>
+                    <div class="fret-position fret-nut string-2 fret-0" style="--fret-width: 5%; --fret-left-position: 0%;" data-string="2" data-fret="0"><button class="note-marker" data-note="B">B</button></div>
+                    <div class="fret-position fret string-2 fret-1" style="--fret-width: 7%; --fret-left-position: 5%;" data-string="2" data-fret="1"><button class="note-marker" data-note="C">C</button></div>
+                    <div class="fret-position fret string-2 fret-2" style="--fret-width: 7%; --fret-left-position: 12%;" data-string="2" data-fret="2"><button class="note-marker" data-note="C#_Db">C#</button></div>
+                    <div class="fret-position fret string-2 fret-3" style="--fret-width: 7%; --fret-left-position: 19%;" data-string="2" data-fret="3"><button class="note-marker" data-note="D">D</button></div>
+                    <div class="fret-position fret string-2 fret-4" style="--fret-width: 7%; --fret-left-position: 26%;" data-string="2" data-fret="4"><button class="note-marker" data-note="D#_Eb">D#</button></div>
+                    <div class="fret-position fret string-2 fret-5" style="--fret-width: 7%; --fret-left-position: 33%;" data-string="2" data-fret="5"><button class="note-marker" data-note="E">E</button></div>
+                    <div class="fret-position fret string-2 fret-6" style="--fret-width: 6%; --fret-left-position: 40%;" data-string="2" data-fret="6"><button class="note-marker" data-note="F">F</button></div>
+                    <div class="fret-position fret string-2 fret-7" style="--fret-width: 6%; --fret-left-position: 46%;" data-string="2" data-fret="7"><button class="note-marker" data-note="F#_Gb">F#</button></div>
+                    <div class="fret-position fret string-2 fret-8" style="--fret-width: 6%; --fret-left-position: 52%;" data-string="2" data-fret="8"><button class="note-marker" data-note="G">G</button></div>
+                    <div class="fret-position fret string-2 fret-9" style="--fret-width: 6%; --fret-left-position: 58%;" data-string="2" data-fret="9"><button class="note-marker" data-note="G#_Ab">G#</button></div>
+                    <div class="fret-position fret string-2 fret-10" style="--fret-width: 6%; --fret-left-position: 64%;" data-string="2" data-fret="10"><button class="note-marker" data-note="A">A</button></div>
+                    <div class="fret-position fret string-2 fret-11" style="--fret-width: 6%; --fret-left-position: 70%;" data-string="2" data-fret="11"><button class="note-marker" data-note="A#_Bb">A#</button></div>
+                    <div class="fret-position fret string-2 fret-12" style="--fret-width: 6%; --fret-left-position: 76%;" data-string="2" data-fret="12"><button class="note-marker" data-note="B">B</button></div>
+                </div>
+
+                <!-- String 1 (High E) -->
+                <div class="guitar-string-container string-1">
+                    <div class="guitar-string-line string-line-1"></div>
+                    <div class="fret-position fret-nut string-1 fret-0" style="--fret-width: 5%; --fret-left-position: 0%;" data-string="1" data-fret="0"><button class="note-marker" data-note="E">E</button></div>
+                    <div class="fret-position fret string-1 fret-1" style="--fret-width: 7%; --fret-left-position: 5%;" data-string="1" data-fret="1"><button class="note-marker" data-note="F">F</button></div>
+                    <div class="fret-position fret string-1 fret-2" style="--fret-width: 7%; --fret-left-position: 12%;" data-string="1" data-fret="2"><button class="note-marker" data-note="F#_Gb">F#</button></div>
+                    <div class="fret-position fret string-1 fret-3" style="--fret-width: 7%; --fret-left-position: 19%;" data-string="1" data-fret="3"><button class="note-marker" data-note="G">G</button></div>
+                    <div class="fret-position fret string-1 fret-4" style="--fret-width: 7%; --fret-left-position: 26%;" data-string="1" data-fret="4"><button class="note-marker" data-note="G#_Ab">G#</button></div>
+                    <div class="fret-position fret string-1 fret-5" style="--fret-width: 7%; --fret-left-position: 33%;" data-string="1" data-fret="5"><button class="note-marker" data-note="A">A</button></div>
+                    <div class="fret-position fret string-1 fret-6" style="--fret-width: 6%; --fret-left-position: 40%;" data-string="1" data-fret="6"><button class="note-marker" data-note="A#_Bb">A#</button></div>
+                    <div class="fret-position fret string-1 fret-7" style="--fret-width: 6%; --fret-left-position: 46%;" data-string="1" data-fret="7"><button class="note-marker" data-note="B">B</button></div>
+                    <div class="fret-position fret string-1 fret-8" style="--fret-width: 6%; --fret-left-position: 52%;" data-string="1" data-fret="8"><button class="note-marker" data-note="C">C</button></div>
+                    <div class="fret-position fret string-1 fret-9" style="--fret-width: 6%; --fret-left-position: 58%;" data-string="1" data-fret="9"><button class="note-marker" data-note="C#_Db">C#</button></div>
+                    <div class="fret-position fret string-1 fret-10" style="--fret-width: 6%; --fret-left-position: 64%;" data-string="1" data-fret="10"><button class="note-marker" data-note="D">D</button></div>
+                    <div class="fret-position fret string-1 fret-11" style="--fret-width: 6%; --fret-left-position: 70%;" data-string="1" data-fret="11"><button class="note-marker" data-note="D#_Eb">D#</button></div>
+                    <div class="fret-position fret string-1 fret-12" style="--fret-width: 6%; --fret-left-position: 76%;" data-string="1" data-fret="12"><button class="note-marker" data-note="E">E</button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <!-- Import the fretMap.js module and add guitar controls functionality -->
+    <script type="module">
+        // Import required modules
+        import { getFretMap } from '/static/js/instrument/fretMap.js';
+        import * as ChordDB from '/static/js/core/chords.js';
+        import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+        import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
+
+        const templateInstrument = '{{ instrument }}' || 'guitar';
+        pianoState.instrument = templateInstrument;
+        
+        let currentChordData = null;
+        
+        // Wait for Piano Tour base system to initialize
+        function waitForPianoTourInit() {
+            return new Promise((resolve) => {
+                if (window.pianoTourInitState && window.pianoTourInitState.baseInitialized) {
+                    resolve();
+                    return;
+                }
+                
+                // Listen for the base ready event
+                document.addEventListener('pianoTourBaseReady', () => {
+                    console.log('🎹 Piano Tour base system ready, initializing fretboard...');
+                    resolve();
+                }, { once: true });
+            });
+        }
+        
+        // Update status indicators
+        function updateStatus(elementId, status, text) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.className = `status-indicator status-${status}`;
+                element.textContent = text;
+            }
+        }
+        
+        // Update tuning display
+        function updateTuningDisplay() {
+            try {
+                const tuningInfo = ChordDB.getCurrentGuitarTuning();
+                const tuningElement = document.getElementById('tuningInfo');
+                const selectedTuning = document.getElementById('tuningSelect').value;
+                
+                tuningElement.innerHTML = `Current tuning (${selectedTuning}): ${tuningInfo.notes.join(' - ')}`;
+            } catch (error) {
+                console.warn('Could not update tuning display:', error);
+            }
+        }
+        
+        // Load available tunings into dropdown
+        async function loadTunings() {
+            try {
+                console.log('🔧 Loading tunings...');
+                const tunings = await ChordDB.getAvailableTunings();
+                const tuningSelect = document.getElementById('tuningSelect');
+                
+                tuningSelect.innerHTML = '';
+                tunings.forEach(tuning => {
+                    const option = document.createElement('option');
+                    option.value = tuning;
+                    option.textContent = tuning.charAt(0).toUpperCase() + tuning.slice(1);
+                    if (tuning === 'open_e') {
+                        option.selected = true;
+                    }
+                    tuningSelect.appendChild(option);
+                });
+                
+                console.log(`✅ Loaded ${tunings.length} tunings:`, tunings);
+                updateTuningDisplay();
+            } catch (error) {
+                console.error('❌ Error loading tunings:', error);
+            }
+        }
+        
+        // Handle tuning changes
+        async function handleTuningChange() {
+            const selectedTuning = document.getElementById('tuningSelect').value;
+            console.log(`🔧 Tuning changed to: ${selectedTuning}`);
+            
+            try {
+                const success = await ChordDB.changeGuitarTuning(selectedTuning);
+                
+                if (success) {
+                    updateTuningDisplay();
+                    clearFretboard();
+                    await regenerateFretboard();
+                    
+                    // Re-lookup current chord for new tuning
+                    const chordInput = document.getElementById('chordInput');
+                    if (chordInput.value.trim()) {
+                        console.log('🔄 Re-looking up current chord for new tuning');
+                        await lookupChord();
+                    }
+                } else {
+                    console.error(`❌ Failed to change tuning to ${selectedTuning}`);
+                    alert(`Failed to change tuning to ${selectedTuning}`);
+                }
+            } catch (error) {
+                console.error('❌ Error changing tuning:', error);
+                alert(`Error changing tuning: ${error.message}`);
+            }
+        }
+        
+        // Regenerate fretboard with current tuning
+        async function regenerateFretboard() {
+            try {
+                const tuningInfo = ChordDB.getCurrentGuitarTuning();
+                if (!tuningInfo || !tuningInfo.notes) {
+                    console.warn('No tuning info available');
+                    return;
+                }
+
+                console.log('Updating fretboard notes for tuning:', tuningInfo.notes);
+                
+                // Update notes without destroying DOM structure
+                updateFretboardNotes(tuningInfo.notes);
+                
+                console.log('✅ Fretboard notes updated successfully');
+                
+            } catch (error) {
+                console.error('Error updating fretboard:', error);
+            }
+        }
+        
+        // Update fretboard notes without destroying DOM structure
+        function updateFretboardNotes(tuningNotes) {
+            const chromaticNotes = ['C', 'C#_Db', 'D', 'D#_Eb', 'E', 'F', 'F#_Gb', 'G', 'G#_Ab', 'A', 'A#_Bb', 'B'];
+            
+            function noteToIndex(noteName) {
+                // Remove octave number if present (e.g. 'E4' -> 'E')
+                const noteWithoutOctave = noteName.replace(/\d+$/, '');
+                
+                const noteMap = {
+                    'C': 0, 'C#': 1, 'Db': 1, 'D': 2, 'D#': 3, 'Eb': 3, 'E': 4, 'F': 5,
+                    'F#': 6, 'Gb': 6, 'G': 7, 'G#': 8, 'Ab': 8, 'A': 9, 'A#': 10, 'Bb': 10, 'B': 11
+                };
+                return noteMap[noteWithoutOctave] !== undefined ? noteMap[noteWithoutOctave] : 0;
+            }
+            
+            function getNoteAtFret(openNote, fretNumber) {
+                const openIndex = noteToIndex(openNote);
+                const noteIndex = (openIndex + fretNumber) % 12;
+                return chromaticNotes[noteIndex];
+            }
+            
+            function getNoteDisplayName(note) {
+                return note.split('_')[0];
+            }
+            
+            // Update each string's notes
+            for (let stringNum = 1; stringNum <= 6; stringNum++) {
+                const stringIndex = stringNum - 1;
+                const openNote = tuningNotes[stringIndex]; // Direct mapping - no reverse needed
+                
+                console.log(`Updating String ${stringNum} with open note: ${openNote}`);
+                
+                // Update each fret on this string
+                for (let fret = 0; fret <= 12; fret++) {
+                    const note = getNoteAtFret(openNote, fret);
+                    const displayNote = getNoteDisplayName(note);
+                    
+                    const noteMarker = document.querySelector(
+                        `.fret-position.string-${stringNum}.fret-${fret} .note-marker`
+                    );
+                    
+                    if (noteMarker) {
+                        noteMarker.setAttribute('data-note', note);
+                        noteMarker.textContent = displayNote;
+                    }
+                }
+            }
+        }
+        
+        // Main lookup function
+        async function lookupChord() {
+            console.log('🔍 Lookup chord button clicked!');
+            
+            const chordInput = document.getElementById('chordInput');
+            const tuningSelect = document.getElementById('tuningSelect');
+            
+            const chordName = chordInput.value.trim();
+            const tuning = tuningSelect.value;
+            
+            console.log(`Looking up chord: "${chordName}" in ${tuning} tuning`);
+            
+            if (!chordName) {
+                alert('Please enter a chord name');
+                return;
+            }
+            
+            try {
+                // Clear previous highlights
+                clearFretboard();
+                
+                // Get chord data from database
+                console.log('Getting best fingering...');
+                const bestFingering = await ChordDB.getBestFingering(chordName, tuning);
+                console.log('Best fingering result:', bestFingering);
+                
+                // Store current chord data
+                currentChordData = {
+                    name: chordName,
+                    fingering: bestFingering,
+                    tuning: tuning
+                };
+                
+                // Highlight chord on fretboard
+                if (bestFingering.frets) {
+                    highlightChordOnFretboard(bestFingering.frets, chordName);
+                }
+                
+            } catch (error) {
+                console.error('❌ Chord lookup error:', error);
+                alert(`Error looking up chord: ${error.message}`);
+            }
+        }
+        
+        // Highlight chord fingering on the fretboard
+        function highlightChordOnFretboard(frets, chordName) {
+            try {
+                console.log('Highlighting chord on fretboard:', frets);
+                
+                // Clear previous highlights
+                clearFretboard();
+                
+                // Convert database order to guitar string order (6,5,4,3,2,1)
+                const guitarOrderFrets = ChordDB.convertToGuitarOrder(frets);
+                
+                // Highlight each fret position
+                guitarOrderFrets.forEach((fret, stringIndex) => {
+                    if (fret !== null && fret !== undefined) {
+                        const stringNumber = 6 - stringIndex; // Convert to guitar string numbering
+                        const selector = `.fret-position.string-${stringNumber}.fret-${fret} .note-marker`;
+                        const noteMarker = document.querySelector(selector);
+                        
+                        if (noteMarker) {
+                            noteMarker.classList.add('highlight');
+                            console.log(`Highlighted string ${stringNumber}, fret ${fret}`);
+                        } else {
+                            console.warn(`Could not find note marker for string ${stringNumber}, fret ${fret}`);
+                        }
+                    }
+                });
+                
+                console.log(`✅ Highlighted chord ${chordName} on fretboard`);
+                
+            } catch (error) {
+                console.error('Error highlighting chord:', error);
+            }
+        }
+        
+        // Clear all highlights from fretboard
+        function clearFretboard() {
+            const highlightedMarkers = document.querySelectorAll('.note-marker.highlight');
+            highlightedMarkers.forEach(marker => {
+                marker.classList.remove('highlight');
+            });
+            console.log('Cleared fretboard highlights');
+        }
+        
+        // Get random chord
+        async function getRandomChord() {
+            console.log('🎲 Random chord button clicked!');
+            
+            try {
+                const tuning = document.getElementById('tuningSelect').value;
+                const randomChord = await ChordDB.getRandomChord(tuning);
+                
+                if (randomChord) {
+                    document.getElementById('chordInput').value = randomChord.chordName;
+                    await lookupChord();
+                } else {
+                    alert('No chords available for the selected tuning');
+                }
+            } catch (error) {
+                console.error('Error getting random chord:', error);
+                alert('Error getting random chord: ' + error.message);
+            }
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            console.log('🔧 Setting up fretboard event listeners...');
+            
+            // Guitar controls
+            document.getElementById('lookupBtn').addEventListener('click', lookupChord);
+            document.getElementById('randomBtn').addEventListener('click', getRandomChord);
+            document.getElementById('clearFretboardBtn').addEventListener('click', clearFretboard);
+            document.getElementById('tuningSelect').addEventListener('change', handleTuningChange);
+            
+            // Enter key support for chord input
+            document.getElementById('chordInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    console.log('⌨️ Enter key pressed, looking up chord');
+                    lookupChord();
+                }
+            });
+            
+            console.log('✅ Fretboard event listeners set up');
+        }
+        
+        // Initialize fretboard-specific functionality
+        async function initializeFretboard() {
+            console.log('🎸 Starting fretboard initialization...');
+            
+            try {
+                updateStatus('databaseStatus', 'warning', 'Loading database...');
+                updateStatus('guitarStatus', 'warning', 'Initializing...');
+                
+                // 1. Initialize chord database
+                const dbInitialized = await ChordDB.initializeChordDatabase();
+                if (dbInitialized) {
+                    const chordCount = await ChordDB.getChordCount();
+                    updateStatus('databaseStatus', 'success', `Database loaded (${chordCount} chords)`);
+                    console.log('✅ Chord database initialized');
+                } else {
+                    updateStatus('databaseStatus', 'error', 'Database failed to load');
+                }
+                
+                // 2. Initialize fretboard interactions
+                try {
+                    getFretMap();
+                    updateStatus('guitarStatus', 'success', 'Fretboard ready');
+                    console.log('✅ Fretboard initialized');
+                } catch (error) {
+                    updateStatus('guitarStatus', 'warning', 'Fretboard partially ready');
+                    console.warn('Fretboard initialization had issues:', error);
+                }
+                
+                // 3. Load tunings and setup UI
+                await loadTunings();
+                setupEventListeners();
+                
+                // 4. Set initial tuning to standard
+                await ChordDB.changeGuitarTuning('standard');
+                updateTuningDisplay();
+                
+                // 5. Initial chord lookup
+                await lookupChord();
+                
+                console.log('✅ Fretboard system fully ready');
+                
+            } catch (error) {
+                console.error('❌ Failed to initialize fretboard system:', error);
+                updateStatus('databaseStatus', 'error', 'Initialization failed');
+                updateStatus('guitarStatus', 'error', 'Initialization failed');
+            }
+        }
+        
+        // Main initialization - wait for Piano Tour base system first
+        async function initialize() {
+            console.log('🚀 Fretboard page starting initialization...');
+            
+            try {
+                // Wait for Piano Tour base system to be ready
+                await waitForPianoTourInit();
+                
+                // Now initialize our fretboard-specific functionality
+                await initializeFretboard();
+                
+                // Set up debugging functions
+                window.fretDebug = {
+                    changeTuning: ChordDB.changeGuitarTuning,
+                    getCurrentTuning: ChordDB.getCurrentGuitarTuning,
+                    lookupChord: lookupChord,
+                    clearFretboard: clearFretboard,
+                    highlightChord: highlightChordOnFretboard,
+                    getRandomChord: getRandomChord,
+                    // Audio functions
+                    fretMap: getFretMap(),
+                    toggleAudio: () => {
+                        const fretMap = getFretMap();
+                        fretMap.setAudioEnabled(!fretMap.audioEnabled);
+                        return `Audio ${fretMap.audioEnabled ? 'enabled' : 'disabled'}`;
+                    },
+                    playNote: (noteName) => {
+                        const noteElement = document.querySelector(`[data-note="${noteName}"]`);
+                        if (noteElement) {
+                            getFretMap().playNote(noteElement, noteName);
+                        }
+                    },
+                    playChord: (noteNames) => getFretMap().playChord(noteNames),
+                    stopAll: () => getFretMap().stopAllSustainedNotes()
+                };
+                
+                console.log('🔧 Debug functions available at window.fretDebug');
+                
+            } catch (error) {
+                console.error('❌ Failed to initialize fretboard page:', error);
+            }
+        }
+        
+        // Start initialization when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+    </script>
+{% endblock %}

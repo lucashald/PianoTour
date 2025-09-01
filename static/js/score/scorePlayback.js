@@ -18,6 +18,8 @@ import {
 import { getVexflowIndexByNoteId, safeRedraw, scrollToMeasure } from "./scoreRenderer.js";
 import { getMeasures } from "./scoreWriter.js";
 import { initMidiWhenReady } from "../instrument/midi-controller.js";
+// Add fretboard integration
+import { getFretMap } from "../instrument/fretMap.js";
 
 // ===================================================================
 // Constants
@@ -218,7 +220,7 @@ function scheduleNoteEvents(
         };
       }, noteStartTime);
 
-      // Schedule piano key highlighting
+      // Schedule piano key highlighting + fretboard playback highlighting
       Tone.Transport.scheduleOnce((time) => {
         notesToPlay.forEach((n) => {
           const midi = NOTES_BY_NAME[n];
@@ -228,6 +230,13 @@ function scheduleNoteEvents(
             }, time);
           }
         });
+        // Fretboard playback highlight (if fretboard is present)
+        const fretMap = (typeof getFretMap === "function") ? getFretMap() : null;
+        if (fretMap && typeof fretMap.isReady === "function" && fretMap.isReady()) {
+          Tone.Draw.schedule(() => {
+            fretMap.addPlaybackHighlight(notesToPlay);
+          }, time);
+        }
       }, noteStartTime);
 
       // Schedule the "note off" event
@@ -248,7 +257,7 @@ function scheduleNoteEvents(
         }, 1000);
       }, noteEndTime);
 
-      // Schedule piano key un-highlighting
+      // Schedule piano key un-highlighting + clear fretboard playback highlighting
       Tone.Transport.scheduleOnce((time) => {
         notesToPlay.forEach((n) => {
           const midi = NOTES_BY_NAME[n];
@@ -258,6 +267,12 @@ function scheduleNoteEvents(
             }, time);
           }
         });
+        const fretMap = (typeof getFretMap === "function") ? getFretMap() : null;
+        if (fretMap && typeof fretMap.isReady === "function" && fretMap.isReady()) {
+          Tone.Draw.schedule(() => {
+            fretMap.clearPlaybackHighlight(notesToPlay);
+          }, time);
+        }
       }, noteEndTime);
     }
 
@@ -472,6 +487,14 @@ export function stopPlayback() {
   Object.values(pianoState.noteEls).forEach((el) => {
     el.classList.remove("pressed");
   });
+
+  // Also clear any fretboard playback highlights if present
+  try {
+    const fretMap = (typeof getFretMap === "function") ? getFretMap() : null;
+    if (fretMap && typeof fretMap.clearPlaybackHighlight === "function") {
+      fretMap.clearPlaybackHighlight();
+    }
+  } catch (_) {}
 
   // Mark playback notes for cleanup after release time
   const playbackNotesToClear = [];
