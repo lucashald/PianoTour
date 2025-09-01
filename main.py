@@ -87,6 +87,9 @@ def midi_to_json_data(midi_file_path):
 def index():
     return render_template('piano.html', hide_spectrum=False)
 
+@app.route('/fret')
+def fret():
+    return render_template('fret.html')
 
 @app.route('/editor')
 def editor():
