@@ -16,7 +16,7 @@ import {
     enableScoreInteraction,
     scrollToMeasure
 } from '../score/scoreRenderer.js';
-import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur } from '../score/scoreWriter.js';
+import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur, updateNoteInMeasure } from '../score/scoreWriter.js';
 
 // ===================================================================
 // Internal State
@@ -897,7 +897,7 @@ document.addEventListener('noteDropped', (event) => {
             editorSelectedNoteId = noteToMove.id;
         }
     } else if (insertBeforeNoteId || clefChanged || pitchChanged) {
-        // Same measure: repositioning OR property changes - use placeNote
+        // Same measure: repositioning OR property changes
         const updatedNoteData = {};
         if (clefChanged) updatedNoteData.clef = newClef;
         if (pitchChanged && !originalNote.isRest) {
@@ -912,7 +912,14 @@ document.addEventListener('noteDropped', (event) => {
                 updatedNoteData.name = newPitch;
             }
         }
-        placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, updatedNoteData, insertBeforeNoteId);
+        
+        if (insertBeforeNoteId && insertBeforeNoteId !== fromNoteId) {
+            // Actually repositioning - use placeNote
+            placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, updatedNoteData, insertBeforeNoteId);
+        } else {
+            // Just updating properties in same position - use updateNoteInMeasure
+            updateNoteInMeasure(fromMeasureIndex, fromNoteId, updatedNoteData);
+        }
         editorSelectedNoteId = fromNoteId;
     }
     renderNoteEditBox(false);
