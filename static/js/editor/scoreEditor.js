@@ -792,7 +792,7 @@ export function initializeMusicEditor() {
 
             if (selectedNote.isRest) {
         if (target.id === 'editorDurationDropdown') {
-            placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { duration: target.value });
+            updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
         }
         renderNoteEditBox(false);
         return;
@@ -801,14 +801,14 @@ export function initializeMusicEditor() {
     if (['editorNoteLetter', 'editorAccidentalDropdown', 'editorOctaveDropdown'].includes(target.id)) {
         let newLetter = document.getElementById('editorNoteLetter').value;
         if (newLetter === 'R') {
-            placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { isRest: true, name: "R" });
+            updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
         } else {
             let newAccidental = document.getElementById('editorAccidentalDropdown').value;
             let newOctave = document.getElementById('editorOctaveDropdown').value;
-            placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: `${newLetter}${newAccidental}${newOctave}`, isRest: false });
+            updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: `${newLetter}${newAccidental}${newOctave}`, isRest: false });
         }
     } else if (target.id === 'editorDurationDropdown') {
-        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { duration: target.value });
+        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
     }
     
     renderNoteEditBox(false);
