@@ -6,9 +6,11 @@ export const pianoState = {
     // UI Interaction State
     show_side_panel: false,
     toggleLabels: false,
+    showLabels: 0, // 0: Off, 1: Note Names, 2: Keyboard Letters
     isMajorChordMode: false,
     isMinorChordMode: false,
     chordButtonMode: 0, // 0: Hidden, 1: Bass, 2: Treble
+    keyBoardMode: 1, // 0: Basic, 1: Expanded
 
         // In your pianoState initialization, add:
     isDragging: false,

@@ -60,6 +60,7 @@ const ALL_HANDLED_KEYS = {
   'e': { type: 'piano' },
   'r': { type: 'piano' },
   't': { type: 'piano' },
+  'y': { type: 'piano' },
   'u': { type: 'piano' },
   'i': { type: 'piano' },
   'o': { type: 'piano' },

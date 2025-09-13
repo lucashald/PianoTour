@@ -149,9 +149,10 @@ export function addAdvancedGuitarListeners() {
  * Adds button listeners
  */
 export function addButtonListeners() {
+  // Use click so we can cycle through 3 states (off / note names / keyboard letters)
   document
     .getElementById("toggleLabelsCheckbox")
-    ?.addEventListener("change", handleToggleLabelsChange);
+    ?.addEventListener("click", handleToggleLabelsChange);
   document
     .getElementById("mode-cycle-btn")
     ?.addEventListener("click", handleModeCycleClick);
