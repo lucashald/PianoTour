@@ -15,7 +15,7 @@ async function loadChordDatabase() {
                 throw new Error(`Failed to load chord database: ${response.status}`);
             }
             chordsDatabase = await response.json();
-            console.log(`✅ Loaded chord database with ${Object.keys(chordsDatabase).length} chords`);
+            console.log(`Loaded chord database with ${Object.keys(chordsDatabase).length} chords`);
         } catch (error) {
             console.error('❌ Error loading chord database:', error);
             throw error;
@@ -71,14 +71,14 @@ async function getAvailableTunings() {
  */
 async function changeGuitarTuning(tuningName) {
     try {
-        console.log(`🔧 Changing guitar tuning to: ${tuningName}`);
+        console.log(`Changing guitar tuning to: ${tuningName}`);
         
         // Try to set the tuning using guitarInstrument
         const success = setGuitarTuning(tuningName);
         
         if (success) {
             const currentNotes = getCurrentTuningNotes();
-            console.log(`✅ Guitar tuning changed to ${tuningName}:`, currentNotes);
+            console.log(`Guitar tuning changed to ${tuningName}:`, currentNotes);
             
             // Trigger a custom event that the UI can listen to
             window.dispatchEvent(new CustomEvent('guitarTuningChanged', {
@@ -227,7 +227,7 @@ async function getAllChordDisplayNames() {
     // Sort by display name for better user experience
     chordList.sort((a, b) => a.displayName.localeCompare(b.displayName));
     
-    console.log(`✅ Retrieved ${chordList.length} chord display names`);
+    console.log(`Retrieved ${chordList.length} chord display names`);
     return chordList;
 }
 
@@ -378,7 +378,7 @@ function createTuningNameMapping() {
 function mapTuningName(presetName) {
     const mapping = createTuningNameMapping();
     const mapped = mapping[presetName] || presetName;
-    console.log(`🔄 Mapping tuning: ${presetName} -> ${mapped}`);
+    console.log(`Mapping tuning: ${presetName} -> ${mapped}`);
     return mapped;
 }
 

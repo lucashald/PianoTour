@@ -333,7 +333,6 @@ drums: {
         const preset = this.getPreset(instrumentName);
         const settings = preset ? preset.envelopeSettings : this.presets.piano.envelopeSettings;
         
-        console.log(`🎛️ Creating ${instrumentName} envelope:`, settings);
         return new EnvelopeControl(settings);
     }
 
@@ -362,7 +361,6 @@ drums: {
      */
     addPreset(instrumentName, presetData) {
         this.presets[instrumentName] = presetData;
-        console.log(`📝 Added preset for ${instrumentName}`);
     }
 }
 
@@ -509,13 +507,13 @@ async function initializeAudio() {
                 pianoState.sampler = new Tone.Sampler({
                     urls: sampleUrls,
                     baseUrl: baseUrl,
-                    onload: () => console.log(`🎵 All ${currentInstrument} samples loaded successfully.`),
+                    onload: () => console.log(`All ${currentInstrument} samples loaded successfully.`),
                     onerror: (error) => console.error("Sample loading error:", error)
                 });
 
                 // Connect sampler -> envelope -> destination
                 pianoState.envelope.connect(pianoState.sampler);
-                console.log('🎛️ Current envelope settings:', pianoState.envelope.getSettings());
+                console.log('Current envelope settings:', pianoState.envelope.getSettings());
 
                 await Tone.loaded();
 

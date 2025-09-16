@@ -867,7 +867,7 @@ export function saveDrums() {
         const drumScoreToSave = getDrumMeasures();
         const drumScoreJSON = JSON.stringify(drumScoreToSave);
         localStorage.setItem(AUTOSAVE_KEY, drumScoreJSON);
-        console.log("✅ Drum score saved successfully to local storage.");
+        console.log("Drum score saved successfully to local storage.");
     } catch (error) {
         console.error("❌ Error saving drum score to local storage:", error);
     }

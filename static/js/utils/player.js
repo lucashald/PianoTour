@@ -263,7 +263,7 @@ async waitForLibraries() {
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Starting minimal Piano Tour...');
+    console.log('Starting minimal Piano Tour...');
     window.pianoTourPlayer = new PianoTourPlayer();
 });
 

@@ -128,8 +128,6 @@ export function isDrumAudioReady() {
 async function initializeDrumSampler() {
     if (drumSampler) return drumSampler;
     
-    console.log("🥁 Creating drum sampler...");
-    
     drumSampler = new Tone.Sampler({
         urls: DRUM_SAMPLE_URLS,
         release: 1,
@@ -144,12 +142,11 @@ async function initializeDrumSampler() {
     try {
         const { connectSpectrumToAudio } = await import("../ui/spectrum.js");
         connectSpectrumToAudio(drumSampler);
-        console.log("🥁 Drum sampler connected to spectrum");
     } catch (error) {
-        console.warn("🥁 Could not connect drums to spectrum:", error);
+        console.warn("Could not connect drums to spectrum:", error);
     }
     
-    console.log("🥁 Drum sampler ready!");
+    console.log("Drum sampler ready!");
     return drumSampler;
 }
 

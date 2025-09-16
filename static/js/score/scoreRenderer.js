@@ -11,7 +11,8 @@ import {
   KEY_SIGNATURES,
   NOTE_IMAGE_MAP,
   NOTES_BY_NAME,
-  createIntervalChord
+  createIntervalChord,
+  applyKeySignatureCorrection
 } from "../core/note-data.js";
 import { saveToLocalStorage } from "../utils/ioHelpers.js";
 import {
@@ -149,7 +150,6 @@ function logNotePositions() {
   }
 }
 function calibrateStaffPositions() {
-  console.log("Calibrating staff positions...");
 
   // Get first measure's staves
   const trebleStave = vexflowStaveMap[0]?.treble;
@@ -597,7 +597,12 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
       const clef = detectClefRegion(currentY);
       const nearest = findNearestStaffPosition(currentY, clef);
       if (nearest) {
-        updateDragPreview(currentX, nearest.y, nearest.note);
+        // Apply key signature correction to preview note
+        const rawMIDI = NOTES_BY_NAME[nearest.note];
+        const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
+        const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
+        const previewNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearest.note;
+        updateDragPreview(currentX, nearest.y, previewNoteName);
       }
     }
   });
@@ -763,7 +768,11 @@ function handlePaletteDrop(endX, endY, event) {
     return;
   }
 
-  const newNoteName = nearestPosition.note;
+  // Apply key signature correction to the dropped note
+  const rawMIDI = NOTES_BY_NAME[nearestPosition.note];
+  const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
+  const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
+  const newNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearestPosition.note;
 
   // Create the new note object
   const newNote = {
@@ -1032,19 +1041,22 @@ function completeDrag(currentX, currentY) {
   }
 
   if (!originalNoteData.isRest && originalVexFlowNoteBBox) {
-    const calculatedNewPitchMIDI = calculateAbsolutePitchFromY(
+    const rawPitchMIDI = calculateAbsolutePitchFromY(
       currentY,
       newClef
     );
 
+    // Apply key signature correction to snap to appropriate accidentals
+    const correctedPitchMIDI = applyKeySignatureCorrection(rawPitchMIDI, pianoState.keySignature);
+
     const newNoteInfo = ALL_NOTE_INFO.find(
-      (n) => n.midi === calculatedNewPitchMIDI
+      (n) => n.midi === correctedPitchMIDI
     );
     if (newNoteInfo) {
       newPitchName = newNoteInfo.name;
     } else {
       console.warn(
-        `completeDrag: Could not find note name for MIDI ${calculatedNewPitchMIDI}. Keeping original pitch name as fallback.`
+        `completeDrag: Could not find note name for MIDI ${correctedPitchMIDI}. Keeping original pitch name as fallback.`
       );
       newPitchName = originalNoteData.name;
     }
@@ -1052,7 +1064,7 @@ function completeDrag(currentX, currentY) {
     if (
       newPitchName !== originalNoteData.name ||
       (clefChanged &&
-        NOTES_BY_NAME[originalNoteData.name] !== calculatedNewPitchMIDI)
+        NOTES_BY_NAME[originalNoteData.name] !== correctedPitchMIDI)
     ) {
       pitchChanged = true;
       console.log(

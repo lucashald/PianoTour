@@ -14,7 +14,6 @@ let pianoState;
  */
 export async function initializeJSONEditor(modules) {
     try {
-        console.log('🎼 JSON Editor initializing...');
 
         // Store imported modules
         ({ 
@@ -48,8 +47,6 @@ export async function initializeJSONEditor(modules) {
         // Auto-load score during initialization (localStorage or default)
         await loadScoreOnInit();
 
-        console.log('✅ JSON Editor initialized successfully');
-
     } catch (error) {
         console.error('❌ Failed to initialize JSON Editor:', error);
         showOutput("❌ Failed to initialize editor: " + error.message, "error");
@@ -62,8 +59,7 @@ export async function initializeJSONEditor(modules) {
  */
 async function loadScoreOnInit() {
     try {
-        console.log('🔄 Loading score for JSON editor...');
-        showOutput("🔄 Loading saved score...", "warning");
+        showOutput("Loading saved score...", "warning");
 
         // Try localStorage first
         const savedScore = await tryLoadFromLocalStorage();
@@ -73,7 +69,7 @@ async function loadScoreOnInit() {
         }
 
         // Fall back to default empty score
-        console.log('📝 No saved score found, loading default...');
+        console.log('No saved score found, loading default...');
         loadDefaultScore();
 
     } catch (error) {

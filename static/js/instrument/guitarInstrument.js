@@ -60,7 +60,7 @@ function setGuitarTuning(tuning) {
     // Use preset tuning
     if (PRESET_TUNINGS[tuning]) {
       newTuning = [...PRESET_TUNINGS[tuning]];
-      console.log(`🎸 Setting guitar to ${tuning} tuning:`, newTuning.map(midi => midiToNoteName(midi)));
+      console.log(`Setting guitar to ${tuning} tuning:`, newTuning.map(midi => midiToNoteName(midi)));
     } else {
       console.error(`❌ Unknown preset tuning: ${tuning}`);
       console.log('Available presets:', Object.keys(PRESET_TUNINGS));
@@ -84,7 +84,6 @@ function setGuitarTuning(tuning) {
     }
     
     newTuning = [...tuning];
-    console.log('🎸 Setting custom guitar tuning:', newTuning.map(midi => midiToNoteName(midi)));
   } else {
     console.error('❌ Tuning must be an array of MIDI numbers or preset name');
     return false;
@@ -203,7 +202,7 @@ class GuitarInstrument {
 
   // NEW: Method to update guitar after tuning change
   updateAfterTuningChange() {
-    console.log('🎸 Updating guitar display after tuning change');
+    console.log('Updating guitar display after tuning change');
     
     // Clear all current finger positions
     for (let stringNum = 1; stringNum <= STRING_COUNT; stringNum++) {
@@ -737,7 +736,7 @@ async showControlPanel() {
         // Switch back to standard tuning for chord container compatibility
         try {
             await ChordDB.changeGuitarTuning('standard');
-            console.log('🎸 Switched back to standard tuning for chord container');
+            console.log('Switched back to standard tuning for chord container');
         } catch (error) {
             console.warn('Could not switch to standard tuning:', error);
         }

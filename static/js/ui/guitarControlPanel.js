@@ -44,7 +44,6 @@ class GuitarControlPanel {
     }
 
     async init() {
-        console.log('🚀 Initializing Guitar Control Panel...');
         
         try {
             await this.initializeDatabase();
