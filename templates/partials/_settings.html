@@ -1,18 +1,4 @@
-{% extends "index.html" %}
-
-{% block title %}PianoTour - Interactive Guitar Studio{% endblock %}
-
-{% block head %}
-    
-<!-- 
-<link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/settings.css') }}"
-    />
-    -->
-{% endblock %}
-
-{% block top %}
+{% block settings %}
 <div class="audio-controls-container">
     <!-- ADSR Envelope controls -->
     <div class="control-section">
@@ -208,146 +194,34 @@
     </div>
 </div>
 
-<div class="outer-wrapper">
-    <div class="preset-controls">
-        <div class="preset-section">
-            <h4>Quick Actions</h4>
-            <div class="controls-button-row">
-                <button id="resetButton" class="btn btn--compact btn--secondary">
-                    🔄 Reset to Default
-                </button>
-            </div>
-        </div>
-
-        <div class="preset-section">
-            <h4>Audio Presets</h4>
-            <div class="controls-button-row">
-                <button id="concertHallButton" class="btn btn--compact btn--primary">
-                    Concert Hall
-                </button>
-                <button id="studioButton" class="btn btn--compact btn--primary">
-                    Studio
-                </button>
-                <button id="jazzClubButton" class="btn btn--compact btn--primary">
-                    Jazz Club
-                </button>
-                <button id="cathedralButton" class="btn btn--compact btn--primary">
-                    Cathedral
-                </button>
-            </div>
-        </div>
-
-        <div class="preset-section">
-            <h4>Instrument</h4>
-            <div class="instrument-selector">
-                <select id="instrumentSelect" class="form-select">
-                    <option value="piano">🎹 Piano</option>
-                    <option value="guitar">🎸 Guitar</option>
-                    <option value="cello">🎻 Cello</option>
-                    <option value="sax">🎷 Saxophone</option>
-                </select>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block content %}
-{% endblock %}
-
-{% block side %}
-{% endblock %}
-
-{% block toggles %}
-    {% include 'partials/_toggles.html' %}
-{% endblock %}
-
-{% block scripts %}
 <script type="module">
-    // Import the settings controller and related functions
-    import { 
+      import { 
         audioSettingsController, 
         resetAudioSettings, 
         getCurrentAudioSettings, 
         applyAudioSettings 
     } from '{{ url_for("static", filename="js/ui/audioSettings.js") }}';
     
-    import { Instrument } from '{{ url_for("static", filename="js/core/audioManager.js") }}';
-    import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
-
-    window.audioSettingsController = audioSettingsController;
-    window.resetAudioSettings = resetAudioSettings;
-    window.getCurrentAudioSettings = getCurrentAudioSettings;
-    window.applyAudioSettings = applyAudioSettings;
-    window.Instrument = Instrument;
-
-    function initializePresetControls() {
-        // ...preset button and selector initialization as described...
-        // ...existing code from your prompt...
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializePresetControls);
-    } else {
-        initializePresetControls();
-    }
-
-    window.addEventListener('audioReady', () => {
-        setTimeout(initializePresetControls, 100);
-    });
-
-    window.addEventListener('instrumentChanged', (event) => {
-        const instrumentSelect = document.getElementById('instrumentSelect');
-        if (instrumentSelect && event.detail.instrument) {
-            instrumentSelect.value = event.detail.instrument;
-            console.log(`🎵 Instrument selector updated to: ${event.detail.instrument}`);
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (document.activeElement.tagName === 'INPUT' || 
-            document.activeElement.tagName === 'SELECT' || 
-            document.activeElement.tagName === 'TEXTAREA') {
-            return;
-        }
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
-            switch (e.key) {
-                case '1':
-                    e.preventDefault();
-                    audioSettingsController.applyPreset('concertHall');
-                    break;
-                case '2':
-                    e.preventDefault();
-                    audioSettingsController.applyPreset('studio');
-                    break;
-                case '3':
-                    e.preventDefault();
-                    audioSettingsController.applyPreset('jazzClub');
-                    break;
-                case '4':
-                    e.preventDefault();
-                    audioSettingsController.applyPreset('cathedral');
-                    break;
-                case '0':
-                    e.preventDefault();
-                    audioSettingsController.resetToDefaults();
-                    break;
+    document.addEventListener('DOMContentLoaded', () => {
+        // Check periodically if the controller has initialized
+        const checkInterval = setInterval(() => {
+            if (audioSettingsController.isInitialized) {
+                // Remove the disabled styling from all controls
+                document.querySelectorAll('.audio-uninitialized').forEach(el => {
+                    el.classList.remove('audio-uninitialized');
+                });
+                clearInterval(checkInterval);
+                console.log('Audio controls initialized and ready');
             }
-        }
+        }, 100);
+        
+        // Safety timeout - remove uninitialized class after 5 seconds regardless
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            document.querySelectorAll('.audio-uninitialized').forEach(el => {
+                el.classList.remove('audio-uninitialized');
+            });
+        }, 5000);
     });
-
-    window.debugPresets = () => {
-        console.log('Available presets:', audioSettingsController.getAudioPresets());
-    };
-
-    window.debugCurrentSettings = () => {
-        console.log('Current settings:', getCurrentAudioSettings());
-    };
-
-    window.testPreset = (presetName) => {
-        audioSettingsController.applyPreset(presetName);
-    };
-
 </script>
 {% endblock %}

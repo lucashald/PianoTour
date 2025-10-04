@@ -180,25 +180,38 @@ export function handleChordDisplayToggle(e) {
         case 0:
             toggleButtonSpan.textContent = 'Show Chords';
             chordButtonsContainer.classList.add('hidden');
-            // REFACTORED: Use .is-active for state management
             e.currentTarget.classList.remove('is-active');
             break;
         case 1:
             toggleButtonSpan.textContent = 'Bass Chords';
             chordButtonsContainer.classList.remove('hidden');
-            // REFACTORED: Use .is-active for state management
             e.currentTarget.classList.add('is-active');
             if (!chordButtonsGenerated) { generateChordButtons(); }
             break;
         case 2:
             toggleButtonSpan.textContent = 'Treble Chords';
             chordButtonsContainer.classList.remove('hidden');
-            // REFACTORED: Use .is-active for state management
             e.currentTarget.classList.add('is-active');
             if (!chordButtonsGenerated) { generateChordButtons(); }
             break;
     }
 }
+
+export function handleSettingsDisplayToggle(e) {
+    e.preventDefault();
+    const audioSettingsContainer = document.getElementById('audio-settings');
+    const toggleSettingsSpan = e.currentTarget.querySelector('span');
+    if (pianoState.showSettings) {
+        audioSettingsContainer.classList.add('hidden');
+        toggleSettingsSpan.textContent = 'Show Settings';
+    }
+    else {
+        audioSettingsContainer.classList.remove('hidden');
+        toggleSettingsSpan.textContent = 'Hide Settings';
+    }
+    pianoState.showSettings = !pianoState.showSettings;
+}
+
 /**
  * General UI feedback function for providing user feedback on various operations
  * @param {string} message - The message to display to the user

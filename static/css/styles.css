@@ -168,6 +168,26 @@ body.no-scroll {
   line-height: 1.2;
 }
 
+/* Remove link styling from header title */
+.piano-app__header-title a,
+.piano-app__header a {
+  text-decoration: none;  /* Removes underline */
+  color: inherit;          /* Inherits the gradient text color */
+  cursor: pointer;         /* Keeps the pointer cursor on hover */
+}
+
+/* Optional: Remove visited link color */
+.piano-app__header-title a:visited,
+.piano-app__header a:visited {
+  color: inherit;
+}
+
+/* Optional: Add hover effect without changing color */
+.piano-app__header-title a:hover,
+.piano-app__header a:hover {
+  opacity: 0.8;  /* Subtle hover effect */
+}
+
 .piano-app__now-playing {
   min-height: var(--touch-target-min);
   font-size: var(--font-size-lg);

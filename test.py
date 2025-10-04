@@ -107,7 +107,7 @@ def practice():
 @app.route('/guitar')
 def guitar():
     """Guitar instrument route"""
-    return render_template('guitar.html', instrument='guitar', show_side_panel=True)
+    return render_template('guitar.html', instrument='guitar', show_side_panel=False)
 
 
 @app.route('/cello')

@@ -32,12 +32,22 @@
       {% endif %}
 
       <main class="piano-app__content-area">
-        <header class="piano-app__header">
-          <h1 class="piano-app__header-title">Piano Tour</h1>
+
+        		<header class="piano-app__header">
+			{% if request.path != '/' %}
+				<a href="/">
+				<h1 class="piano-app__header-title">Piano Tour</h1>
+				</a>
+			{% else %}
+				<h1 class="piano-app__header-title">Piano Tour</h1>
+			{% endif %}
         </header>
 
         {% block player %} {% include 'partials/_player.html' %} {% endblock %}
         {% block volume %} {% include 'partials/_volumeControl.html' %} {% endblock %}
+        <div class="hidden" id="audio-settings">
+        {% block settings %} {% include 'partials/_settings.html' %} {% endblock %}
+        </div>
         {% block top %}{% endblock %}
         
         
@@ -82,6 +92,9 @@
             {% block toggles %}{% endblock %}
             <button id="chord-display-toggle" class="btn btn--toggle">
               <span>Show Chords</span>
+            </button>
+            <button id="settings-display-toggle" class="btn btn--toggle">
+              <span>Show Settings</span>
             </button>
 
             {% if request.path == '/editor' %}
@@ -151,6 +164,7 @@
       import { initializeFileHandlers } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
       import {
         handleChordDisplayToggle,
+        handleSettingsDisplayToggle,
         handleKeySignatureClick,
         updateUI,
       } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
@@ -164,6 +178,12 @@
       } from '{{ url_for("static", filename="js/instrument/midi-controller.js") }}';
       // NEW: Import audioManager
       import audioManager from '{{ url_for("static", filename="js/core/audioManager.js") }}';
+      import { 
+        audioSettingsController, 
+        resetAudioSettings, 
+        getCurrentAudioSettings, 
+        applyAudioSettings 
+    } from '{{ url_for("static", filename="js/ui/audioSettings.js") }}';
       
 
       // Store initialization state globally so child scripts can check it
@@ -446,6 +466,11 @@
             id: "chord-display-toggle",
             event: "click",
             handler: handleChordDisplayToggle,
+          },
+                    {
+            id: "settings-display-toggle",
+            event: "click",
+            handler: handleSettingsDisplayToggle,
           },
           {
             id: "key-signature-btn",

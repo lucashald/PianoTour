@@ -11,8 +11,8 @@ export const pianoState = {
     isMinorChordMode: false,
     chordButtonMode: 0, // 0: Hidden, 1: Bass, 2: Treble
     keyBoardMode: 1, // 0: Basic, 1: Expanded
+    showSettings: 0,
 
-        // In your pianoState initialization, add:
     isDragging: false,
     currentlyPlayingKeys: new Set(), // Track drag-playing keys
     lastDraggedKey: null, // Prevent rapid retriggering

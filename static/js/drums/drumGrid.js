@@ -227,11 +227,11 @@ function addPatternToScore() {
     const notationData = analyzePattern();
 
     if (notationData.length === 0) {
-        console.log('🥁 Pattern is empty, nothing to add');
+        console.log('Pattern is empty, nothing to add');
         return;
     }
 
-    console.log('🥁 Adding pattern to score:', notationData);
+    console.log('Adding pattern to score:', notationData);
 
     notationData.forEach(noteData => {
         addNoteToMeasure(undefined, noteData);
@@ -242,10 +242,6 @@ function addPatternToScore() {
         scrollToMeasure(currentMeasureIdx);
     }
     
-    // NOTE: Removed the call to `clearPattern()` so the pattern is not cleared
-    //       after being added to the score.
-
-    console.log('🥁 Pattern added to score');
 }
 
 // ===================================================================
