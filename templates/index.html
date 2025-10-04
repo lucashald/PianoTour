@@ -6,7 +6,7 @@
     <title>{% block title %}Interactive Piano Studio{% endblock %}</title>
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='css/pianostyles.css') }}"
+      href="{{ url_for('static', filename='css/styles.css') }}"
     />
     <link
       rel="icon"
@@ -39,25 +39,25 @@
         {% block player %} {% include 'partials/_player.html' %} {% endblock %}
         {% block volume %} {% include 'partials/_volumeControl.html' %} {% endblock %}
         {% block top %}{% endblock %}
-        {% block palette %}{% endblock %}
+        
         
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
-        <section class="score-viewer">
-          <div class="score-viewer__container" id="scoreWrap">
-            <div class="score-viewer__content" id="score"></div>
-          </div>
-        </section>
-        <div class="outer-instrument-wrapper">
+          {% block score %} {% if not hide_score %} {% include
+          'partials/_score.html' %} {% endif %} {% endblock %}
+          {% block palette %}{% endblock %}
+        <div class="outer-wrapper">
         <section class="instrument-panel">
           {% block spectrum %} {% if not hide_spectrum %} {% include
           'partials/_spectrum.html' %} {% endif %} {% endblock %}
-          <div id="handOverlay" class="hidden"></div>
-          <div class="instrument-panel__keyboard" id="instrument"></div>
+          {% block instrument %} {% if not hide_instrument %} {% include
+          'partials/_instrument.html' %} {% endif %} {% endblock %}
+
           {% block content %}{% endblock %}
         </section>
         </div>
+        {% block after %}{% endblock %}
         <nav class="main-controls">
-          <div class="main-controls__button-row">
+          <div class="controls-button-row">
             <button id="clearScoreBtn" class="btn btn--danger">
               Clear Score
             </button>
@@ -78,7 +78,7 @@
             {% endblock %}
           </div>
 
-          <div class="main-controls__button-row">
+          <div class="controls-button-row">
             {% block toggles %}{% endblock %}
             <button id="chord-display-toggle" class="btn btn--toggle">
               <span>Show Chords</span>
@@ -102,10 +102,10 @@
               class="btn btn--info"
               ><span>Drums</span></a
             >{% endif %}
-            {% if request.path != '/sax' %}<a
-              href="/sax"
+            {% if request.path != '/harp' %}<a
+              href="/harp"
               class="btn btn--info"
-              ><span>Sax</span></a
+              ><span>Harp</span></a
             >{% endif %} {% if request.path != '/guitar' %}<a
               href="/guitar"
               class="btn btn--info"
@@ -113,7 +113,7 @@
             >{% endif %} {% if request.path != '/extras' %}<a
               href="/extras"
               class="btn btn--info"
-              ><span>Extras</span></a
+              ><span>More</span></a
             >{% endif %}
           </div>
 
@@ -190,7 +190,6 @@
 
         // NEW: Initialize audioManager early, before any user interaction might trigger it
         audioManager.initializeAudioManager();
-        console.log("✅ AudioManager initialized.");
 
         // Initialize lightweight components immediately
         initializeInstrumentUI();
@@ -205,8 +204,7 @@
 
         // Quick initial render with empty score to establish layout
         try {
-          drawAll([]); // Empty score - fast render
-          console.log("✅ Initial layout established");
+          drawAll([]);
         } catch (e) {
           console.error("Initial render error:", e);
         }
@@ -268,7 +266,6 @@
       }
 
       async function initializeHeavyComponents() {
-        console.log("⚡ Starting heavy component initialization...");
 
         try {
           // Load score from localStorage asynchronously
@@ -282,8 +279,6 @@
 
           // Dispatch event for child scripts
           document.dispatchEvent(new CustomEvent("pianoTourHeavyReady"));
-
-          console.log("✅ Heavy components initialized");
         } catch (error) {
           console.error("❌ Error in heavy initialization:", error);
         }
@@ -315,10 +310,10 @@
             }
 
             // Re-render with loaded data
-            updateLoadingMessage("🎨 Rendering score...");
+            updateLoadingMessage("Rendering score...");
             await renderScoreAsync(getMeasures());
 
-            console.log("✅ Score loaded successfully");
+            console.log("Score loaded successfully");
           } else {
             localStorage.removeItem("autosavedScore");
             console.log("⚠️ Invalid score data, cleared");
@@ -371,15 +366,12 @@
 
         setKeySignature(keySignature);
         pianoState.isMinorChordMode = isMinorChordMode;
-
-        console.log(
-          `🎹 Applied metadata: ${keySignature}, Minor: ${isMinorChordMode}`
-        );
-
-        if (title) {
-          console.log(`📄 Score title: ${title}`);
-        }
+        updateUI("Score loaded", {
+          updateKeySignature: true,
+          updateMinorMode: true,
+        });
       }
+
 
       function updateLoadingMessage(message) {
         const scoreElement = document.getElementById("score");
@@ -402,8 +394,6 @@
       // REVISED: setupUnlockSystem to use audioManager for MIDI initialization
       function setupUnlockSystem() {
         pianoState.unlock = async () => {
-          // No longer using pianoState.midiInitialized as a direct gate for audio unlock
-          // audioManager handles the core audio unlock, and MIDI setup can follow that.
 
           console.log(
             "🔓 Attempting to unlock audio and initialize MIDI via audioManager..."
@@ -425,7 +415,7 @@
 
           if (success) {
             console.log(
-              "✅ Audio and MIDI systems are now live (or were already)."
+              "Audio and MIDI systems are now live (or were already)."
             );
           } else {
             console.warn("❌ Failed to initialize audio/MIDI system.");

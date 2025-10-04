@@ -23,8 +23,7 @@ class AudioSettingsController {
 
     initializeControls() {
         if (this.isInitialized) return;
-        
-        console.log('🎛️ Initializing audio settings controls');
+    
         
         this.initializeADSRControls();
         this.initializeReverbControls();
@@ -37,14 +36,12 @@ class AudioSettingsController {
         this.updateAllDisplays();
         
         this.isInitialized = true;
-        console.log('✅ Audio settings controls initialized');
     }
 
     syncWithAudioSettings() {
         if (!pianoState.envelope || this.isSyncing) return;
         
         this.isSyncing = true;
-        console.log('🔄 Syncing sliders with current audio settings');
         
         try {
             const currentSettings = pianoState.envelope.getSettings();
@@ -89,7 +86,6 @@ class AudioSettingsController {
                 }
             }
             
-            console.log('✅ Sliders synced with audio settings');
         } catch (error) {
             console.error('Error syncing with audio settings:', error);
         } finally {
@@ -120,7 +116,7 @@ class AudioSettingsController {
                 if (pianoState.envelope && !this.isSyncing) {
                     const val = parseFloat(value);
                     pianoState.envelope.setAttack(val);
-                    console.log(`🎛️ Attack set to ${val}`);
+                    console.log(`Attack set to ${val}`);
                 }
             },
             formatDisplay: (value) => parseFloat(value).toFixed(3),
@@ -137,7 +133,7 @@ class AudioSettingsController {
                 if (pianoState.envelope && !this.isSyncing) {
                     const val = parseFloat(value);
                     pianoState.envelope.setDecay(val);
-                    console.log(`🎛️ Decay set to ${val}`);
+                    console.log(`Decay set to ${val}`);
                 }
             },
             formatDisplay: (value) => parseFloat(value).toFixed(2),
@@ -154,7 +150,7 @@ class AudioSettingsController {
                 if (pianoState.envelope && !this.isSyncing) {
                     const val = parseFloat(value);
                     pianoState.envelope.setSustain(val);
-                    console.log(`🎛️ Sustain set to ${val}`);
+                    console.log(`Sustain set to ${val}`);
                 }
             },
             formatDisplay: (value) => parseFloat(value).toFixed(2),
@@ -171,7 +167,7 @@ class AudioSettingsController {
                 if (pianoState.envelope && !this.isSyncing) {
                     const val = parseFloat(value);
                     pianoState.envelope.setRelease(val);
-                    console.log(`🎛️ Release set to ${val}`);
+                    console.log(`Release set to ${val}`);
                 }
             },
             formatDisplay: (value) => parseFloat(value).toFixed(2),
@@ -344,7 +340,8 @@ class AudioSettingsController {
         // Reset button
         const resetButton = document.getElementById('resetButton');
         if (resetButton) {
-            resetButton.addEventListener('click', () => {
+                        resetButton.addEventListener('click', (e) => {
+                            e.preventDefault();
                 this.resetToDefaults();
             });
         }
@@ -352,14 +349,16 @@ class AudioSettingsController {
         // Preset buttons
         const concertHallButton = document.getElementById('concertHallButton');
         if (concertHallButton) {
-            concertHallButton.addEventListener('click', () => {
+                        concertHallButton.addEventListener('click', (e) => {
+                            e.preventDefault();
                 this.applyPreset('concertHall');
             });
         }
 
         const studioButton = document.getElementById('studioButton');
         if (studioButton) {
-            studioButton.addEventListener('click', () => {
+                        studioButton.addEventListener('click', (e) => {
+                            e.preventDefault();
                 this.applyPreset('studio');
             });
         }
@@ -478,7 +477,7 @@ class AudioSettingsController {
             return;
         }
 
-        console.log(`🎛️ Applying ${preset.name} preset`);
+        console.log(`Applying ${preset.name} preset`);
         
         // Apply all settings from the preset
         Object.entries(preset.settings).forEach(([setting, value]) => {
@@ -491,8 +490,6 @@ class AudioSettingsController {
             console.error('Audio system not ready for instrument change');
             return;
         }
-
-        console.log(`🎵 Changing instrument to ${instrumentName}`);
 
         try {
             // Import the audioManager to access Instrument class
@@ -520,7 +517,7 @@ class AudioSettingsController {
                 urls: sampleUrls,
                 baseUrl: baseUrl,
                 onload: () => {
-                    console.log(`🎵 ${instrumentName} samples loaded successfully`);
+                    console.log(`${instrumentName} samples loaded successfully`);
                     // Connect new sampler to new envelope
                     pianoState.envelope.connect(pianoState.sampler);
                     
@@ -830,7 +827,6 @@ class AudioSettingsController {
 
     // NEW: Clear all saved settings
     clearSavedSettings() {
-        console.log('🧹 Clearing saved settings from localStorage');
         this.sliders.forEach((config, name) => {
             try {
                 localStorage.removeItem(this.settingsPrefix + name);
@@ -884,7 +880,7 @@ class AudioSettingsController {
         }
 
         const effects = pianoState.envelope.effects;
-        console.log('🔍 Current Effects State:');
+        console.log('Current Effects State:');
         
         if (effects.reverb) {
             console.log(`  Reverb: decay=${effects.reverb.decay}, wet=${effects.reverb.wet.value}`);

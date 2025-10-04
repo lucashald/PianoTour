@@ -2,10 +2,12 @@
 
 {% block title %}Piano Tour - Editor{% endblock %}
 {% block head %}
-    <link
+<!--     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/editor.css') }}"
     />
+-->
+  
 {% endblock %}
 {% block side %}
 <!-- Editor Panel Content -->
@@ -138,23 +140,27 @@
       </select>
     </div>
     <div class="control-group">
-      <label>Actions:</label>
-      <div class="button-group">
-        <button id="editorRemoveNote" class="btn btn--compact btn--danger">Remove</button>
-        <button id="editorToggleClef" class="btn btn--compact">Treble</button>
-        <button id="editorToggleRest" class="btn btn--compact">Toggle Rest</button>
-      </div>
-    </div>
-    <div class="control-group">
-        <label>Move Note:</label>
+        <label>Actions:</label>
         <div class="button-group">
-            <button id="editorMoveToPrevMeasure" class="btn btn--compact btn--info">← Previous Measure</button>
-            <button id="editorMoveToNextMeasure" class="btn btn--compact btn--info">Next Measure →</button>
+            <button id="editorRemoveNote" class="btn btn--compact btn--danger">Remove</button>
+            <button id="editorToggleClef" class="btn btn--compact">Treble</button>
+        </div>
+        <div class="button-group">
+            <button id="editorToggleRest" class="btn btn--compact">Toggle Rest</button>
         </div>
     </div>
+        <!-- NEW: Tie and Slur Controls -->
+<div class="control-group">
+  <label>Ties & Slurs:</label>
+  <div class="button-group">
+    <button id="editorAddTie" class="btn btn--compact btn--primary">Add Tie</button>
+    <button id="editorAddSlur" class="btn btn--compact btn--secondary">Add Slur</button>
   </div>
-
-</div>
+  <div class="button-group">
+    <button id="editorRemoveTie" class="btn btn--compact btn--warning">Remove Tie/Slur</button>
+    <button id="editorCancelSlur" class="btn btn--compact btn--danger" style="display: none;">Cancel Slur</button>
+  </div>
+  </div>
 
 <!-- Floating Editing Panel -->
 <div class="floating-panel hidden" id="editingPanel">
@@ -173,11 +179,15 @@
 
 {% block palette %}
     {% include 'partials/_palette.html' %}
+     
 {% endblock %}
 
+{% block top %}
+   {% include 'partials/_chords.html' %}
+{% endblock %}
 {% block scripts %}
 <script type="module">
-    console.log('🎹 Editor script starting...');
+  window.keyboardDisabled = {{ 'true' if disable_keyboard else 'false' }};
     
     // Wait for base initialization to complete
     function waitForBaseInit() {
@@ -244,9 +254,29 @@ const { setPaletteDragState } = await import('{{ url_for("static", filename="js/
             note.addEventListener('dragstart', (event) => {
                 const type = event.target.dataset.type;
                 const duration = event.currentTarget.dataset.duration;
-                console.log(`🎯 Starting palette drag: ${type}, duration: ${duration}`);
-                setPaletteDragState(true, type, duration);
-                event.dataTransfer.setData('text/plain', type);
+                
+                // Handle interval elements
+                if (type === 'interval') {
+                    const intervalType = event.target.dataset.interval;
+                    console.log(`🎵 Starting interval drag: ${intervalType}`);
+                    
+                    // Set interval data for transfer
+                    const intervalData = {
+                        intervalType: intervalType
+                    };
+                    event.dataTransfer.setData('application/interval', JSON.stringify(intervalData));
+                    setPaletteDragState(true, type, duration);
+                } else {
+                    // Handle all other elements (chords, notes, rests) the original way
+                    console.log(`🎯 Starting palette drag: ${type}, duration: ${duration}`);
+                    setPaletteDragState(true, type, duration);
+                    event.dataTransfer.setData('text/plain', type);
+                }
+            });
+            
+            note.addEventListener("dragend", (event) => {
+                console.log("Palette dragend detected, cleaning up");
+                setPaletteDragState(false, null, null);
             });
         });
     }

@@ -78,7 +78,7 @@ body {
 }
 
 /* this wrapper is slightly redundant but we set the background color here */
-.outer-instrument-wrapper {
+.outer-wrapper {
   background: #04273C;
   flex-grow: 1;
   display: flex;
@@ -221,11 +221,6 @@ body {
   min-height: 100vh;
 }
 
-.piano-app__side-panel {
-  /* Styles for the side editor panel can be added here */
-  flex-shrink: 0;
-}
-
 .piano-app__content-area {
   flex-grow: 1;
   display: flex;
@@ -359,7 +354,7 @@ h4 {
   gap: var(--spacing-unit);
 }
 
-.main-controls__button-row {
+.controls-button-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -517,29 +512,6 @@ h4 {
 .instrument-panel__keyboard .chord-third { fill: var(--color-green-light) !important; }
 .instrument-panel__keyboard .chord-fifth { fill: var(--color-peach-light) !important; }
 
-/* Unlock Gate Overlay */
-#gate {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(30, 30, 30, 0.8);
-    backdrop-filter: blur(5px);
-    cursor: pointer;
-    z-index: 10;
-}
-
-#gate p {
-    padding: 1rem 1.5rem;
-    border: 2px solid var(--color-primary);
-    border-radius: var(--border-radius);
-    color: var(--color-text-primary);
-    font-size: 1.2rem;
-    font-weight: 600;
-    background: rgba(118, 181, 149, 0.1);
-}
-
 /* Hand Position Slider Overlay */
 #handOverlay {
     position: absolute;
@@ -571,60 +543,14 @@ h4 {
   margin: 0.5rem; 
 }
 
-.editor-widget__content--note-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px; /* Adjust the vertical space between button groups */
-}
-
 .button-group {
   display: flex;
   flex-direction: row; /* Default behavior, but explicit for clarity */
   gap: 4px; /* Adjust the horizontal space between the two buttons */
 }
 
-/* ==========================================================================
-   EDITOR WIDGET STYLES - Add these to your pianostyles.css
-   ========================================================================== */
-
-/* Editor Panel Structure */
-.piano-app__side-panel {
-    width: 320px;
-    min-height: 100vh;
-    background: rgba(30, 41, 59, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 20px;
-    border-radius: 0 12px 12px 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    flex-shrink: 0;
-}
-
-/* Editor Widget Layout */
-.editor-widget {
-    margin-bottom: 24px;
-}
-
-.editor-widget__title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
 .editor-widget__content {
     /* Base content styling */
-}
-
-.editor-widget__content--note-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
 }
 
 /* Note Group Layout */
@@ -734,42 +660,6 @@ h4 {
     border-radius: 8px;
 }
 
-.editor-widget__note-group {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.editor-widget {
-    margin-bottom: 24px;
-}
-
-.editor-widget__title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.editor-widget__content--note-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-}
-
-.editor-widget__note-group {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
 .note-editor {
     background: rgba(255, 255, 255, 0.08);
     border-radius: 8px;
@@ -861,7 +751,6 @@ h4 {
     background: rgba(255, 255, 255, 1);
     border-color: var(--primary-green);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transform: translateY(-1px);
 }
 
 /* Active/Dragging State */
@@ -888,7 +777,6 @@ h4 {
 
 .piano-app__side-panel .chord-major:hover {
     background: linear-gradient(135deg, #22c55e, var(--success)) !important;
-    transform: translateY(-2px);
 }
 
 .piano-app__side-panel .chord-minor {
@@ -899,7 +787,6 @@ h4 {
 
 .piano-app__side-panel .chord-minor:hover {
     background: linear-gradient(135deg, #9333ea, #a855f7) !important;
-    transform: translateY(-2px);
 }
 
 /* ==========================================================================
@@ -917,7 +804,7 @@ h4 {
     margin-bottom: 20px;
     box-shadow: 0 4px 12px rgba(29, 185, 84, 0.2);
     transition: var(--transition);
-    max-width: 400px; /* Constrain width for main content area */
+    max-width: 600px; /* Constrain width for main content area */
     margin-left: auto;
     margin-right: auto;
 }
@@ -950,8 +837,8 @@ h4 {
 
 /* Individual Palette Notes */
 .palette-note {
-    width: 60px;
-    height: 45px;
+    width: 100px;
+    height: 50px;
     background: #76B595;
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: var(--border-radius-sm);
@@ -961,7 +848,7 @@ h4 {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 600;
     transition: var(--transition);
     user-select: none;
@@ -983,7 +870,6 @@ h4 {
     background: #D88368;
     border-color: var(--primary-green);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    transform: translateY(-2px);
 }
 
 /* Active/Dragging State */
@@ -994,7 +880,7 @@ h4 {
 
 /* Note Duration Labels */
 .note-duration {
-    font-size: 9px;
+    font-size: 14px;
     margin-top: 2px;
     opacity: 0.7;
     font-weight: 500;
@@ -1010,7 +896,6 @@ h4 {
 
 .chord-major:hover {
     background: linear-gradient(135deg, #22c55e, var(--success)) !important;
-    transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4) !important;
 }
 
@@ -1022,7 +907,6 @@ h4 {
 
 .chord-minor:hover {
     background: linear-gradient(135deg, #9333ea, #a855f7) !important;
-    transform: translateY(-3px);
     box-shadow: 0 8px 20px rgba(168, 85, 247, 0.4) !important;
 }
 
@@ -1093,15 +977,6 @@ h4 {
     -moz-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
-}
-
-/* But allow normal touch behavior on the gate */
-#gate {
-    -webkit-user-select: auto !important;
-    -moz-user-select: auto !important;
-    user-select: auto !important;
-    -webkit-touch-callout: default !important;
-    touch-action: auto !important;
 }
 
  .volume-control {
@@ -1255,4 +1130,85 @@ h4 {
 .volume-control.audio-ready .volume-slider {
     opacity: 1;
     filter: none;
+}
+
+.chord-suggestions {
+    position: absolute; /* Remove from document flow */
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    color: #014221;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Nice shadow */
+}
+
+.chord-search-container {
+    position: relative;
+    margin: 20px auto;
+    font-family: Arial, sans-serif;
+}
+
+.chord-input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+
+.chord-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.chord-suggestions {
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #4CAF50;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.chord-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+.chord-suggestion:hover,
+.chord-suggestion.highlighted {
+    background-color: #f0f8ff;
+}
+
+.chord-suggestion:last-child {
+    border-bottom: none;
+}
+
+.no-results {
+    padding: 8px 12px;
+    color: #666;
+    font-style: italic;
+    font-size: 14px;
+}
+
+.search-result-button {
+    margin-top: 8px;
 }

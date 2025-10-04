@@ -1,7 +1,8 @@
 // scoreRenderer.js
 // This module handles rendering the musical score using VexFlow.
 // Simplified: Direct styling for selected note/measure/playback, no stored original styles.
-
+//     new StaveNote({ keys: ['g/3'], duration: '8' }).addModifier(
+//      new Annotation('Chord Name').setVerticalJustification(Annotation.VerticalJustify.BOTTOM)
 import { pianoState } from "../core/appState.js"; // ADD THIS LINE
 import {
   ALL_NOTE_INFO,
@@ -9,7 +10,9 @@ import {
   getNoteImagePath,
   KEY_SIGNATURES,
   NOTE_IMAGE_MAP,
-  NOTES_BY_NAME
+  NOTES_BY_NAME,
+  createIntervalChord,
+  applyKeySignatureCorrection
 } from "../core/note-data.js";
 import { saveToLocalStorage } from "../utils/ioHelpers.js";
 import {
@@ -63,6 +66,11 @@ let TREBLE_STAFF_TOP_Y = null;
 let TREBLE_STAFF_BOTTOM_Y = null;
 let BASS_STAFF_TOP_Y = null;
 let BASS_STAFF_BOTTOM_Y = null;
+
+let vexflowBeams = []; // Store beams for each measure
+
+// --- Tie State ---
+let tieGroups = []; // Store tie information for drawing
 
 // Drag threshold to differentiate between click and drag
 const DRAG_THRESHOLD = 5; // pixels
@@ -142,7 +150,6 @@ function logNotePositions() {
   }
 }
 function calibrateStaffPositions() {
-  console.log("Calibrating staff positions...");
 
   // Get first measure's staves
   const trebleStave = vexflowStaveMap[0]?.treble;
@@ -296,8 +303,9 @@ export function setKeySignature(keySignature) {
 
   return true;
 }
-export function drawAll(measures) {
-  console.log("drawAll: START");
+
+export function drawAll(measures, noScroll = false) {
+  
   const out = document.getElementById("score");
   if (!out) {
     console.error("drawAll: Score rendering element #score not found!");
@@ -309,6 +317,8 @@ export function drawAll(measures) {
   measureXPositions = [];
   vexflowStaveMap = [];
   vexflowIndexByNoteId = {}; // Clear the ID mapping
+  vexflowBeams = []; // Clear beams array
+  tieGroups = []; // Clear ties array
 
   const measureWidth = 340;
   const measureCount = measures.length > 0 ? measures.length : 1;
@@ -367,6 +377,25 @@ export function drawAll(measures) {
       vexflowNoteMap[i].treble = trebleVexNotes;
       vexflowNoteMap[i].bass = bassVexNotes;
 
+      // NEW: Create beams for this measure if beaming is enabled
+      if (pianoState.enableBeaming) {
+        vexflowBeams[i] = {};
+        if (trebleNotesData.length > 0) {
+          vexflowBeams[i].treble = createBeamsForNotes(trebleVexNotes, trebleNotesData);
+        }
+        if (bassNotesData.length > 0) {
+          vexflowBeams[i].bass = createBeamsForNotes(bassVexNotes, bassNotesData);
+        }
+      }
+
+      // NEW: Process ties for this measure
+      if (trebleNotesData.length > 0) {
+        processTies(trebleNotesData);
+      }
+      if (bassNotesData.length > 0) {
+        processTies(bassNotesData);
+      }
+
       // Build ID to VexFlow index mapping
       trebleNotesData.forEach((noteData, vexflowIndex) => {
         if (noteData.id) {
@@ -396,12 +425,14 @@ export function drawAll(measures) {
       const staveTreble = system.addStave({ voices: [trebleVoice] });
       const staveBass = system.addStave({ voices: [bassVoice] });
       vexflowStaveMap[i] = { treble: staveTreble, bass: staveBass };
+      
       function formatTimeSignature() {
         return `${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`;
       }
       function formatTempo() {
         return pianoState.tempo;
       }
+      
       if (i === 0) {
         const timeSignature = formatTimeSignature();
         const tempo = formatTempo();
@@ -414,9 +445,11 @@ export function drawAll(measures) {
         staveBass.addKeySignature(keySignature);
         staveTreble.setTempo({ duration: 'q', bpm: pianoState.tempo }, -27);
       }
+      
       if (i === measureCount - 1) {
         system.addConnector("boldDoubleRight");
       }
+      
       currentX += measureWidth;
     }
 
@@ -425,7 +458,14 @@ export function drawAll(measures) {
     Vex.Flow.Accidental.applyAccidentals(allVoices, keySignature);
 
     vexFlowFactory.draw();
-    console.log("drawAll: VexFlow drawing complete.");
+
+    // NEW: Draw beams after the main score is drawn
+    if (pianoState.enableBeaming) {
+      drawAllBeams();
+    }
+
+    // NEW: Draw ties after beams
+    drawTies();
 
     if (pianoState.currentSelectedMeasure !== -1) {
       console.log(
@@ -433,6 +473,7 @@ export function drawAll(measures) {
       );
       highlightSelectedMeasure(pianoState.currentSelectedMeasure);
     }
+    
     if (pianoState.currentSelectedNote) {
       console.log(
         `drawAll: Restoring selected note highlight for note`,
@@ -444,6 +485,7 @@ export function drawAll(measures) {
         pianoState.currentSelectedNote.noteId
       );
     }
+    
     // NEW: Restore all notes from the playback Set
     for (const noteKey of pianoState.currentPlaybackNotes) {
       const [measureIndex, clef, noteId] = noteKey.split("-");
@@ -457,21 +499,23 @@ export function drawAll(measures) {
     }
 
     const scoreWrap = document.getElementById("scoreWrap");
-  scoreWrap.scrollLeft = scoreWrap.scrollWidth;
+    if (!noScroll) {
+      scoreWrap.scrollLeft = scoreWrap.scrollWidth - scoreWrap.clientWidth;
+    }
   } catch (e) {
     console.error("drawAll: VexFlow rendering error:", e);
   }
+  
   calibrateStaffPositions();
   console.log(`drawAll end: scroll position is ${scoreWrap?.scrollLeft}`);
 }
+
 /**
  * A safe redraw that preserves the current selection and all highlight states.
  */
-export function safeRedraw() {
-  console.log("safeRedraw: Called. Triggering full drawAll.");
+export function safeRedraw(beaming = false) {
   const scoreData = getMeasures();
-  // drawAll now explicitly handles re-applying pianoState.currentSelectedMeasure, pianoState.currentSelectedNote, and pianoState.currentPlaybackNote
-  drawAll(scoreData);
+  drawAll(scoreData, false, beaming);
 }
 
 export function enableScoreInteraction(onMeasureClick, onNoteClick) {
@@ -482,195 +526,230 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     return;
   }
 
-  let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for drag/click differentiation
-  let mouseDownNoteTarget = null; // Stores noteInfo if mousedown occurred on a note
-  let hasMouseMovedSinceMousedown = false; // Tracks if mouse has moved beyond threshold since mousedown
-  let isDraggingInitiated = false; // Internal flag to track if drag has begun for this sequence
+  let mouseDownInitialPos = null;
+  let mouseDownNoteTarget = null;
+  let hasMouseMovedSinceMousedown = false;
+  let isDraggingInitiated = false;
 
-  // Mouse Down Listener
+  // Cleanup function
+  function resetDragState() {
+    mouseDownInitialPos = null;
+    mouseDownNoteTarget = null;
+    hasMouseMovedSinceMousedown = false;
+    isDraggingInitiated = false;
+    isDragging = false;
+    draggedNote = null;
+    scoreElement.style.cursor = "default";
+    clearDragPreview();
+  }
+
+  // Mouse Down
   scoreElement.addEventListener("mousedown", (event) => {
-    if (event.button !== 0 || isPaletteDrag) return; // Only left-click, ignore if a palette drag is starting
+    if (event.button !== 0) return;
     event.preventDefault();
 
     const rect = scoreElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    console.log(`enableScoreInteraction: Mouse down at (${x}, ${y})`);
-
-    // Reset state for a new interaction sequence
     mouseDownInitialPos = { x, y };
     mouseDownNoteTarget = detectNoteClick(x, y);
     hasMouseMovedSinceMousedown = false;
-    isDragging = false;
     isDraggingInitiated = false;
-
-    if (mouseDownNoteTarget) {
-      console.log(
-        `enableScoreInteraction: Mouse down on target:`,
-        mouseDownNoteTarget
-      );
-    }
   });
 
-  // Mouse Move Listener
+  // Mouse Move
   scoreElement.addEventListener("mousemove", (event) => {
-    if (!mouseDownInitialPos && !isPaletteDrag) return;
-
-    // Prevent text selection and other default behaviors during drag
-  if (isDraggingInitiated || isPaletteDrag) {
-    event.preventDefault();
-  }
+    if (!mouseDownInitialPos) return;
 
     const rect = scoreElement.getBoundingClientRect();
     const currentX = event.clientX - rect.left;
     const currentY = event.clientY - rect.top;
-     console.log(`Drag coordinates: x=${currentX}, y=${currentY}`);
 
-    // --- Drag Initiation for existing notes ---
-    if (mouseDownInitialPos && !isPaletteDrag && !isDraggingInitiated) {
+    // Check for drag initiation
+    if (!isDraggingInitiated) {
       const distance = Math.sqrt(
         Math.pow(currentX - mouseDownInitialPos.x, 2) +
-          Math.pow(currentY - mouseDownInitialPos.y, 2)
+        Math.pow(currentY - mouseDownInitialPos.y, 2)
       );
-      if (
-        distance > DRAG_THRESHOLD &&
-        mouseDownNoteTarget &&
-        mouseDownNoteTarget.noteId !== null
-      ) {
+      
+      if (distance > DRAG_THRESHOLD && mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
         hasMouseMovedSinceMousedown = true;
         isDraggingInitiated = true;
         isDragging = true;
         startDrag(mouseDownNoteTarget, mouseDownInitialPos);
         scoreElement.style.cursor = "none";
-        console.log("enableScoreInteraction: Drag initiated on existing note.");
       }
     }
 
-    // --- Visual Feedback during drag ---
-    // FIX: Handle palette drag and note drag in separate blocks to respect their different contexts.
-    if (isPaletteDrag) {
-      // Logic for palette drag preview
+    // Handle drag preview
+    if (isDraggingInitiated) {
       const targetMeasureIndex = detectMeasureClick(currentX, currentY);
-      // This provides a simple hover highlight without interfering with the actual selection state
-      // It relies on a function that can clear other highlights or is non-destructive.
-      // For now, we'll just call the highlighter directly, assuming it's safe.
-      highlightSelectedMeasure(targetMeasureIndex);
-
-      const clef = detectClefRegion(currentY);
-      const nearest = findNearestStaffPosition(currentY, clef);
-      if (nearest) {
-        updateDragPreview(currentX, nearest.y, paletteDragType);
-      }
-    } else if (isDraggingInitiated && draggedNote) {
-      // Original, correct logic for dragging an existing note.
-      const targetMeasureIndex = detectMeasureClick(currentX, currentY);
-
-      if (
-        targetMeasureIndex !== -1 &&
-        targetMeasureIndex !== pianoState.currentSelectedMeasure
-      ) {
+      if (targetMeasureIndex !== -1) {
         highlightSelectedMeasure(targetMeasureIndex);
-      } else if (
-        targetMeasureIndex === -1 &&
-        pianoState.currentSelectedMeasure !== -1
-      ) {
-        clearMeasureHighlight();
       }
 
       const clef = detectClefRegion(currentY);
       const nearest = findNearestStaffPosition(currentY, clef);
       if (nearest) {
-        updateDragPreview(currentX, nearest.y, nearest.note);
+        // Apply key signature correction to preview note
+        const rawMIDI = NOTES_BY_NAME[nearest.note];
+        const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
+        const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
+        const previewNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearest.note;
+        updateDragPreview(currentX, nearest.y, previewNoteName);
       }
     }
   });
 
-// Mouse Up Listener - attached to document to catch releases outside score
-document.addEventListener("mouseup", (event) => {
-  if (!mouseDownInitialPos || isPaletteDrag) return;
+  // Mouse Up
+  document.addEventListener("mouseup", (event) => {
+    if (!mouseDownInitialPos) return;
 
-  const scoreRect = scoreElement.getBoundingClientRect();
-  const isOnScore = (
-    event.clientX >= scoreRect.left &&
-    event.clientX <= scoreRect.right &&
-    event.clientY >= scoreRect.top &&
-    event.clientY <= scoreRect.bottom
-  );
+    const scoreRect = scoreElement.getBoundingClientRect();
+    const isOnScore = (
+      event.clientX >= scoreRect.left &&
+      event.clientX <= scoreRect.right &&
+      event.clientY >= scoreRect.top &&
+      event.clientY <= scoreRect.bottom
+    );
 
-  if (isOnScore && isDraggingInitiated) {
-    // Mouse released on score during drag - complete the drag
-    const endX = event.clientX - scoreRect.left;
-    const endY = event.clientY - scoreRect.top;
-    console.log("enableScoreInteraction: Drag operation completed.");
-    completeDrag(endX, endY);
-  } else if (isOnScore && !hasMouseMovedSinceMousedown) {
-    // Mouse released on score without moving - this was a click
-    const endX = event.clientX - scoreRect.left;
-    const endY = event.clientY - scoreRect.top;
-    
-    if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
-      console.log("enableScoreInteraction: Pure click on EXISTING note detected.");
-      onNoteClick(
-        mouseDownNoteTarget.measureIndex,
-        mouseDownNoteTarget.clef,
-        mouseDownNoteTarget.noteId
-      );
-    } else {
-      console.log("enableScoreInteraction: Pure click on measure background detected.");
-      const measureIndex = detectMeasureClick(endX, endY);
-      if (measureIndex !== -1) {
-        onMeasureClick(measureIndex, false);
+    if (isOnScore && isDraggingInitiated) {
+      // Complete drag
+      const endX = event.clientX - scoreRect.left;
+      const endY = event.clientY - scoreRect.top;
+      completeDrag(endX, endY);
+    } else if (isOnScore && !hasMouseMovedSinceMousedown) {
+      // Handle click
+      const endX = event.clientX - scoreRect.left;
+      const endY = event.clientY - scoreRect.top;
+      
+      if (mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
+        onNoteClick(
+          mouseDownNoteTarget.measureIndex,
+          mouseDownNoteTarget.clef,
+          mouseDownNoteTarget.noteId
+        );
+      } else {
+        const measureIndex = detectMeasureClick(endX, endY);
+        if (measureIndex !== -1) {
+          onMeasureClick(measureIndex, false);
+        }
       }
     }
-  } else if (!isOnScore && isDraggingInitiated) {
-    // Mouse released outside score during drag - cancel the drag
-    console.log("enableScoreInteraction: Drag canceled - mouse released outside score.");
-  }
 
-  // Reset all interaction state variables
-  mouseDownInitialPos = null;
-  mouseDownNoteTarget = null;
-  hasMouseMovedSinceMousedown = false;
-  isDragging = false;
-  isDraggingInitiated = false;
-  draggedNote = null;
-  scoreElement.style.cursor = "default";
-  clearDragPreview();
-});
+    resetDragState();
+  });
 
-  // Palette Drag and Drop Listeners
+  // Palette drops
   scoreElement.addEventListener("dragover", (event) => {
-    event.preventDefault(); // Allow drop
+    event.preventDefault();
   });
 
   scoreElement.addEventListener("drop", (event) => {
     event.preventDefault();
-    if (isPaletteDrag) {
-      const rect = scoreElement.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      handlePaletteDrop(x, y);
-
-      // Reset palette drag state
-      isPaletteDrag = false;
-      paletteDragType = null;
-      scoreElement.style.cursor = "default";
-      clearDragPreview();
-    }
+    const rect = scoreElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    handlePaletteDrop(x, y, event);
   });
 }
 
-
-/**
- * Handles the drop event for items dragged from the palette.
- * @param {number} endX - The final X coordinate of the drop.
- * @param {number} endY - The final Y coordinate of the drop.
- */
-function handlePaletteDrop(endX, endY) {
+function handlePaletteDrop(endX, endY, event) {
   console.log("handlePaletteDrop: Processing palette drop at", endX, endY);
   clearDragPreview();
 
+  // Check for interval data in the drag event
+  const intervalData = event ? event.dataTransfer.getData('application/interval') : null;
+  
+  if (intervalData) {
+    try {
+      const parsedIntervalData = JSON.parse(intervalData);
+      
+      const targetMeasureIndex = detectMeasureClick(endX, endY);
+      if (targetMeasureIndex === -1) {
+        console.log("handlePaletteDrop: Interval dropped outside a valid measure area.");
+        return;
+      }
+
+      const clef = detectClefRegion(endY);
+      const nearestPosition = findNearestStaffPosition(endY, clef);
+      if (!nearestPosition) {
+        console.warn("handlePaletteDrop: Could not determine staff position for interval drop.");
+        return;
+      }
+
+      // Create interval chord using drop position as root
+      const rootNoteName = nearestPosition.note;
+      const intervalChord = createIntervalChord(rootNoteName, parsedIntervalData.intervalType);
+      
+      if (!intervalChord) {
+        console.warn("handlePaletteDrop: Could not create interval chord.");
+        return;
+      }
+      
+      // Create the interval note
+      const intervalNote = {
+        name: `(${intervalChord.treble.join(' ')})`,
+        clef: clef,
+        duration: selectedDuration,
+        isRest: false,
+        chordName: intervalChord.displayName
+      };
+      
+      addNoteToMeasure(targetMeasureIndex, intervalNote);
+      console.log(`Added ${intervalChord.displayName} interval to ${clef} clef:`, intervalChord.treble);
+      return;
+      
+    } catch (error) {
+      console.error('Failed to parse interval drop data:', error);
+    }
+  }
+
+  // Check for chord data in the drag event
+  const chordData = event ? event.dataTransfer.getData('application/chord') : null;
+  
+  if (chordData) {
+    // Handle chord drop
+    try {
+      const parsedChordData = JSON.parse(chordData);
+      const chordObj = parsedChordData.chord;
+      const chordDisplayName = parsedChordData.displayName;
+      
+      const targetMeasureIndex = detectMeasureClick(endX, endY);
+      if (targetMeasureIndex === -1) {
+        console.log("handlePaletteDrop: Chord dropped outside a valid measure area.");
+        return;
+      }
+
+      const clef = detectClefRegion(endY);
+      const notesToUse = getChordNotesForClef(chordObj, clef);
+      
+      if (notesToUse.length === 0) {
+        console.warn('No suitable notes found for chord in target clef');
+        return;
+      }
+      
+      // Create the chord note
+      const chordNote = {
+        name: formatChordForScore(notesToUse, chordDisplayName),
+        clef: clef,
+        duration: selectedDuration,
+        isRest: false,
+        chordName: chordDisplayName
+      };
+      
+      // Add the chord to the measure
+      addNoteToMeasure(targetMeasureIndex, chordNote);
+      console.log(`Added ${chordDisplayName} chord to ${clef} clef:`, notesToUse);
+      return;
+      
+    } catch (error) {
+      console.error('Failed to parse chord drop data:', error);
+    }
+  }
+
+  // Original palette drop logic for non-chord items
   const targetMeasureIndex = detectMeasureClick(endX, endY);
   if (targetMeasureIndex === -1) {
     console.log("handlePaletteDrop: Dropped outside a valid measure area.");
@@ -680,35 +759,32 @@ function handlePaletteDrop(endX, endY) {
   const clef = detectClefRegion(endY);
   const nearestPosition = findNearestStaffPosition(endY, clef);
   if (!nearestPosition) {
-    console.warn(
-      "handlePaletteDrop: Could not determine staff position for the drop."
-    );
+    console.warn("handlePaletteDrop: Could not determine staff position for the drop.");
     return;
   }
 
-  const newNoteName = nearestPosition.note;
+  // Apply key signature correction to the dropped note
+  const rawMIDI = NOTES_BY_NAME[nearestPosition.note];
+  const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
+  const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
+  const newNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearestPosition.note;
 
   // Create the new note object
   const newNote = {
     name: newNoteName,
     clef: clef,
-    duration: selectedDuration, // Use the stored duration
+    duration: selectedDuration,
     isRest: paletteDragType === "rest",
-    id: Date.now().toString(), // Generate a unique ID
+    id: Date.now().toString(),
   };
 
   if (paletteDragType === "major" || paletteDragType === "minor") {
-    // For now, just add the root note
-    console.log(
-      `Chord drop (${paletteDragType}) detected. Creating single note for now.`
-    );
+    console.log(`Chord drop (${paletteDragType}) detected. Creating single note for now.`);
   }
 
-  // Find insertion position (simplified: for now, append to the clef)
   addNoteToMeasure(targetMeasureIndex, newNote);
   console.log("handlePaletteDrop: Added new note to measure:", newNote);
 }
-//start of drag preview code
 
 function updateDragPreview(x, snapY, noteName) {
 // Early exit if we're not actually dragging
@@ -960,19 +1036,22 @@ function completeDrag(currentX, currentY) {
   }
 
   if (!originalNoteData.isRest && originalVexFlowNoteBBox) {
-    const calculatedNewPitchMIDI = calculateAbsolutePitchFromY(
+    const rawPitchMIDI = calculateAbsolutePitchFromY(
       currentY,
       newClef
     );
 
+    // Apply key signature correction to snap to appropriate accidentals
+    const correctedPitchMIDI = applyKeySignatureCorrection(rawPitchMIDI, pianoState.keySignature);
+
     const newNoteInfo = ALL_NOTE_INFO.find(
-      (n) => n.midi === calculatedNewPitchMIDI
+      (n) => n.midi === correctedPitchMIDI
     );
     if (newNoteInfo) {
       newPitchName = newNoteInfo.name;
     } else {
       console.warn(
-        `completeDrag: Could not find note name for MIDI ${calculatedNewPitchMIDI}. Keeping original pitch name as fallback.`
+        `completeDrag: Could not find note name for MIDI ${correctedPitchMIDI}. Keeping original pitch name as fallback.`
       );
       newPitchName = originalNoteData.name;
     }
@@ -980,7 +1059,7 @@ function completeDrag(currentX, currentY) {
     if (
       newPitchName !== originalNoteData.name ||
       (clefChanged &&
-        NOTES_BY_NAME[originalNoteData.name] !== calculatedNewPitchMIDI)
+        NOTES_BY_NAME[originalNoteData.name] !== correctedPitchMIDI)
     ) {
       pitchChanged = true;
       console.log(
@@ -1332,8 +1411,7 @@ function detectMeasureClick(x, y) {
  * @param {number} measureIndex - The index of the measure to scroll to.
  */
 
-
-export function scrollToMeasure(measureIndex) {
+export function scrollToMeasure(measureIndex, smoothScroll = true) {
   console.log("scrollToMeasure called with index", measureIndex);
   const scoreWrap = document.getElementById("scoreWrap");
   
@@ -1365,11 +1443,17 @@ export function scrollToMeasure(measureIndex) {
       return;
     }
 
-    scoreWrap.scrollTo({
-      left: targetScrollLeft,
-      behavior: "smooth",
-    });
-    console.log(`scrollToMeasure: Scrolled to measure ${measureIndex}.`);
+    if (smoothScroll) {
+      scoreWrap.scrollTo({
+        left: targetScrollLeft,
+        behavior: "smooth",
+      });
+    } else {
+      // Instant scroll
+      scoreWrap.scrollLeft = targetScrollLeft;
+    }
+    
+    console.log(`scrollToMeasure: Scrolled to measure ${measureIndex} (${smoothScroll ? 'smooth' : 'instant'}).`);
   } else {
     console.warn(
       `scrollToMeasure: Cannot scroll to measure ${measureIndex}. Measure position not found.`
@@ -1377,15 +1461,147 @@ export function scrollToMeasure(measureIndex) {
   }
 }
 
-
 // end scrolltomeasure function
 
+function createBeamsForNotes(vexNotes, notesData) {
+    if (vexNotes.length < 2) {
+        return []; // Need at least 2 notes to potentially beam
+    }
+
+    // DON'T filter here - let VexFlow see the full context
+    const beams = Vex.Flow.Beam.generateBeams(vexNotes, {
+        beam_rests: false,                    // Don't beam over rests
+        maintain_stem_directions: true,       // Preserve individual stem directions
+        groups: []                           // Let VexFlow auto-group by beat
+    });
+
+    return beams;
+}
+
+/**
+ * Draws all stored beams for all measures
+ */
+function drawAllBeams() {
+  if (!pianoState.enableBeaming) return;
+  
+  vexflowBeams.forEach((measureBeams, index) => {
+    if (measureBeams && vfContext) {
+      if (typeof measureBeams === 'object' && (measureBeams.treble || measureBeams.bass)) {
+        // Handle separate treble and bass beams
+        if (measureBeams.treble && measureBeams.treble.length > 0) {
+          measureBeams.treble.forEach(beam => beam.setContext(vfContext).draw());
+        }
+        if (measureBeams.bass && measureBeams.bass.length > 0) {
+          measureBeams.bass.forEach(beam => beam.setContext(vfContext).draw());
+        }
+      } else if (Array.isArray(measureBeams) && measureBeams.length > 0) {
+        // Handle array of beams
+        measureBeams.forEach(beam => beam.setContext(vfContext).draw());
+      }
+    }
+  });
+}
+
+/**
+ * Processes tie data from note objects and stores them for later rendering
+ * @param {Array} notesData - Array of note data objects that may contain tie information
+ */
+function processTies(notesData) {
+  notesData.forEach((noteData) => {
+    if (noteData.tie) {
+      if (noteData.tie.startNoteId && noteData.tie.endNoteId) {
+        tieGroups.push({
+          type: noteData.tie.type || 'tie',
+          startNoteId: noteData.tie.startNoteId,
+          endNoteId: noteData.tie.endNoteId
+        });
+      }
+    }
+  });
+}
+
+/**
+ * Draws all stored ties and slurs
+ */
+function drawTies() {
+  if (tieGroups.length === 0) return;
+
+  // Build a lookup map from note ID to VexFlow note object
+  const vexNotesById = {};
+  for (const id in vexflowIndexByNoteId) {
+    const vexflowIndex = vexflowIndexByNoteId[id];
+    
+    // Find the note in the measures data to get its measure index and clef
+    const measuresData = getMeasures();
+    let foundNote = null;
+    let measureIndex = -1;
+    let clef = null;
+
+    for (let i = 0; i < measuresData.length; i++) {
+      const measure = measuresData[i];
+      for (const note of measure) {
+        if (note.id === id) {
+          foundNote = note;
+          measureIndex = i;
+          clef = note.clef;
+          break;
+        }
+      }
+      if (foundNote) break;
+    }
+
+    if (foundNote && measureIndex !== -1 && clef) {
+      const vexNote = vexflowNoteMap[measureIndex]?.[clef]?.[vexflowIndex];
+      if (vexNote) {
+        vexNotesById[id] = vexNote;
+      }
+    }
+  }
+
+  // Draw each tie/slur
+  tieGroups.forEach(tie => {
+    const startVexNote = vexNotesById[tie.startNoteId];
+    const endVexNote = vexNotesById[tie.endNoteId];
+
+    if (startVexNote && endVexNote) {
+      if (tie.type === 'tie') {
+        const staveTie = new Vex.Flow.StaveTie({
+          first_note: startVexNote,
+          last_note: endVexNote,
+          first_indices: [0],
+          last_indices: [0]
+        });
+        staveTie.setContext(vfContext).draw();
+      } else if (tie.type === 'slur') {
+        const curve = new Vex.Flow.Curve(startVexNote, endVexNote, {
+          x_shift: -1,
+          y_shift: 10,
+          position: Vex.Flow.Stem.UP,
+          position_end: Vex.Flow.Stem.UP,
+        });
+        curve.setContext(vfContext).draw();
+      }
+    } else {
+      console.warn(`Could not find start/end notes for tie:`, tie);
+    }
+  });
+}
 
 export function setPaletteDragState(isDragging, type, duration) {
   isPaletteDrag = isDragging;
   paletteDragType = type;
   if (duration) {
     selectedDuration = duration;
+  }
+  
+  // If we're ending a palette drag, clean up immediately
+  if (!isDragging) {
+    const scoreElement = document.getElementById("score");
+    if (scoreElement) {
+      scoreElement.style.cursor = "default";
+      clearDragPreview();
+    }
+    console.log("setPaletteDragState: Cleaned up palette drag state");
   }
 }
 
@@ -1412,3 +1628,37 @@ export function getVexflowIndexByNoteId() {
 }
 
 console.log("✓ scoreRenderer.js loaded successfully");
+
+// Add this to your note-data.js or scoreEditor.js
+export function getChordNotesForClef(chordObj, targetClef) {
+    if (!chordObj || !chordObj.treble || !chordObj.bass) {
+        console.warn('Invalid chord object for clef selection');
+        return [];
+    }
+    
+    // If the target clef has notes, use them
+    if (targetClef === 'treble' && chordObj.treble.length > 0) {
+        return chordObj.treble;
+    } else if (targetClef === 'bass' && chordObj.bass.length > 0) {
+        return chordObj.bass;
+    }
+    
+    // Fallback: if the target clef is empty, use the other clef
+    if (targetClef === 'treble') {
+        return chordObj.bass.length > 0 ? chordObj.bass : [];
+    } else {
+        return chordObj.treble.length > 0 ? chordObj.treble : [];
+    }
+}
+
+function formatChordForScore(noteNames, chordDisplayName) {
+    if (!noteNames || noteNames.length === 0) return null;
+    
+    // If it's a single note, return it directly
+    if (noteNames.length === 1) {
+        return noteNames[0];
+    }
+    
+    // For multiple notes, format as a chord
+    return `(${noteNames.join(' ')})`;
+}

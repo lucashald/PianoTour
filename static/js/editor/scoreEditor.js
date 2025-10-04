@@ -1,6 +1,6 @@
 // scoreEditor.js
 // This module handles the interactive UI for editing notes within a measure.
-// REFACTORED to use the new BEM HTML structure.
+// REFACTORED to use the new BEM HTML structure and now includes slur support.
 
 // ===================================================================
 // Imports
@@ -16,7 +16,7 @@ import {
     enableScoreInteraction,
     scrollToMeasure
 } from '../score/scoreRenderer.js';
-import { addNoteToMeasure, getMeasures, moveNoteBetweenMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, updateNoteInMeasure } from '../score/scoreWriter.js';
+import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur, updateNoteInMeasure } from '../score/scoreWriter.js';
 
 // ===================================================================
 // Internal State
@@ -24,6 +24,8 @@ import { addNoteToMeasure, getMeasures, moveNoteBetweenMeasures, removeNoteFromM
 
 let editorSelectedNoteId = null; // ID of the currently selected note
 let editorSelectedMeasureIndex = 0;
+let slurMode = false; // Track if we're in slur creation mode
+let slurStartNoteId = null; // Track the first note for slur creation
 
 // ===================================================================
 // Helper Functions
@@ -95,7 +97,262 @@ function parseSingleNoteName(noteName) {
     return { letter, accidental, octave };
 }
 
-function renderNoteEditBox() {
+/**
+ * Finds the next note in the same clef for tie/slur operations
+ * @param {number} measureIndex - Current measure index
+ * @param {string} noteId - Current note ID
+ * @param {boolean} samePitchOnly - If true, only find notes with same pitch (for ties)
+ * @returns {object|null} {measureIndex, noteId} of target note or null if not found
+ */
+function findNextNoteInClef(measureIndex, noteId, samePitchOnly = false) {
+    const measures = getMeasures();
+    const currentMeasure = measures[measureIndex];
+    if (!currentMeasure) return null;
+
+    const currentNote = currentMeasure.find(note => note.id === noteId);
+    if (!currentNote || currentNote.isRest) return null;
+
+    // Find the position of the current note
+    const currentNoteIndex = currentMeasure.findIndex(note => note.id === noteId);
+    if (currentNoteIndex === -1) return null;
+
+    // Look for the next note in the same clef in the current measure
+    for (let i = currentNoteIndex + 1; i < currentMeasure.length; i++) {
+        const note = currentMeasure[i];
+        if (note.clef === currentNote.clef && !note.isRest) {
+            if (!samePitchOnly || note.name === currentNote.name) {
+                return { measureIndex, noteId: note.id };
+            }
+        }
+    }
+
+    // If not found in current measure, look in the next measure
+    if (measureIndex + 1 < measures.length) {
+        const nextMeasure = measures[measureIndex + 1];
+        for (const note of nextMeasure) {
+            if (note.clef === currentNote.clef && !note.isRest) {
+                if (!samePitchOnly || note.name === currentNote.name) {
+                    return { measureIndex: measureIndex + 1, noteId: note.id };
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Handles creating a tie from the currently selected note
+ */
+function handleAddTie() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for tying');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote) {
+        console.warn('Selected note not found');
+        return;
+    }
+
+    if (selectedNote.isRest) {
+        console.warn('Cannot tie rests');
+        return;
+    }
+
+    // Check if this note already has a tie
+    if (selectedNote.tie && selectedNote.tie.type === 'tie') {
+        console.log('Note already has a tie');
+        return;
+    }
+
+    const targetNote = findNextNoteInClef(editorSelectedMeasureIndex, editorSelectedNoteId, true);
+    
+    if (targetNote) {
+        const success = createTie(editorSelectedNoteId, targetNote.noteId, 'tie');
+        if (success) {
+            console.log(`Tie created from ${editorSelectedNoteId} to ${targetNote.noteId}`);
+            renderNoteEditBox(false);
+        } else {
+            console.warn('Failed to create tie');
+        }
+    } else {
+        console.log('No suitable note found to tie to (must be same pitch in same clef)');
+    }
+}
+
+/**
+ * Handles slur creation - manual mode where user selects start and end notes
+ */
+function handleAddSlur() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for slurring');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote) {
+        console.warn('Selected note not found');
+        return;
+    }
+
+    if (selectedNote.isRest) {
+        console.warn('Cannot slur rests');
+        return;
+    }
+
+    if (!slurMode) {
+        // Start slur mode - user will select the second note
+        slurMode = true;
+        slurStartNoteId = editorSelectedNoteId;
+        console.log('Slur mode activated. Select the end note for the slur.');
+        updateSlurModeUI(true);
+    } else {
+        // Complete the slur
+        if (slurStartNoteId && slurStartNoteId !== editorSelectedNoteId) {
+            const success = createSlur(slurStartNoteId, editorSelectedNoteId, 'slur');
+            if (success) {
+                console.log(`Slur created from ${slurStartNoteId} to ${editorSelectedNoteId}`);
+                renderNoteEditBox(false);
+            } else {
+                console.warn('Failed to create slur');
+            }
+        } else {
+            console.warn('Invalid slur selection');
+        }
+        
+        // Exit slur mode
+        slurMode = false;
+        slurStartNoteId = null;
+        updateSlurModeUI(false);
+    }
+}
+
+/**
+ * Handles automatic slur creation (finds next note automatically)
+ */
+function handleAddAutoSlur() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for slurring');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote) {
+        console.warn('Selected note not found');
+        return;
+    }
+
+    if (selectedNote.isRest) {
+        console.warn('Cannot slur rests');
+        return;
+    }
+
+    // Check if this note already has a slur
+    if (selectedNote.tie && selectedNote.tie.type === 'slur') {
+        console.log('Note already has a slur');
+        return;
+    }
+
+    const targetNote = findNextNoteInClef(editorSelectedMeasureIndex, editorSelectedNoteId, false);
+    
+    if (targetNote) {
+        const success = createSlur(editorSelectedNoteId, targetNote.noteId, 'slur');
+        if (success) {
+            console.log(`Auto slur created from ${editorSelectedNoteId} to ${targetNote.noteId}`);
+            renderNoteEditBox(false);
+        } else {
+            console.warn('Failed to create auto slur');
+        }
+    } else {
+        console.log('No suitable note found to slur to');
+    }
+}
+
+/**
+ * Handles removing ties or slurs from the selected note
+ */
+function handleRemoveTie() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for tie/slur removal');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote || !selectedNote.tie) {
+        console.log('No ties or slurs found to remove');
+        return;
+    }
+
+    let removed = 0;
+    if (selectedNote.tie.type === 'slur') {
+        removed = removeSlur(editorSelectedNoteId);
+        if (removed > 0) {
+            console.log(`Removed slur affecting ${removed} notes`);
+        }
+    } else {
+        removed = removeTie(editorSelectedNoteId);
+        if (removed > 0) {
+            console.log(`Removed ${removed} tie references`);
+        }
+    }
+
+    if (removed > 0) {
+        renderNoteEditBox(false);
+    }
+}
+
+/**
+ * Updates UI to show slur mode status
+ */
+function updateSlurModeUI(isActive) {
+    const slurBtn = document.getElementById('editorAddSlur');
+    const cancelSlurBtn = document.getElementById('editorCancelSlur');
+    
+    if (slurBtn) {
+        slurBtn.classList.toggle('btn--warning', isActive);
+        slurBtn.textContent = isActive ? 'Select End Note' : 'Add Slur';
+    }
+    
+    if (cancelSlurBtn) {
+        cancelSlurBtn.style.display = isActive ? 'inline-block' : 'none';
+    }
+    
+    // Update the expanded editor display
+    const editorExpandedEditor = document.getElementById('editorExpandedEditor');
+    if (editorExpandedEditor) {
+        editorExpandedEditor.classList.toggle('slur-mode', isActive);
+    }
+}
+
+/**
+ * Cancels slur creation mode
+ */
+function cancelSlurMode() {
+    slurMode = false;
+    slurStartNoteId = null;
+    updateSlurModeUI(false);
+    console.log('Slur mode cancelled');
+}
+
+function renderNoteEditBox(smoothScroll = true) {
     const measures = getMeasures();
     if (editorSelectedMeasureIndex >= measures.length) {
         editorSelectedMeasureIndex = Math.max(0, measures.length - 1);
@@ -146,6 +403,22 @@ function renderNoteEditBox() {
             buttonText = note.name;
         }
 
+        // Add tie/slur indicators if note has them
+        if (note.tie) {
+            if (note.tie.type === 'slur') {
+                buttonText += ' ⌒s'; // slur indicator
+                btn.classList.add('note-with-slur');
+            } else {
+                buttonText += ' ⌒'; // tie indicator
+                btn.classList.add('note-with-tie');
+            }
+        }
+
+        // Highlight if this is the slur start note
+        if (slurMode && note.id === slurStartNoteId) {
+            btn.classList.add('slur-start-note');
+        }
+
         btn.textContent = buttonText;
 
         if (note.id === editorSelectedNoteId) {
@@ -192,8 +465,7 @@ function renderNoteEditBox() {
         bassNotesContainer.appendChild(noteWrapper);
     });
 
-// End
-
+    // Rest of the existing renderNoteEditBox logic...
     const editorExpandedEditor = document.getElementById('editorExpandedEditor');
     const singleNoteControls = document.getElementById('singleNoteControls');
     const chordNotesEditor = document.getElementById('chordNotesEditor');
@@ -255,6 +527,9 @@ function renderNoteEditBox() {
         editorSelectedNoteId = null;
     }
 
+    // Update slur mode UI
+    updateSlurModeUI(slurMode);
+
     highlightSelectedMeasure(editorSelectedMeasureIndex);
     if (selectedNote) {
         highlightSelectedNote(editorSelectedMeasureIndex, selectedNote.clef, selectedNote.id);
@@ -262,7 +537,7 @@ function renderNoteEditBox() {
         clearSelectedNoteHighlight();
         pianoState.currentSelectedNote = null;
     }
-    scrollToMeasure(editorSelectedMeasureIndex);
+    scrollToMeasure(editorSelectedMeasureIndex, smoothScroll);
     console.log('scrolling to', editorSelectedMeasureIndex)
 }
 
@@ -272,11 +547,33 @@ function renderNoteEditBox() {
 
 function handleEditorNoteSelectClick(measureIndex, clef, noteId) {
     editorSelectedMeasureIndex = measureIndex;
+    
+    if (slurMode && noteId !== null) {
+        // If in slur mode, complete the slur
+        if (slurStartNoteId && slurStartNoteId !== noteId) {
+            const success = createSlur(slurStartNoteId, noteId, 'slur');
+            if (success) {
+                console.log(`Slur created from ${slurStartNoteId} to ${noteId}`);
+            } else {
+                console.warn('Failed to create slur');
+            }
+        }
+        // Exit slur mode
+        slurMode = false;
+        slurStartNoteId = null;
+        updateSlurModeUI(false);
+        // Select the end note
+        editorSelectedNoteId = noteId;
+        renderNoteEditBox();
+        return;
+    }
+    
     if (noteId === null) {
         editorSelectedNoteId = null;
         renderNoteEditBox();
         return;
     }
+    
     const currentMeasureNotes = getMeasures()[measureIndex] || [];
     const foundNote = currentMeasureNotes.find(note => note.id === noteId);
     if (!foundNote || foundNote.clef !== clef) {
@@ -320,13 +617,13 @@ function updateChordFromUI() {
     });
 
     if (chordNotes.length === 0) {
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { isRest: true, name: "R" });
     } else if (chordNotes.length === 1 && isChord(selectedNote.name)) {
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: chordNotes[0], isRest: false });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: chordNotes[0], isRest: false });
     } else {
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: formatChord(chordNotes), isRest: false });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: formatChord(chordNotes), isRest: false });
     }
-    renderNoteEditBox();
+    renderNoteEditBox(false);
 }
 
 function addNoteToChordUI() {
@@ -337,8 +634,8 @@ function addNoteToChordUI() {
     if (!selectedNote) return;
     let currentChordNotes = isChord(selectedNote.name) ? parseChord(selectedNote.name) : [selectedNote.name];
     currentChordNotes.push('C4');
-    updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: formatChord(currentChordNotes), isRest: false });
-    renderNoteEditBox();
+    placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: formatChord(currentChordNotes), isRest: false });
+    renderNoteEditBox(false);
 }
 
 function removeNoteFromChordUI(noteIndexToRemove) {
@@ -350,11 +647,11 @@ function removeNoteFromChordUI(noteIndexToRemove) {
     let currentChordNotes = isChord(selectedNote.name) ? parseChord(selectedNote.name) : [selectedNote.name];
     if (currentChordNotes.length > 1) {
         currentChordNotes.splice(noteIndexToRemove, 1);
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { name: formatChord(currentChordNotes) });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { name: formatChord(currentChordNotes) });
     } else {
-        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { isRest: true, name: "R" });
+        placeNote(editorSelectedMeasureIndex, selectedNote.id, editorSelectedMeasureIndex, { isRest: true, name: "R" });
     }
-    renderNoteEditBox();
+    renderNoteEditBox(false);
 }
 
 // ===================================================================
@@ -362,7 +659,7 @@ function removeNoteFromChordUI(noteIndexToRemove) {
 // ===================================================================
 
 export function initializeMusicEditor() {
-    renderNoteEditBox();
+    renderNoteEditBox(false); // Initial render without smooth scroll
     enableScoreInteraction(
         (measureIndex, wasNoteClicked) => changeMeasure(measureIndex, !wasNoteClicked),
         handleEditorNoteSelectClick
@@ -403,13 +700,13 @@ export function initializeMusicEditor() {
         if (target.id === 'editorRemoveNote') {
             removeNoteFromMeasure(editorSelectedMeasureIndex, editorSelectedNoteId);
             editorSelectedNoteId = null;
-            renderNoteEditBox();
+            renderNoteEditBox(false);
         }
         if (target.id === 'editorToggleClef') {
             const measures = getMeasures();
             const note = measures[editorSelectedMeasureIndex]?.find(n => n.id === editorSelectedNoteId);
-            if (note) updateNoteInMeasure(editorSelectedMeasureIndex, note.id, { clef: note.clef === 'treble' ? 'bass' : 'treble' });
-            renderNoteEditBox();
+            if (note) placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { clef: note.clef === 'treble' ? 'bass' : 'treble' });
+            renderNoteEditBox(false);
         }
         if (target.id === 'editorToggleRest') {
             const measures = getMeasures();
@@ -417,23 +714,26 @@ export function initializeMusicEditor() {
             if (note) {
                 const newIsRest = !note.isRest;
                 let newName = newIsRest ? "R" : (note.isRest ? "C4" : note.name);
-                updateNoteInMeasure(editorSelectedMeasureIndex, note.id, { isRest: newIsRest, name: newName });
+                placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { isRest: newIsRest, name: newName });
             }
-            renderNoteEditBox();
+            renderNoteEditBox(false);
         }
-        if (target.id === 'editorMoveToPrevMeasure') {
-            if (editorSelectedNoteId !== null && editorSelectedMeasureIndex > 0) {
-                moveNoteBetweenMeasures(editorSelectedMeasureIndex, editorSelectedNoteId, editorSelectedMeasureIndex - 1);
-                editorSelectedNoteId = null;
-                renderNoteEditBox();
-            }
+
+        // Tie and Slur handlers
+        if (target.id === 'editorAddTie') {
+            handleAddTie();
         }
-        if (target.id === 'editorMoveToNextMeasure') {
-            if (editorSelectedNoteId !== null) {
-                moveNoteBetweenMeasures(editorSelectedMeasureIndex, editorSelectedNoteId, editorSelectedMeasureIndex + 1);
-                editorSelectedNoteId = null;
-                renderNoteEditBox();
-            }
+        if (target.id === 'editorAddSlur') {
+            handleAddSlur();
+        }
+        if (target.id === 'editorAddAutoSlur') {
+            handleAddAutoSlur();
+        }
+        if (target.id === 'editorRemoveTie') {
+            handleRemoveTie();
+        }
+        if (target.id === 'editorCancelSlur') {
+            cancelSlurMode();
         }
 
         if (target.id === 'addNoteToChordBtn') addNoteToChordUI();
@@ -490,11 +790,11 @@ export function initializeMusicEditor() {
     const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
     if (!selectedNote) return;
 
-    if (selectedNote.isRest) {
+            if (selectedNote.isRest) {
         if (target.id === 'editorDurationDropdown') {
             updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
         }
-        renderNoteEditBox();
+        renderNoteEditBox(false);
         return;
     }
 
@@ -511,60 +811,119 @@ export function initializeMusicEditor() {
         updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
     }
     
-    renderNoteEditBox();
+    renderNoteEditBox(false);
 });
 
-    document.addEventListener('noteDropped', (event) => {
-        // Fix: Use insertBeforeNoteId instead of insertPosition
-        const { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId, clefChanged, pitchChanged, newClef, newPitch } = event.detail;
-        const measures = getMeasures();
-        const originalNote = measures[fromMeasureIndex]?.find(note => note.id === fromNoteId);
-        if (!originalNote) return;
+document.addEventListener('noteDropped', (event) => {
+    const { 
+        fromMeasureIndex, 
+        fromNoteId, 
+        toMeasureIndex, 
+        insertBeforeNoteId, 
+        clefChanged, 
+        pitchChanged, 
+        newClef, 
+        newPitch,
+        droppedData
+    } = event.detail;
 
-        if (fromMeasureIndex !== toMeasureIndex) {
-            // Moving between measures - maintain chord structure
-            const noteToMove = removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
-            if (noteToMove) {
-                if (clefChanged) noteToMove.clef = newClef;
-                if (pitchChanged && !originalNote.isRest) {
-                    // Handle chord transposition
-                    if (isChord(originalNote.name)) {
-                        const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
-                        const newPitchMidi = NOTES_BY_NAME[newPitch];
-                        if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
-                            const semitoneChange = newPitchMidi - originalFirstNoteMidi;
-                            noteToMove.name = transposeChord(originalNote.name, semitoneChange);
-                        }
-                    } else {
-                        noteToMove.name = newPitch;
-                    }
-                }
-                // Fix: Use insertBeforeNoteId instead of insertPosition
-                addNoteToMeasure(toMeasureIndex, noteToMove, insertBeforeNoteId);
-                editorSelectedMeasureIndex = toMeasureIndex;
-                editorSelectedNoteId = noteToMove.id;
+    // Handle chord drops
+    if (droppedData && droppedData.startsWith('application/chord:')) {
+        try {
+            const chordData = JSON.parse(droppedData.replace('application/chord:', ''));
+            const chordObj = chordData.chord;
+            const chordDisplayName = chordData.displayName;
+            
+            // Determine which notes to use based on the target clef
+            const targetClef = newClef || 'treble'; // Default to treble if not specified
+            const notesToUse = getChordNotesForClef(chordObj, targetClef);
+            
+            if (notesToUse.length === 0) {
+                console.warn('No suitable notes found for chord in target clef');
+                return;
             }
-        } else if (clefChanged || pitchChanged) {
-            // Same measure, just changing properties
-            const updatedNoteData = {};
-            if (clefChanged) updatedNoteData.clef = newClef;
+            
+            // Create the chord note
+            const chordNote = {
+                name: formatChordForScore(notesToUse, chordDisplayName),
+                clef: targetClef,
+                duration: "q", // Default to quarter note
+                isRest: false,
+                chordName: chordDisplayName // Store the original chord name
+            };
+            
+            // Add the chord to the measure
+            const result = addNoteToMeasure(toMeasureIndex, chordNote, insertBeforeNoteId);
+            if (result) {
+                editorSelectedMeasureIndex = result.measureIndex;
+                editorSelectedNoteId = result.noteId;
+                renderNoteEditBox(false);
+            }
+            
+            console.log(`Added ${chordDisplayName} chord to ${targetClef} clef:`, notesToUse);
+            return;
+            
+        } catch (error) {
+            console.error('Failed to parse chord drop data:', error);
+            // Fall through to regular note handling
+        }
+    }
+
+    // Existing note drop handling code...
+    const measures = getMeasures();
+    const originalNote = measures[fromMeasureIndex]?.find(note => note.id === fromNoteId);
+    if (!originalNote) return;
+
+    if (fromMeasureIndex !== toMeasureIndex) {
+        // Moving between measures - maintain chord structure
+        const noteToMove = removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
+        if (noteToMove) {
+            if (clefChanged) noteToMove.clef = newClef;
             if (pitchChanged && !originalNote.isRest) {
+                // Handle chord transposition
                 if (isChord(originalNote.name)) {
                     const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
                     const newPitchMidi = NOTES_BY_NAME[newPitch];
                     if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
                         const semitoneChange = newPitchMidi - originalFirstNoteMidi;
-                        updatedNoteData.name = transposeChord(originalNote.name, semitoneChange);
+                        noteToMove.name = transposeChord(originalNote.name, semitoneChange);
                     }
                 } else {
-                    updatedNoteData.name = newPitch;
+                    noteToMove.name = newPitch;
                 }
             }
-            updateNoteInMeasure(fromMeasureIndex, fromNoteId, updatedNoteData);
-            editorSelectedNoteId = fromNoteId;
+            addNoteToMeasure(toMeasureIndex, noteToMove, insertBeforeNoteId);
+            editorSelectedMeasureIndex = toMeasureIndex;
+            editorSelectedNoteId = noteToMove.id;
         }
-        renderNoteEditBox();
-    });
+    } else if (insertBeforeNoteId || clefChanged || pitchChanged) {
+        // Same measure: repositioning OR property changes
+        const updatedNoteData = {};
+        if (clefChanged) updatedNoteData.clef = newClef;
+        if (pitchChanged && !originalNote.isRest) {
+            if (isChord(originalNote.name)) {
+                const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
+                const newPitchMidi = NOTES_BY_NAME[newPitch];
+                if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
+                    const semitoneChange = newPitchMidi - originalFirstNoteMidi;
+                    updatedNoteData.name = transposeChord(originalNote.name, semitoneChange);
+                }
+            } else {
+                updatedNoteData.name = newPitch;
+            }
+        }
+        
+        if (insertBeforeNoteId && insertBeforeNoteId !== fromNoteId) {
+            // Actually repositioning - use placeNote
+            placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, updatedNoteData, insertBeforeNoteId);
+        } else {
+            // Just updating properties in same position - use updateNoteInMeasure
+            updateNoteInMeasure(fromMeasureIndex, fromNoteId, updatedNoteData);
+        }
+        editorSelectedNoteId = fromNoteId;
+    }
+    renderNoteEditBox(false);
+});
 
     const durationDropdown = document.getElementById('editorDurationDropdown');
     if (durationDropdown) {
@@ -587,5 +946,39 @@ export function initializeMusicEditor() {
             octaveDropdown.appendChild(option);
         }
     }
-    console.log("✓ scoreEditor.js initialized successfully");
+    console.log("✓ scoreEditor.js initialized successfully with slur support");
+}
+
+// Add this to your note-data.js or scoreEditor.js
+export function getChordNotesForClef(chordObj, targetClef) {
+    if (!chordObj || !chordObj.treble || !chordObj.bass) {
+        console.warn('Invalid chord object for clef selection');
+        return [];
+    }
+    
+    // If the target clef has notes, use them
+    if (targetClef === 'treble' && chordObj.treble.length > 0) {
+        return chordObj.treble;
+    } else if (targetClef === 'bass' && chordObj.bass.length > 0) {
+        return chordObj.bass;
+    }
+    
+    // Fallback: if the target clef is empty, use the other clef
+    if (targetClef === 'treble') {
+        return chordObj.bass.length > 0 ? chordObj.bass : [];
+    } else {
+        return chordObj.treble.length > 0 ? chordObj.treble : [];
+    }
+}
+
+function formatChordForScore(noteNames, chordDisplayName) {
+    if (!noteNames || noteNames.length === 0) return null;
+    
+    // If it's a single note, return it directly
+    if (noteNames.length === 1) {
+        return noteNames[0];
+    }
+    
+    // For multiple notes, format as a chord
+    return `(${noteNames.join(' ')})`;
 }

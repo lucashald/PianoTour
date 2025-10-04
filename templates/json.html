@@ -2,24 +2,10 @@
 
 {% block title %}Piano Tour - JSON Editor{% endblock %}
 
-{% block head_extra %}
-<!-- CodeMirror 5 CSS and JS -->
+{% block head %}
+<!-- CodeMirror 5 CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
-
-<!-- Essential editing features -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
-
-<!-- Search & Replace -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/searchcursor.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/search.min.js"></script>
-
-<!-- JSON Auto-Repair Library -->
-<script src="https://unpkg.com/jsonrepair@3/lib/umd/jsonrepair.js"></script>
-
 <style>
     /* JSON Editor specific styles */
     .json-editor-container {
@@ -251,57 +237,70 @@
     <div id="jsonOutput" class="json-output">Ready! Load your current score or paste JSON to edit.</div>
 </div>
 {% endblock %}
-    {% block scripts %}
-    {{ super() }}
-    <script type="module">
-        console.log('🎼 JSON Editor initializing...');
+{% block scripts %}
+{{ super() }}
 
-        // Wait for base piano tour initialization
-        async function initializeJSONEditor() {
-            try {
-// Import Piano Tour modules
-const { getMeasures, processAndSyncScore } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
-const { drawAll, setKeySignature } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
-const { setTimeSignature, setTempo } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
-const { pianoState } = await import('{{ url_for("static", filename="js/core/appState.js") }}');
+<!-- Load CodeMirror and dependencies FIRST -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/dialog/dialog.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/searchcursor.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/search/search.min.js"></script>
+<script src="https://unpkg.com/jsonrepair@3/lib/umd/jsonrepair.js"></script>
 
-// Import and initialize JSON Editor
-const { initializeJSONEditor } = await import('{{ url_for("static", filename="js/editor/jsonEditor.js") }}');
-                // Pass Piano Tour modules to JSON Editor
-                await initializeJSONEditor({
-                    getMeasures,
-                    processAndSyncScore,
-                    drawAll,
-                    setKeySignature,
-                    setTimeSignature,
-                    setTempo,
-                    pianoState
-                });
+<!-- THEN load your module script -->
+<script type="module">
+    console.log('🎼 JSON Editor initializing...');
 
-            } catch (error) {
-                console.error('❌ Error during JSON Editor initialization:', error);
+    // Wait for base piano tour initialization
+    async function initializeJSONEditor() {
+        try {
+            // Import Piano Tour modules
+            const { getMeasures, processAndSyncScore } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
+            const { drawAll, setKeySignature } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
+            const { setTimeSignature, setTempo } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
+            const { pianoState } = await import('{{ url_for("static", filename="js/core/appState.js") }}');
 
-                // Show user-friendly error message
-                const editorContainer = document.querySelector('.json-editor-container');
-                if (editorContainer) {
-                    editorContainer.innerHTML = `
-                        <div style="color: var(--color-peach-darkest, #5E1701); padding: 20px; text-align: center;">
-                            <h3>⚠️ JSON Editor Failed to Load</h3>
-                            <p>Please refresh the page or check the browser console for details.</p>
-                            <button onclick="location.reload()" class="json-btn" style="margin-top: 10px; max-width: 150px;">
-                                Refresh Page
-                            </button>
-                        </div>
-                    `;
-                }
+            // Import and initialize JSON Editor
+            const { initializeJSONEditor } = await import('{{ url_for("static", filename="js/editor/jsonEditor.js") }}');
+            
+            // Pass Piano Tour modules to JSON Editor
+            await initializeJSONEditor({
+                getMeasures,
+                processAndSyncScore,
+                drawAll,
+                setKeySignature,
+                setTimeSignature,
+                setTempo,
+                pianoState
+            });
+
+        } catch (error) {
+            console.error('❌ Error during JSON Editor initialization:', error);
+
+            // Show user-friendly error message
+            const editorContainer = document.querySelector('.json-editor-container');
+            if (editorContainer) {
+                editorContainer.innerHTML = `
+                    <div style="color: var(--color-peach-darkest, #5E1701); padding: 20px; text-align: center;">
+                        <h3>⚠️ JSON Editor Failed to Load</h3>
+                        <p>Error: ${error.message}</p>
+                        <p>Please refresh the page or check the browser console for details.</p>
+                        <button onclick="location.reload()" class="json-btn" style="margin-top: 10px; max-width: 150px;">
+                            Refresh Page
+                        </button>
+                    </div>
+                `;
             }
         }
+    }
 
-        // Start initialization when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeJSONEditor);
-        } else {
-            initializeJSONEditor();
-        }
-    </script>
-    {% endblock %}
+    // Start initialization when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeJSONEditor);
+    } else {
+        initializeJSONEditor();
+    }
+</script>
+{% endblock %}

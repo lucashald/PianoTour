@@ -392,9 +392,6 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
   // Trigger sampler with attack/release (envelope will shape this)
   pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, velocity / 127);
 
-  // Start spectrum visualization when notes are played
-  startSpectrumVisualization();
-
   // Paint chord visualization immediately for chords
   if (isChord) {
     paintChordOnTheFly({ notes: notesArray });
@@ -412,7 +409,7 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
   };
 
   // ✅ FIXED: Longer cleanup delay to account for envelope release
-  const envelopeReleaseTime = 2000; // Assume ~2 seconds for envelope to fully release
+  const envelopeReleaseTime = 300;
   const cleanupDelay = durationMs + envelopeReleaseTime;
 
   setTimeout(() => {

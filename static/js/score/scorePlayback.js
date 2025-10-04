@@ -18,25 +18,12 @@ import {
 import { getVexflowIndexByNoteId, safeRedraw, scrollToMeasure } from "./scoreRenderer.js";
 import { getMeasures } from "./scoreWriter.js";
 import { initMidiWhenReady } from "../instrument/midi-controller.js";
+// Add fretboard integration
+import { getFretMap } from "../instrument/fretMap.js";
 
 // ===================================================================
 // Constants
 // ===================================================================
-
-const DURATION_TO_TONE = {
-  w: "1n",
-  "w.": "1n.",
-  h: "2n",
-  "h.": "2n.",
-  q: "4n",
-  "q.": "4n.",
-  8: "8n",
-  "8.": "8n.",
-  16: "16n",
-  "16.": "16n.",
-  32: "32n",
-  "32.": "32n.",
-};
 
 const DURATION_TO_BEATS = {
   w: 4,
@@ -63,11 +50,116 @@ let lastScrolledMeasureIndex = -1;
 let currentPlayingVexFlowNotes = new Set();
 
 // ===================================================================
+// Tie Analysis Functions (simplified - only for audio sustain)
+// ===================================================================
+
+/**
+ * Builds a simple map of tie relationships for audio sustain
+ * @param {Array} measures - All measures in the score
+ * @returns {Map} noteId -> tieInfo object
+ */
+function buildTieMap(measures) {
+  const tieMap = new Map();
+  
+  // Build note details map first
+  const noteDetails = new Map();
+  let currentTime = 0;
+  
+  measures.forEach((measure, measureIndex) => {
+    let trebleTime = currentTime;
+    let bassTime = currentTime;
+    
+    measure.forEach(note => {
+      const noteTime = note.clef === 'treble' ? trebleTime : bassTime;
+      const beatDuration = DURATION_TO_BEATS[note.duration] || 0;
+      
+      noteDetails.set(note.id, {
+        note,
+        measureIndex,
+        startTime: noteTime,
+        duration: beatDuration
+      });
+      
+      if (note.clef === 'treble') {
+        trebleTime += beatDuration;
+      } else {
+        bassTime += beatDuration;
+      }
+    });
+    
+    currentTime += pianoState.timeSignature.numerator;
+  });
+  
+  // Collect tie relationships (only for audio sustain)
+  measures.forEach((measure, measureIndex) => {
+    measure.forEach(note => {
+      if (note.tie && note.tie.type === 'tie' && note.tie.startNoteId && note.tie.endNoteId) {
+        const startId = note.tie.startNoteId;
+        const endId = note.tie.endNoteId;
+        
+        if (!tieMap.has(startId)) {
+          tieMap.set(startId, { isStart: false, isEnd: false });
+        }
+        if (!tieMap.has(endId)) {
+          tieMap.set(endId, { isStart: false, isEnd: false });
+        }
+        
+        const startInfo = tieMap.get(startId);
+        startInfo.isStart = true;
+        startInfo.endNoteId = endId;
+        
+        const endInfo = tieMap.get(endId);
+        endInfo.isEnd = true;
+        endInfo.startNoteId = startId;
+      }
+    });
+  });
+  
+  // Calculate total durations for tied note chains
+  tieMap.forEach((tieInfo, noteId) => {
+    if (tieInfo.isStart && !tieInfo.totalDuration) {
+      const chain = [];
+      let currentNoteId = noteId;
+      
+      while (currentNoteId && tieMap.has(currentNoteId)) {
+        const currentTieInfo = tieMap.get(currentNoteId);
+        const noteDetail = noteDetails.get(currentNoteId);
+        if (noteDetail) {
+          chain.push({
+            noteId: currentNoteId,
+            duration: noteDetail.duration,
+            note: noteDetail.note
+          });
+        }
+        
+        currentNoteId = currentTieInfo.endNoteId;
+        if (!currentNoteId || chain.some(item => item.noteId === currentNoteId)) {
+          break;
+        }
+      }
+      
+      const totalDuration = chain.reduce((sum, item) => sum + item.duration, 0);
+      
+      chain.forEach(item => {
+        const info = tieMap.get(item.noteId);
+        if (info) {
+          info.totalDuration = totalDuration;
+          info.chainLength = chain.length;
+          info.isChainStart = item.noteId === noteId;
+        }
+      });
+    }
+  });
+  
+  return tieMap;
+}
+
+// ===================================================================
 // Playback Functions
 // ===================================================================
 
 /**
- * Schedules individual note events (audio, piano key, score highlight) for playback.
+ * Schedules individual note events using performedDuration and velocity from note data
  */
 function scheduleNoteEvents(
   note,
@@ -75,7 +167,8 @@ function scheduleNoteEvents(
   noteId,
   currentTransportTime,
   clefOffset,
-  secondsPerBeat
+  secondsPerBeat,
+  tieInfo = null
 ) {
   const beatDuration = DURATION_TO_BEATS[note.duration];
 
@@ -94,34 +187,96 @@ function scheduleNoteEvents(
       .split(" ")
       .filter(Boolean);
 
-    // Schedule the "note on" event (audio + spectrum)
-    Tone.Transport.scheduleOnce((time) => {
-      // ✅ FIXED: Use envelope for score playback (4th parameter = true)
-      trigger(notesToPlay, true, 100, true);
+    // Get the performed duration from the note (defaults to 0.75 if not set)
+    const performedDuration = note.performedDuration || pianoState.staccatoTime || 0.75;
+    
+    // Get the velocity from the note (defaults to 100 if not set)
+    const velocity = note.velocity || pianoState.velocity || 100;
 
-      startSpectrumIfReady();
+    // For ties: only trigger audio on the first note, sustain for full tied duration
+    const shouldTriggerAudio = !tieInfo || !tieInfo.isEnd || tieInfo.isChainStart;
+    
+    if (shouldTriggerAudio) {
+      // Calculate audio duration based on performed duration
+      let audioDurationInSeconds;
+      
+      if (tieInfo && tieInfo.totalDuration) {
+        // For tied notes, sustain for the full tied duration
+        audioDurationInSeconds = tieInfo.totalDuration * secondsPerBeat;
+      } else {
+        // For regular notes, use performedDuration (can exceed 1.0 for sustain/pedal effects)
+        audioDurationInSeconds = noteDurationInSeconds * performedDuration;
+      }
 
-      // Track this note as an active playback note for spectrum management
-      pianoState.activeDiatonicChords[noteKey] = {
-        notes: notesToPlay,
-        startTime: performance.now(),
-        isPlayback: true
-      };
-    }, noteStartTime);
+      // Schedule the "note on" event
+      Tone.Transport.scheduleOnce((time) => {
+        trigger(notesToPlay, true, velocity, true);
+        startSpectrumIfReady();
 
-    // Schedule piano key highlighting
-    Tone.Transport.scheduleOnce((time) => {
-      notesToPlay.forEach((n) => {
-        const midi = NOTES_BY_NAME[n];
-        if (midi && pianoState.noteEls[midi]) {
+        pianoState.activeDiatonicChords[noteKey] = {
+          notes: notesToPlay,
+          startTime: performance.now(),
+          isPlayback: true
+        };
+      }, noteStartTime);
+
+      // Schedule piano key highlighting + fretboard playback highlighting
+      Tone.Transport.scheduleOnce((time) => {
+        notesToPlay.forEach((n) => {
+          const midi = NOTES_BY_NAME[n];
+          if (midi && pianoState.noteEls[midi]) {
+            Tone.Draw.schedule(() => {
+              pianoState.noteEls[midi].classList.add("pressed");
+            }, time);
+          }
+        });
+        // Fretboard playback highlight (if fretboard is present)
+        const fretMap = (typeof getFretMap === "function") ? getFretMap() : null;
+        if (fretMap && typeof fretMap.isReady === "function" && fretMap.isReady()) {
           Tone.Draw.schedule(() => {
-            pianoState.noteEls[midi].classList.add("pressed");
+            fretMap.addPlaybackHighlight(notesToPlay);
           }, time);
         }
-      });
-    }, noteStartTime);
+      }, noteStartTime);
 
-    // Schedule score note highlighting
+      // Schedule the "note off" event
+      const noteEndTime = noteStartTime + audioDurationInSeconds;
+      
+      Tone.Transport.scheduleOnce((time) => {
+        trigger(notesToPlay, false, velocity, true);
+        delete pianoState.activeDiatonicChords[noteKey];
+
+        setTimeout(() => {
+          const hasActiveNotes =
+            Object.keys(pianoState.activeNotes).length > 0 ||
+            Object.keys(pianoState.activeDiatonicChords).length > 0;
+
+          if (!hasActiveNotes) {
+            stopSpectrumVisualization();
+          }
+        }, 1000);
+      }, noteEndTime);
+
+      // Schedule piano key un-highlighting + clear fretboard playback highlighting
+      Tone.Transport.scheduleOnce((time) => {
+        notesToPlay.forEach((n) => {
+          const midi = NOTES_BY_NAME[n];
+          if (midi && pianoState.noteEls[midi]) {
+            Tone.Draw.schedule(() => {
+              pianoState.noteEls[midi].classList.remove("pressed");
+            }, time);
+          }
+        });
+        const fretMap = (typeof getFretMap === "function") ? getFretMap() : null;
+        if (fretMap && typeof fretMap.isReady === "function" && fretMap.isReady()) {
+          Tone.Draw.schedule(() => {
+            fretMap.clearPlaybackHighlight(notesToPlay);
+          }, time);
+        }
+      }, noteEndTime);
+    }
+
+    // Always schedule score highlighting for each note
     Tone.Transport.scheduleOnce((time) => {
       Tone.Draw.schedule(() => {
         addPlaybackHighlight(
@@ -132,45 +287,15 @@ function scheduleNoteEvents(
         );
 
         const displayName = note.chordName || note.name;
-        updateNowPlayingDisplay(displayName);
+        // Show tied indicator if applicable
+        const indicator = (tieInfo && tieInfo.isEnd && !tieInfo.isChainStart) ? " (tied)" : "";
+        updateNowPlayingDisplay(displayName + indicator);
         currentPlayingVexFlowNotes.add(noteKey);
       }, time);
     }, noteStartTime);
 
-    const noteEndTime = noteStartTime + noteDurationInSeconds;
-
-    // Schedule the "note off" event (audio + spectrum management)
-    Tone.Transport.scheduleOnce((time) => {
-      // ✅ FIXED: Use envelope for score playback
-      trigger(notesToPlay, false, 100, true);
-
-      delete pianoState.activeDiatonicChords[noteKey];
-
-      // Account for sampler release time before checking spectrum stop
-      setTimeout(() => {
-        const hasActiveNotes =
-          Object.keys(pianoState.activeNotes).length > 0 ||
-          Object.keys(pianoState.activeDiatonicChords).length > 0;
-
-        if (!hasActiveNotes) {
-          stopSpectrumVisualization();
-        }
-      }, 1000);
-    }, noteEndTime);
-
-    // Schedule piano key un-highlighting
-    Tone.Transport.scheduleOnce((time) => {
-      notesToPlay.forEach((n) => {
-        const midi = NOTES_BY_NAME[n];
-        if (midi && pianoState.noteEls[midi]) {
-          Tone.Draw.schedule(() => {
-            pianoState.noteEls[midi].classList.remove("pressed");
-          }, time);
-        }
-      });
-    }, noteEndTime);
-
-    // Schedule individual note un-highlighting
+    // Schedule visual un-highlighting (based on written duration, not performed duration)
+    const visualEndTime = noteStartTime + noteDurationInSeconds;
     Tone.Transport.scheduleOnce((time) => {
       Tone.Draw.schedule(() => {
         pianoState.currentPlaybackNotes.delete(noteKey);
@@ -212,14 +337,14 @@ function scheduleNoteEvents(
 
         currentPlayingVexFlowNotes.delete(noteKey);
       }, time);
-    }, noteEndTime);
+    }, visualEndTime);
   }
 
   return noteDurationInSeconds;
 }
 
 /**
- * Schedules the entire score for playback using Tone.js and provides visual feedback.
+ * Schedules the entire score for playback using note.performedDuration and note.velocity
  */
 export function playScore(measures, bpm = pianoState.tempo) {
   if (!audioManager.isAudioReady()) {
@@ -250,6 +375,10 @@ export function playScore(measures, bpm = pianoState.tempo) {
   clearAllHighlights();
   startSpectrumIfReady();
 
+  // Build tie map (only for audio sustain, not articulation)
+  const tieMap = buildTieMap(measures);
+  console.log("Tie map built:", tieMap);
+
   // Set the tempo for the playback
   Tone.Transport.bpm.value = bpm;
   let maxEndTime = 0;
@@ -278,25 +407,29 @@ export function playScore(measures, bpm = pianoState.tempo) {
 
     // Schedule Treble Notes
     trebleNotes.forEach((note) => {
+      const tieInfo = tieMap.get(note.id);
       trebleMeasureOffset += scheduleNoteEvents(
         note,
         measureIndex,
         note.id,
         currentTransportTime,
         trebleMeasureOffset,
-        secondsPerBeat
+        secondsPerBeat,
+        tieInfo
       );
     });
 
     // Schedule Bass Notes
     bassNotes.forEach((note) => {
+      const tieInfo = tieMap.get(note.id);
       bassMeasureOffset += scheduleNoteEvents(
         note,
         measureIndex,
         note.id,
         currentTransportTime,
         bassMeasureOffset,
-        secondsPerBeat
+        secondsPerBeat,
+        tieInfo
       );
     });
 
@@ -317,7 +450,7 @@ export function playScore(measures, bpm = pianoState.tempo) {
     }, maxEndTime + 0.1);
   }
 
-  console.log("Score playback has been scheduled. Call Tone.Transport.start() to play.");
+  console.log("Score playback scheduled using note performedDuration and velocity properties.");
 }
 
 /**
@@ -333,7 +466,6 @@ export function stopPlayback() {
     if (pianoState.sampler.releaseAll) {
       pianoState.sampler.releaseAll();
     } else {
-      // ✅ FIXED: Call sampler.triggerRelease, not envelope.triggerRelease
       for (let midi = 21; midi <= 108; midi++) {
         try {
           pianoState.sampler.triggerRelease(
@@ -346,7 +478,7 @@ export function stopPlayback() {
     }
   }
 
-  // ✅ FIXED: Also release envelope if it exists
+  // Also release envelope if it exists
   if (pianoState.envelope) {
     pianoState.envelope.triggerRelease();
   }
@@ -355,6 +487,14 @@ export function stopPlayback() {
   Object.values(pianoState.noteEls).forEach((el) => {
     el.classList.remove("pressed");
   });
+
+  // Also clear any fretboard playback highlights if present
+  try {
+    const fretMap = (typeof getFretMap === "function") ? getFretMap() : null;
+    if (fretMap && typeof fretMap.clearPlaybackHighlight === "function") {
+      fretMap.clearPlaybackHighlight();
+    }
+  } catch (_) {}
 
   // Mark playback notes for cleanup after release time
   const playbackNotesToClear = [];
@@ -394,6 +534,7 @@ export function initializePlayer() {
     .getElementById("play-score-btn")
     ?.addEventListener("click", async (e) => {
       e.preventDefault();
+      e.preventDefault();
       document.getElementById("instrument")?.focus();
       
       const playAction = () => {
@@ -410,6 +551,7 @@ export function initializePlayer() {
   // Stop Playback Button
   document.getElementById("stop-score-btn")?.addEventListener("click", (e) => {
     e.preventDefault();
+    e.preventDefault();
     document.getElementById("instrument")?.focus();
     stopPlayback();
   });
@@ -418,6 +560,7 @@ export function initializePlayer() {
   document
     .getElementById("connect-midi-btn")
     ?.addEventListener("click", (e) => {
+      e.preventDefault();
       e.preventDefault();
       document.getElementById("instrument")?.focus();
       audioManager.unlockAndExecute(() => { 

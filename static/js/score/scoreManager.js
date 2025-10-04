@@ -61,10 +61,6 @@ const VALID_DURATIONS = {
     '32': { name: 'Thirty-second', beatValue: 0.125 }
 };
 
-/**
- * Web Worker script as a string. This script will be executed in a separate thread.
- * It's responsible for parsing the JSON and performing heavy data processing.
- */
 const workerScriptContent = `
     // Valid durations with beat values (normalized to quarter note beats)
     const VALID_DURATIONS = {
@@ -123,84 +119,124 @@ const workerScriptContent = `
 
     function calculateBeatsPerMeasure(timeSignature) {
         // Calculate how many quarter note beats per measure
-        // e.g., 4/4 = 4 beats, 3/4 = 3 beats, 6/8 = 3 beats, 12/8 = 6 beats
         return (timeSignature.numerator * 4) / timeSignature.denominator;
     }
 
-    function validateMeasureBeats(measure, beatsPerMeasure) {
-        let totalBeats = 0;
+    function calculateMeasureBeats(measure) {
+        // Group notes by clef and calculate beats for each clef separately
+        const clefBeats = {};
+        
         for (const note of measure) {
+            const clef = note.clef || 'treble';
             const duration = VALID_DURATIONS[note.duration];
+            
             if (duration) {
-                totalBeats += duration.beatValue;
+                if (!clefBeats[clef]) {
+                    clefBeats[clef] = 0;
+                }
+                clefBeats[clef] += duration.beatValue;
             }
         }
         
-        // Allow slight tolerance for floating point precision
-        const tolerance = 0.001;
-        return { 
-            totalBeats: Math.round(totalBeats * 1000) / 1000, // Round to 3 decimal places
-            isValid: totalBeats <= beatsPerMeasure + tolerance,
-            overflow: Math.max(0, totalBeats - beatsPerMeasure)
-        };
+        // The measure duration is the maximum duration across all clefs
+        // (since different clefs play simultaneously, not sequentially)
+        const maxBeats = Math.max(...Object.values(clefBeats), 0);
+        return Math.round(maxBeats * 1000) / 1000; // Round to avoid floating point precision issues
     }
 
     function findBestDurationForBeats(beats) {
-        // Find the best duration that fits within the beat count
         const tolerance = 0.001;
         const sortedDurations = Object.entries(VALID_DURATIONS)
-            .sort((a, b) => b[1].beatValue - a[1].beatValue); // Sort by beat value, descending
+            .sort((a, b) => b[1].beatValue - a[1].beatValue);
 
         for (const [duration, info] of sortedDurations) {
             if (info.beatValue <= beats + tolerance) {
                 return duration;
             }
         }
-        return '32'; // Fallback to thirty-second note
+        return '32';
     }
 
-    function splitMeasureIfNeeded(measure, beatsPerMeasure, measureIndex) {
-        const validation = validateMeasureBeats(measure, beatsPerMeasure);
-        
-        if (validation.isValid) {
-            return [measure]; // No splitting needed
+    function splitMeasureIntoValidChunks(measure, beatsPerMeasure, measureIndex) {
+        // Group notes by clef first
+        const clefGroups = {};
+        for (const note of measure) {
+            const clef = note.clef || 'treble';
+            if (!clefGroups[clef]) {
+                clefGroups[clef] = [];
+            }
+            clefGroups[clef].push(note);
         }
 
-        // Split the measure into valid chunks
+        // Find which clef has the overflow
+        let maxOverflowClef = null;
+        let maxOverflow = 0;
+        
+        for (const [clef, notes] of Object.entries(clefGroups)) {
+            let clefBeats = 0;
+            for (const note of notes) {
+                const duration = VALID_DURATIONS[note.duration];
+                if (duration) {
+                    clefBeats += duration.beatValue;
+                }
+            }
+            
+            const overflow = clefBeats - beatsPerMeasure;
+            if (overflow > maxOverflow) {
+                maxOverflow = overflow;
+                maxOverflowClef = clef;
+            }
+        }
+
+        // If no overflow, return as single measure
+        if (maxOverflow <= 0.001) {
+            return [measure];
+        }
+
+        // Split the overflowing clef and reconstruct measures
+        const overflowNotes = clefGroups[maxOverflowClef];
+        const otherNotes = measure.filter(note => (note.clef || 'treble') !== maxOverflowClef);
+        
         const measures = [];
-        let currentMeasure = [];
+        let currentMeasureNotes = [];
         let currentBeats = 0;
         const tolerance = 0.001;
 
-        for (let i = 0; i < measure.length; i++) {
-            const note = measure[i];
+        // Split the overflowing clef
+        for (let i = 0; i < overflowNotes.length; i++) {
+            const note = overflowNotes[i];
             const duration = VALID_DURATIONS[note.duration];
-            const noteBeats = duration ? duration.beatValue : 1; // Default to quarter note
+            const noteBeats = duration ? duration.beatValue : 1;
 
-            // If adding this note would exceed the limit, start a new measure
-            if (currentBeats + noteBeats > beatsPerMeasure + tolerance && currentMeasure.length > 0) {
-                // Fill remainder with rest if there's a significant gap
+            // If adding this note would exceed the measure limit and we have notes in current measure
+            if (currentBeats + noteBeats > beatsPerMeasure + tolerance && currentMeasureNotes.length > 0) {
+                // Fill remaining space with rest if significant
                 const remainingBeats = beatsPerMeasure - currentBeats;
-                if (remainingBeats > 0.1) { // Only add rest if gap is meaningful
+                if (remainingBeats > 0.1) {
                     const restDuration = findBestDurationForBeats(remainingBeats);
-                    const restNote = currentMeasure.find(n => n.clef) || note; // Get clef from existing note
-                    currentMeasure.push({
+                    currentMeasureNotes.push({
                         id: \`auto-rest-\${measureIndex}-\${measures.length}-\${Date.now()}\`,
-                        name: restNote.clef === 'bass' ? 'D3' : 'B4',
-                        clef: restNote.clef || 'treble',
+                        name: maxOverflowClef === 'bass' ? 'D3' : 'B4',
+                        clef: maxOverflowClef,
                         duration: restDuration,
                         measure: measureIndex + measures.length,
                         isRest: true,
                         chordName: 'Rest'
                     });
                 }
-                measures.push(currentMeasure);
-                currentMeasure = [];
+                
+                // Add other clef notes only to the first measure
+                const measureNotes = measures.length === 0 
+                    ? [...currentMeasureNotes, ...otherNotes.map(n => ({ ...n, measure: measureIndex }))]
+                    : currentMeasureNotes;
+                
+                measures.push(measureNotes);
+                currentMeasureNotes = [];
                 currentBeats = 0;
             }
 
-            // Add the note to current measure
-            currentMeasure.push({
+            // Add note to current measure
+            currentMeasureNotes.push({
                 ...note,
                 measure: measureIndex + measures.length
             });
@@ -208,22 +244,27 @@ const workerScriptContent = `
         }
 
         // Handle the final measure
-        if (currentMeasure.length > 0) {
+        if (currentMeasureNotes.length > 0) {
             const remainingBeats = beatsPerMeasure - currentBeats;
-            if (remainingBeats > 0.1) { // Only add rest if gap is meaningful
-                const lastNote = currentMeasure[currentMeasure.length - 1];
+            if (remainingBeats > 0.1) {
                 const restDuration = findBestDurationForBeats(remainingBeats);
-                currentMeasure.push({
+                currentMeasureNotes.push({
                     id: \`auto-rest-\${measureIndex}-final-\${Date.now()}\`,
-                    name: lastNote.clef === 'bass' ? 'D3' : 'B4',
-                    clef: lastNote.clef || 'treble',
+                    name: maxOverflowClef === 'bass' ? 'D3' : 'B4',
+                    clef: maxOverflowClef,
                     duration: restDuration,
                     measure: measureIndex + measures.length,
                     isRest: true,
                     chordName: 'Rest'
                 });
             }
-            measures.push(currentMeasure);
+            
+            // Add other clef notes only if this is the first (and only) split measure
+            const measureNotes = measures.length === 0 
+                ? [...currentMeasureNotes, ...otherNotes.map(n => ({ ...n, measure: measureIndex }))]
+                : currentMeasureNotes;
+                
+            measures.push(measureNotes);
         }
 
         return measures.length > 0 ? measures : [[]];
@@ -237,16 +278,13 @@ const workerScriptContent = `
             return { isValid: false, errors, note: null };
         }
 
-        // Handle note name validation and correction
         let correctedName = note.name;
         let nameChanged = false;
         
         if (!isValidNoteName(note.name)) {
-            // Provide better fallback based on clef
             correctedName = note.clef === 'bass' ? 'D3' : 'B4';
             nameChanged = true;
             
-            // Provide specific error messages for different types of invalid names
             if (typeof note.name === 'string') {
                 if (note.name.startsWith('(') && note.name.endsWith(')')) {
                     errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid chord notation '\${note.name}' - check note names within parentheses\`);
@@ -258,19 +296,16 @@ const workerScriptContent = `
             }
         }
 
-        // Handle duration validation and correction
         let correctedDuration = note.duration;
         let durationChanged = false;
         
         if (!isValidDuration(note.duration)) {
             durationChanged = true;
             
-            // Special handling for dotted whole notes
             if (note.duration === 'w.') {
-                correctedDuration = 'w'; // Convert dotted whole to whole note
+                correctedDuration = 'w';
                 errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Dotted whole note 'w.' converted to 'w' (VexFlow doesn't support dotted whole notes)\`);
             } 
-            // Handle old-style rest durations
             else if (typeof note.duration === 'string' && note.duration.endsWith('r')) {
                 const baseDuration = note.duration.slice(0, -1);
                 if (isValidDuration(baseDuration)) {
@@ -281,21 +316,18 @@ const workerScriptContent = `
                     errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid rest duration '\${note.duration}' corrected to '\${correctedDuration}'\`);
                 }
             }
-            // Handle other invalid durations
             else {
-                correctedDuration = 'q'; // Default fallback
+                correctedDuration = 'q';
                 errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid duration '\${note.duration}' corrected to '\${correctedDuration}'\`);
             }
         }
 
-        // Handle clef validation
         let correctedClef = note.clef;
         if (!isValidClef(note.clef)) {
             correctedClef = 'treble';
             errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid clef '\${note.clef}' corrected to '\${correctedClef}'\`);
         }
 
-        // Handle rest flag - for old-style rest durations, force isRest to true
         let correctedIsRest = typeof note.isRest === 'boolean' ? note.isRest : false;
         if (typeof note.duration === 'string' && note.duration.endsWith('r')) {
             correctedIsRest = true;
@@ -313,7 +345,6 @@ const workerScriptContent = `
             stemDirection: typeof note.stemDirection === 'number' ? note.stemDirection : null,
         };
 
-        // Remove chordName if it's not a rest and wasn't originally provided
         if (!validatedNote.isRest && !note.chordName) {
             delete validatedNote.chordName;
         }
@@ -335,13 +366,13 @@ const workerScriptContent = `
         };
     }
 
-    function validateMeasure(measure, measureIndex, beatsPerMeasure) {
+    function validateMeasure(measure, measureIndex) {
         if (!Array.isArray(measure)) {
             return {
                 isValid: false,
                 errors: [\`Measure \${measureIndex} is not an array\`],
                 validatedMeasure: [],
-                needsSplit: false
+                hasCorrections: false
             };
         }
 
@@ -361,30 +392,97 @@ const workerScriptContent = `
             }
         }
 
-        // Check beat count
-        const beatValidation = validateMeasureBeats(validatedNotes, beatsPerMeasure);
-        const needsSplit = !beatValidation.isValid;
+        return {
+            isValid: errors.length === 0,
+            errors,
+            validatedMeasure: validatedNotes,
+            hasCorrections
+        };
+    }
 
-        if (needsSplit) {
-            errors.push(\`Measure \${measureIndex}: Contains \${beatValidation.totalBeats} beats, exceeds limit of \${beatsPerMeasure} beats\`);
+    function processMeasures(rawMeasuresData, beatsPerMeasure, allowSplitting = true) {
+        const processedMeasures = [];
+        const validationErrors = [];
+        let correctionCount = 0;
+        let splitCount = 0;
+
+        for (let i = 0; i < rawMeasuresData.length; i++) {
+            const measure = rawMeasuresData[i];
+            const measureValidation = validateMeasure(measure, i);
+            
+            validationErrors.push(...measureValidation.errors);
+            if (measureValidation.hasCorrections) {
+                correctionCount++;
+            }
+
+            let finalMeasures = [];
+
+            if (measureValidation.validatedMeasure.length === 0) {
+                // Empty measure
+                if (allowSplitting) {
+                    // Add appropriate rest for empty measure
+                    const restDuration = beatsPerMeasure >= 4 ? 'w' : beatsPerMeasure >= 2 ? 'h' : 'q';
+                    finalMeasures = [[{
+                        id: \`rest-\${i}-0-\${Date.now()}\`,
+                        name: 'B4',
+                        clef: 'treble',
+                        duration: restDuration,
+                        measure: i,
+                        isRest: true,
+                        chordName: 'Rest'
+                    }]];
+                    validationErrors.push(\`Measure \${i}: Empty measure, added \${VALID_DURATIONS[restDuration].name.toLowerCase()} rest\`);
+                } else {
+                    // Keep empty measure as empty
+                    finalMeasures = [[]];
+                }
+            } else {
+                // Measure has notes
+                if (allowSplitting) {
+                    const totalBeats = calculateMeasureBeats(measureValidation.validatedMeasure);
+                    const tolerance = 0.001;
+                    
+                    if (totalBeats > beatsPerMeasure + tolerance) {
+                        // Split the measure
+                        finalMeasures = splitMeasureIntoValidChunks(measureValidation.validatedMeasure, beatsPerMeasure, i);
+                        if (finalMeasures.length > 1) {
+                            splitCount++;
+                            validationErrors.push(\`Measure \${i}: Contains \${totalBeats} beats, split into \${finalMeasures.length} measures\`);
+                        }
+                    } else {
+                        // Measure fits, use as-is
+                        finalMeasures = [measureValidation.validatedMeasure];
+                    }
+                } else {
+                    // No splitting allowed, use measure as-is regardless of beat count
+                    const totalBeats = calculateMeasureBeats(measureValidation.validatedMeasure);
+                    if (totalBeats > beatsPerMeasure + 0.001) {
+                        console.log(\`Measure \${i}: Contains \${totalBeats} beats (exceeds \${beatsPerMeasure}), but splitting disabled\`);
+                    }
+                    finalMeasures = [measureValidation.validatedMeasure];
+                }
+            }
+
+            processedMeasures.push(...finalMeasures);
         }
 
         return {
-            isValid: errors.length === 0 && !needsSplit,
-            errors,
-            validatedMeasure: validatedNotes,
-            needsSplit,
-            hasCorrections,
-            totalBeats: beatValidation.totalBeats
+            measures: processedMeasures,
+            validationErrors,
+            correctionCount,
+            splitCount
         };
     }
 
     self.onmessage = (event) => {
-        const { command, fileContent, fileName, scoreId } = event.data;
+        const { command, fileContent, fileName, scoreId, options = {} } = event.data;
 
         if (command === 'processScore') {
             try {
-                // Initial progress report
+                const allowSplitting = !options.disableSplitting; // Convert to positive logic
+                
+                console.log(\`Score processing: Measure splitting \${allowSplitting ? 'enabled' : 'disabled'}\`);
+
                 self.postMessage({ 
                     type: 'progress', 
                     payload: { current: 0, total: 6, message: \`Parsing \${fileName}...\`, scoreId } 
@@ -427,7 +525,6 @@ const workerScriptContent = `
                         ? loadedData.isMinorChordMode : defaultMetadata.isMinorChordMode,
                 };
 
-                // Calculate beats per measure based on time signature
                 const beatsPerMeasure = calculateBeatsPerMeasure(metadata.timeSignature);
 
                 self.postMessage({ 
@@ -436,108 +533,56 @@ const workerScriptContent = `
                 });
 
                 const totalMeasures = rawMeasuresData.length;
-                let processedMeasures = [];
-                const validationErrors = [];
-                const processingChunkSize = Math.max(10, Math.floor(totalMeasures / 20)); // Dynamic chunk size
-                let correctionCount = 0;
-                let splitCount = 0;
+                const processingChunkSize = Math.max(10, Math.floor(totalMeasures / 20));
 
-                // Process and validate each measure
-                for (let i = 0; i < totalMeasures; i++) {
-                    const measure = rawMeasuresData[i];
-                    const measureValidation = validateMeasure(measure, i, beatsPerMeasure);
-                    
-                    validationErrors.push(...measureValidation.errors);
-                    if (measureValidation.hasCorrections) {
-                        correctionCount++;
-                    }
+                // Process all measures
+                const result = processMeasures(rawMeasuresData, beatsPerMeasure, allowSplitting);
 
-                    if (measureValidation.validatedMeasure.length > 0) {
-                        if (measureValidation.needsSplit) {
-                            const splitMeasures = splitMeasureIfNeeded(measureValidation.validatedMeasure, beatsPerMeasure, i);
-                            if (splitMeasures.length > 1) {
-                                splitCount++;
-                                validationErrors.push(\`Measure \${i}: Split into \${splitMeasures.length} measures due to beat overflow\`);
-                            }
-                            processedMeasures.push(...splitMeasures);
-                        } else {
-                            processedMeasures.push(measureValidation.validatedMeasure);
-                        }
-                    } else {
-                        // Empty measure - add a whole rest or appropriate rest for time signature
-                        const restDuration = beatsPerMeasure >= 4 ? 'w' : beatsPerMeasure >= 2 ? 'h' : 'q';
-                        processedMeasures.push([{
-                            id: \`rest-\${i}-0-\${Date.now()}\`,
-                            name: 'B4',
-                            clef: 'treble',
-                            duration: restDuration,
-                            measure: i,
-                            isRest: true,
-                            chordName: 'Rest'
-                        }]);
-                        validationErrors.push(\`Measure \${i}: Empty measure, added \${VALID_DURATIONS[restDuration].name.toLowerCase()} rest\`);
-                    }
-
-                    // Report progress more frequently for large files
-                    if ((i + 1) % processingChunkSize === 0 || (i + 1) === totalMeasures) {
-                        const progressPercent = ((i + 1) / totalMeasures) * 2; // Scale to 0-2 for step 2-4
-                        self.postMessage({ 
-                            type: 'progress', 
-                            payload: { 
-                                current: 2 + progressPercent, 
-                                total: 6, 
-                                message: \`Processing measures... (\${i + 1}/\${totalMeasures})\`, 
-                                scoreId 
-                            } 
-                        });
-                    }
-                }
-
-                // Update measure indices and final validation
                 self.postMessage({ 
                     type: 'progress', 
                     payload: { current: 5, total: 6, message: 'Finalizing and indexing...', scoreId } 
                 });
 
-                // Update measure indices to be sequential after splitting
-                let measureIndex = 0;
-                processedMeasures = processedMeasures.map(measure => {
-                    const updatedMeasure = measure.map(note => ({
-                        ...note,
-                        measure: measureIndex
-                    }));
-                    measureIndex++;
-                    return updatedMeasure;
-                });
+                // Reassign measure indices if we split measures
+                let finalMeasures = result.measures;
+                if (result.splitCount > 0 && allowSplitting) {
+                    console.log(\`Reassigning measure indices after \${result.splitCount} splits\`);
+                    finalMeasures = result.measures.map((measure, measureIndex) => {
+                        return measure.map(note => ({
+                            ...note,
+                            measure: measureIndex
+                        }));
+                    });
+                } else {
+                    console.log('Preserving original measure assignments');
+                }
 
-                // Final progress update
                 self.postMessage({ 
                     type: 'progress', 
                     payload: { current: 6, total: 6, message: 'Processing complete!', scoreId } 
                 });
 
-                // Add summary to validation errors
-                if (correctionCount > 0 || splitCount > 0) {
+                // Add processing summary to validation errors
+                if (result.correctionCount > 0 || result.splitCount > 0) {
                     const summaryParts = [];
-                    if (correctionCount > 0) summaryParts.push(\`\${correctionCount} measures corrected\`);
-                    if (splitCount > 0) summaryParts.push(\`\${splitCount} measures split\`);
-                    validationErrors.unshift(\`Processing Summary: \${summaryParts.join(', ')}\`);
+                    if (result.correctionCount > 0) summaryParts.push(\`\${result.correctionCount} measures corrected\`);
+                    if (result.splitCount > 0) summaryParts.push(\`\${result.splitCount} measures split\`);
+                    result.validationErrors.unshift(\`Processing Summary: \${summaryParts.join(', ')}\`);
                 }
 
-                // Send processed data back
                 self.postMessage({
                     type: 'scoreProcessed',
                     payload: {
                         scoreId,
-                        measures: processedMeasures,
+                        measures: finalMeasures,
                         metadata,
-                        validationErrors,
+                        validationErrors: result.validationErrors,
                         originalSize: fileContent.length,
                         stats: {
                             originalMeasures: totalMeasures,
-                            finalMeasures: processedMeasures.length,
-                            correctionCount,
-                            splitCount,
+                            finalMeasures: finalMeasures.length,
+                            correctionCount: result.correctionCount,
+                            splitCount: result.splitCount,
                             beatsPerMeasure
                         }
                     }
@@ -607,105 +652,107 @@ class ScoreManager {
         return `score_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
 
-    // Process a score with validation and progress tracking
-    async processScore(jsonString, options = {}) {
-        const {
-            fileName = 'untitled.json',
-            onProgress,
-            validateOnly = false,
-            priority = 'normal'
-        } = options;
+// Process a score with validation and progress tracking
+async processScore(jsonString, options = {}) {
+    const {
+        fileName = 'untitled.json',
+        onProgress,
+        validateOnly = false,
+        priority = 'normal',
+        disableSplitting = false  // Add this option
+    } = options;
 
-        if (!window.Worker) {
-            throw new Error('Web Workers are not supported in this browser. Cannot process large files efficiently.');
-        }
+    if (!window.Worker) {
+        throw new Error('Web Workers are not supported in this browser. Cannot process large files efficiently.');
+    }
 
-        const scoreId = this.generateScoreId();
-        
-        return new Promise((resolve, reject) => {
-            const processTask = () => {
-                const workerBlob = new Blob([workerScriptContent], { type: 'application/javascript' });
-                const workerBlobURL = URL.createObjectURL(workerBlob);
-                const worker = new Worker(workerBlobURL);
-                
-                this.workers.set(scoreId, worker);
+    const scoreId = this.generateScoreId();
+    
+    return new Promise((resolve, reject) => {
+        const processTask = () => {
+            const workerBlob = new Blob([workerScriptContent], { type: 'application/javascript' });
+            const workerBlobURL = URL.createObjectURL(workerBlob);
+            const worker = new Worker(workerBlobURL);
+            
+            this.workers.set(scoreId, worker);
 
-                const startTime = Date.now();
+            const startTime = Date.now();
 
-                worker.onmessage = (event) => {
-                    const { type, payload } = event.data;
+            worker.onmessage = (event) => {
+                const { type, payload } = event.data;
 
-                    switch (type) {
-                        case 'progress':
-                            if (onProgress) {
-                                onProgress(payload.current, payload.total, payload.message);
+                switch (type) {
+                    case 'progress':
+                        if (onProgress) {
+                            onProgress(payload.current, payload.total, payload.message);
+                        }
+                        this.emitEvent('scoreProgress', { scoreId, ...payload });
+                        break;
+
+                    case 'scoreProcessed':
+                        const processingTime = Date.now() - startTime;
+                        
+                        const cleanScore = {
+                            id: scoreId,
+                            name: fileName,
+                            measures: payload.measures,
+                            metadata: payload.metadata,
+                            createdAt: new Date(),
+                            modifiedAt: new Date(),
+                            fileSize: payload.originalSize,
+                            processingTime,
+                            validationErrors: payload.validationErrors || []
+                        };
+
+                        if (!validateOnly) {
+                            this.scores.set(scoreId, cleanScore);
+                            if (!this.activeScoreId) {
+                                this.activeScoreId = scoreId;
                             }
-                            this.emitEvent('scoreProgress', { scoreId, ...payload });
-                            break;
+                        }
 
-                        case 'scoreProcessed':
-                            const processingTime = Date.now() - startTime;
-                            
-                            const cleanScore = {
-                                id: scoreId,
-                                name: fileName,
-                                measures: payload.measures,
-                                metadata: payload.metadata,
-                                createdAt: new Date(),
-                                modifiedAt: new Date(),
-                                fileSize: payload.originalSize,
-                                processingTime,
-                                validationErrors: payload.validationErrors || []
-                            };
+                        this.cleanup(scoreId);
+                        URL.revokeObjectURL(workerBlobURL);
+                        this.emitEvent('scoreProcessed', cleanScore);
+                        resolve(cleanScore);
+                        break;
 
-                            if (!validateOnly) {
-                                this.scores.set(scoreId, cleanScore);
-                                if (!this.activeScoreId) {
-                                    this.activeScoreId = scoreId;
-                                }
-                            }
-
-                            this.cleanup(scoreId);
-                            URL.revokeObjectURL(workerBlobURL);
-                            this.emitEvent('scoreProcessed', cleanScore);
-                            resolve(cleanScore);
-                            break;
-
-                        case 'error':
-                            this.cleanup(scoreId);
-                            URL.revokeObjectURL(workerBlobURL);
-                            this.emitEvent('scoreError', { scoreId, error: payload });
-                            reject(new Error(`Score processing failed: ${payload.message}`));
-                            break;
-                    }
-                };
-
-                worker.onerror = (errorEvent) => {
-                    this.cleanup(scoreId);
-                    URL.revokeObjectURL(workerBlobURL);
-                    const error = new Error(`Web Worker error: ${errorEvent.message || 'Unknown error'}`);
-                    this.emitEvent('scoreError', { scoreId, error });
-                    reject(error);
-                };
-
-                // Send processing command
-                worker.postMessage({
-                    command: 'processScore',
-                    fileContent: jsonString,
-                    fileName,
-                    scoreId
-                });
+                    case 'error':
+                        this.cleanup(scoreId);
+                        URL.revokeObjectURL(workerBlobURL);
+                        this.emitEvent('scoreError', { scoreId, error: payload });
+                        reject(new Error(`Score processing failed: ${payload.message}`));
+                        break;
+                }
             };
 
-            // Queue management for concurrent workers
-            if (this.workers.size >= this.maxConcurrentWorkers) {
-                this.workerQueue.push({ processTask, priority, scoreId });
-                this.emitEvent('scoreQueued', { scoreId, queuePosition: this.workerQueue.length });
-            } else {
-                processTask();
-            }
-        });
-    }
+            worker.onerror = (errorEvent) => {
+                this.cleanup(scoreId);
+                URL.revokeObjectURL(workerBlobURL);
+                const error = new Error(`Web Worker error: ${errorEvent.message || 'Unknown error'}`);
+                this.emitEvent('scoreError', { scoreId, error });
+                reject(error);
+            };
+
+            // UPDATED: Send processing command with options
+            worker.postMessage({
+                command: 'processScore',
+                fileContent: jsonString,
+                fileName,
+                scoreId,
+                options: { disableSplitting }  // Pass the options to the worker
+            });
+        };
+
+        // Queue management for concurrent workers
+        if (this.workers.size >= this.maxConcurrentWorkers) {
+            this.workerQueue.push({ processTask, priority, scoreId });
+            this.emitEvent('scoreQueued', { scoreId, queuePosition: this.workerQueue.length });
+        } else {
+            processTask();
+        }
+    });
+}
 
     // Process the next item in the worker queue
     processQueue() {

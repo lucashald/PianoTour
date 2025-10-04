@@ -65,43 +65,64 @@ pianoState.overlay = document.getElementById("handOverlay");
 // Music Theory & Data Processing Helpers (Instrument-specific)
 // ===================================================================
 
-/**
- * Creates the mapping between keyboard characters and MIDI notes.
- * @param {number} baseIdx - The starting index in the whiteNoteMidis array.
- * @returns {object} The newly constructed keyMap object.
- */
 function buildMap(baseIdx) {
   const keyMap = {};
-  WHITE_KEYS_IN_VIEW.forEach((k, i) => {
+  
+  // Determine which key layout to use based on keyboard mode
+  const whiteKeys = pianoState.keyBoardMode === 1 
+    ? ["a", "s", "d", "f", "g", " ", "h", "j", "k", "l", ";"]  // Expanded: 11 keys
+    : ["a", "s", "d", "f", " ", "j", "k", "l", ";"];           // Basic: 9 keys
+
+  // Map white keys to MIDI notes (only if they exist in our piano range)
+  whiteKeys.forEach((k, i) => {
     if (whiteNoteMidis[baseIdx + i]) {
       keyMap[k] = whiteNoteMidis[baseIdx + i];
     }
   });
 
-  const keyModifiers = {
-    a: { flatKey: "q" },
-    s: { flatKey: "w" },
-    d: { flatKey: "e" },
-    f: { flatKey: "r" },
-    " ": { flatKey: "t" },
-    j: { flatKey: "u" },
-    k: { flatKey: "i" },
-    l: { flatKey: "o" },
-    ";": { flatKey: "p" },
-  };
-
-  for (const baseKeyChar in keyModifiers) {
-    const modifier = keyModifiers[baseKeyChar];
-    const baseMidi = keyMap[baseKeyChar];
-    if (baseMidi === undefined) continue;
-
-    const flatMidi = baseMidi - 1;
-    if (NOTES_BY_MIDI[flatMidi]?.isBlack) {
-      if (modifier.flatKey) keyMap[modifier.flatKey] = flatMidi;
+  // Map black keys - find the first VISIBLE black key
+  const blackKeys = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
+  const startingWhiteMidi = whiteNoteMidis[baseIdx]; // MIDI of the 'A' key
+  
+  if (startingWhiteMidi !== undefined) {
+    // Find the first VISIBLE black key to the left of the starting white key
+    let firstVisibleBlackMidi = null;
+    for (let midi = startingWhiteMidi - 1; midi >= MIN_MIDI; midi--) {
+      if (NOTES_BY_MIDI[midi]?.isBlack && pianoState.noteEls[midi]) {
+        firstVisibleBlackMidi = midi;
+        break;
+      }
+    }
+    
+    // If no visible black key to the left, try searching to the right
+    if (firstVisibleBlackMidi === null) {
+      for (let midi = startingWhiteMidi + 1; midi <= MAX_MIDI; midi++) {
+        if (NOTES_BY_MIDI[midi]?.isBlack && pianoState.noteEls[midi]) {
+          firstVisibleBlackMidi = midi;
+          break;
+        }
+      }
+    }
+    
+    // Now map consecutive VISIBLE black keys starting from the first visible one
+    if (firstVisibleBlackMidi !== null) {
+      let currentBlackKeyIndex = 0;
+      
+      for (let midi = firstVisibleBlackMidi; midi <= MAX_MIDI && currentBlackKeyIndex < blackKeys.length; midi++) {
+        if (NOTES_BY_MIDI[midi]?.isBlack && pianoState.noteEls[midi]) {
+          keyMap[blackKeys[currentBlackKeyIndex]] = midi;
+          currentBlackKeyIndex++;
+        }
+      }
     }
   }
-  keyMap["h"] = keyMap[" "];
-  keyMap["g"] = keyMap[" "];
+
+  // Add aliases only in basic mode
+  if (pianoState.keyBoardMode === 0) {
+    keyMap["h"] = keyMap[" "];
+    keyMap["g"] = keyMap[" "];
+  }
+
   return keyMap;
 }
 
@@ -259,11 +280,17 @@ function clearLabels() {
 /** Creates labels for the mapped computer keyboard keys. */
 function createMappedKeyLabels() {
   const labellableKeyMap = { ...pianoState.keyMap };
-  delete labellableKeyMap["g"];
-  delete labellableKeyMap["h"];
-  Object.entries(labellableKeyMap).forEach(([k, m]) =>
-    drawLabelOnKey(m, k.toUpperCase())
-  );
+  
+  // Remove aliases only in basic mode
+  if (pianoState.keyBoardMode === 0) {
+    delete labellableKeyMap["g"];
+    delete labellableKeyMap["h"];
+  }
+  
+  // This will naturally skip off-screen keys since they won't be in keyMap
+  Object.entries(labellableKeyMap).forEach(([k, midi]) => {
+    drawLabelOnKey(midi, k.toUpperCase());
+  });
 }
 
 /** Creates diatonic chord labels (Roman numerals). */
@@ -287,13 +314,31 @@ function createDiatonicLabels() {
 /** Updates the labels displayed on the piano keys based on the current mode. */
 function updateLabels() {
   clearLabels();
-  if (!pianoState.toggleLabels) return;
 
-  if (pianoState.isMajorChordMode || pianoState.isMinorChordMode) {
-    createDiatonicLabels();
-  } else {
-    createMappedKeyLabels();
+  // pianoState.showLabels: 0 = none, 1 = note names, 2 = keyboard letters
+  if (pianoState.showLabels === 1) {
+    // Show note names using notesByMidiKeyAware for enharmonic choice
+    createNoteNameLabels();
+  } else if (pianoState.showLabels === 2) {
+    // Show keyboard letters (existing behavior)
+    if (pianoState.isMajorChordMode || pianoState.isMinorChordMode) {
+      createDiatonicLabels();
+    } else {
+      createMappedKeyLabels();
+    }
   }
+}
+
+
+/** Creates note name labels for all visible keys. */
+function createNoteNameLabels() {
+  Object.entries(pianoState.noteEls).forEach(([midi, keyEl]) => {
+    const midiNumber = parseInt(midi, 10);
+    const noteInfo = notesByMidiKeyAware(midiNumber);
+    if (noteInfo && pianoState.noteEls[midiNumber]) {
+      drawLabelOnKey(midiNumber, noteInfo.name);
+    }
+  });
 }
 
 /** Clears single-note mode highlights from piano keys. */
@@ -313,17 +358,23 @@ export function clearHi() {
 /** Paints highlights on keys for single-note mode. */
 function paint() {
   clearHi();
-  const centerMidi = whiteNoteMidis[pianoState.baseIdx + 4];
-  const lw = whiteNoteMidis.slice(pianoState.baseIdx, pianoState.baseIdx + 4);
+  
+  // Determine layout based on keyboard mode
+  const keyCount = pianoState.keyBoardMode === 1 ? 11 : 9;
+  const centerIndex = pianoState.keyBoardMode === 1 ? 5 : 4; // spacebar position
+  
+  const centerMidi = whiteNoteMidis[pianoState.baseIdx + centerIndex];
+  const lw = whiteNoteMidis.slice(pianoState.baseIdx, pianoState.baseIdx + centerIndex);
   const rw = whiteNoteMidis.slice(
-    pianoState.baseIdx + 5,
-    pianoState.baseIdx + 9
+    pianoState.baseIdx + centerIndex + 1,
+    pianoState.baseIdx + keyCount
   );
+  
   const lb = Object.values(pianoState.keyMap).filter(
-    (m) => m > lw[0] && m < lw[3] && NOTES_BY_MIDI[m]?.isBlack
+    (m) => m > lw[0] && m < lw[lw.length - 1] && NOTES_BY_MIDI[m]?.isBlack
   );
   const rb = Object.values(pianoState.keyMap).filter(
-    (m) => m > rw[0] && m < rw[3] && NOTES_BY_MIDI[m]?.isBlack
+    (m) => m > rw[0] && m < rw[rw.length - 1] && NOTES_BY_MIDI[m]?.isBlack
   );
 
   const addClass = (cls) => (m) => pianoState.noteEls[m]?.classList.add(cls);
@@ -556,11 +607,16 @@ export function startSliderDrag(e) {
       } else {
         let anchorMidi = foundKey.isBlack ? foundKey.midi - 1 : foundKey.midi;
         const anchorIndex = whiteNoteMidis.indexOf(anchorMidi);
+        
+        // Dynamic key count and center position based on keyboard mode
+        const keyCount = pianoState.keyBoardMode === 1 ? 11 : 9;
+        const centerOffset = pianoState.keyBoardMode === 1 ? 5 : 4;
+        
         const newBaseIdx = Math.max(
           0,
           Math.min(
-            whiteNoteMidis.length - WHITE_KEYS_IN_VIEW.length,
-            anchorIndex - 4
+            whiteNoteMidis.length - keyCount,
+            anchorIndex - centerOffset
           )
         );
         if (newBaseIdx !== pianoState.baseIdx) {
@@ -578,7 +634,6 @@ export function startSliderDrag(e) {
   const endSliderDrag = () => {
     if (rafId) cancelAnimationFrame(rafId);
     if (isChordMode) updateLabels();
-    clearHi();
     pianoState.overlay.releasePointerCapture(e.pointerId);
     document.removeEventListener("pointermove", handleSliderMove);
   };
@@ -755,15 +810,21 @@ export function handleKeyPointerDown(e) {
       // ===================================================================
 
       export function handleToggleLabelsChange(e) {
-       pianoState.toggleLabels = e.target.checked;
-       updateLabels();
-       const buttonElement = e.target.parentElement;
+        // Cycle through showLabels states on each click: 0 -> 1 -> 2 -> 0
+        const prev = pianoState.showLabels || 0;
+        const next = (prev + 1) % 3; // 0,1,2
+        pianoState.showLabels = next;
+        updateLabels();
 
-       if (e.target.checked) {
-         buttonElement.classList.add("is-active");
-       } else {
-         buttonElement.classList.remove("is-active");
-       }
+        // Update UI active state and visual text for debugging accessibility
+        const buttonElement = e.target.closest('.btn') || e.target.parentElement;
+        if (buttonElement) {
+          // Add 'is-active' when any label mode is selected (showLabels !== 0)
+          if (pianoState.showLabels !== 0) buttonElement.classList.add('is-active');
+          else buttonElement.classList.remove('is-active');
+          // Optionally expose current mode via data attribute
+          buttonElement.dataset.showLabels = pianoState.showLabels;
+        }
       }
 
       /** Handles cycling through the different playing modes. */

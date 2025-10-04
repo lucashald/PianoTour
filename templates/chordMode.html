@@ -1,0 +1,34 @@
+{% extends "index.html" %}
+
+{% block title %}PianoTour - Interactive Piano Studio{% endblock %}
+
+{% block toggles %}
+    {% include 'partials/_toggles.html' %}
+    <button id="mode-cycle-btn" class="btn">Single Note</button>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+    import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+    import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
+
+    // Set instrument from template variable, default to 'Piano' if not provided
+    const templateInstrument = '{{ instrument }}' || 'piano';
+
+    // Update pianoState
+    pianoState.instrument = templateInstrument;
+
+    console.log("Set instrument to:", templateInstrument);
+
+    addBasicKeyboardListeners();
+// --- COMMON DOM READY & EVENT LISTENERS (for base template) ---
+      document.addEventListener("DOMContentLoaded", () => {
+            document
+          .getElementById("mode-cycle-btn")
+          ?.addEventListener("click", (e) => {
+            handleModeCycleClick(e);
+            document.getElementById("instrument")?.focus();
+          });
+        }
+</script>
+{% endblock %}

@@ -32,7 +32,7 @@ class KeyboardAlignedSpectrum {
       maxDb: -5,
       enableFrequencyGain: true,
       debugMode: false,
-      drawingThreshold: 0.25, // Increased from 0.1 to 0.2
+      drawingThreshold: 0.2,
       ...options,
     };
 
@@ -770,7 +770,6 @@ export function stopSpectrumVisualization() {
     const hasAudioActivity = spectrumVisualizer.instance.hasSignificantAudioActivity();
     
     if (!hasAudioActivity) {
-      console.log(`🎵 Audio activity ceased, stopping spectrum visualization (#${currentRequestId})`);
       spectrumVisualizer.stop();
       spectrumStopTimeout = null;
       pendingStopRequests = 0;

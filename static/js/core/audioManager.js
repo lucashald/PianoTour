@@ -1,4 +1,4 @@
-// audioManager.js - Enhanced with unlock status persistence
+// audioManager.js - Enhanced instrument control and audio management
 
 import {
   connectSpectrumToAudio,
@@ -17,7 +17,7 @@ export class InstrumentControl {
         this.presets = {
             piano: {
                 name: 'Piano',
-                baseUrl: '/static/samples/',
+                baseUrl: '/static/samples/piano/',
                 sampleUrls: {
                     C2: "SteinwayD_m_C2_L.wav",
                     E2: "SteinwayD_m_E2_L.wav",
@@ -36,19 +36,19 @@ export class InstrumentControl {
                 envelopeSettings: {
                     attack: 0.01,   // Very quick attack - hammer strikes
                     decay: 0.3,     // Quick decay
-                    sustain: 0.8,   // Good sustain level
-                    release: 1.2,    // Natural decay of strings
+                    sustain: 0.5,   // Good sustain level
+                    release: 0.8,     // Natural decay of strings
 
-                    // ✅ NEW: Piano effects
-                    reverb: { enabled: true, roomSize: 0.2, wet: 0.15 },
-                    compression: { enabled: true, threshold: -18, ratio: 4, attack: 0.003, release: 0.1 },
-                    eq: { enabled: true, low: +1, mid: 0, high: -1 }
+                    // Piano effects
+                    reverb: { enabled: true, roomSize: 0.15, wet: 0.15 },
+                    compression: { enabled: true, threshold: -15, ratio: 1.15, attack: 0.1, release: 0.3 },
+                    eq: { enabled: true, low: -1, mid: 1, high: 0 }
                 }
             },
 
             guitar: {
                 name: 'Guitar',
-                baseUrl: '/static/samples/',
+                baseUrl: '/static/samples/guitar/',
                 sampleUrls: {
                     "F#2": "nylonf42.wav",
                     C3: "nylonf48.wav",
@@ -60,48 +60,48 @@ export class InstrumentControl {
                     G5: "nylonf79.wav",
                 },
                 envelopeSettings: {
-                    attack: 0.02,   // Slightly slower attack - string pluck
-                    decay: 0.5,     // Longer decay
-                    sustain: 0.9,   // High sustain - strings ring
-                    release: 2.0,    // Long release - strings continue ringing
+                    attack: 0.0005,
+                    decay: 0.2,
+                    sustain: 0.2,
+                    release: 0.3,
 
-                    // ✅ NEW: Guitar effects
-                    reverb: { enabled: true, roomSize: 0.4, wet: 0.25 },
-                    chorus: { enabled: true, frequency: 1.5, depth: 0.7, wet: 0.2 },
-                    compression: { enabled: true, threshold: -16, ratio: 6, attack: 0.003, release: 0.1 }
+                    // Guitar effects
+                    reverb: { enabled: true, roomSize: 0.4, wet: 0.15 },
+                    eq: { enabled: true, low: -1, mid: 0, high: 1 },
+                    compression: { enabled: true, threshold: -10, ratio: 2.5, attack: 0.025, release: 0.08 }
                 }
             },
 
             cello: {
                 name: 'Cello',
-                baseUrl: '/static/samples/',
+                baseUrl: '/static/samples/cello/',
                 sampleUrls: {
-                    "C3": "CelloC3.wav",
-                    "A3": "CelloA3.wav",
-                    "C4": "CelloC4.wav",
-                    "D#4": "CelloD#4.wav",
-                    "E3": "CelloE3.wav",
-                    "A4": "CelloA4.wav",
-                    "F#4": "CelloF#4.wav",
-                    "D2": "CelloD2.wav",
-                    "C5": "CelloC5.wav",
-                    "G#4": "CelloG#4.wav",
+                    "C2": "C2.wav",   // Or "C2_1.wav", "C2_2.wav", etc. if C2.wav doesn't exist
+                    "G#2": "G#2.wav", // Or "G#2_1.wav", "G#2_2.wav", etc.
+                    "F2": "F2.wav",   // Or "F2_1.wav", "F2_2.wav", etc.
+                    "E2": "E2.wav",   // Or "E2_2.wav", "E2_3.wav", etc.
+                    "D2": "D2.wav",   // Or "D2_1.wav", "D2_2.wav"
+                    "C#2": "C#2.wav", // Or "C#2_2.wav", "C#2_3.wav"
+                    "D#2": "D#2.wav", // Or "D#2_1.wav", "D#2_2.wav", etc.
+                    "A2": "A2.wav",
                 },
-                envelopeSettings: {
-                    attack: 0.03,   // Slower attack - bow engagement
-                    decay: 0.2,     // Quick decay to sustain
-                    sustain: 0.95,  // Very high sustain - bowed strings
-                    release: 1.5,    // Medium release
 
-                    // ✅ NEW: Cello effects
-                    reverb: { enabled: true, roomSize: 0.6, wet: 0.3 },
-                    eq: { enabled: true, low: 2, mid: 0, high: -1 }
+                envelopeSettings: {
+                    attack: 0.08,   // Slower attack - bow engagement
+                    decay: 0.4,     // Quick decay to sustain
+                    sustain: 0.9,  // Very high sustain - bowed strings
+                    release: 1.8,     // Medium release
+
+                    // Cello effects
+                    reverb: { enabled: true, roomSize: 0.8, wet: 0.35 },
+                    eq: { enabled: true, low: 0, mid: 1, high: 0 },
+                    compression: { enabled: true, threshold: -10, ratio: 1.5, attack: 0.15, release: 0.4 }
                 }
             },
 
             sax: {
                 name: 'Saxophone',
-                baseUrl: '/static/samples/',
+                baseUrl: '/static/samples/sax/',
                 sampleUrls: {
                     A2: "TSAX45-2.wav",
                     "C#3": "TSAX49.wav",
@@ -118,12 +118,180 @@ export class InstrumentControl {
                     C6: "TSAX84-2.wav",
                 },
                 envelopeSettings: {
-                    attack: 0.03,   // Quick attack - breath/reed
-                    decay: 0.2,     // Very short decay
-                    sustain: 1.0,   // Full sustain - breath controlled
-                    release: 0.8    // Medium release
+                    attack: 0.04,   // Quick attack - breath/reed
+                    decay: 0.15,    // Very short decay
+                    sustain: 0.8,   // Full sustain - breath controlled
+                    release: 0.6,     // Medium release
+                    reverb: { enabled: true, roomSize: 0.5, wet: 0.2 },
+                    eq: { enabled: true, low: -1, mid: 1, high: 0 },
+                    compression: { enabled: true, threshold: -18, ratio: 3, attack: 0.005, release: 0.2 }
                 }
-            }
+            },
+                bass: {
+                name: 'Bass',
+                baseUrl: '/static/samples/bass/',
+                sampleUrls: {
+        "D1": "PickedBass26-2.wav",
+        "E1": "AcousticBass28.wav",
+        "G1": "PickedBass31-2.wav",
+        "G#1": "AcousticBass32.wav",
+        "A1": "PickedBass33.wav",
+        "A#1": "PickedBass34-2.wav",
+        "B1": "AcousticBass35.wav",
+        "D2": "PickedBass38.wav",
+        "D#2": "AcousticBass39.wav",
+        "E2": "PickedBass40-2.wav",
+        "F#2": "AcousticBass42.wav",
+        "A#2": "AcousticBass46.wav",
+        "B2": "PickedBass47-2.wav",
+        "C#3": "AcousticBass49.wav",
+        "D#3": "PickedBass51-2.wav",
+        "E3": "PickedBass52.wav",
+        "F#3": "AcousticBass54.wav",
+        "A3": "PickedBass57-2.wav",
+        "B3": "AcousticBass59.wav",
+        "C5": "PickedBass72-2.wav",
+        "A5": "AcousticBass81.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.05,
+                    decay: 0.3,
+                    sustain: 0.6,
+                    release: 0.5,
+
+                    // Bass effects
+                    reverb: { enabled: true, roomSize: 0.2, wet: 0.1 },
+                    eq: { enabled: true, low: 2, mid: 0, high: -2 },
+                    compression: { enabled: true, threshold: -12, ratio: 4, attack: 0.01, release: 0.15 }
+                }
+            },
+            french_horn: {
+                name: 'French Horn',
+                baseUrl: '/static/samples/french_horn/',
+                sampleUrls: {
+                    "A#2": "A#2.wav",
+                    "C#2": "C#2.wav",
+                    "C2": "C2.wav",
+                    "D#2": "D#2.wav",
+                    "D2": "D2.wav",
+                    "E2": "E2.wav",
+                    "F#2": "F#2.wav",
+                    "F2": "F2.wav",
+                    "G2": "G2.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.1,    // Slower, smooth attack
+                    decay: 0.2,     // Short decay to sustain
+                    sustain: 0.7,   // Strong, brassy sustain
+                    release: 0.5,   // Medium release
+                    
+                    // French Horn effects
+                    reverb: { enabled: true, roomSize: 0.6, wet: 0.3 },
+                    eq: { enabled: true, low: 0, mid: 1, high: -1 },
+                    compression: { enabled: true, threshold: -15, ratio: 2, attack: 0.1, release: 0.2 }
+                }
+            },
+
+            electric_guitar: {
+                name: 'Electric Guitar',
+                baseUrl: '/static/samples/electric_guitar/',
+                sampleUrls: {
+                    "A#3": "A#3.wav",
+                    "C2": "C2.wav",
+                    "C3": "C3.wav",
+                    "D#4": "D#4.wav",
+                    "F2": "F2.wav",
+                    "F3": "F3.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.01,
+                    decay: 0.2,
+                    sustain: 0.6,
+                    release: 0.5,
+
+                    // Electric Guitar effects
+                    reverb: { enabled: true, roomSize: 0.3, wet: 0.2 },
+                    compression: { enabled: true, threshold: -10, ratio: 3, attack: 0.01, release: 0.1 },
+                    eq: { enabled: true, low: 1, mid: 0, high: 1 }
+                }
+            },
+            // In audioManager.js, add to the InstrumentControl presets:
+drums: {
+    name: 'Drums',
+    baseUrl: '/static/samples/drums/',
+    sampleUrls: {
+        "C2": "kick.wav", "B1": "BOXKICK.wav",
+        "D2": "snare.wav", "C#2": "sidestick.wav",
+        "F#2": "hi-hat.wav", "A#2": "open-hat.wav",
+        "A2": "low-tom.wav", "B2": "MIDTOM.wav",
+        "C#3": "crash.wav", "D#3": "ride.wav",
+        // ... rest of your drum samples
+    },
+    envelopeSettings: {
+        attack: 0.001,    // Instant attack for drums
+        decay: 0.1,       // Quick decay
+        sustain: 0.0,     // No sustain for drums
+        release: 0.3,     // Short release
+        
+        reverb: { enabled: true, roomSize: 0.3, wet: 0.15 },
+        compression: { enabled: true, threshold: -8, ratio: 4, attack: 0.001, release: 0.05 }
+    }
+},
+            clarinet: {
+                name: 'Clarinet',
+                baseUrl: '/static/samples/clarinet/',
+                sampleUrls: {
+                    "A#2": "A#2.wav",
+                    "A#3": "A#3.wav",
+                    "D#3": "D#3.wav",
+                    "F4": "F4.wav",
+                    "C5": "C5.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.05,
+                    decay: 0.15,
+                    sustain: 0.9,
+                    release: 0.4,
+
+                    // Clarinet effects
+                    reverb: { enabled: true, roomSize: 0.5, wet: 0.25 },
+                    eq: { enabled: true, low: -1, mid: 1, high: 0 },
+                    compression: { enabled: true, threshold: -15, ratio: 2, attack: 0.05, release: 0.2 }
+                }
+            },
+            harp: {
+                name: 'Harp',
+                baseUrl: '/static/samples/harp/',
+                sampleUrls: {
+                    "B3": "Harp_B3.wav",
+                    "C3": "Harp_C3.wav",
+                    "D4": "Harp_D4.wav",
+                    "D6": "Harp_D6.wav",
+                    "D7": "Harp_D7.wav",
+                    "E3": "Harp_E3.wav",
+                    "E5": "Harp_E5.wav",
+                    "F4": "Harp_F4.wav",
+                    "F6": "Harp_F6.wav",
+                    "F7": "Harp_F7.wav",
+                    "G3": "Harp_G3.wav",
+                    "G5": "Harp_G5.wav",
+                    "A4": "Harp_A4.wav",
+                    "A6": "Harp_A6.wav",
+                    "B5": "Harp_B5.wav",
+                    "C5": "Harp_C5.wav",
+                },
+                envelopeSettings: {
+                    attack: 0.001,
+                    decay: 0.1,
+                    sustain: 0.0,
+                    release: 2.0,
+
+                    // Harp effects
+                    reverb: { enabled: true, roomSize: 0.8, wet: 0.4 },
+                    eq: { enabled: true, low: 0, mid: 0, high: 2 },
+                    compression: { enabled: true, threshold: -10, ratio: 1.5, attack: 0.01, release: 0.1 }
+                }
+              }
         };
     }
 
@@ -165,7 +333,6 @@ export class InstrumentControl {
         const preset = this.getPreset(instrumentName);
         const settings = preset ? preset.envelopeSettings : this.presets.piano.envelopeSettings;
         
-        console.log(`🎛️ Creating ${instrumentName} envelope:`, settings);
         return new EnvelopeControl(settings);
     }
 
@@ -194,80 +361,11 @@ export class InstrumentControl {
      */
     addPreset(instrumentName, presetData) {
         this.presets[instrumentName] = presetData;
-        console.log(`📝 Added preset for ${instrumentName}`);
     }
 }
 
 // Create a singleton instance
 export const Instrument = new InstrumentControl();
-
-// ===================================================================
-// Audio Unlock Status Persistence (Internal)
-// ===================================================================
-
-const UNLOCK_KEY = 'pianoTourAudioUnlocked';
-
-/**
- * Check if audio was previously unlocked
- * @returns {boolean}
- */
-function wasAudioPreviouslyUnlocked() {
-  try {
-    const unlocked = localStorage.getItem(UNLOCK_KEY);
-    return unlocked === 'true';
-  } catch (error) {
-    console.error('Failed to check unlock status:', error);
-    return false;
-  }
-}
-
-/**
- * Mark audio as unlocked
- */
-function markAudioAsUnlocked() {
-  try {
-    localStorage.setItem(UNLOCK_KEY, 'true');
-    localStorage.setItem(UNLOCK_KEY + '_timestamp', Date.now().toString());
-    console.log('Audio marked as unlocked');
-  } catch (error) {
-    console.error('Failed to save unlock status:', error);
-  }
-}
-
-/**
- * Check if unlock status is recent (within 24 hours)
- * @returns {boolean}
- */
-function isUnlockStatusFresh() {
-  try {
-    if (!wasAudioPreviouslyUnlocked()) return false;
-
-    const timestamp = localStorage.getItem(UNLOCK_KEY + '_timestamp');
-    if (!timestamp) return false;
-
-    const unlockTime = parseInt(timestamp);
-    const now = Date.now();
-    const oneDay = 24 * 60 * 60 * 1000;
-
-    return (now - unlockTime) < oneDay;
-  } catch (error) {
-    console.error('Failed to check unlock freshness:', error);
-    return false;
-  }
-}
-
-/**
- * Clear unlock status (for testing or reset)
- */
-function clearUnlockStatus() {
-  try {
-    localStorage.removeItem(UNLOCK_KEY);
-    localStorage.removeItem(UNLOCK_KEY + '_timestamp');
-    console.log('Audio unlock status cleared');
-  } catch (error) {
-    console.error('Failed to clear unlock status:', error);
-  }
-}
 
 // ===================================================================
 // Audio State Management
@@ -317,7 +415,7 @@ function processDeferredAction() {
 let spectrumInitialized = false;
 let spectrumActive = false;
 
-function initializeSpectrumVisualizer() {
+export function initializeSpectrumVisualizer() {
   try {
     const spectrumContainer = document.getElementById("spectrum");
     if (!spectrumContainer) {
@@ -335,6 +433,7 @@ function initializeSpectrumVisualizer() {
       showLabels: false,
       minDb: -90,
       maxDb: -5,
+      drawingThreshold: 0.2,
       enableFrequencyGain: true,
       debugMode: false,
     };
@@ -342,7 +441,7 @@ function initializeSpectrumVisualizer() {
     initializeSpectrum(spectrumOptions);
     spectrumInitialized = true;
 
-    // ✅ FIXED: Connect to envelope output instead of sampler
+    // Connect to envelope output instead of sampler
     if (pianoState.envelope) {
       connectSpectrumToAudio(pianoState.envelope.envelope); // Connect to the actual Tone.js envelope
       console.log("Spectrum connected to envelope output");
@@ -366,12 +465,15 @@ export function startSpectrumIfReady() {
   }
 }
 
-// Replace the getSampleUrls function and update initializeAudio
+// ===================================================================
+// Audio Initialization
+// ===================================================================
+
 async function initializeAudio() {
     let timeoutId;
     try {
         setAudioStatus('loading');
-        console.log("InitializeAudio: Starting UNCONDITIONAL audio initialization for debugging.");
+        console.log("InitializeAudio: Starting audio initialization");
 
         const overallTimeoutPromise = new Promise((_, reject) => {
             timeoutId = setTimeout(() => {
@@ -381,24 +483,23 @@ async function initializeAudio() {
 
         await Promise.race([
             (async () => {
-                // Stage 1: Always attempt to unlock audio.
-                console.log("Forcing multiple unlock strategies for debugging.");
+                // Stage 1: Attempt to unlock audio
+                console.log("Attempting audio unlock strategies");
                 await attemptMultipleAudioUnlocks();
 
-                // Stage 2: Initialize Tone.js with retry logic.
+                // Stage 2: Initialize Tone.js with retry logic
                 await initializeToneWithRetry();
 
                 // Stage 3: Create instrument-specific sampler and envelope
                 console.log("Creating and configuring sampler...");
                 
-                // ✅ NEW: Get current instrument (default to piano)
+                // Get current instrument (default to piano)
                 const currentInstrument = pianoState.instrument || 'piano';
-                console.log(`🎵 Initializing ${currentInstrument} instrument`);
 
-                // ✅ NEW: Create instrument-specific envelope
+                // Create instrument-specific envelope
                 pianoState.envelope = Instrument.createEnvelope(currentInstrument);
 
-                // ✅ NEW: Get instrument-specific sample URLs and base URL
+                // Get instrument-specific sample URLs and base URL
                 const sampleUrls = Instrument.getSampleUrls(currentInstrument);
                 const baseUrl = Instrument.getBaseUrl(currentInstrument);
 
@@ -406,20 +507,21 @@ async function initializeAudio() {
                 pianoState.sampler = new Tone.Sampler({
                     urls: sampleUrls,
                     baseUrl: baseUrl,
-                    onload: () => console.log(`🎵 All ${currentInstrument} samples loaded successfully.`),
+                    onload: () => console.log(`All ${currentInstrument} samples loaded successfully.`),
                     onerror: (error) => console.error("Sample loading error:", error)
                 });
 
                 // Connect sampler -> envelope -> destination
                 pianoState.envelope.connect(pianoState.sampler);
-                console.log('🎛️ Current envelope settings:', pianoState.envelope.getSettings());
+                console.log('Current envelope settings:', pianoState.envelope.getSettings());
 
                 await Tone.loaded();
 
-                // Stage 4: Final setup and validation.
+                // Stage 4: Final setup and validation
                 pianoState.ctxStarted = true;
                 pianoState.samplerReady = true;
                 initializeSpectrumVisualizer();
+                startSpectrumIfReady();
 
                 const isValid = await validateAudioSystem();
                 if (!isValid) {
@@ -432,7 +534,6 @@ async function initializeAudio() {
         // Success Path
         clearTimeout(timeoutId);
         setAudioStatus('ready');
-        initializeAudioControls();
         processDeferredAction();
 
         const instrument = document.getElementById("instrument");
@@ -453,14 +554,12 @@ async function initializeAudio() {
     }
 }
 
-// Remove the old getSampleUrls function entirely
-
 /**
  * Tries multiple strategies to unlock the audio context on mobile devices.
  */
 async function attemptMultipleAudioUnlocks() {
     const unlockStrategies = [
-        // Strategy 1: Play a silent HTML audio element.
+        // Strategy 1: Play a silent HTML audio element
         async () => {
             const unlockAudio = document.getElementById("unlock-audio");
             if (unlockAudio) {
@@ -473,7 +572,7 @@ async function attemptMultipleAudioUnlocks() {
             }
             return false;
         },
-        // Strategy 2: Create and play a silent buffer with the Web Audio API.
+        // Strategy 2: Create and play a silent buffer with the Web Audio API
         async () => {
             try {
                 const audioContext = new(window.AudioContext || window.webkitAudioContext)();
@@ -503,7 +602,6 @@ async function attemptMultipleAudioUnlocks() {
     console.warn("All audio unlock strategies failed. Proceeding with Tone.start() as a last resort.");
 }
 
-
 /**
  * Attempts to start Tone.js, retrying on failure.
  * @param {number} maxRetries - The maximum number of attempts.
@@ -514,25 +612,25 @@ async function initializeToneWithRetry(maxRetries = 3) {
             await Tone.start();
             console.log(`Tone.js started successfully on attempt ${attempt}.`);
 
-            // Handle specific mobile browser state where context is 'interrupted'.
+            // Handle specific mobile browser state where context is 'interrupted'
             if (Tone.context.state === 'interrupted') {
                 console.log("Context was interrupted, attempting resume...");
                 await Tone.context.resume();
             }
 
-            // Final check to ensure the context is running.
+            // Final check to ensure the context is running
             if (Tone.context.state !== 'running') {
                 throw new Error(`Audio context is in an unexpected state: ${Tone.context.state}`);
             }
 
-            return; // Success, exit the loop.
+            return; // Success, exit the loop
 
         } catch (error) {
             console.warn(`Tone.js start attempt ${attempt} of ${maxRetries} failed:`, error);
             if (attempt === maxRetries) {
                 throw new Error("Failed to start Tone.js after multiple retries.");
             }
-            // Wait with an increasing backoff before the next retry.
+            // Wait with an increasing backoff before the next retry
             await new Promise(resolve => setTimeout(resolve, 300 * attempt));
         }
     }
@@ -618,18 +716,13 @@ export async function unlockAndExecute(newAction, replaceExisting = true) {
 }
 
 export function initializeAudioControls() {
-  const volumeSlider = document.getElementById('volumeSlider'); // Changed from 'volumeControl'
+  const volumeSlider = document.getElementById('volumeSlider');
   
   if (volumeSlider) {
     // Convert 0-100 range to dB range (-20 to 0)
     function percentToDb(percent) {
       if (percent === 0) return -Infinity; // Complete silence
       return (percent / 100) * 20 - 20; // Maps 100% to 0dB, 1% to -19.8dB
-    }
-    
-    function dbToPercent(db) {
-      if (db === -Infinity) return 0;
-      return Math.max(0, Math.min(100, (db + 20) / 20 * 100));
     }
 
     // Restore saved volume on load
@@ -665,26 +758,6 @@ export function isAudioReady() {
   return pianoState.audioStatus === 'ready';
 }
 
-/**
- * Get unlock status information (for UI updates)
- * @returns {Object} Unlock status info
- */
-export function getUnlockStatus() {
-  return {
-    wasPreviouslyUnlocked: wasAudioPreviouslyUnlocked(),
-    isFreshUnlock: isUnlockStatusFresh(),
-    canOptimizeUnlock: isUnlockStatusFresh()
-  };
-}
-
-/**
- * Reset unlock status (for testing)
- */
-export function resetUnlockStatus() {
-  clearUnlockStatus();
-  console.log('Audio unlock status reset');
-}
-
 // ===================================================================
 // Default Export
 // ===================================================================
@@ -695,6 +768,4 @@ export default {
   unlockAndExecute,
   isAudioReady,
   startSpectrumIfReady,
-  getUnlockStatus,
-  resetUnlockStatus,
 };

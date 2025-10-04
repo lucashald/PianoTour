@@ -4557,49 +4557,22 @@ export function transposeNote(noteName, semitones) {
   return newNoteInfo ? newNoteInfo.name : noteName;
 }
 
+const MINOR_TO_RELATIVE_MAJOR = {
+  "A": "C", "E": "G", "B": "D", "F#": "A", "C#": "E", "G#": "B", "D#": "F#", "A#": "C#",
+  "D": "F", "G": "Bb", "C": "Eb", "F": "Ab", "Bb": "Db", "Eb": "Gb", "Ab": "Cb"
+};
+
+const MAJOR_TO_RELATIVE_MINOR = {
+  "C": "Am", "G": "Em", "D": "Bm", "A": "F#m", "E": "C#m", "B": "G#m", "F#": "D#m", "C#": "A#m",
+  "F": "Dm", "Bb": "Gm", "Eb": "Cm", "Ab": "Fm", "Db": "Bbm", "Gb": "Ebm", "Cb": "Abm"
+};
+
 export function getKeySignature() {
   const keySignature = pianoState.keySignature;
   const isMinor = pianoState.isMinorKey;
 
-  // Map minor keys to their relative majors
-  const minorToRelativeMajor = {
-    "A": "C", // A minor → C major (0 sharps/flats)
-    "E": "G", // E minor → G major (1 sharp)
-    "B": "D", // B minor → D major (2 sharps)
-    "F#": "A", // F# minor → A major (3 sharps)
-    "C#": "E", // C# minor → E major (4 sharps)
-    "G#": "B", // G# minor → B major (5 sharps)
-    "D#": "F#", // D# minor → F# major (6 sharps)
-    "A#": "C#", // A# minor → C# major (7 sharps)
-    "D": "F", // D minor → F major (1 flat)
-    "G": "Bb", // G minor → Bb major (2 flats)
-    "C": "Eb", // C minor → Eb major (3 flats)
-    "F": "Ab", // F minor → Ab major (4 flats)
-    "Bb": "Db", // Bb minor → Db major (5 flats)
-    "Eb": "Gb", // Eb minor → Gb major (6 flats)
-    "Ab": "Cb", // Ab minor → Cb major (7 flats)
-  };
-
-  const majorToRelativeMinor = {
-    "C": "Am",   // C major → A minor
-    "G": "Em",   // G major → E minor  
-    "D": "Bm",   // D major → B minor
-    "A": "F#m",  // A major → F# minor
-    "E": "C#m",  // E major → C# minor
-    "B": "G#m",  // B major → G# minor
-    "F#": "D#m", // F# major → D# minor
-    "C#": "A#m", // C# major → A# minor
-    "F": "Dm",   // F major → D minor
-    "Bb": "Gm",  // Bb major → G minor
-    "Eb": "Cm",  // Eb major → C minor
-    "Ab": "Fm",  // Ab major → F minor
-    "Db": "Bbm", // Db major → Bb minor
-    "Gb": "Ebm", // Gb major → Eb minor
-    "Cb": "Abm", // Cb major → Ab minor
-  }
-
-  if (isMinor && majorToRelativeMinor[keySignature]) {
-    return majorToRelativeMinor[keySignature];
+  if (isMinor && MAJOR_TO_RELATIVE_MINOR[keySignature]) {
+    return MAJOR_TO_RELATIVE_MINOR[keySignature];
   }
 
   return keySignature;
@@ -4609,46 +4582,8 @@ export function getCurrentVexFlowKeySignature() {
   const pitchClass = pianoState.keySignature.replace(/\d+$/, ""); // Remove octave
   const isMinor = pianoState.isMinorChordMode;
 
-  // Map minor keys to their relative majors for VexFlow
-  const minorToRelativeMajor = {
-    A: "C", // A minor → C major (0 sharps/flats)
-    E: "G", // E minor → G major (1 sharp)
-    B: "D", // B minor → D major (2 sharps)
-    "F#": "A", // F# minor → A major (3 sharps)
-    "C#": "E", // C# minor → E major (4 sharps)
-    "G#": "B", // G# minor → B major (5 sharps)
-    "D#": "F#", // D# minor → F# major (6 sharps)
-    "A#": "C#", // A# minor → C# major (7 sharps)
-
-    D: "F", // D minor → F major (1 flat)
-    G: "Bb", // G minor → Bb major (2 flats)
-    C: "Eb", // C minor → Eb major (3 flats)
-    F: "Ab", // F minor → Ab major (4 flats)
-    Bb: "Db", // Bb minor → Db major (5 flats)
-    Eb: "Gb", // Eb minor → Gb major (6 flats)
-    Ab: "Cb", // Ab minor → Cb major (7 flats)
-  };
-
-  const majorToRelativeMinor = {
-    "C": "Am",   // C major → A minor
-    "G": "Em",   // G major → E minor  
-    "D": "Bm",   // D major → B minor
-    "A": "F#m",  // A major → F# minor
-    "E": "C#m",  // E major → C# minor
-    "B": "G#m",  // B major → G# minor
-    "F#": "D#m", // F# major → D# minor
-    "C#": "A#m", // C# major → A# minor
-    "F": "Dm",   // F major → D minor
-    "Bb": "Gm",  // Bb major → G minor
-    "Eb": "Cm",  // Eb major → C minor
-    "Ab": "Fm",  // Ab major → F minor
-    "Db": "Bbm", // Db major → Bb minor
-    "Gb": "Ebm", // Gb major → Eb minor
-    "Cb": "Abm", // Cb major → Ab minor
-  }
-
-  if (isMinor && minorToRelativeMajor[pitchClass]) {
-    return minorToRelativeMajor[pitchClass];
+  if (isMinor && MINOR_TO_RELATIVE_MAJOR[pitchClass]) {
+    return MINOR_TO_RELATIVE_MAJOR[pitchClass];
   }
 
   // Handle enharmonic equivalents for major keys
@@ -4661,19 +4596,19 @@ export function getCurrentVexFlowKeySignature() {
   return enharmonicMap[pitchClass] || pitchClass;
 }
 
-export function getChordByDegree(degree = 1) {
+export function getChordByDegree(degree = 1, keySignature = null) {
   // Validate degree
   if (degree < 1 || degree > 7) {
     console.warn(`Invalid scale degree ${degree}. Must be 1-7`);
     return null;
   }
 
-  // Get scale data directly
-  const keySignature = getKeySignature();
-  const scaleData = DIATONIC_SCALES[keySignature];
+  // Use provided key signature or fall back to current key signature
+  const keyToUse = keySignature || getKeySignature();
+  const scaleData = DIATONIC_SCALES[keyToUse];
 
   if (!scaleData) {
-    console.warn(`Scale data not found for key: ${keySignature}`);
+    console.warn(`Scale data not found for key: ${keyToUse}`);
     return null;
   }
 
@@ -4704,6 +4639,32 @@ export function getChordByDegree(degree = 1) {
   console.warn(`Chord ${chordName} not found in CHORD_DEFINITIONS`);
   return null;
 }
+
+export function getRelativeKey() {
+  const keySignature = pianoState.keySignature;
+  const isMinor = pianoState.isMinorKey;
+
+  if (isMinor) {
+    // Current key is minor, return its relative major
+    return MINOR_TO_RELATIVE_MAJOR[keySignature] || keySignature;
+  } else {
+    // Current key is major, return its relative minor
+    return MAJOR_TO_RELATIVE_MINOR[keySignature] || keySignature;
+  }
+}
+
+export function getScale() {  // Get scale data directly
+  const keySignature = getKeySignature();
+  const scaleData = DIATONIC_SCALES[keySignature];
+
+  if (!scaleData) {
+    console.warn(`Scale data not found for key: ${keySignature}`);
+    return null;
+  }
+
+  return scaleData;
+}
+
 
 /**
  * Splits an array of notes between bass and treble clefs for optimal notation display
@@ -4810,4 +4771,299 @@ export function identifyChord(notes, allowDuplicates = true) {
   }
   
   return null;
+}
+
+const INTERVAL_DEFINITIONS = {
+    unison: { semitones: 0, displayName: 'Unison' },
+    major2: { semitones: 2, displayName: 'Major 2nd' },
+    minor3: { semitones: 3, displayName: 'Minor 3rd' },
+    major3: { semitones: 4, displayName: 'Major 3rd' },
+    perfect4: { semitones: 5, displayName: 'Perfect 4th' },
+    perfect5: { semitones: 7, displayName: 'Perfect 5th' },
+    major6: { semitones: 9, displayName: 'Major 6th' },
+    major7: { semitones: 11, displayName: 'Major 7th' },
+    octave: { semitones: 12, displayName: 'Octave' }
+};
+
+// Function to create interval chord from a root note
+export function createIntervalChord(rootNoteName, intervalType) {
+    const interval = INTERVAL_DEFINITIONS[intervalType];
+    if (!interval) return null;
+    
+    const rootMidi = NOTES_BY_NAME[rootNoteName];
+    if (rootMidi === undefined) return null;
+    
+    const intervalMidi = rootMidi + interval.semitones;
+    const intervalNote = ALL_NOTE_INFO.find(note => note.midi === intervalMidi);
+    
+    if (!intervalNote) return null;
+    
+    return {
+        displayName: `${rootNoteName} + ${interval.displayName}`,
+        treble: [rootNoteName, intervalNote.name],
+        bass: [rootNoteName, intervalNote.name]
+    };
+}
+
+const KEY_SIGNATURE_MIDI_CORRECTIONS = {
+  // SHARP KEYS
+  "G": {
+    // F → F# (all octaves from C1 to B8)
+    29: 30, // F1 → F#1
+    41: 42, // F2 → F#2
+    53: 54, // F3 → F#3
+    65: 66, // F4 → F#4
+    77: 78, // F5 → F#5
+    89: 90, // F6 → F#6
+    101: 102, // F7 → F#7
+    113: 114, // F8 → F#8
+  },
+  
+  "D": {
+    // F → F#, C → C#
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
+  },
+  
+  "A": {
+    // F → F#, C → C#, G → G#
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
+  },
+  
+  "E": {
+    // F → F#, C → C#, G → G#, D → D#
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
+    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111, // D → D#
+  },
+  
+  "B": {
+    // F → F#, C → C#, G → G#, D → D#, A → A#
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
+    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111, // D → D#
+    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118, // A → A#
+  },
+  
+  "F#": {
+    // F → F#, C → C#, G → G#, D → D#, A → A#, E → E#
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
+    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111, // D → D#
+    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118, // A → A#
+    28: 29, 40: 41, 52: 53, 64: 65, 76: 77, 88: 89, 100: 101, 112: 113, // E → E# (F)
+  },
+  
+  "C#": {
+    // F → F#, C → C#, G → G#, D → D#, A → A#, E → E#, B → B#
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
+    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111, // D → D#
+    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118, // A → A#
+    28: 29, 40: 41, 52: 53, 64: 65, 76: 77, 88: 89, 100: 101, 112: 113, // E → E# (F)
+    35: 36, 47: 48, 59: 60, 71: 72, 83: 84, 95: 96, 107: 108, 119: 120, // B → B# (C)
+  },
+
+  // FLAT KEYS
+  "F": {
+    // B → Bb
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
+  },
+  
+  "Bb": {
+    // B → Bb, E → Eb
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
+  },
+  
+  "Eb": {
+    // B → Bb, E → Eb, A → Ab
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
+  },
+  
+  "Ab": {
+    // B → Bb, E → Eb, A → Ab, D → Db
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
+    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109, // D → Db
+  },
+  
+  "Db": {
+    // B → Bb, E → Eb, A → Ab, D → Db, G → Gb
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
+    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109, // D → Db
+    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114, // G → Gb
+  },
+  
+  "Gb": {
+    // B → Bb, E → Eb, A → Ab, D → Db, G → Gb, C → Cb
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
+    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109, // D → Db
+    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114, // G → Gb
+    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107, // C → Cb (B)
+  },
+  
+  "Cb": {
+    // B → Bb, E → Eb, A → Ab, D → Db, G → Gb, C → Cb, F → Fb
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
+    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109, // D → Db
+    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114, // G → Gb
+    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107, // C → Cb (B)
+    29: 28, 41: 40, 53: 52, 65: 64, 77: 76, 89: 88, 101: 100, 113: 112, // F → Fb (E)
+  },
+
+  // MINOR KEYS (use same accidentals as relative major)
+  "Am": {}, // A minor = C major (no accidentals)
+  
+  "Em": {
+    // F → F# (same as G major)
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
+  },
+  
+  "Bm": {
+    // F → F#, C → C# (same as D major)
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
+  },
+  
+  "F#m": {
+    // F → F#, C → C#, G → G# (same as A major)
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
+  },
+  
+  "C#m": {
+    // F → F#, C → C#, G → G#, D → D# (same as E major)
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
+    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111,
+  },
+  
+  "G#m": {
+    // F → F#, C → C#, G → G#, D → D#, A → A# (same as B major)
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
+    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111,
+    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118,
+  },
+  
+  "D#m": {
+    // F → F#, C → C#, G → G#, D → D#, A → A#, E → E# (same as F# major)
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
+    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111,
+    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118,
+    28: 29, 40: 41, 52: 53, 64: 65, 76: 77, 88: 89, 100: 101, 112: 113,
+  },
+  
+  "A#m": {
+    // All 7 sharps (same as C# major)
+    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
+    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
+    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
+    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111,
+    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118,
+    28: 29, 40: 41, 52: 53, 64: 65, 76: 77, 88: 89, 100: 101, 112: 113,
+    35: 36, 47: 48, 59: 60, 71: 72, 83: 84, 95: 96, 107: 108, 119: 120,
+  },
+  
+  "Dm": {
+    // B → Bb (same as F major)
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
+  },
+  
+  "Gm": {
+    // B → Bb, E → Eb (same as Bb major)
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
+  },
+  
+  "Cm": {
+    // B → Bb, E → Eb, A → Ab (same as Eb major)
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
+  },
+  
+  "Fm": {
+    // B → Bb, E → Eb, A → Ab, D → Db (same as Ab major)
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
+    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
+  },
+  
+  "Bbm": {
+    // B → Bb, E → Eb, A → Ab, D → Db, G → Gb (same as Db major)
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
+    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
+    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114,
+  },
+  
+  "Ebm": {
+    // B → Bb, E → Eb, A → Ab, D → Db, G → Gb, C → Cb (same as Gb major)
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
+    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
+    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114,
+    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107,
+  },
+  
+  "Abm": {
+    // All 7 flats (same as Cb major)
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
+    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
+    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114,
+    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107,
+    29: 28, 41: 40, 53: 52, 65: 64, 77: 76, 89: 88, 101: 100, 113: 112,
+  },
+  
+  "Dbm": {
+    // All 7 flats (same as Cb major - theoretical key)
+    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
+    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
+    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
+    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
+    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114,
+    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107,
+    29: 28, 41: 40, 53: 52, 65: 64, 77: 76, 89: 88, 101: 100, 113: 112,
+  },
+  
+  // C major has no accidentals, so no corrections needed
+  "C": {}
+};
+
+// Function to apply key signature corrections to MIDI number
+export function applyKeySignatureCorrection(midiNumber, keySignature) {
+  const corrections = KEY_SIGNATURE_MIDI_CORRECTIONS[keySignature];
+  if (!corrections) {
+    console.warn(`Unknown key signature: ${keySignature}`);
+    return midiNumber;
+  }
+  
+  return corrections[midiNumber] || midiNumber;
 }

@@ -1,0 +1,238 @@
+<div class="guitar-tuning-container">
+    <label for="guitarTuningSelect" class="tuning-label">Guitar Tuning:</label>
+    <select id="guitarTuningSelect" class="tuning-select">
+        <option value="">Loading tunings...</option>
+    </select>
+    <div id="currentTuningDisplay" class="current-tuning-display">
+        <span class="tuning-notes"></span>
+    </div>
+</div>
+
+<style>
+.guitar-tuning-container {
+    margin: 15px 0;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.tuning-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+    font-size: 14px;
+}
+
+.tuning-select {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.tuning-select:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.tuning-select:hover {
+    border-color: #999;
+}
+
+.current-tuning-display {
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    font-size: 12px;
+    color: #666;
+}
+
+.tuning-notes {
+    font-family: monospace;
+    font-weight: bold;
+}
+</style>
+
+<script type="module">
+    import { setGuitarTuning, getPresetTunings, getCurrentTuningNotes } from '{{ url_for("static", filename="js/instrument/guitarInstrument.js") }}';
+    
+    class GuitarTuningSelector {
+        constructor() {
+            this.select = document.getElementById('guitarTuningSelect');
+            this.tuningDisplay = document.getElementById('currentTuningDisplay');
+            this.currentTuningSpan = this.tuningDisplay.querySelector('.tuning-notes');
+            
+            this.init();
+        }
+        
+        async init() {
+            await this.loadTunings();
+            this.bindEvents();
+            this.updateCurrentTuningDisplay();
+        }
+        
+        async loadTunings() {
+            try {
+                // Get available preset tunings
+                const presetTunings = getPresetTunings();
+                
+                // Clear loading option
+                this.select.innerHTML = '';
+                
+                // Add default option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select a tuning...';
+                this.select.appendChild(defaultOption);
+                
+                // Add preset tunings
+                Object.entries(presetTunings).forEach(([name, tuningData]) => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = `${this.formatTuningName(name)} (${tuningData.notes.join('-')})`;
+                    this.select.appendChild(option);
+                });
+                
+                // Set current tuning as selected
+                this.setCurrentSelection();
+                
+            } catch (error) {
+                console.error('Error loading guitar tunings:', error);
+                this.select.innerHTML = '<option value="">Error loading tunings</option>';
+            }
+        }
+        
+        formatTuningName(name) {
+            // Convert preset names to display format
+            return name
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ');
+        }
+        
+        setCurrentSelection() {
+            try {
+                const currentNotes = getCurrentTuningNotes();
+                const presetTunings = getPresetTunings();
+                
+                // Find matching preset
+                for (const [name, tuningData] of Object.entries(presetTunings)) {
+                    if (this.arraysEqual(currentNotes, tuningData.notes)) {
+                        this.select.value = name;
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.warn('Could not determine current tuning selection:', error);
+            }
+        }
+        
+        arraysEqual(a, b) {
+            return Array.isArray(a) && Array.isArray(b) && 
+                   a.length === b.length && 
+                   a.every((val, i) => val === b[i]);
+        }
+        
+        bindEvents() {
+            this.select.addEventListener('change', (e) => {
+                const selectedTuning = e.target.value;
+                
+                if (selectedTuning) {
+                    this.changeTuning(selectedTuning);
+                }
+            });
+        }
+        
+        changeTuning(tuningName) {
+            try {
+                console.log(`🎸 Changing to ${tuningName} tuning...`);
+                
+                const success = setGuitarTuning(tuningName);
+                
+                if (success) {
+                    this.updateCurrentTuningDisplay();
+                    
+                    // Show feedback
+                    this.showFeedback(`Changed to ${this.formatTuningName(tuningName)} tuning`, 'success');
+                    
+                    // Dispatch custom event for other components
+                    document.dispatchEvent(new CustomEvent('guitarTuningChanged', {
+                        detail: { 
+                            tuningName: tuningName,
+                            notes: getCurrentTuningNotes()
+                        }
+                    }));
+                } else {
+                    this.showFeedback('Failed to change tuning', 'error');
+                    console.error('❌ Failed to change guitar tuning');
+                }
+                
+            } catch (error) {
+                console.error('Error changing guitar tuning:', error);
+                this.showFeedback('Error changing tuning', 'error');
+            }
+        }
+        
+        updateCurrentTuningDisplay() {
+            try {
+                const currentNotes = getCurrentTuningNotes();
+                this.currentTuningSpan.textContent = `Current: ${currentNotes.join(' - ')}`;
+            } catch (error) {
+                this.currentTuningSpan.textContent = 'Current: Unknown';
+                console.warn('Could not get current tuning notes:', error);
+            }
+        }
+        
+        showFeedback(message, type = 'info') {
+            // Create temporary feedback element
+            const feedback = document.createElement('div');
+            feedback.className = `tuning-feedback tuning-feedback--${type}`;
+            feedback.textContent = message;
+            
+            // Style the feedback
+            Object.assign(feedback.style, {
+                position: 'absolute',
+                top: '100%',
+                left: '0',
+                right: '0',
+                padding: '8px',
+                marginTop: '4px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                zIndex: '1000',
+                backgroundColor: type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#d1ecf1',
+                color: type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#0c5460',
+                border: `1px solid ${type === 'success' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#bee5eb'}`
+            });
+            
+            // Position relative to container
+            this.select.parentNode.style.position = 'relative';
+            this.select.parentNode.appendChild(feedback);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.parentNode.removeChild(feedback);
+                }
+            }, 3000);
+        }
+    }
+    
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+        new GuitarTuningSelector();
+    });
+    
+    // Listen for external tuning changes
+    document.addEventListener('guitarTuningChanged', (e) => {
+        console.log('🎸 Guitar tuning changed externally:', e.detail);
+    });
+</script>

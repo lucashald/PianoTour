@@ -4,10 +4,13 @@
 // Centralized state object for all mutable variables
 export const pianoState = {
     // UI Interaction State
+    show_side_panel: false,
     toggleLabels: false,
+    showLabels: 0, // 0: Off, 1: Note Names, 2: Keyboard Letters
     isMajorChordMode: false,
     isMinorChordMode: false,
     chordButtonMode: 0, // 0: Hidden, 1: Bass, 2: Treble
+    keyBoardMode: 1, // 0: Basic, 1: Expanded
 
         // In your pianoState initialization, add:
     isDragging: false,
@@ -50,13 +53,18 @@ export const pianoState = {
     gw: null,          // SVG group for white keys
     gb: null,          // SVG group for black keys
     overlay: null,     // Hand overlay (slider) element
-    gate: null,        // Gate/Unlock screen element
     isUnlocked: false,
 	
 	// Track user selections and playback.
 	currentSelectedMeasure: -1,
     currentSelectedNote: null, // { measureIndex, clef, noteId }
     currentPlaybackNotes: new Set(),
+
+    legatoTime: 1, // Default legato time as percentage of note duration
+    staccatoTime: 0.85, // Default staccato time as percentage of note duration
+    velocity: 100, // Default velocity for MIDI playback
+    enableBeaming: true, // Default beaming state
+    enableTies: true, // Default ties state
 };
 
 export const drumsState = {
@@ -107,7 +115,6 @@ export const drumsState = {
     gw: null,          // SVG group for white keys
     gb: null,          // SVG group for black keys
     overlay: null,     // Hand overlay (slider) element
-    gate: null,        // Gate/Unlock screen element
     isUnlocked: false,
 	
 	// Track user selections and playback.

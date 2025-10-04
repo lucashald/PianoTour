@@ -14,7 +14,6 @@ class PianoTourPlayer {
     }
 
     async initialize() {
-        console.log('🎹 Initializing minimal Piano Tour player...');
 
         // Wait for SpessaSynth libraries
         await this.waitForLibraries();
@@ -264,7 +263,7 @@ async waitForLibraries() {
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Starting minimal Piano Tour...');
+    console.log('Starting minimal Piano Tour...');
     window.pianoTourPlayer = new PianoTourPlayer();
 });
 

@@ -46,7 +46,7 @@
             <div class="score-viewer__content" id="score"></div>
           </div>
         </section>
-        <div class="outer-instrument-wrapper">
+        <div class="outer-wrapper">
         <section class="instrument-panel">
           {% block spectrum %} {% if not hide_spectrum %} {% include
           'partials/_spectrum.html' %} {% endif %} {% endblock %}
@@ -56,7 +56,7 @@
         </section>
         </div>
         <nav class="main-controls">
-          <div class="main-controls__button-row">
+          <div class="controls-button-row">
             <button id="clearScoreBtn" class="btn btn--danger">
               Clear Score
             </button>
@@ -76,7 +76,7 @@
             {% endblock %}
           </div>
 
-          <div class="main-controls__button-row">
+          <div class="controls-button-row">
             {% block toggles %}{% endblock %}
             <button id="chord-display-toggle" class="btn btn--toggle">
               <span>Show Chords</span>
@@ -400,9 +400,6 @@
       // REVISED: setupUnlockSystem to use audioManager for MIDI initialization
       function setupUnlockSystem() {
         pianoState.unlock = async () => {
-          // No longer using pianoState.midiInitialized as a direct gate for audio unlock
-          // audioManager handles the core audio unlock, and MIDI setup can follow that.
-
           console.log(
             "🔓 Attempting to unlock audio and initialize MIDI via audioManager..."
           );

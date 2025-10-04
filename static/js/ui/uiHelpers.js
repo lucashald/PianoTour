@@ -258,3 +258,14 @@ export function toggleIsMinorKey() {
         regenerateChords: true
     });
 }
+
+export function show_side_panel() {
+    // Toggle the state
+    pianoState.show_side_panel = !pianoState.show_side_panel;
+    
+    // Toggle the CSS class to show/hide the panel
+    const sidePanel = document.querySelector('.piano-app__side-panel');
+    if (sidePanel) {
+        sidePanel.classList.toggle('visible');
+    }
+}

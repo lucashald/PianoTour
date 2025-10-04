@@ -22,7 +22,7 @@ import { handleInitialGuitar } from "../instrument/guitarInstrument.js";
 
 import { initializeGuitarControls, createChordPalette } from "./guitarUI.js";
 
-import { toggleIsMinorKey } from "../ui/uiHelpers.js";
+import { toggleIsMinorKey, show_side_panel } from "../ui/uiHelpers.js";
 
 let instrumentDiv;
 
@@ -38,13 +38,13 @@ function handleAudioStatusChange(e) {
   const status = e.detail.status;
     switch (status) {
     case 'loading':
-      console.log('zz Audio is loading.');
+      console.log('Audio is loading.');
       break;
     case 'error':
-      console.error('zz Audio failed to load.');
+      console.error('Audio failed to load.');
       break;
     case 'ready':
-      console.log('zz Audio is ready.');
+      console.log('Audio is ready.');
     addAdvancedKeyboardListeners();
     addAdvancedInstrumentListeners();
     addInstrumentDraggingListeners();
@@ -63,6 +63,9 @@ export function addBasicKeyboardListeners() {
  * Adds advanced keyboard listeners for full functionality
  */
 export function addAdvancedKeyboardListeners() {
+  if (window.keyboardDisabled) {
+    return; // Skip if keyboard is disabled
+}
   document.addEventListener("keydown", handleKeyDown);
   document.addEventListener("keyup", handleKeyUp);
   document.removeEventListener("keydown", handleInitialKeyboard);
@@ -123,7 +126,6 @@ export function addAdvancedInstrumentListeners() {
 
 // Updated advanced listeners function
 export function addAdvancedGuitarListeners() {
-  console.log('🎸 Adding advanced guitar listeners...');
   
   if (window.guitarInstance) {
     // Remove basic listeners first
@@ -147,15 +149,19 @@ export function addAdvancedGuitarListeners() {
  * Adds button listeners
  */
 export function addButtonListeners() {
+  // Use click so we can cycle through 3 states (off / note names / keyboard letters)
   document
     .getElementById("toggleLabelsCheckbox")
-    ?.addEventListener("change", handleToggleLabelsChange);
+    ?.addEventListener("click", handleToggleLabelsChange);
   document
     .getElementById("mode-cycle-btn")
     ?.addEventListener("click", handleModeCycleClick);
-    document
+  document
     .getElementById("is-minor-key-btn")
     ?.addEventListener("click", toggleIsMinorKey);
+  document
+    .getElementById("show-side-panel-btn")
+    ?.addEventListener("click", show_side_panel);
   window.addEventListener("resize", handleWindowResize);
   addAudioStatusListeners();
 }

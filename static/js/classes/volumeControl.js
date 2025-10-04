@@ -1,4 +1,6 @@
-import audioManager from '../core/audioManager.js';
+// VolumeControl.js
+// This class manages the volume control UI and functionality, including audio status handling.
+import { unlockAndExecute } from '../core/audioManager.js';
 
 export class VolumeControl {
         constructor(container) {
@@ -21,7 +23,8 @@ export class VolumeControl {
         
         bindEvents() {
     // Container click - fallback for any missed clicks
-    this.container.addEventListener('click', (e) => {
+        this.container.addEventListener('click', (e) => {
+            e.preventDefault();
         // Only handle if no other element handled it
         if (e.target === this.container) {
             this.handleClick('Container');
@@ -29,7 +32,8 @@ export class VolumeControl {
     });
     
     // Slider - handle both initialization and volume changes
-    this.slider.addEventListener('click', (e) => {
+        this.slider.addEventListener('click', (e) => {
+            e.preventDefault();
         e.stopPropagation(); // Prevent container click
         this.handleClick('Slider');
     });
@@ -41,13 +45,15 @@ export class VolumeControl {
 });
 
     // Volume value - handle clicks on the number
-    this.volumeValue.addEventListener('click', (e) => {
+        this.volumeValue.addEventListener('click', (e) => {
+            e.preventDefault();
         e.stopPropagation();
         this.handleClick('Volume value');
     });
     
     // Icon - handle mute toggle or initialization
-    this.volumeIcon.addEventListener('click', (e) => {
+        this.volumeIcon.addEventListener('click', (e) => {
+            e.preventDefault();
         e.stopPropagation();
         if (this.audioStatus === 'ready') {
             this.toggleMute();
@@ -168,19 +174,17 @@ updateAudioStatusDisplay() {
         }
         
         // NEW: Initialize audio when clicked in uninitialized state
-        async initializeAudio() {
-            if (window.audioManager && window.audioManager.unlockAndExecute) {
-                this.setAudioStatus('loading');
-                try {
-                    await window.audioManager.unlockAndExecute(() => {
-                        console.log('Audio initialized via volume control');
-                    });
-                } catch (error) {
-                    console.error('Failed to initialize audio:', error);
-                    this.setAudioStatus('error');
-                }
-            }
-        }
+async initializeAudio() {
+    this.setAudioStatus('loading');
+    try {
+        await unlockAndExecute(() => {
+            console.log('Audio initialized via volume control');
+        });
+    } catch (error) {
+        console.error('Failed to initialize audio:', error);
+        this.setAudioStatus('error');
+    }
+}
         
         updateDisplay() {
             const value = this.slider.value;

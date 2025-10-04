@@ -1,6 +1,6 @@
 /* guitarInstrument.css */
 /* this wrapper is slightly redundant but we set the background color here */
-.outer-instrument-wrapper {
+.outer-wrapper {
   background: #04273C;
     flex-grow: 1;
   display: flex;

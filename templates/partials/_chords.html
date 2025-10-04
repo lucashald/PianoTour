@@ -1,0 +1,485 @@
+<div class="chord-search-container">
+    <!-- Chord Palette -->
+    <div class="note-palette-container">
+        <div class="note-palette chord-palette">
+            <div class="palette-note palette-note-default" data-type="chord" data-degree="1" draggable="true">
+                <span class="chord-symbol">I</span>
+                <div class="note-duration">Tonic</div>
+            </div>
+            <div class="palette-note palette-note-default" data-type="chord" data-degree="2" draggable="true">
+                <span class="chord-symbol">ii</span>
+                <div class="note-duration">Supertonic</div>
+            </div>
+            <div class="palette-note palette-note-default" data-type="chord" data-degree="3" draggable="true">
+                <span class="chord-symbol">iii</span>
+                <div class="note-duration">Mediant</div>
+            </div>
+            <div class="palette-note palette-note-default" data-type="chord" data-degree="4" draggable="true">
+                <span class="chord-symbol">IV</span>
+                <div class="note-duration">Subdominant</div>
+            </div>
+            <div class="palette-note palette-note-default" data-type="chord" data-degree="5" draggable="true">
+                <span class="chord-symbol">V</span>
+                <div class="note-duration">Dominant</div>
+            </div>
+            <div class="palette-note palette-note-default" data-type="chord" data-degree="6" draggable="true">
+                <span class="chord-symbol">vi</span>
+                <div class="note-duration">Submediant</div>
+            </div>
+            <div class="palette-note palette-note-dotted" data-type="chord" data-degree="7" draggable="true">
+                <span class="chord-symbol">vii°</span>
+                <div class="note-duration">Leading Tone</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chord Search Form -->
+    <form id="chordForm">
+        <input 
+            type="text" 
+            id="chordInput" 
+            class="chord-input"
+            placeholder="Type a chord name (e.g., Cmaj7, Am, F#dim)..."
+            autocomplete="off"
+        >
+        <div id="chordSuggestions" class="chord-suggestions"></div>
+        
+        <!-- Search Result and Intervals Container -->
+        <div class="note-palette-container">
+            <div class="note-palette chord-palette">
+                <!-- Search Result Button -->
+                <div id="searchResultButton" class="palette-note palette-note-primary search-result-button" 
+                     data-type="chord" draggable="true">
+                    <span class="chord-symbol">♪</span>
+                    <div class="note-duration">Selected Chord</div>
+                </div>
+
+                <!-- Interval Buttons -->
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="major2" draggable="true">
+                    <span class="chord-symbol">M2</span>
+                    <div class="note-duration">Major 2nd</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="minor3" draggable="true">
+                    <span class="chord-symbol">m3</span>
+                    <div class="note-duration">Minor 3rd</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="major3" draggable="true">
+                    <span class="chord-symbol">M3</span>
+                    <div class="note-duration">Major 3rd</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="perfect4" draggable="true">
+                    <span class="chord-symbol">P4</span>
+                    <div class="note-duration">Perfect 4th</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="perfect5" draggable="true">
+                    <span class="chord-symbol">P5</span>
+                    <div class="note-duration">Perfect 5th</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="major6" draggable="true">
+                    <span class="chord-symbol">M6</span>
+                    <div class="note-duration">Major 6th</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="major7" draggable="true">
+                    <span class="chord-symbol">M7</span>
+                    <div class="note-duration">Major 7th</div>
+                </div>
+                <div class="palette-note palette-note-secondary" data-type="interval" data-interval="octave" draggable="true">
+                    <span class="chord-symbol">8</span>
+                    <div class="note-duration">Octave</div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<style>
+.chord-search-container {
+    position: relative;
+    margin: 20px auto;
+    font-family: Arial, sans-serif;
+}
+
+.chord-input {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+
+.chord-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.chord-suggestions {
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #4CAF50;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.chord-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+.chord-suggestion:hover,
+.chord-suggestion.highlighted {
+    background-color: #f0f8ff;
+}
+
+.chord-suggestion:last-child {
+    border-bottom: none;
+}
+
+.no-results {
+    padding: 8px 12px;
+    color: #666;
+    font-style: italic;
+    font-size: 14px;
+}
+
+</style>
+
+<script type="module">
+    import { CHORD_DEFINITIONS, getChordByDegree, getScale, getRelativeKey } from '{{ url_for("static", filename="js/core/note-data.js") }}';
+    
+    class ChordAutocomplete {
+        constructor(inputId, suggestionsId) {
+            this.input = document.getElementById(inputId);
+            this.suggestionsContainer = document.getElementById(suggestionsId);
+            this.searchResultButton = document.getElementById('searchResultButton');
+            this.currentHighlight = -1;
+            this.chords = this.extractChordNames(CHORD_DEFINITIONS);
+            this.userHasTyped = false;
+            this.selectedChordObj = null;
+            
+            this.bindEvents();
+            this.setDefaultChord();
+        }
+
+        setDefaultChord() {
+            const defaultChordObj = getChordByDegree(1, getRelativeKey());
+            this.input.value = defaultChordObj.displayName;
+            this.userHasTyped = false;
+            this.updateSearchResultButton(defaultChordObj.displayName, defaultChordObj);
+        }
+
+        updateSearchResultButton(chordName, chordObj) {
+            this.selectedChordObj = chordObj;
+            this.searchResultButton.querySelector('.note-duration').textContent = chordName;
+            this.searchResultButton.classList.remove('hidden');
+            this.searchResultButton.dataset.chord = chordName;
+        }
+
+        extractChordNames(chordData) {
+            if (Array.isArray(chordData)) {
+                return chordData.map(chord => chord.displayName);
+            } else if (typeof chordData === 'object') {
+                return Object.values(chordData).map(chord => chord.displayName);
+            }
+            return [];
+        }
+
+        normalizeSearchText(text) {
+            return text
+                .toLowerCase()
+                .replace(/sharp/g, '#')
+                .replace(/flat/g, 'b')
+                .replace(/\s+/g, '')
+                .replace(/major/g, 'maj')
+                .replace(/minor/g, 'm')
+                .replace(/diminished/g, 'dim')
+                .replace(/augmented/g, 'aug');
+        }
+
+        scoreChordMatch(chord, originalQuery, normalizedQuery) {
+            const chordLower = chord.toLowerCase();
+            const chordNormalized = this.normalizeSearchText(chord);
+            
+            if (!chordLower.includes(originalQuery) && !chordNormalized.includes(normalizedQuery)) {
+                return 0;
+            }
+            
+            if (chordLower === originalQuery || chordNormalized === normalizedQuery) {
+                return 1000;
+            }
+            
+            if (chordLower.startsWith(originalQuery) || chordNormalized.startsWith(normalizedQuery)) {
+                return 500;
+            }
+            
+            const chordFirstWord = chordLower.split(' ')[0];
+            const queryFirstWord = originalQuery.split(' ')[0];
+            if (chordFirstWord.startsWith(queryFirstWord)) {
+                return 400;
+            }
+            
+            const originalIndex = chordLower.indexOf(originalQuery);
+            const normalizedIndex = chordNormalized.indexOf(normalizedQuery);
+            
+            if (originalIndex >= 0 && originalIndex <= 2) {
+                return 300 - originalIndex;
+            }
+            
+            if (normalizedIndex >= 0 && normalizedIndex <= 2) {
+                return 250 - normalizedIndex;
+            }
+            
+            if (originalIndex >= 0) {
+                return 100 - Math.min(originalIndex, 50);
+            }
+            
+            if (normalizedIndex >= 0) {
+                return 50 - Math.min(normalizedIndex, 25);
+            }
+            
+            return 0;
+        }
+
+        handleInput(value) {
+            const query = value.trim().toLowerCase();
+            
+            if (query.length === 0) {
+                this.hideSuggestions();
+                return;
+            }
+
+            const normalizedQuery = this.normalizeSearchText(query);
+            
+            const scoredMatches = this.chords
+                .map(chord => ({
+                    chord: chord,
+                    score: this.scoreChordMatch(chord, query, normalizedQuery)
+                }))
+                .filter(item => item.score > 0)
+                .sort((a, b) => {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    return a.chord.localeCompare(b.chord);
+                })
+                .slice(0, 10)
+                .map(item => item.chord);
+
+            this.showSuggestions(scoredMatches, query);
+        }
+
+        bindEvents() {
+            this.input.addEventListener('click', (e) => {
+                this.input.select();
+            });
+
+            this.input.addEventListener('input', (e) => {
+                this.userHasTyped = true;
+                this.handleInput(e.target.value);
+            });
+
+            this.input.addEventListener('keydown', (e) => {
+                this.handleKeydown(e);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!this.input.contains(e.target) && !this.suggestionsContainer.contains(e.target)) {
+                    this.hideSuggestions();
+                }
+            });
+
+            this.input.addEventListener('focus', () => {
+                if (this.input.value.trim()) {
+                    this.handleInput(this.input.value);
+                }
+            });
+
+// Also update the search result button dragstart
+this.searchResultButton.addEventListener('dragstart', (e) => {
+    if (this.selectedChordObj) {
+        e.dataTransfer.setData('text/plain', this.selectedChordObj.displayName);
+        e.dataTransfer.setData('application/chord', JSON.stringify({
+            type: 'search-chord',
+            chord: this.selectedChordObj,
+            displayName: this.selectedChordObj.displayName
+        }));
+    }
+});
+
+            this.bindChordPaletteEvents();
+        }
+
+        // Update the chord palette JavaScript in your HTML
+bindChordPaletteEvents() {
+    const chordPaletteItems = document.querySelectorAll('.chord-palette .palette-note');
+    
+    chordPaletteItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            const degree = parseInt(e.currentTarget.dataset.degree);
+            const chordObj = getChordByDegree(degree);
+            this.selectChord(chordObj.displayName, chordObj);
+        });
+
+        item.addEventListener('dragstart', (e) => {
+            const degree = parseInt(e.currentTarget.dataset.degree);
+            const chordObj = getChordByDegree(degree);
+            
+            // Store the full chord data for drag and drop
+            e.dataTransfer.setData('text/plain', chordObj.displayName);
+            e.dataTransfer.setData('application/chord', JSON.stringify({
+                type: 'diatonic-chord',
+                chord: chordObj,
+                degree: degree,
+                displayName: chordObj.displayName
+            }));
+        });
+    });
+}
+
+
+        showSuggestions(matches, query) {
+            this.currentHighlight = -1;
+            
+            if (matches.length === 0) {
+                this.suggestionsContainer.innerHTML = '<div class="no-results">No matching chords found</div>';
+            } else {
+                this.suggestionsContainer.innerHTML = matches
+                    .map((chord, index) => 
+                        `<div class="chord-suggestion" data-index="${index}" data-chord="${chord}">
+                            ${this.highlightMatch(chord, query)}
+                        </div>`
+                    ).join('');
+
+                this.suggestionsContainer.querySelectorAll('.chord-suggestion').forEach(suggestion => {
+                    suggestion.addEventListener('click', () => {
+                        this.selectChord(suggestion.dataset.chord);
+                    });
+                });
+            }
+
+            this.suggestionsContainer.style.display = 'block';
+        }
+
+        highlightMatch(chord, query) {
+            const index = chord.toLowerCase().indexOf(query.toLowerCase());
+            if (index === -1) return chord;
+            
+            return chord.substring(0, index) + 
+                   '' + chord.substring(index, index + query.length) + '' + 
+                   chord.substring(index + query.length);
+        }
+
+        handleKeydown(e) {
+            const suggestions = this.suggestionsContainer.querySelectorAll('.chord-suggestion');
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    this.currentHighlight = Math.min(this.currentHighlight + 1, suggestions.length - 1);
+                    this.updateHighlight(suggestions);
+                    break;
+                    
+                case 'ArrowUp':
+                    e.preventDefault();
+                    this.currentHighlight = Math.max(this.currentHighlight - 1, -1);
+                    this.updateHighlight(suggestions);
+                    break;
+                    
+                case 'Enter':
+                    e.preventDefault();
+                    if (this.currentHighlight >= 0 && suggestions[this.currentHighlight]) {
+                        this.selectChord(suggestions[this.currentHighlight].dataset.chord);
+                    }
+                    break;
+                    
+                case 'Escape':
+                    this.hideSuggestions();
+                    this.input.blur();
+                    break;
+            }
+        }
+
+        updateHighlight(suggestions) {
+            suggestions.forEach((suggestion, index) => {
+                suggestion.classList.toggle('highlighted', index === this.currentHighlight);
+            });
+        }
+
+        selectChord(chordName, chordObj = null) {
+            this.input.value = chordName;
+            this.userHasTyped = false;
+            this.hideSuggestions();
+            
+            if (!chordObj) {
+                if (Array.isArray(CHORD_DEFINITIONS)) {
+                    chordObj = CHORD_DEFINITIONS.find(chord => chord.displayName === chordName);
+                } else {
+                    chordObj = Object.values(CHORD_DEFINITIONS).find(chord => chord.displayName === chordName);
+                }
+            }
+            
+            this.updateSearchResultButton(chordName, chordObj);
+            
+            this.input.dispatchEvent(new CustomEvent('chordSelected', {
+                detail: { 
+                    chordName: chordName,
+                    chordObject: chordObj
+                }
+            }));
+            
+            console.log('Selected chord:', chordName, chordObj);
+        }
+
+        hideSuggestions() {
+            this.suggestionsContainer.style.display = 'none';
+            this.currentHighlight = -1;
+        }
+    }
+
+    function updateChordPalette() {
+        const scaleData = getScale();
+        if (!scaleData) {
+            console.warn('No scale data available for current key');
+            return;
+        }
+        
+        const chordPaletteItems = document.querySelectorAll('.chord-palette .palette-note');
+        
+        chordPaletteItems.forEach((item, index) => {
+            const degree = parseInt(item.dataset.degree);
+            const chordObj = getChordByDegree(degree);
+            const chordSymbol = item.querySelector('.chord-symbol');
+            const noteDuration = item.querySelector('.note-duration');
+            
+            const romanNumeral = scaleData.labels[index];
+            chordSymbol.textContent = romanNumeral;
+            noteDuration.textContent = chordObj.displayName;
+        });
+    }
+
+    let chordAutocomplete;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        chordAutocomplete = new ChordAutocomplete('chordInput', 'chordSuggestions');
+        updateChordPalette();
+        
+        document.getElementById('chordInput').addEventListener('chordSelected', (e) => {
+            console.log('Chord selected:', e.detail.chordName);
+            console.log('Full chord object:', e.detail.chordObject);
+        });
+    });
+
+    window.updateChordPalette = updateChordPalette;
+
+</script>
+
