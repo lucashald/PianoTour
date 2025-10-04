@@ -264,6 +264,14 @@
 
             // Import and initialize JSON Editor
             const { initializeJSONEditor } = await import('{{ url_for("static", filename="js/editor/jsonEditor.js") }}');
+
+const editorContainer = document.querySelector('.json-editor-container');
+editorContainer.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+});
+editorContainer.addEventListener('keyup', (e) => {
+    e.stopPropagation();
+});
             
             // Pass Piano Tour modules to JSON Editor
             await initializeJSONEditor({

@@ -894,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Listen for external tuning changes
     document.addEventListener('guitarTuningChanged', (e) => {
-        console.log('🎸 Guitar tuning changed externally:', e.detail);
+        console.log('Guitar tuning changed externally:', e.detail);
     });
 });
 
@@ -914,5 +914,3 @@ window.guitarDebug = {
         }
     }
 };
-
-console.log('🔧 Guitar Control Panel loaded. Debug functions available at window.guitarDebug');

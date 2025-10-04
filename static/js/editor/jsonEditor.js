@@ -273,8 +273,8 @@ function validateJSON() {
         const errorDetails = [
             `✗ Invalid JSON: ${error.message}`,
             ``,
-            `🚀 Use Auto-Fix to repair common issues automatically.`,
-            `🔍 Use Ctrl+F to find specific errors in large files.`
+            `Use Auto-Fix to repair common issues automatically.`,
+            `Use Ctrl+F to find specific errors in large files.`
         ].join('\n');
 
         showOutput(errorDetails, "error");
@@ -311,7 +311,7 @@ function autoFixJSON() {
         jsonEditor.setValue(formatted);
 
         const successMessage = [
-            "🚀 JSON auto-fixed successfully!",
+            "JSON auto-fixed successfully!",
             "✓ Missing brackets/commas added",
             "✓ Quotes corrected", 
             "✓ Formatted and ready for Piano Tour"

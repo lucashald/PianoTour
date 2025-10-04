@@ -86,7 +86,7 @@ def editor():
 
 @app.route('/json')
 def json():
-    return render_template('json.html', show_side_panel=True)
+    return render_template('json.html', show_side_panel=True, disable_keyboard=True)
 
 
 @app.route('/extras')
