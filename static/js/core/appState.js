@@ -73,8 +73,8 @@ export const drumsState = {
     isMajorChordMode: false,
     isMinorChordMode: false,
     chordButtonMode: 0, // 0: Hidden, 1: Bass, 2: Treble
+    toggleLoop: 0, // Toggle looping score playback 
 
-        // In your pianoState initialization, add:
     isDragging: false,
     currentlyPlayingKeys: new Set(), // Track drag-playing keys
     lastDraggedKey: null, // Prevent rapid retriggering

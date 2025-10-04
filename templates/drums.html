@@ -1,22 +1,45 @@
-{% extends "index.html" %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive Drum Studio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/drumstyles.css') }}" />
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}" />
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
+  </head>
+  <body id="page-instrument">
+    <audio id="unlock-audio" preload="auto" style="display: none">
+      <source src="{{ url_for('static', filename='silence.mp3') }}" type="audio/mpeg" />
+    </audio>
 
-{% block title %}Piano Tour - Interactive Drums Studio{% endblock %}
+    <div class="piano-app">
+      <main class="piano-app__content-area">
+        <header class="piano-app__header">
+          <a href="/">
+            <h1 class="piano-app__header-title">Piano Tour Drum Studio</h1>
+          </a>
+        </header>
 
-{% block head %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/drumstyles.css') }}" />
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pianostyles.css') }}" />
-{% endblock %}
+        <!-- Drum Player Controls -->
+<div class="playback-controls">
+  <button
+    id="play-drums-score-btn"
+    class="btn btn--primary playback-controls__button"
+  >
+    ▶ Play Score
+  </button>
 
-{% block player %}
-<!-- Replace piano player with drum player -->
-<button id="play-drums-score-btn" class="btn btn--primary playback-controls__button">
-  ▶ Play
-</button>
-{% endblock %}
+  <button id="stop-drums-score-btn" class="btn btn--danger playback-controls__button">
+    ⏹ Stop
+  </button>
+  </div>
 
-{% block after %}
-<!-- Add drum score viewer and controls after the piano instrument -->
+        {% include 'partials/_volumeControl.html' %}
 
+        <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
 <!-- Drum Score Viewer -->
 <section class="score-viewer">
   <div class="drums-score-viewer__container" id="drums-score-wrap">
@@ -27,7 +50,6 @@
 <!-- Drum Controls -->
 <div class="drum-controls">
   <div class="drum-controls__section">
-    <h4 class="drum-controls__section-title">Drum Instruments & Duration</h4>
     <div class="drum-switches-container" id="drumButtonContainer" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5em;">
       
       <!-- Drum Instruments -->
@@ -120,262 +142,202 @@
     {% include 'partials/_drumGrid.html' %}
   </div>
 </div>
-{% endblock %}
 
-{% block toggles %}
-{% include 'partials/_toggles.html' %}
-{% endblock %}
+        <nav class="main-controls">
+          <div class="controls-button-row">
+            <button id="clear-drum-score-btn" class="btn btn--danger">Clear Score</button>
+            <button id="undo-drum-btn" class="btn btn--danger">Undo</button>
+            {% include 'partials/_filehandler.html' %}
+          </div>
 
-{% block scripts %}
-<script type="module">
-  console.log("Drums page script execution started.");
+          <div class="controls-button-row">
 
-  // --- PIANO IMPORTS (from base template) ---
-  import {
-    initializeInstrumentUI,
-    handleToggleLabelsChange,
-    handleModeCycleClick,
-  } from '{{ url_for("static", filename="js/instrument/instrumentHelpers.js") }}';
-  import {
-    getMeasures,
-    resetScore,
-    processAndSyncScore,
-    undoLastWrite,
-  } from '{{ url_for("static", filename="js/score/scoreWriter.js") }}';
-  import {
-    drawAll,
-    setKeySignature,
-  } from '{{ url_for("static", filename="js/score/scoreRenderer.js") }}';
-  import { initializeFileHandlers } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
-  import {
-    handleChordDisplayToggle,
-    handleKeySignatureClick,
-    updateUI,
-  } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
-  import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
-  import { initializePlayer } from '{{ url_for("static", filename="js/score/scorePlayback.js") }}';
-  import {
-    initMidi,
-    setMidiCallbacks,
-    handleMidiNoteOn,
-    handleMidiNoteOff,
-  } from '{{ url_for("static", filename="js/instrument/midi-controller.js") }}';
-  import audioManager from '{{ url_for("static", filename="js/core/audioManager.js") }}';
+            <a href="/" class="btn btn--info"><span>Piano</span></a>
+            <a href="/cello" class="btn btn--info"><span>Cello</span></a>
+            <a href="/harp" class="btn btn--info"><span>Harp</span></a>
+            <a href="/guitar" class="btn btn--info"><span>Guitar</span></a>
+            <a href="/extras" class="btn btn--info"><span>More</span></a>
+          </div>
+        </nav>
+      </main>
+    </div>
 
-  // --- DRUM IMPORTS ---
-  import { drumsState } from '{{ url_for("static", filename="js/core/appState.js") }}';
-  import {
-    getDrumMeasures,
-    AUTOSAVE_KEY,
-    resetDrumScore,
-    processAndSyncScore as processAndSyncDrumScore,
-    undoLastWrite as undoDrumLastWrite,
-  } from '{{ url_for("static", filename="js/drums/drumsScoreWriter.js") }}';
-  // ← REPLACE OLD IMPORT WITH NEW UNIVERSAL RENDERER
-  import { UniversalMusicRenderer } from '{{ url_for("static", filename="js/classes/UniversalMusicRenderer.js") }}';
-  import {
-    initializeDrumAudioModule,
-    handleDrumPlayback,
-  } from '{{ url_for("static", filename="js/drums/drumAudio.js") }}';
-  import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drumGrid.js") }}';
-  import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
+    <script type="module">
+      console.log("Drums page script execution started.");
 
-  // ← ADD: Create the drum renderer instance
-  let drumRenderer = null;
+      // Calculate scrollbar width
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.documentElement.style.setProperty('--scrollbar-width', `${scrollbarWidth}px`);
 
-  // ← ADD: Initialize drum renderer
-  function initializeDrumRenderer() {
-    drumRenderer = new UniversalMusicRenderer('drums-score', {
-      instrumentType: 'drums',
-      disableScrolling: false,
-      timeSignature: drumsState.timeSignature,
-      tempo: drumsState.tempo,
-      keySignature: drumsState.keySignature || 'C'
-    });
-    console.log('🥁 Drum renderer initialized with 3 measures per system, scrolling disabled');
-  }
+      // --- DRUM-ONLY IMPORTS ---
+      import { drumsState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+      import {
+        getDrumMeasures,
+        AUTOSAVE_KEY,
+        resetDrumScore,
+        processAndSyncScore as processAndSyncDrumScore
+      } from '{{ url_for("static", filename="js/drums/drumsScoreWriter.js") }}';
+      import { UniversalMusicRenderer } from '{{ url_for("static", filename="js/classes/UniversalMusicRenderer.js") }}';
+      import {
+        initializeDrumAudioModule,
+        handleDrumPlayback,
+      } from '{{ url_for("static", filename="js/drums/drumAudio.js") }}';
+      import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drumGrid.js") }}';
+      import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
+      import audioManager from '{{ url_for("static", filename="js/core/audioManager.js") }}';
 
-  
-  function renderDrums(measuresData = null) {
-  if (!drumRenderer) {
-    initializeDrumRenderer();
-  }
+      let drumRenderer = null;
 
-  const measures = measuresData || getDrumMeasures();
-  
-  // Debug: Log the measures data
-  console.log('🔍 Drum measures data:', JSON.stringify(measures, null, 2));
-  
-  // Update renderer settings with current state
-  drumRenderer.timeSignature = drumsState.timeSignature;
-  drumRenderer.tempo = drumsState.tempo;
-  drumRenderer.keySignature = drumsState.keySignature || 'C';
-  
-  try {
-    drumRenderer.render(measures);
-    console.log('🥁 Drums rendered successfully using UniversalMusicRenderer');
-  } catch (error) {
-    console.error('🥁 Error rendering drums:', error);
-  }
-}
+      // Initialize drum renderer
+      function initializeDrumRenderer() {
+        drumRenderer = new UniversalMusicRenderer('drums-score', {
+          instrumentType: 'drums',
+          disableScrolling: false,
+          timeSignature: drumsState.timeSignature,
+          tempo: drumsState.tempo,
+          keySignature: drumsState.keySignature || 'C'
+        });
+        console.log('🥁 Drum renderer initialized with 3 measures per system, scrolling disabled');
+      }
 
-  // Set instrument type
-  const templateInstrument = "{{ instrument }}" || "piano";
-  pianoState.instrument = templateInstrument;
-  console.log("Set instrument to:", templateInstrument);
+      // Render drums
+      function renderDrums(measuresData = null) {
+        if (!drumRenderer) {
+          initializeDrumRenderer();
+        }
 
-// Wait for base initialization to complete
-document.addEventListener("pianoTourBaseReady", () => {
-  console.log("🥁 Base ready, initializing drum-specific components...");
-  
-  // Initialize drum renderer
-  initializeDrumRenderer();
-  
-  // Initialize drum-specific modules
-  initializeDrumAudioModule();
-  initializeDrumGrid();
-  addBasicKeyboardListeners();
+        const measures = measuresData || getDrumMeasures();
+        
+        console.log('🔍 Drum measures data:', JSON.stringify(measures, null, 2));
+        
+        drumRenderer.timeSignature = drumsState.timeSignature;
+        drumRenderer.tempo = drumsState.tempo;
+        drumRenderer.keySignature = drumsState.keySignature || 'C';
+        
+        try {
+          drumRenderer.render(measures);
+          console.log('🥁 Drums rendered successfully using UniversalMusicRenderer');
+        } catch (error) {
+          console.error('🥁 Error rendering drums:', error);
+        }
+      }
 
-  // Add drum-specific control buttons to the existing controls
-  addDrumControlButtons();
-  
-  document.querySelectorAll(".drum-step-button, .drum-step-label").forEach((button) => {
-    button.addEventListener("click", function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      // Determine if it's a drum instrument or a duration button
-      const drumType = this.dataset.drum;
-      const durationType = this.dataset.duration;
+      // Initialize on DOM ready
+      document.addEventListener("DOMContentLoaded", () => {
+        // Initialize audio manager
+        audioManager.initializeAudioManager();
 
-      if (drumType) {
-        console.log(`Drum button clicked: ${drumType}`);
-        document.dispatchEvent(
-          new CustomEvent("drumInstrumentSelected", {
-            detail: drumType,
-          })
-        );
-      } else if (durationType) {
-        // Toggle the 'active' class for visual feedback for duration buttons only
-        this.classList.toggle("active");
-        console.log(`Duration button clicked: ${durationType}`);
-        // Also, ensure only one duration button is active at a time.
-        document
-          .querySelectorAll(".drum-step-button[data-duration]")
-          .forEach((durBtn) => {
-            if (durBtn !== this) {
-              durBtn.classList.remove("active");
+        // Initialize drum renderer
+        initializeDrumRenderer();
+        
+        // Initialize drum-specific modules
+        initializeDrumAudioModule();
+        initializeDrumGrid();
+        addBasicKeyboardListeners();
+
+        // Set up drum button event listeners
+        document.querySelectorAll(".drum-step-button, .drum-step-label").forEach((button) => {
+          button.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const drumType = this.dataset.drum;
+            const durationType = this.dataset.duration;
+
+            if (drumType) {
+              console.log(`Drum button clicked: ${drumType}`);
+              document.dispatchEvent(
+                new CustomEvent("drumInstrumentSelected", {
+                  detail: drumType,
+                })
+              );
+            } else if (durationType) {
+              this.classList.toggle("active");
+              console.log(`Duration button clicked: ${durationType}`);
+              
+              document.querySelectorAll(".drum-step-button[data-duration]").forEach((durBtn) => {
+                if (durBtn !== this) {
+                  durBtn.classList.remove("active");
+                }
+              });
+              
+              document.dispatchEvent(
+                new CustomEvent("drumDurationSelected", {
+                  detail: durationType,
+                })
+              );
             }
           });
-        document.dispatchEvent(
-          new CustomEvent("drumDurationSelected", {
-            detail: durationType,
-          })
-        );
-      }
-    });
-  });
+        });
 
-  // Set initial active state for a duration button (e.g., Quarter)
-  const initialDurationButton = document.querySelector(
-    '.drum-step-button[data-duration="q"]'
-  );
-  if (initialDurationButton) {
-    initialDurationButton.classList.add("active");
-  }
-  
-  // Initialize drum score loading
-  setTimeout(() => {
-    loadDrumScoreFromStorage();
-  }, 100);
-});
+        // Set initial active state for quarter note duration
+        const initialDurationButton = document.querySelector('.drum-step-button[data-duration="q"]');
+        if (initialDurationButton) {
+          initialDurationButton.classList.add("active");
+        }
 
-  // Override some base template behaviors for drums
-  function addDrumControlButtons() {
-    // Find the controls button row and add drum-specific buttons
-    const controlsRow = document.querySelector('.controls-button-row');
-    if (controlsRow) {
-      
-      // Update the Clear Score button text
-      const clearScoreBtn = document.getElementById('clearScoreBtn');
-      if (clearScoreBtn) {
-        clearScoreBtn.textContent = 'Clear Piano Score';
-      }
+        // Stop button
+        document.getElementById('stop-drums-score-btn')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          // Stop drum playback - you'll need to implement this in your drumAudio module
+          console.log('🥁 Stop drums playback');
+          // Example: Tone.Transport.stop(); or however you handle stopping
+          if (window.Tone) {
+            Tone.Transport.stop();
+          }
+        });
 
-      // Update the Undo button text  
-      const undoBtn = document.getElementById('undo-btn');
-      if (undoBtn) {
-        undoBtn.textContent = 'Undo Piano';
-      }
-
-      // Add drum-specific buttons
-      const drumButtons = `
-        <button id="clear-drum-score-btn" class="btn btn--danger">Clear Drum Score</button>
-        <button id="undo-drum-btn" class="btn btn--danger">Undo Drum</button>
-      `;
-      
-      // Insert after the undo button
-      if (undoBtn) {
-        undoBtn.insertAdjacentHTML('afterend', drumButtons);
-      }
-
-      // Add event listeners for new buttons
-      document.getElementById('clear-drum-score-btn')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        resetDrumScore();
-        console.log('🥁 Drum score cleared');
+        // Load drum score from storage
+        setTimeout(() => {
+          loadDrumScoreFromStorage();
+        }, 100);
       });
 
-      document.getElementById('undo-drum-btn')?.addEventListener('click', (e) => {
-        e.preventDefault(); 
-        undoDrumLastWrite();
-        console.log('🥁 Drum undo performed');
+      // Load drum score from localStorage
+      async function loadDrumScoreFromStorage() {
+        const savedDrumScoreJSON = localStorage.getItem(AUTOSAVE_KEY);
+        if (!savedDrumScoreJSON) {
+          console.log("📝 No saved drum score found");
+          try {
+            renderDrums([]);
+          } catch (e) {
+            console.error("Initial drum render error:", e);
+          }
+          return;
+        }
+
+        try {
+          console.log("🔄 Loading saved drum score...");
+          const savedData = JSON.parse(savedDrumScoreJSON);
+          const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+          
+          if (processAndSyncDrumScore(measures)) {
+            renderDrums(getDrumMeasures());
+            console.log("✅ Drum score loaded successfully");
+          } else {
+            localStorage.removeItem(AUTOSAVE_KEY);
+            console.log("⚠️ Invalid drum score data, cleared");
+            renderDrums([]);
+          }
+        } catch (e) {
+          console.error("❌ Failed to load drum score:", e);
+          localStorage.removeItem(AUTOSAVE_KEY);
+          renderDrums([]);
+        }
+      }
+
+      // Handle window resize
+      let drumResizeTimeout;
+      window.addEventListener("resize", () => {
+        clearTimeout(drumResizeTimeout);
+        drumResizeTimeout = setTimeout(() => {
+          console.log("📏 Handling resize for drums...");
+          renderDrums(getDrumMeasures());
+        }, 150);
       });
-    }
-  }
 
-  // ← UPDATED: Load drum score from localStorage using new renderer
-  async function loadDrumScoreFromStorage() {
-    const savedDrumScoreJSON = localStorage.getItem(AUTOSAVE_KEY);
-    if (!savedDrumScoreJSON) {
-      console.log("📝 No saved drum score found");
-      // Initialize with empty score using new renderer
-      try {
-        renderDrums([]);
-      } catch (e) {
-        console.error("Initial drum render error:", e);
-      }
-      return;
-    }
-
-    try {
-      console.log("🔄 Loading saved drum score...");
-      const savedData = JSON.parse(savedDrumScoreJSON);
-      const measures = Array.isArray(savedData) ? savedData : savedData.measures;
-      
-      if (processAndSyncDrumScore(measures)) {
-        renderDrums(getDrumMeasures());
-        console.log("✅ Drum score loaded successfully");
-      } else {
-        localStorage.removeItem(AUTOSAVE_KEY);
-        console.log("⚠️ Invalid drum score data, cleared");
-        renderDrums([]);
-      }
-    } catch (e) {
-      console.error("❌ Failed to load drum score:", e);
-      localStorage.removeItem(AUTOSAVE_KEY);
-      renderDrums([]);
-    }
-  }
-
-  // ← UPDATED: Override the resize handler to use new renderer
-  let drumResizeTimeout;
-  window.addEventListener("resize", () => {
-    clearTimeout(drumResizeTimeout);
-    drumResizeTimeout = setTimeout(() => {
-      console.log("📏 Handling resize for drums...");
-      renderDrums(getDrumMeasures());
-    }, 150);
-  });
-
-</script>
-{% endblock %}
+      // Make audioManager globally accessible
+      window.audioManager = audioManager;
+    </script>
+  </body>
+</html>

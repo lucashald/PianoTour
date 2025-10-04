@@ -12,6 +12,7 @@ import { DRUM_INSTRUMENT_MAP } from '../core/drum-data.js';
 // ===================================================================
 // Constants
 // ===================================================================
+let sharedDrumRenderer = null;
 
 const BEAT_VALUES = {
     w: 4, "w.": 6,          // Whole, Dotted Whole
@@ -28,16 +29,15 @@ const BEATS_TO_DURATION = {
     0.125: "32", 0.1875: "32."
 };
 
-export const AUTOSAVE_KEY = 'autosavedDrumScore';
+export const AUTOSAVE_KEY = 'autosavedDrumScore'; // Exported for external use
 const MAX_HISTORY = 20;
 
 // ===================================================================
 // Internal State
 // ===================================================================
 
-let sharedDrumRenderer = null;
 let measuresData = [];
-let currentIndex = 0; // Tracks the active measure for new additions
+let currentIndex = 0; // This tracks the *active* measure for new additions
 let currentDrumBeats = 0;
 let idCounter = 0;
 
@@ -49,6 +49,8 @@ const history = [];
 
 /**
  * Calculates the total beats for a given measure.
+ * @param {Array} measure - An array of note objects for a single measure.
+ * @returns {number} Total beats for the measure.
  */
 function calculateMeasureBeats(measure) {
     if (!Array.isArray(measure)) {
@@ -79,6 +81,8 @@ function calculateMeasureBeats(measure) {
 
 /**
  * Converts a duration string to its numeric beat value.
+ * @param {string} duration - Duration string like "q", "h", "8", etc.
+ * @returns {number} Numeric beat value.
  */
 function durationToBeats(duration) {
     const beats = BEAT_VALUES[duration];
@@ -91,6 +95,8 @@ function durationToBeats(duration) {
 
 /**
  * Converts beat values back to duration strings
+ * @param {number} beats - Beat value to convert
+ * @returns {string|null} Duration string or null if no exact match
  */
 function beatsToDuration(beats) {
     return BEATS_TO_DURATION[beats] || null;
@@ -98,7 +104,8 @@ function beatsToDuration(beats) {
 
 /**
  * Gets the maximum beats allowed per measure based on time signature.
- */
+ * @returns {number} Maximum beats per measure.
+*/
 function getMaxBeatsPerMeasure() {
     return drumsState.timeSignature.numerator;
 }
@@ -117,11 +124,11 @@ function saveStateToHistory() {
     if (history.length > MAX_HISTORY) {
         history.shift();
     }
-    console.log('saveStateToHistory: History length now:', history.length);
 }
 
 /**
  * Generates a unique ID for notes.
+ * @returns {string} Unique ID.
  */
 function generateUniqueId() {
     return `drum-${Date.now()}-${++idCounter}`;
@@ -129,6 +136,7 @@ function generateUniqueId() {
 
 /**
  * Updates the current measure beats count.
+ * @param {number} measureIndex - Index of the measure to calculate beats for.
  */
 function updateCurrentDrumBeats(measureIndex) {
     if (measureIndex === currentIndex && measuresData[currentIndex]) {
@@ -138,6 +146,8 @@ function updateCurrentDrumBeats(measureIndex) {
 
 /**
  * Ensures a measure exists at the given index.
+ * If measuresData is empty, it initializes the first measure.
+ * @param {number} measureIndex - Index of the measure.
  */
 function ensureMeasureExists(measureIndex) {
     if (measuresData.length === 0) {
@@ -156,6 +166,9 @@ function ensureMeasureExists(measureIndex) {
 
 /**
  * Splits a duration into two parts based on available space
+ * @param {string} originalDuration - Original duration to split
+ * @param {number} availableBeats - Available beats in current measure
+ * @returns {object|null} Object with {firstDuration, secondDuration} or null if can't split
  */
 function splitDuration(originalDuration, availableBeats) {
     const totalBeats = durationToBeats(originalDuration);
@@ -180,6 +193,9 @@ function splitDuration(originalDuration, availableBeats) {
 
 /**
  * Finds the best way to split beats into valid durations
+ * @param {number} firstBeats - Beats for first part
+ * @param {number} secondBeats - Beats for second part
+ * @returns {object|null} Split result or null
  */
 function findBestDurationSplit(firstBeats, secondBeats) {
     // List of valid beat values in descending order
@@ -214,6 +230,9 @@ function findBestDurationSplit(firstBeats, secondBeats) {
 
 /**
  * Creates tie information between two notes
+ * @param {string} startNoteId - ID of the first note
+ * @param {string} endNoteId - ID of the second note
+ * @returns {object} Tie object for the start note
  */
 function createTieData(startNoteId, endNoteId) {
     return {
@@ -223,54 +242,28 @@ function createTieData(startNoteId, endNoteId) {
     };
 }
 
-/**
- * Get or create the shared drum renderer instance
- */
-function getDrumRenderer() {
-    if (!sharedDrumRenderer) {
-        sharedDrumRenderer = new UniversalMusicRenderer('drums-score', {
-            instrumentType: 'drums',
-            timeSignature: drumsState.timeSignature,
-            tempo: drumsState.tempo,
-            keySignature: drumsState.keySignature || 'C'
-        });
-        console.log('Created shared drum renderer instance');
-    } else {
-        // Update settings on existing renderer
-        sharedDrumRenderer.timeSignature = drumsState.timeSignature;
-        sharedDrumRenderer.tempo = drumsState.tempo;
-        sharedDrumRenderer.keySignature = drumsState.keySignature || 'C';
-    }
-    return sharedDrumRenderer;
-}
-
-/**
- * Handles side effects after data operations.
- */
-function handleSideEffects() {
-    try {
-        const renderer = getDrumRenderer();
-        renderer.render(measuresData);
-        saveDrums();
-    } catch (error) {
-        console.error('handleSideEffects: Error handling side effects', error);
-    }
-}
-
 // ===================================================================
-// Core Data Operations (No history saving - that's done by callers)
+// Core Data Operations
 // ===================================================================
 
 /**
  * Internal function to add a note or chord without side effects.
+ * This function handles deciding which measure to add the note to.
+ * @param {number|null|undefined} explicitMeasureIndex - Optional: If provided, attempts to add to this measure. Otherwise, uses `currentIndex`.
+ * @param {object} noteData - Note data object. Can be a single note or a chord.
+ * @param {string|null} insertBeforeNoteId - Optional ID to insert before.
+ * @returns {boolean} Success status.
  */
 function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
-    console.log(`doAddNote: explicitMeasureIndex=${explicitMeasureIndex}, noteData=`, noteData, `insertBeforeNoteId=${insertBeforeNoteId}`);
+    console.log(`--- doAddNote Call Start ---`);
+    console.log(`Input: explicitMeasureIndex=${explicitMeasureIndex}, noteData=`, noteData, `insertBeforeNoteId=${insertBeforeNoteId}`);
+    console.log(`Initial global state: currentDrumBeats=${currentDrumBeats}, currentIndex=${currentIndex}, measuresData length=${measuresData.length}`);
 
     try {
         const actualTargetMeasureIndex = (explicitMeasureIndex !== undefined && explicitMeasureIndex !== null)
             ? explicitMeasureIndex
             : currentIndex;
+        console.log(`Actual measure index for operation: ${actualTargetMeasureIndex}`);
 
         if (!noteData || (!noteData.drumInstrument && !noteData.drumInstruments && !noteData.isRest)) {
             console.error('doAddNote: Invalid note data provided. Missing drumInstrument, drumInstruments, or isRest property.', noteData);
@@ -358,6 +351,7 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
             const foundIndex = targetMeasure.findIndex(note => note.id === insertBeforeNoteId);
             if (foundIndex !== -1) {
                 insertIndex = foundIndex;
+                console.log(`Note ID ${insertBeforeNoteId} found at index ${foundIndex}. Inserting at ${insertIndex}.`);
             } else {
                 console.warn(`doAddNote: Note ID ${insertBeforeNoteId} not found. Appending to end.`);
             }
@@ -449,18 +443,24 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
             if (actualTargetMeasureIndex === currentIndex) {
                 currentDrumBeats = totalBeatsAfterInsert;
             }
-            console.log(`doAddNote: Note/Chord added to measure ${actualTargetMeasureIndex}`);
+            updateNowPlayingDisplay(isChord ? 'Chord added' : objectToInsert.drumInstrument);
+            handleSideEffects();
+            console.log(`--- doAddNote Call End (Note/Chord added to existing measure) ---`);
             return true;
         }
 
     } catch (error) {
         console.error('doAddNote: Error adding note/chord', error);
+        console.log(`--- doAddNote Call End (Error) ---`);
         return false;
     }
 }
 
 /**
  * Internal function to remove a note without side effects.
+ * @param {number} measureIndex - Measure index.
+ * @param {string} noteId - Note ID to remove.
+ * @returns {object|null} Removed note or null.
  */
 function doRemoveNote(measureIndex, noteId) {
     try {
@@ -480,6 +480,7 @@ function doRemoveNote(measureIndex, noteId) {
         // Handle tied notes - if this note has a tie, we should consider removing the tied note too
         if (removedNote.tie && removedNote.tie.endNoteId) {
             console.log(`Removed note has a tie to ${removedNote.tie.endNoteId}. Consider removing tied note.`);
+            // For now, we'll leave the tied note - could be enhanced to ask user or auto-remove
         }
 
         if (measuresData[measureIndex].length === 0) {
@@ -512,6 +513,10 @@ function doRemoveNote(measureIndex, noteId) {
 
 /**
  * Internal function to update a note without side effects.
+ * @param {number} measureIndex - Measure index.
+ * @param {string} noteId - Note ID to update.
+ * @param {object} newNoteData - New note data.
+ * @returns {boolean} Success status.
  */
 function doUpdateNote(measureIndex, noteId, newNoteData) {
     try {
@@ -605,42 +610,85 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
     }
 }
 
+/**
+ * Get or create the shared drum renderer instance
+ */
+function getDrumRenderer() {
+    if (!sharedDrumRenderer) {
+        sharedDrumRenderer = new UniversalMusicRenderer('drums-score', {
+            instrumentType: 'drums',
+            timeSignature: drumsState.timeSignature,
+            tempo: drumsState.tempo,
+            keySignature: drumsState.keySignature || 'C'
+        });
+        console.log('Created shared drum renderer instance');
+    } else {
+        // Update settings on existing renderer
+        sharedDrumRenderer.timeSignature = drumsState.timeSignature;
+        sharedDrumRenderer.tempo = drumsState.tempo;
+        sharedDrumRenderer.keySignature = drumsState.keySignature || 'C';
+    }
+    return sharedDrumRenderer;
+}
+
+/**
+ * Handles side effects after data operations.
+ */
+function handleSideEffects() {
+    try {
+        const renderer = getDrumRenderer();
+        renderer.render(measuresData);
+        //saveDrums();
+    } catch (error) {
+        console.error('handleSideEffects: Error handling side effects', error);
+    }
+}
+
 // ===================================================================
 // Public API Functions
 // ===================================================================
 
 /**
  * Adds a note to the specified measure.
+ * If measureIndex is null/undefined, the note is added to the currently active measure (`currentIndex`).
+ * @param {number|null|undefined} measureIndex - Optional: Target measure index. If null/undefined, uses internal current index.
+ * @param {object} noteData - Note data object.
+ * @param {string|null} insertBeforeNoteId - Optional note ID to insert before.
+ * @returns {object|null} Result object with noteId and measureIndex, or null on failure.
  */
 export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = null) {
-    console.log('=== addNoteToMeasure START ===');
     console.log('addNoteToMeasure: Adding note', { measureIndex, noteData, insertBeforeNoteId });
+
+    saveStateToHistory();
 
     const success = doAddNote(measureIndex, noteData, insertBeforeNoteId);
 
     if (success) {
-        saveStateToHistory();
         handleSideEffects();
         const actualMeasureIndex = (measureIndex !== undefined && measureIndex !== null) ? measureIndex : currentIndex;
-        console.log(`addNoteToMeasure: Success. Current beats: ${currentDrumBeats}. Measure: ${actualMeasureIndex}`);
-        console.log('Current history length AFTER saveState:', history.length);
+        console.log(`addNoteToMeasure: Success. Current beats: ${currentDrumBeats}. Actual measure index where note was placed: ${actualMeasureIndex}`);
         return { noteId: noteData.id, measureIndex: actualMeasureIndex };
     } else {
         console.warn('addNoteToMeasure: Failed to add note');
+        if (history.length > 0) history.pop();
         return null;
     }
 }
 
 /**
  * Removes a note from the specified measure.
+ * @param {number} measureIndex - Measure index.
+ * @param {string} noteId - Note ID to remove.
+ * @returns {object|null} Removed note object or null.
  */
 export function removeNoteFromMeasure(measureIndex, noteId) {
     console.log('removeNoteFromMeasure: Removing note', { measureIndex, noteId });
 
+    saveStateToHistory();
+
     const removedNote = doRemoveNote(measureIndex, noteId);
 
     if (removedNote) {
-        saveStateToHistory();
         handleSideEffects();
         console.log('removeNoteFromMeasure: Success');
     } else {
@@ -652,18 +700,24 @@ export function removeNoteFromMeasure(measureIndex, noteId) {
 
 /**
  * Updates a note in the specified measure.
+ * @param {number} measureIndex - Measure index.
+ * @param {string} noteId - Note ID to update.
+ * @param {object} newNoteData - New note data.
+ * @returns {boolean} Success status.
  */
 export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
     console.log('updateNoteInMeasure: Updating note', { measureIndex, noteId, newNoteData });
 
+    saveStateToHistory();
+
     const success = doUpdateNote(measureIndex, noteId, newNoteData);
 
     if (success) {
-        saveStateToHistory();
         handleSideEffects();
         console.log('updateNoteInMeasure: Success');
     } else {
         console.warn('updateNoteInMeasure: Failed to update note');
+        if (history.length > 0) history.pop();
     }
 
     return success;
@@ -671,13 +725,21 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
 
 /**
  * Moves a note between measures.
+ * @param {number} fromMeasureIndex - Source measure index.
+ * @param {string} fromNoteId - Source note ID.
+ * @param {number} toMeasureIndex - Target measure index.
+ * @param {string|null} insertBeforeNoteId - Optional note ID to insert before.
+ * @returns {boolean} Success status.
  */
 export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId = null) {
     console.log('placeNote: Moving note', { fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId });
 
+    saveStateToHistory();
+
     const noteToMove = doRemoveNote(fromMeasureIndex, fromNoteId);
     if (!noteToMove) {
         console.error('placeNote: Source note not found');
+        if (history.length > 0) history.pop();
         return false;
     }
 
@@ -690,45 +752,20 @@ export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBe
     const success = doAddNote(toMeasureIndex, noteToMove, insertBeforeNoteId);
 
     if (success) {
-        saveStateToHistory();
         handleSideEffects();
         console.log('placeNote: Success');
         return true;
     } else {
         console.error('placeNote: Failed to add to target. Rolling back.');
-        // Rollback
         if (noteToMove.isChord) {
             noteToMove.notes.forEach(note => note.measure = fromMeasureIndex);
         } else {
             noteToMove.measure = fromMeasureIndex;
         }
         doAddNote(fromMeasureIndex, noteToMove, null);
+        if (history.length > 0) history.pop();
         handleSideEffects();
         return false;
-    }
-}
-
-/**
- * Legacy function for writing notes - kept for backwards compatibility
- */
-export function writeNote(obj) {
-    console.log('writeNote input: obj =', obj);
-
-    const { drumInstrument, duration, isRest = false } = obj;
-
-    const noteData = {
-        drumInstrument,
-        duration,
-        isRest,
-        performedDuration: drumsState.staccatoTime,
-        velocity: drumsState.velocity
-    };
-
-    const result = addNoteToMeasure(currentIndex, noteData, null);
-    
-    if (result) {
-        updateNowPlayingDisplay(isRest ? 'Rest' : drumInstrument);
-        console.log(`writeNote: Note written. Beats status: ${currentDrumBeats}`);
     }
 }
 
@@ -739,8 +776,8 @@ export function undoLastWrite() {
     console.log('undoLastWrite: Attempting undo. History length:', history.length);
 
     if (history.length > 1) {
-        history.pop(); // Remove current state
-        const prevState = history[history.length - 1]; // Get previous state
+        history.pop();
+        const prevState = history[history.length - 1];
 
         measuresData = JSON.parse(JSON.stringify(prevState.measures));
         currentIndex = prevState.index;
@@ -748,7 +785,8 @@ export function undoLastWrite() {
 
         handleSideEffects();
         updateNowPlayingDisplay('Undid last action');
-        console.log('undoLastWrite: Success. History length now:', history.length);
+        console.log('undoLastWrite: Success');
+        console.log('undoLastWrite: History length:', history.length);
     } else if (history.length === 1) {
         resetDrumScore();
         updateNowPlayingDisplay('Score reset');
@@ -782,6 +820,8 @@ export function resetDrumScore() {
 
 /**
  * Processes and synchronizes loaded score data.
+ * @param {Array} loadedData - The loaded score data.
+ * @returns {boolean} Success status.
  */
 export function processAndSyncScore(loadedData) {
     console.log('processAndSyncScore: Processing data', loadedData);
@@ -819,6 +859,7 @@ export function processAndSyncScore(loadedData) {
 
 /**
  * Gets the current drum measures data.
+ * @returns {Array} Current measures data.
  */
 export function getDrumMeasures() {
     return measuresData;
@@ -826,6 +867,7 @@ export function getDrumMeasures() {
 
 /**
  * Gets the index of the current active drum measure.
+ * @returns {number} Current measure index.
  */
 export function getCurrentDrumMeasureIndex() {
     return currentIndex;
@@ -833,6 +875,7 @@ export function getCurrentDrumMeasureIndex() {
 
 /**
  * Saves the current drum score to local storage.
+ * This function is now the dedicated way to save drum scores.
  */
 export function saveDrums() {
     console.log("Attempting to save drum score to local storage...");
@@ -844,87 +887,6 @@ export function saveDrums() {
     } catch (error) {
         console.error("❌ Error saving drum score to local storage:", error);
     }
-}
-
-/**
- * Sets the time signature and redraws the score.
- */
-export function setTimeSignature(numerator, denominator) {
-    if (!Number.isInteger(numerator) || numerator <= 0) {
-        console.warn("setTimeSignature: Invalid numerator provided");
-        return false;
-    }
-    
-    if (!Number.isInteger(denominator) || denominator <= 0) {
-        console.warn("setTimeSignature: Invalid denominator provided");
-        return false;
-    }
-
-    drumsState.timeSignature.numerator = numerator;
-    drumsState.timeSignature.denominator = denominator;
-
-    const renderer = getDrumRenderer();
-    renderer.render(measuresData, true);
-    
-    saveDrums();
-
-    console.log(`Time signature set to: ${numerator}/${denominator}`);
-
-    return true;
-}
-
-/**
- * Sets the tempo and redraws the score.
- */
-export function setTempo(newTempo) {
-    if (!Number.isInteger(newTempo) || newTempo < 30 || newTempo > 300) {
-        console.warn("setTempo: Invalid tempo provided");
-        return false;
-    }
-
-    drumsState.tempo = newTempo;
-
-    const renderer = getDrumRenderer();
-    renderer.render(measuresData, true);
-    
-    saveDrums();
-
-    console.log("Tempo set to:", drumsState.tempo);
-
-    return true;
-}
-
-/**
- * Updates the performedDuration of all notes in the score
- */
-export function updateAllNotesPerformedDuration(newPerformedDuration) {
-    let notesUpdated = 0;
-    
-    measuresData.forEach(measure => {
-        if (measure) {
-            measure.forEach(note => {
-                note.performedDuration = newPerformedDuration;
-                notesUpdated++;
-            });
-        }
-    });
-    
-    if (notesUpdated > 0) {
-        saveStateToHistory();
-        const renderer = getDrumRenderer();
-        renderer.render(measuresData, true);
-        saveDrums();
-        console.log(`updateAllNotesPerformedDuration: Updated ${notesUpdated} notes to performedDuration ${newPerformedDuration}`);
-    }
-    
-    return notesUpdated;
-}
-
-/**
- * Legacy function - alias for resetDrumScore
- */
-export function resetScore() {
-    resetDrumScore();
 }
 
 // ===================================================================
@@ -945,20 +907,16 @@ document.addEventListener("drumNoteDropped", (event) => {
         return;
     }
 
-    // Handle different scenarios
     if (fromMeasureIndex === toMeasureIndex && !drumInstrumentChanged) {
-        // Reordering within the same measure
         removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
         addNoteToMeasure(toMeasureIndex, { ...originalNote, id: originalNote.id }, insertBeforeNoteId);
     } else if (fromMeasureIndex !== toMeasureIndex) {
-        // Moving between measures
         const updatedNoteData = { ...originalNote };
         if (drumInstrumentChanged) {
             updatedNoteData.drumInstrument = newDrumInstrument;
         }
         placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, insertBeforeNoteId);
     } else {
-        // Just changing the instrument in the same measure
         const updatedNoteData = { ...originalNote };
         if (drumInstrumentChanged) {
             updatedNoteData.drumInstrument = newDrumInstrument;
