@@ -25,7 +25,6 @@ let vexflowIndexByNoteId = {}; // Maps note.id to its VexFlow index within a mea
 // ===================================================================
 
 export function drawAll(measures) {
-    console.log("drumRenderer drawAll: START");
     const out = document.getElementById("drums-score"); // Target the drum score div
     if (!out) {
         console.error("drumRenderer drawAll: Drum score rendering element #drums-score not found!");
@@ -229,7 +228,6 @@ export function drawAll(measures) {
  * A safe redraw that preserves only playback highlight states.
  */
 export function safeRedraw() {
-    console.log("drumRenderer safeRedraw: Called. Triggering full drawAll.");
     const scoreData = getDrumMeasures();
     drawAll(scoreData);
     console.log("drumRenderer safeRedraw: ✓ Completed with highlights preserved");

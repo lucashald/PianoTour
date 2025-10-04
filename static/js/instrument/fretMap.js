@@ -60,7 +60,7 @@ export class FretMap {
         this.allNotes = document.querySelectorAll('.note-marker');
         
         if (this.allNotes.length === 0) {
-            console.warn('FretMap: No note-marker elements found. Make sure fretboard HTML is loaded.');
+            console.log('FretMap: No note-marker elements found. Skipping FretMap initialization.');
             return false;
         }
 

@@ -305,7 +305,6 @@ export function setKeySignature(keySignature) {
 }
 
 export function drawAll(measures, noScroll = false) {
-  console.log("drawAll: START");
   
   const out = document.getElementById("score");
   if (!out) {
@@ -459,17 +458,14 @@ export function drawAll(measures, noScroll = false) {
     Vex.Flow.Accidental.applyAccidentals(allVoices, keySignature);
 
     vexFlowFactory.draw();
-    console.log("drawAll: VexFlow drawing complete.");
 
     // NEW: Draw beams after the main score is drawn
     if (pianoState.enableBeaming) {
       drawAllBeams();
-      console.log("drawAll: Beam drawing complete.");
     }
 
     // NEW: Draw ties after beams
     drawTies();
-    console.log("drawAll: Tie drawing complete.");
 
     if (pianoState.currentSelectedMeasure !== -1) {
       console.log(
@@ -518,7 +514,6 @@ export function drawAll(measures, noScroll = false) {
  * A safe redraw that preserves the current selection and all highlight states.
  */
 export function safeRedraw(beaming = false) {
-  console.log("safeRedraw: Called. Triggering full drawAll.");
   const scoreData = getMeasures();
   drawAll(scoreData, false, beaming);
 }
