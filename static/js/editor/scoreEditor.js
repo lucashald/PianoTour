@@ -708,16 +708,15 @@ export function initializeMusicEditor() {
             if (note) placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { clef: note.clef === 'treble' ? 'bass' : 'treble' });
             renderNoteEditBox(false);
         }
-        if (target.id === 'editorToggleRest') {
-            const measures = getMeasures();
-            const note = measures[editorSelectedMeasureIndex]?.find(n => n.id === editorSelectedNoteId);
-            if (note) {
-                const newIsRest = !note.isRest;
-                let newName = newIsRest ? "R" : (note.isRest ? "C4" : note.name);
-                placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { isRest: newIsRest, name: newName });
-            }
-            renderNoteEditBox(false);
-        }
+if (target.id === 'editorToggleRest') {
+    const measures = getMeasures();
+    const note = measures[editorSelectedMeasureIndex]?.find(n => n.id === editorSelectedNoteId);
+    if (note) {
+        const newIsRest = !note.isRest;
+        placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { isRest: newIsRest });
+    }
+    renderNoteEditBox(false);
+}
 
         // Tie and Slur handlers
         if (target.id === 'editorAddTie') {
