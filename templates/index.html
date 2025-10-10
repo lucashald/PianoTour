@@ -185,6 +185,30 @@
         applyAudioSettings 
     } from '{{ url_for("static", filename="js/ui/audioSettings.js") }}';
       
+    import { 
+  exportScoreAsAudio, 
+  showExportProgress, 
+  hideExportProgress, 
+  showExportSuccess, 
+  showExportError 
+} from '{{ url_for("static", filename="js/export/audioExporter.js") }}';
+
+// Add to your initializePlayer() or similar init function
+document.getElementById('export-audio-btn')?.addEventListener('click', async () => {
+  const measures = getMeasures();
+  const bpm = pianoState.tempo || 120;
+  
+  const progress = showExportProgress();
+  
+  try {
+    await exportScoreAsAudio(measures, bpm);
+    hideExportProgress();
+    showExportSuccess(`composition-${new Date().toISOString().slice(0,10)}.wav`);
+  } catch (error) {
+    hideExportProgress();
+    showExportError(error);
+  }
+});
 
       // Store initialization state globally so child scripts can check it
       window.pianoTourInitState = {

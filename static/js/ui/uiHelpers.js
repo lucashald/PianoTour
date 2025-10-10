@@ -85,11 +85,16 @@ export function generateChordButtons() {
         grid.className = 'chord-grid';
 
         group.chords.forEach(chordName => {
+            const resolvedChordName = resolveChordName(chordName);
+            
+            // Check if we've already added this chord to the grid
+            if (grid.querySelector(`[data-chord="${resolvedChordName}"]`)) {
+                return; // Skip if already exists
+            }
+
             const btn = document.createElement('button');
             btn.className = 'btn btn--compact';
 
-            // Resolve chord name based on current key signature
-            const resolvedChordName = resolveChordName(chordName);
             const chordDefinition = CHORD_DEFINITIONS[resolvedChordName];
             if (!chordDefinition) return;
 

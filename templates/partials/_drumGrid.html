@@ -30,11 +30,12 @@
   <div class="pattern-editor__content" id="patternEditorContent">
     <div class="pattern-grid" id="patternGrid">
       
-      <div class="pattern-grid__header-cell"></div> {% for step in range(1, 9) %}
-      <div class="pattern-grid__step-number" data-step="{{ step }}">
-        {{ step }}
-      </div>
-      {% endfor %}
+<div class="pattern-grid__header-cell"></div>
+{% for step in range(1, 9) %}
+<div class="pattern-grid__step-number" data-step="{{ step }}">
+  {% if step % 2 == 1 %}{{ ((step + 1) // 2) }}{% else %}+{% endif %}
+</div>
+{% endfor %}
 
       <div class="pattern-grid__instrument-label" data-instrument="box-kick"><span>Kick</span></div>
       {% for step in range(1, 9) %}

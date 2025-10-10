@@ -37,6 +37,10 @@
   </button>
   </div>
 
+    <button id="export-audio-btn" class="btn btn--info playback-controls__button">
+  📥 Export Audio
+</button>
+
         {% include 'partials/_volumeControl.html' %}
 
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
@@ -200,7 +204,31 @@
       import { initializeDrumFileHandlers, handleDrumFile } from '{{ url_for("static", filename="js/drums/drumIOHelpers.js") }}';
       import { saveDrums } from '{{ url_for("static", filename="js/drums/drumsScoreWriter.js") }}';
       let drumRenderer = null;
-      
+
+          import { 
+  exportScoreAsAudio, 
+  showExportProgress, 
+  hideExportProgress, 
+  showExportSuccess, 
+  showExportError 
+} from '{{ url_for("static", filename="js/export/drumsAudioExporter.js") }}';
+
+// Add to your initializePlayer() or similar init function
+document.getElementById('export-audio-btn')?.addEventListener('click', async () => {
+  const measures = getDrumMeasures();
+  const bpm = drumsState.tempo || 120;
+  
+  const progress = showExportProgress();
+  
+  try {
+    await exportScoreAsAudio(measures, bpm);
+    hideExportProgress();
+    showExportSuccess(`composition-${new Date().toISOString().slice(0,10)}.wav`);
+  } catch (error) {
+    hideExportProgress();
+    showExportError(error);
+  }
+});
       // Initialize drum renderer
       function initializeDrumRenderer() {
         drumRenderer = new UniversalMusicRenderer('drums-score', {
