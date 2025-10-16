@@ -200,7 +200,7 @@
       import { initializeDrumFileHandlers, handleDrumFile } from '{{ url_for("static", filename="js/drums/drumIOHelpers.js") }}';
       import { saveDrums } from '{{ url_for("static", filename="js/drums/drumsScoreWriter.js") }}';
       let drumRenderer = null;
-      
+
       // Initialize drum renderer
       function initializeDrumRenderer() {
         drumRenderer = new UniversalMusicRenderer('drums-score', {
@@ -210,7 +210,7 @@
           tempo: drumsState.tempo,
           keySignature: drumsState.keySignature || 'C'
         });
-        console.log('🥁 Drum renderer initialized with 3 measures per system, scrolling disabled');
+        console.log('Drum renderer initialized with 3 measures per system, scrolling disabled');
       }
 
       // Render drums
@@ -229,9 +229,9 @@
         
         try {
           drumRenderer.render(measures);
-          console.log('🥁 Drums rendered successfully using UniversalMusicRenderer');
+          console.log('Drums rendered successfully using UniversalMusicRenderer');
         } catch (error) {
-          console.error('🥁 Error rendering drums:', error);
+          console.error('Error rendering drums:', error);
         }
       }
 
@@ -294,7 +294,7 @@
         document.getElementById('stop-drums-score-btn')?.addEventListener('click', (e) => {
           e.preventDefault();
           // Stop drum playback - you'll need to implement this in your drumAudio module
-          console.log('🥁 Stop drums playback');
+          console.log('Stop drums playback');
           // Example: Tone.Transport.stop(); or however you handle stopping
           if (window.Tone) {
             Tone.Transport.stop();
