@@ -195,7 +195,7 @@ class AudioSettingsController {
                 }
             },
             formatDisplay: (value) => parseFloat(value).toFixed(2),
-            min: 0,
+            min: 0.01,
             max: 1,
             step: 0.01
         });

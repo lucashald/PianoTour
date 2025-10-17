@@ -4552,7 +4552,7 @@ export function transposeNote(noteName, semitones) {
   if (originalMidi === undefined) return noteName;
   
   const newMidi = originalMidi + semitones;
-  const newNoteInfo = NOTES_BY_MIDI[newMidi];
+  const newNoteInfo = notesByMidiKeyAware(newMidi);
   
   return newNoteInfo ? newNoteInfo.name : noteName;
 }

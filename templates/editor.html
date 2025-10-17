@@ -100,21 +100,17 @@
 
     <!-- Controls for a single note's properties -->
     <div class="note-editor__controls" id="singleNoteControls">
-      <div class="control-group">
+      <div class="control-section">
         <label for="editorNoteLetter">Letter:</label>
         <select id="editorNoteLetter" class="dropdown-select">
           <option value="C">C</option><option value="D">D</option><option value="E">E</option>
           <option value="F">F</option><option value="G">G</option><option value="A">A</option>
           <option value="B">B</option><option value="R">R (Rest)</option>
         </select>
-      </div>
-      <div class="control-group">
         <label for="editorAccidentalDropdown">Accidental:</label>
         <select id="editorAccidentalDropdown" class="dropdown-select">
           <option value="">None</option><option value="#">#</option><option value="b">b</option>
         </select>
-      </div>
-      <div class="control-group">
         <label for="editorOctaveDropdown">Octave:</label>
         <select id="editorOctaveDropdown" class="dropdown-select">
           <option value="2">2</option><option value="3">3</option><option value="4">4</option>
@@ -124,25 +120,27 @@
     </div>
 
     <!-- Controls for editing the notes within a chord -->
-    <div class="note-editor__controls hidden" id="chordNotesEditor">
+    <div class="note-editor__controls control-section hidden" id="chordNotesEditor">
       <h4>Chord Notes:</h4>
       <div id="chordNotesContainer">
         <!-- Chord note inputs will be dynamically populated here -->
       </div>
-      <button id="addNoteToChordBtn" class="btn btn--compact btn--primary">Add Note to Chord</button>
+      <div class="button-group">
+      <button id="addNoteToChordBtn" class="btn btn--compact">Add Note to Chord</button>
+      </div>
     </div>
 
     <!-- Common controls for duration and actions -->
-    <div class="control-group">
+    <div class="control-section">
       <label for="editorDurationDropdown">Duration:</label>
       <select id="editorDurationDropdown" class="dropdown-select">
         <!-- Duration options will be populated by JavaScript -->
       </select>
     </div>
-    <div class="control-group">
+    <div class="control-section">
         <label>Actions:</label>
         <div class="button-group">
-            <button id="editorRemoveNote" class="btn btn--compact btn--danger">Remove</button>
+            <button id="editorRemoveNote" class="btn btn--compact">Remove</button>
             <button id="editorToggleClef" class="btn btn--compact">Treble</button>
         </div>
         <div class="button-group">
@@ -150,7 +148,7 @@
         </div>
     </div>
         <!-- NEW: Tie and Slur Controls -->
-<div class="control-group">
+<div class="control-section">
   <label>Ties & Slurs:</label>
   <div class="button-group">
     <button id="editorAddTie" class="btn btn--compact btn--primary">Add Tie</button>

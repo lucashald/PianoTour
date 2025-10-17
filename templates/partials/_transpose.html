@@ -1,0 +1,84 @@
+
+       
+            <div class="controls-transpose-container hidden" id="transpose-container">
+               <label class="control-label">Transpose Score</label>
+              <div class="transpose-button-group">
+
+  <button id="transpose-semitone-up-btn" class="btn btn--info" title="Up 1 semitone">
+    ⭡ Semitone
+  </button>
+    <button id="transpose-octave-up-btn" class="btn btn--info" title="Up 1 octave">
+    ⮅ Octave
+  </button>
+  </div>
+  <div class="transpose-button-group">
+    <button id="transpose-semitone-down-btn" class="btn btn--info" title="Down 1 semitone">
+    ⭣ Semitone
+  </button>
+      <button id="transpose-octave-down-btn" class="btn btn--info" title="Down 1 octave">
+    ⮇ Octave
+  </button>
+  </div>
+</div>
+
+<script type="module">
+    import { transposeScore } from '{{ url_for("static", filename="js/score/scoreWriter.js") }}';
+
+    /**
+     * Transpose score up by 1 semitone
+     */
+    function handleTransposeSemitoneUp() {
+        console.log('Transpose semitone up clicked');
+        const result = transposeScore(1);
+        console.log('Transpose result:', result);
+        if (result.outOfRange && result.outOfRange.length > 0) {
+            console.warn('Out of range notes:', result.outOfRange);
+        }
+    }
+
+    /**
+     * Transpose score down by 1 semitone
+     */
+    function handleTransposeSemitoneDown() {
+        console.log('Transpose semitone down clicked');
+        const result = transposeScore(-1);
+        console.log('Transpose result:', result);
+        if (result.outOfRange && result.outOfRange.length > 0) {
+            console.warn('Out of range notes:', result.outOfRange);
+        }
+    }
+
+    /**
+     * Transpose score up by 1 octave (12 semitones)
+     */
+    function handleTransposeOctaveUp() {
+        console.log('Transpose octave up clicked');
+        const result = transposeScore(12);
+        console.log('Transpose result:', result);
+        if (result.outOfRange && result.outOfRange.length > 0) {
+            console.warn('Out of range notes:', result.outOfRange);
+        }
+    }
+
+    /**
+     * Transpose score down by 1 octave (12 semitones)
+     */
+    function handleTransposeOctaveDown() {
+        console.log('Transpose octave down clicked');
+        const result = transposeScore(-12);
+        console.log('Transpose result:', result);
+        if (result.outOfRange && result.outOfRange.length > 0) {
+            console.warn('Out of range notes:', result.outOfRange);
+        }
+    }
+
+    // Initialize event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('transpose-semitone-up-btn')?.addEventListener('click', handleTransposeSemitoneUp);
+        document.getElementById('transpose-semitone-down-btn')?.addEventListener('click', handleTransposeSemitoneDown);
+        document.getElementById('transpose-octave-up-btn')?.addEventListener('click', handleTransposeOctaveUp);
+        document.getElementById('transpose-octave-down-btn')?.addEventListener('click', handleTransposeOctaveDown);
+        
+        console.log('Transpose handlers initialized');
+    });
+</script>

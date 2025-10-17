@@ -77,6 +77,7 @@ export class VolumeControl {
     // Settings button click handler
     const settingsButton = document.getElementById('settingsButton');
     const settingsContainer = document.getElementById('audio-settings');
+    const transposeContainer = document.getElementById('transpose-container');
     
     if (settingsButton) {
         settingsButton.addEventListener('click', (e) => {
@@ -85,6 +86,10 @@ export class VolumeControl {
             
             if (settingsContainer) {
                 settingsContainer.classList.toggle('hidden');
+            }
+
+            if (transposeContainer) {
+                transposeContainer.classList.toggle('hidden');
             }
             
             // Initialize audio if not already done

@@ -5,7 +5,7 @@
 // Imports
 // ===================================================================
 import { pianoState } from "../core/appState.js";
-import { NOTES_BY_NAME, identifyChordStrict } from '../core/note-data.js'; // Needed for note name to MIDI mapping for sorting and internal consistency
+import { NOTES_BY_NAME, identifyChordStrict, transposeNote } from '../core/note-data.js';
 import { updateNowPlayingDisplay } from '../ui/uiHelpers.js';
 import { saveToLocalStorage } from '../utils/ioHelpers.js';
 import { drawAll } from './scoreRenderer.js';
@@ -1269,4 +1269,155 @@ export function updateAllNotesPerformedDuration(newPerformedDuration) {
     }
     
     return notesUpdated;
+}
+
+/**
+ * Transposes all notes in the score by a given number of semitones.
+ * 
+ * Handles:
+ * - Single notes and chords in both treble and bass clefs
+ * - Rests (left unchanged)
+ * - Out-of-range validation (warns if notes go outside C2-C8 range)
+ * - Updates all note names while preserving other properties
+ * 
+ * @param {number} semitones - Number of semitones to transpose
+ *                              Positive = up, Negative = down
+ *                              Use ±1 for semitone, ±12 for octave
+ * @returns {object} - { success: boolean, message: string, outOfRange: array }
+ */
+export function transposeScore(semitones) {
+    if (measuresData.length === 0) {
+        console.warn('transposeScore: No notes to transpose.');
+        return { success: false, message: 'No score to transpose', outOfRange: [] };
+    }
+
+    if (semitones === 0) {
+        return { success: true, message: 'No transposition needed (0 semitones)', outOfRange: [] };
+    }
+
+    const outOfRangeNotes = [];
+    let transposedNoteCount = 0;
+
+    // Iterate through all measures
+    for (let measureIndex = 0; measureIndex < measuresData.length; measureIndex++) {
+        const measure = measuresData[measureIndex];
+
+        if (!Array.isArray(measure)) continue;
+
+        // Iterate through all notes in the measure
+        for (let noteIndex = 0; noteIndex < measure.length; noteIndex++) {
+            const note = measure[noteIndex];
+
+            // Skip rests
+            if (note.isRest) {
+                continue;
+            }
+
+            // Handle single notes
+            if (!isChord(note.name)) {
+                const transposed = transposeNote(note.name, semitones);
+                
+                // Check if transposed note is within valid range (C2 = MIDI 36, C8 = MIDI 108)
+                const transposedMidi = NOTES_BY_NAME[transposed];
+                if (transposedMidi === undefined || transposedMidi < 36 || transposedMidi > 108) {
+                    outOfRangeNotes.push({
+                        original: note.name,
+                        measure: measureIndex,
+                        clef: note.clef
+                    });
+                } else {
+                    note.name = transposed;
+                    transposedNoteCount++;
+                }
+            } else {
+                // Handle chords - transpose each note in the chord
+                const chordNotes = parseChord(note.name);
+                const transposedChordNotes = [];
+                let allInRange = true;
+
+                for (const chordNote of chordNotes) {
+                    const transposed = transposeNote(chordNote, semitones);
+                    const transposedMidi = NOTES_BY_NAME[transposed];
+
+                    if (transposedMidi === undefined || transposedMidi < 36 || transposedMidi > 108) {
+                        allInRange = false;
+                        break;
+                    }
+
+                    transposedChordNotes.push(transposed);
+                }
+
+                if (allInRange) {
+                    note.name = formatChord(transposedChordNotes);
+                    transposedNoteCount++;
+                } else {
+                    outOfRangeNotes.push({
+                        original: note.name,
+                        measure: measureIndex,
+                        clef: note.clef
+                    });
+                }
+            }
+        }
+    }
+
+    // Build result message
+    let message = `Transposed ${transposedNoteCount} note(s)`;
+    if (semitones > 0) {
+        if (semitones === 12) message += ' up 1 octave';
+        else if (semitones === 1) message += ' up 1 semitone';
+        else message += ` up ${semitones} semitone(s)`;
+    } else {
+        if (semitones === -12) message += ' down 1 octave';
+        else if (semitones === -1) message += ' down 1 semitone';
+        else message += ` down ${Math.abs(semitones)} semitone(s)`;
+    }
+
+    if (outOfRangeNotes.length > 0) {
+        message += ` (⚠️ ${outOfRangeNotes.length} note(s) out of range)`;
+    }
+
+    // Save to history and re-render
+    saveStateToHistory();
+    drawAll(measuresData);
+    saveToLocalStorage();
+    updateNowPlayingDisplay(message);
+
+    console.log(`transposeScore: ${message}`);
+
+    return {
+        success: transposedNoteCount > 0,
+        message: message,
+        outOfRange: outOfRangeNotes,
+        transposedCount: transposedNoteCount
+    };
+}
+
+/**
+ * Helper: Check if a note name is a chord (format: "(C4 E4 G4)")
+ */
+function isChord(noteName) {
+    return noteName && noteName.startsWith('(') && noteName.endsWith(')');
+}
+
+/**
+ * Helper: Parse chord string into array of note names
+ */
+function parseChord(chordString) {
+    if (!isChord(chordString)) {
+        return [chordString];
+    }
+    return chordString.substring(1, chordString.length - 1).split(' ').filter(Boolean);
+}
+
+/**
+ * Helper: Format array of note names into chord string
+ */
+function formatChord(noteArray) {
+    if (!Array.isArray(noteArray) || noteArray.length === 0) {
+        return '';
+    }
+    return noteArray.length > 1 
+        ? `(${noteArray.join(' ')})` 
+        : noteArray[0];
 }

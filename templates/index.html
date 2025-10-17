@@ -50,10 +50,11 @@
         </div>
         {% block top %}{% endblock %}
         
-        
+        {% include
+          'partials/_transpose.html' %}
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
-          {% block score %} {% if not hide_score %} {% include
-          'partials/_score.html' %} {% endif %} {% endblock %}
+          {% block score %} {% if not hide_score %}  {% include
+          'partials/_score.html' %}  {% endif %} {% endblock %}
           {% block palette %}{% endblock %}
         <div class="outer-wrapper">
         <section class="instrument-panel">
