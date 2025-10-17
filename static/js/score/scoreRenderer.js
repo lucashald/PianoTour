@@ -103,9 +103,7 @@ const BASS_STAFF_POSITIONS = [
   { position: -3, note: "E4", type: "ledger" },
   { position: -2.5, note: "D4", type: "ledger-space" },
   { position: -2, note: "C4", type: "ledger" },
-  { position: -1.5, note: "B3", type: "space" },
-  { position: -1, note: "A3", type: "ledger" },
-  { position: -0.5, note: "G3", type: "space" },
+  { position: -0.5, note: "B3", type: "space" },
   { position: 0, note: "A3", type: "line" }, // Top line
   { position: 0.5, note: "G3", type: "space" },
   { position: 1, note: "F3", type: "line" },

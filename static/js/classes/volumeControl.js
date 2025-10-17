@@ -8,7 +8,7 @@ export class VolumeControl {
             this.slider = container.querySelector('#volumeSlider');
             this.volumeValue = container.querySelector('#volumeValue');
             this.volumeIcon = container.querySelector('.volume-icon');
-            this.previousVolume = 0;
+            this.previousVolume = 75;
             this.audioStatus = 'uninitialized'; // Track audio status
             
             this.init();
