@@ -93,9 +93,11 @@
             <button id="chord-display-toggle" class="btn btn--toggle">
               <span>Show Chords</span>
             </button>
+            <!--
             <button id="settings-display-toggle" class="btn btn--toggle">
               <span>Show Settings</span>
             </button>
+            -->
 
             {% if request.path == '/editor' %}
             <a href="/" class="btn btn--info"><span>Close Editor</span></a>
@@ -491,11 +493,11 @@ document.getElementById('export-audio-btn')?.addEventListener('click', async () 
             event: "click",
             handler: handleChordDisplayToggle,
           },
-                    {
-            id: "settings-display-toggle",
-            event: "click",
-            handler: handleSettingsDisplayToggle,
-          },
+          // {
+          //   id: "settings-display-toggle",
+          //   event: "click",
+          //   handler: handleSettingsDisplayToggle,
+          // },
           {
             id: "key-signature-btn",
             event: "click",

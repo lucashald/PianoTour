@@ -62,7 +62,8 @@ export const pianoState = {
 
     legatoTime: 1, // Default legato time as percentage of note duration
     staccatoTime: 0.85, // Default staccato time as percentage of note duration
-    velocity: 100, // Default velocity for MIDI playback
+    velocity: 100, // Default velocity for new notes
+    humanize: 10, // Default velocity variation for new notes
     enableBeaming: true, // Default beaming state
     enableTies: true, // Default ties state
 };

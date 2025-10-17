@@ -390,8 +390,8 @@ function scheduleNoteForOffline(
       .split(" ")
       .filter(Boolean);
 
-    // Get the performed duration from the note (defaults to 0.75 if not set)
-    const performedDuration = note.performedDuration || drumsState.staccatoTime || 0.75;
+    // Get the performed duration from the note (defaults to 0.85 if not set)
+    const performedDuration = note.performedDuration || drumsState.staccatoTime || 0.85;
     
     // Get the velocity from the note (defaults to 100 if not set)
     const velocity = note.velocity || drumsState.velocity || 100;

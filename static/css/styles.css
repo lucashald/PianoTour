@@ -1,7 +1,3 @@
-/* ==========================================================================
-   COMPREHENSIVE MOBILE-FIRST PIANO TOUR CSS
-   Includes: Piano, Guitar, Audio Controls, and Editor Components
-   ========================================================================== */
 
 /* ==========================================================================
    1. CSS Custom Properties & Reset
@@ -50,6 +46,7 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-xxl: 3rem;
+  --spacing-unit: 0.5rem;
 
   /* Touch-friendly measurements */
   --touch-target-min: 44px;
@@ -171,21 +168,19 @@ body.no-scroll {
 /* Remove link styling from header title */
 .piano-app__header-title a,
 .piano-app__header a {
-  text-decoration: none;  /* Removes underline */
-  color: inherit;          /* Inherits the gradient text color */
-  cursor: pointer;         /* Keeps the pointer cursor on hover */
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
-/* Optional: Remove visited link color */
 .piano-app__header-title a:visited,
 .piano-app__header a:visited {
   color: inherit;
 }
 
-/* Optional: Add hover effect without changing color */
 .piano-app__header-title a:hover,
 .piano-app__header a:hover {
-  opacity: 0.8;  /* Subtle hover effect */
+  opacity: 0.8;
 }
 
 .piano-app__now-playing {
@@ -231,6 +226,24 @@ body.no-scroll {
   margin-bottom: var(--spacing-xs);
 }
 
+/* Settings Icon */
+.settings-toggle-icon {
+    font-size: 35px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease, transform 0.2s ease;
+    padding: 3px;
+    display: inline-block;
+    transform: translateY(6px);
+}
+
+/* Settings Icon Active State */
+.settings-toggle-icon.active {
+    transform: translateY(6px) scaleX(-1);
+    color: var(--color-primary);
+}
+
+/* ===== HORIZONTAL VOLUME CONTROL ===== */
 .volume-control {
     width: 25%;
     display: flex;
@@ -254,75 +267,7 @@ body.no-scroll {
     background-color: var(--color-blue-dark);
 }
 
-.volume-slider {
-    flex-grow: 1;
-    -webkit-appearance: none;
-    appearance: none;
-    height: 20px;
-    cursor: pointer;
-    outline: none;
-    border-radius: 8px;
-    background: linear-gradient(to right, 
-        var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 75%), 
-        var(--color-blue-dark) var(--value-percent, 75%)
-    );
-}
-
-/* WebKit browsers (Chrome, Safari, Edge) */
-.volume-slider::-webkit-slider-track {
-    background: transparent;
-    border: none;
-}
-
-.volume-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 24px;
-    width: 24px;
-    margin-top: -2px;
-    border-radius: 50%;
-    background: var(--color-text-primary);
-    border: 3px solid var(--color-green-medium);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-    transition: all 0.3s ease;
-}
-
-/* Firefox */
-.volume-slider::-moz-range-track {
-   background: transparent;
-   border: none;
-}
-
-.volume-slider::-moz-range-thumb {
-    height: 20px;
-    width: 20px;
-    border-radius: 50%;
-    background: var(--color-text-primary);
-    border: 3px solid var(--color-green-medium);
-    cursor: pointer;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-    transition: all 0.3s ease;
-    border-color: inherit;
-}
-
-/* Hover & Active States */
-.volume-slider:hover::-webkit-slider-thumb {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-.volume-slider:active::-webkit-slider-thumb {
-    transform: scale(1.2);
-}
-.volume-slider:hover::-moz-range-thumb {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-.volume-slider:active::-moz-range-thumb {
-    transform: scale(1.2);
-}
-
-/* Focus states - Outline removed */
-.volume-slider:focus {
+.volume-icon:focus {
     outline: none;
 }
 
@@ -335,20 +280,118 @@ body.no-scroll {
     transition: color 0.3s ease;
 }
 
+/* HORIZONTAL SLIDER - Default behavior */
+.volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 20px;
+    cursor: pointer;
+    outline: none;
+    border-radius: 8px;
+background: linear-gradient(to right, 
+    var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 0%), 
+    var(--color-blue-dark) var(--value-percent, 0%)
+);
+    flex-grow: 1;
+}
+
+/* Horizontal slider track - WebKit */
+.volume-slider::-webkit-slider-track {
+    background: transparent;
+    border: none;
+}
+
+/* Horizontal slider thumb - WebKit */
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 24px;
+    width: 24px;
+    margin-top: -2px;
+    border-radius: 50%;
+    background: var(--color-text-primary);
+    border: 3px solid var(--color-green-medium);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+/* Horizontal slider track - Firefox */
+.volume-slider::-moz-range-track {
+   background: transparent;
+   border: none;
+}
+
+/* Horizontal slider thumb - Firefox */
+.volume-slider::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--color-text-primary);
+    border: 3px solid var(--color-green-medium);
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    border-color: inherit;
+}
+
+/* Hover & Active States - WebKit */
+.volume-slider:hover::-webkit-slider-thumb {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.volume-slider:active::-webkit-slider-thumb {
+    transform: scale(1.2);
+}
+
+/* Hover & Active States - Firefox */
+.volume-slider:hover::-moz-range-thumb {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.volume-slider:active::-moz-range-thumb {
+    transform: scale(1.2);
+}
+
+/* Focus states */
+.volume-slider:focus {
+    outline: none;
+}
+
+/* Audio initialization state */
+.volume-control.audio-uninitialized * {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+.volume-control.audio-uninitialized .volume-slider {
+    opacity: 0.7;
+    filter: grayscale(50%);
+}
+
+.volume-control.audio-ready .volume-slider {
+    opacity: 1;
+    filter: none;
+}
+
 /* Muted state */
 .volume-control.muted .volume-slider {
     --track-fill-color: var(--color-danger);
 }
 
-/* Muted Thumb - Background changed to make it solid */
 .volume-control.muted .volume-slider::-webkit-slider-thumb {
     background: var(--color-danger);
     border-color: var(--color-danger);
 }
+
 .volume-control.muted .volume-slider::-moz-range-thumb {
     background: var(--color-danger);
     border-color: var(--color-danger);
 }
+
 .volume-control.muted .volume-icon {
     fill: var(--color-danger);
 }
@@ -361,25 +404,58 @@ body.no-scroll {
     .volume-icon { width: 32px; height: 32px; padding: 12px; }
 }
 
-.volume-icon:focus {
-    outline: none;
+/* ===== VERTICAL SLIDER OVERRIDES ===== */
+.volume-control.vertical {
+  width: auto;
+  height: 200px;
+  max-width: none;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-bottom: 0;
+  gap: calc(var(--spacing-unit) / 2);
 }
 
-.volume-control.audio-uninitialized * {
-    cursor: pointer !important;
-    pointer-events: auto !important;
+.volume-control.vertical .volume-icon {
+  display: none;
 }
 
-.volume-control.audio-uninitialized .volume-slider {
-    opacity: 0.7;
-    /* Make it look disabled but keep it functional for clicks */
-    filter: grayscale(50%);
+.volume-control.vertical .volume-value {
+  min-width: 60px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
 }
 
-/* When audio is ready, restore normal appearance */
-.volume-control.audio-ready .volume-slider {
-    opacity: 1;
-    filter: none;
+/* Vertical slider - simplified for functionality */
+.volume-control.vertical .volume-slider {
+  flex-grow: 0;
+  width: 20px;
+  height: 120px;
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: bt-lr;
+  cursor: pointer;
+}
+
+/* Muted state - vertical */
+.volume-control.vertical.muted .volume-slider {
+  opacity: 0.6;
+}
+
+/* Audio state - vertical */
+.volume-control.vertical.audio-uninitialized .volume-slider {
+  opacity: 0.7;
+}
+
+.volume-control.vertical.audio-ready .volume-slider {
+  opacity: 1;
+}
+
+/* Touch-friendly improvements - vertical */
+@media (pointer: coarse) {
+  .volume-control.vertical .volume-slider {
+    width: 28px;
+  }
 }
 
 /* Container for all controls */
@@ -411,17 +487,6 @@ body.no-scroll {
   gap: calc(var(--spacing-unit) * 1.5);
 }
 
-/* Vertical volume control modifications */
-.volume-control.vertical {
-  width: auto;
-  height: 200px;
-  max-width: none;
-  flex-direction: column;
-  justify-content: flex-start;
-  margin-bottom: 0;
-  gap: calc(var(--spacing-unit) / 2);
-}
-
 .control-label {
   font-size: 12px;
   font-weight: 500;
@@ -431,152 +496,65 @@ body.no-scroll {
   white-space: nowrap;
 }
 
-/* Vertical slider styling */
-.vertical-slider {
-  writing-mode: bt-lr; /* IE */
-  -webkit-appearance: slider-vertical; /* WebKit */
-  width: 20px;
-  height: 120px;
-  flex-grow: 0;
-  background: linear-gradient(
-    to top,
-    var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 75%),
-    var(--color-blue-dark) var(--value-percent, 75%)
-  );
-  cursor: pointer;
-  outline: none;
-  border-radius: 8px;
-}
-
-/* WebKit browsers (Chrome, Safari, Edge) - Vertical */
-.vertical-slider::-webkit-slider-track {
-  background: transparent;
-  border: none;
-  width: 20px;
-}
-
-.vertical-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 20px;
-  width: 20px;
-  border-radius: 50%;
-  background: var(--color-text-primary);
-  border: 3px solid var(--color-green-medium);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-  cursor: pointer;
-  /* Center the thumb on vertical track */
-  margin-left: 0;
-  margin-top: 0;
-}
-
-/* Firefox - Vertical */
-.vertical-slider::-moz-range-track {
-  background: transparent;
-  border: none;
-  width: 20px;
-  height: 120px;
-}
-
-.vertical-slider::-moz-range-thumb {
-  height: 14px;
-  width: 14px;
-  border-radius: 50%;
-  background: var(--color-text-primary);
-  border: 3px solid var(--color-green-medium);
-  cursor: pointer;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-  /* Remove default border and center */
-  border-color: var(--color-green-medium);
-  margin: 0;
-}
-
-/* Hover & Active States for Vertical Sliders */
-.vertical-slider:hover::-webkit-slider-thumb,
-.vertical-slider:hover::-moz-range-thumb {
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-.vertical-slider:active::-webkit-slider-thumb,
-.vertical-slider:active::-moz-range-thumb {
-  transform: scale(1.2);
-}
-
-/* Focus states */
-.vertical-slider:focus {
-  outline: none;
-}
-
-/* Value display for vertical sliders */
-.volume-control.vertical .volume-value {
-  min-width: 60px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* Remove volume icon for these controls */
-.volume-control.vertical .volume-icon {
-  display: none;
-}
-
-/* Muted state for vertical sliders */
-.volume-control.vertical.muted .vertical-slider {
-  --track-fill-color: var(--color-danger);
-}
-
-.volume-control.vertical.muted .vertical-slider::-webkit-slider-thumb,
-.volume-control.vertical.muted .vertical-slider::-moz-range-thumb {
-  background: var(--color-danger);
-  border-color: var(--color-danger);
-}
-
-/* Touch-friendly improvements for vertical sliders */
-@media (pointer: coarse) {
-  .vertical-slider {
-    width: 24px;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .controls-container,
+  .audio-controls-container {
+    flex-direction: column;
+    align-items: center;
   }
-  .vertical-slider::-webkit-slider-thumb {
-    height: 24px;
-    width: 24px;
+  .vertical-controls {
+    flex-wrap: wrap;
+    justify-content: center;
   }
-  .vertical-slider::-moz-range-thumb {
-    height: 18px;
-    width: 18px;
+  .volume-control.vertical {
+    height: 150px;
+  }
+  .volume-control.vertical .volume-slider {
+    height: 100px;
   }
 }
 
-/* Audio state classes */
-.volume-control.vertical.audio-uninitialized * {
-  cursor: pointer !important;
-  pointer-events: auto !important;
-}
-
-.volume-control.vertical.audio-uninitialized .vertical-slider {
-  opacity: 0.7;
-  filter: grayscale(50%);
-}
-
-.volume-control.vertical.audio-ready .vertical-slider {
-  opacity: 1;
-  filter: none;
-}
-
-/* Wrapper and Footer */
-.controls-footer,
-.outer-wrapper {
-  background: #04273c;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* Horizontally centers all direct children */
-  padding: calc(var(--spacing-unit) * 2);
-  gap: calc(var(--spacing-unit) * 1.5);
+/* Score Viewer */
+.score-viewer {
   width: 100%;
-  max-width: 1400px;
+  min-height: var(--score-min-height-mobile);
+  background-color: #FFFFFF;
+  color: var(--color-blue-darkest);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.score-viewer__container {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
+  display: flex;
+  justify-content: safe center;
+  align-items: center;
+}
+
+.score-viewer__content {
+  display: inline-block;
+}
+
+#score {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: pan-x;
 }
 
 /* Preset Controls */
@@ -662,23 +640,403 @@ body.no-scroll {
   border-color: var(--color-primary, #007bff);
 }
 
-/* Responsive adjustments */
+/* Wrapper and Footer */
+.controls-footer,
+.outer-wrapper {
+  background: #04273c;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--spacing-unit) * 2);
+  gap: calc(var(--spacing-unit) * 1.5);
+  width: 100%;
+  max-width: 1400px;
+}
+
+/* Main Controls */
+.main-controls {
+  width: 100%;
+  background-color: var(--color-surface);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-sm);
+}
+
+.controls-button-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--touch-spacing);
+  margin-bottom: var(--spacing-sm);
+}
+
+.controls-button-row:last-child {
+  margin-bottom: 0;
+}
+
+.main-controls__chord-interface {
+  width: 100%;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--spacing-md);
+}
+
+.chord-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  justify-content: center;
+}
+
+.chord-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Form Controls */
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.time-signature-input,
+.tempo-input,
+.measure-input,
+.chord-input,
+.form-select {
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  width: 100%;
+}
+
+.time-signature-input:focus,
+.tempo-input:focus,
+.measure-input:focus,
+.chord-input:focus,
+.form-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(118, 181, 149, 0.2);
+}
+
+/* Control Groups */
+.time-signature-controls,
+.tempo-controls,
+.measure-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.time-signature-separator {
+  font-size: var(--font-size-xl);
+  font-weight: bold;
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: var(--spacing-xs);
+}
+
+/* Note Palette & Editor */
+.note-palette-container {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.palette-header {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chord-palette-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--touch-spacing);
+  justify-items: center;
+}
+
+.note-palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--touch-spacing);
+  justify-items: center;
+}
+
+.palette-note {
+  width: 100%;
+  min-width: 80px;
+  max-width: 120px;
+  min-height: var(--touch-target-min);
+  background: var(--color-green-lightest);
+  color: #000;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  transition: all 0.2s ease;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.palette-note:hover,
+.palette-note:active {
+  background: var(--color-peach-light);
+}
+
+.note-duration {
+  font-size: var(--font-size-xs);
+  margin-top: 2px;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+/* Side Panel & Editor */
+.piano-app__side-panel {
+  display: none;
+}
+
+.floating-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 2rem);
+  max-width: 400px;
+  max-height: 80vh;
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(20px);
+  padding: var(--spacing-md);
+  z-index: 1000;
+  overflow-y: auto;
+  color: white;
+}
+
+.floating-panel.visible {
+  display: block;
+  animation: panelSlideIn 0.3s ease-out forwards;
+}
+
+.floating-panel.hidden {
+  display: none;
+}
+
+@keyframes panelSlideIn {
+  from { 
+    opacity: 0; 
+    transform: translate(-50%, -50%) scale(0.98); 
+  }
+  to { 
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.editor-widget {
+  margin-bottom: var(--spacing-md);
+}
+
+.editor-widget__title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.editor-widget__content--note-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+}
+
+.note-editor {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.note-editor__header {
+  color: white;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* Chord Search */
+.chord-search-container {
+  position: relative;
+  margin: var(--spacing-md) 0;
+}
+
+.chord-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid var(--color-primary);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.chord-suggestion {
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  font-size: var(--font-size-base);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  color: var(--color-blue-darkest);
+  touch-action: manipulation;
+}
+
+.chord-suggestion:hover,
+.chord-suggestion.highlighted {
+  background-color: #f0f8ff;
+}
+
+.no-results {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: #666;
+  font-style: italic;
+  font-size: var(--font-size-sm);
+}
+
+/* Button System */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: 1.2;
+  border: none;
+  border-radius: var(--border-radius);
+  background-color: var(--color-secondary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn:hover,
+.btn:focus {
+  background-color: var(--color-blue-light);
+  outline: none;
+}
+
+.btn--primary {
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest);
+}
+
+.btn--primary:hover,
+.btn--primary:focus {
+  background-color: var(--color-green-light);
+}
+
+.btn--danger {
+  background-color: var(--color-peach-light);
+  color: var(--color-peach-darkest);
+}
+
+.btn--danger:hover,
+.btn--danger:focus {
+  background-color: var(--color-peach-medium);
+}
+
+.btn--info {
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest);
+}
+
+.btn--info:hover,
+.btn--info:focus {
+  background-color: var(--color-blue-light);
+}
+
+.btn--secondary {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.btn--secondary:hover {
+  background-color: var(--color-blue-dark);
+}
+
+.btn--toggle {
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest);
+}
+
+.btn--toggle.is-active {
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest);
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
+.hidden-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--touch-spacing);
+}
+
+/* Responsive adjustments for buttons */
 @media (max-width: 768px) {
-  .controls-container,
-  .audio-controls-container {
-    flex-direction: column;
-    align-items: center;
-  }
-  .vertical-controls {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .volume-control.vertical {
-    height: 150px;
-  }
-  .vertical-slider {
-    height: 100px;
-  }
   .preset-controls {
     flex-direction: column;
     align-items: center;
@@ -693,45 +1051,245 @@ body.no-scroll {
   }
 }
 
-.score-viewer {
-  width: 100%;
-  min-height: var(--score-min-height-mobile);
-  background-color: #FFFFFF;
-  color: var(--color-blue-darkest);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius);
-  padding: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-  flex: 1 1 auto;
-  overflow-y: auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* ==========================================================================
+   16. TABLET BREAKPOINT (768px and up)
+   ========================================================================== */
+@media (min-width: 768px) {
+  :root {
+    --container-padding: var(--spacing-lg);
+    --score-min-height-mobile: 250px;
+    --keyboard-min-height-mobile: 140px;
+    --guitar-fretboard-height: 250px;
+  }
+
+  .piano-app__content-area {
+    max-width: var(--max-width-tablet);
+    padding: var(--container-padding);
+    gap: var(--spacing-lg);
+  }
+
+  .piano-app__header-title {
+    font-size: var(--font-size-4xl);
+  }
+
+  .playback-controls,
+  .guitar-controls {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .controls-button-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-sm);
+  }
+
+  .time-signature-controls,
+  .tempo-controls,
+  .measure-controls {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .note-palette {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .palette-note {
+    min-width: 100px;
+    height: 60px;
+  }
+
+  .floating-panel {
+    width: calc(100% - 4rem);
+    max-width: 500px;
+  }
+
+  .controls-container,
+  .audio-controls-container {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .vertical-controls {
+    flex-direction: row;
+  }
 }
 
-.score-viewer__container {
-  width: 100%;
-  height: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: auto;
-  scrollbar-gutter: stable;
-  display: flex;
-  justify-content: safe center; /* This is the key fix */
-  align-items: center;
+/* ==========================================================================
+   17. DESKTOP BREAKPOINT (1024px and up)
+   ========================================================================== */
+@media (min-width: 1024px) {
+  :root {
+    --container-padding: var(--spacing-xl);
+    --score-min-height-mobile: 300px;
+    --keyboard-min-height-mobile: 160px;
+    --guitar-fretboard-height: 280px;
+  }
+
+  .piano-app {
+    flex-direction: row;
+  }
+
+  .piano-app__content-area {
+    max-width: var(--max-width-desktop);
+    gap: var(--spacing-xl);
+  }
+
+  .piano-app__side-panel {
+    display: block;
+    width: 320px;
+    min-height: 100vh;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(10px);
+    padding: var(--spacing-xl);
+    border-radius: 0 var(--border-radius-lg) var(--border-radius-lg) 0;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .piano-app__side-panel.visible {
+    display: block;
+  }
+
+  .note-palette {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .controls-button-row {
+    gap: var(--spacing-md);
+  }
+
+  .button-group {
+    flex-direction: row;
+  }
+
+  .chord-grid {
+    gap: var(--spacing-sm);
+  }
+
+  .preset-controls {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  .button-row {
+    flex-direction: row;
+  }
 }
 
-.score-viewer__content {
-  display: inline-block;
+/* ==========================================================================
+   18. LARGE DESKTOP BREAKPOINT (1280px and up)
+   ========================================================================== */
+@media (min-width: 1280px) {
+  .piano-app__header-title {
+    font-size: 3.5rem;
+  }
+
+  .note-palette {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .controls-button-row {
+    gap: var(--spacing-lg);
+  }
 }
 
-#score {
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  touch-action: pan-x;
+/* ==========================================================================
+   19. High DPI / Retina Display Optimizations
+   ========================================================================== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .instrument-panel__keyboard .white,
+  .instrument-panel__keyboard .black {
+    stroke-width: 0.5;
+  }
+}
+
+/* ==========================================================================
+   20. Touch Device Optimizations
+   ========================================================================== */
+@media (pointer: coarse) {
+  :root {
+    --touch-target-min: 48px;
+    --touch-spacing: 12px;
+  }
+
+  .btn {
+    min-height: 48px;
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+
+  .volume-slider::-webkit-slider-thumb,
+  .volume-slider::-moz-range-thumb {
+    height: 28px;
+    width: 28px;
+  }
+
+  .palette-note {
+    min-height: 48px;
+  }
+
+  .chord-suggestion {
+    min-height: 48px;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+}
+
+/* ==========================================================================
+   21. Print Styles
+   ========================================================================== */
+@media print {
+  .playback-controls,
+  .main-controls,
+  .volume-control,
+  .piano-app__side-panel {
+    display: none;
+  }
+
+  .score-viewer {
+    background: white;
+    box-shadow: none;
+    border: none;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+}
+
+/* ==========================================================================
+   22. Reduced Motion Support
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   23. Focus Management for Accessibility
+   ========================================================================== */
+.btn:focus-visible,
+.volume-slider:focus-visible,
+.chord-input:focus-visible,
+.form-select:focus-visible,
+.palette-note:focus-visible {
+  outline: 3px solid var(--color-green-lightest);
+  outline-offset: 2px;
+}
+
+.btn:focus:not(:focus-visible),
+.volume-slider:focus:not(:focus-visible),
+.chord-input:focus:not(:focus-visible),
+.form-select:focus:not(:focus-visible),
+.palette-note:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* ==========================================================================

@@ -9,6 +9,7 @@ import { NOTES_BY_NAME, identifyChordStrict } from '../core/note-data.js'; // Ne
 import { updateNowPlayingDisplay } from '../ui/uiHelpers.js';
 import { saveToLocalStorage } from '../utils/ioHelpers.js';
 import { drawAll } from './scoreRenderer.js';
+import { humanizeNote, humanizeDuration } from '../utils/velocityHumanizer.js';
 // ===================================================================
 // Constants
 // ===================================================================
@@ -343,8 +344,8 @@ export function writeNote(obj) {
                 measure: currentIndex, 
                 isRest: false,
                 chordName: displayName,
-                performedDuration: pianoState.staccatoTime,
-                velocity: pianoState.velocity
+                performedDuration: humanizeDuration(),
+                velocity: humanizeNote()
             };
 
             measuresData[currentIndex] ??= []; 
@@ -373,8 +374,8 @@ export function writeNote(obj) {
                 measure: currentIndex, 
                 isRest: false,
                 chordName: displayName,
-                performedDuration: pianoState.staccatoTime,
-                velocity: pianoState.velocity
+                performedDuration: humanizeDuration(),
+                velocity: humanizeNote()
             };
 
             measuresData[currentIndex].push(secondNoteEntry);
@@ -420,8 +421,8 @@ export function writeNote(obj) {
         measure: currentIndex, 
         isRest,
         chordName: displayName,
-        performedDuration: pianoState.staccatoTime,
-        velocity: pianoState.velocity
+        performedDuration: humanizeDuration(),
+        velocity: humanizeNote()
     };
 
     measuresData[currentIndex] ??= []; 
@@ -458,10 +459,10 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
 
     // Add default performedDuration and velocity if not present
     if (noteData.performedDuration === undefined) {
-        noteData.performedDuration = pianoState.staccatoTime;
+        noteData.performedDuration = humanizeDuration();
     }
     if (noteData.velocity === undefined) {
-        noteData.velocity = pianoState.velocity;
+        noteData.velocity = humanizeNote();
     }
 
     const targetMeasure = measuresData[measureIndex];

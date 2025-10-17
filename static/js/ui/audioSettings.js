@@ -29,6 +29,7 @@ class AudioSettingsController {
         this.initializeReverbControls();
         this.initializeCompressionControls();
         this.initializeEQControls();
+        this.initializeArticulationControls();
         this.initializePresetControls();
         
         this.syncWithAudioSettings();
@@ -85,6 +86,11 @@ class AudioSettingsController {
                     this.syncSliderValue('eqHigh', effects.eq.high);
                 }
             }
+
+            // Sync articulation parameters from pianoState
+            this.syncSliderValue('velocity', pianoState.velocity);
+            this.syncSliderValue('staccato', pianoState.staccatoTime);
+            this.syncSliderValue('humanize', pianoState.humanize);
             
         } catch (error) {
             console.error('Error syncing with audio settings:', error);
@@ -333,6 +339,59 @@ class AudioSettingsController {
             min: -12,
             max: 12,
             step: 0.1
+        });
+    }
+
+    initializeArticulationControls() {
+        // Velocity
+        this.registerSlider('velocity', {
+            slider: document.getElementById('velocitySlider'),
+            display: document.getElementById('velocityValue'),
+            updateFn: (value) => {
+                if (!this.isSyncing) {
+                    const val = parseInt(value);
+                    pianoState.velocity = val;
+                    console.log(`Velocity set to ${val}`);
+                }
+            },
+            formatDisplay: (value) => parseInt(value).toString(),
+            min: 0,
+            max: 127,
+            step: 1
+        });
+
+        // Staccato Duration
+        this.registerSlider('staccato', {
+            slider: document.getElementById('staccatoSlider'),
+            display: document.getElementById('staccatoValue'),
+            updateFn: (value) => {
+                if (!this.isSyncing) {
+                    const val = parseFloat(value);
+                    pianoState.staccatoTime = val;
+                    console.log(`Staccato duration set to ${val}`);
+                }
+            },
+            formatDisplay: (value) => parseFloat(value).toFixed(2),
+            min: 0.1,
+            max: 1,
+            step: 0.05
+        });
+
+        // Humanize
+        this.registerSlider('humanize', {
+            slider: document.getElementById('humanizeSlider'),
+            display: document.getElementById('humanizeValue'),
+            updateFn: (value) => {
+                if (!this.isSyncing) {
+                    const val = parseInt(value);
+                    pianoState.humanize = val;
+                    console.log(`Humanize set to ${val}%`);
+                }
+            },
+            formatDisplay: (value) => `${parseInt(value)}%`,
+            min: 0,
+            max: 100,
+            step: 1
         });
     }
 
@@ -745,7 +804,7 @@ class AudioSettingsController {
         }
     }
 
-    // NEW: Get instrument default settings
+    // Get instrument default settings
     getInstrumentDefaults(instrumentName) {
         // These are the default settings from your audioManager.js
         const instrumentDefaults = {
@@ -762,7 +821,10 @@ class AudioSettingsController {
                 compRelease: 0.1,
                 eqLow: 1,
                 eqMid: 0,
-                eqHigh: -1
+                eqHigh: -1,
+                velocity: 100,
+                staccato: 0.85,
+                humanize: 10
             },
             guitar: {
                 attack: 0.02,
@@ -777,7 +839,10 @@ class AudioSettingsController {
                 compRelease: 0.1,
                 eqLow: 0,
                 eqMid: 0,
-                eqHigh: 0
+                eqHigh: 0,
+                velocity: 100,
+                staccato: 0.85,
+                humanize: 10
             },
             cello: {
                 attack: 0.03,
@@ -792,7 +857,10 @@ class AudioSettingsController {
                 compRelease: 0.15,
                 eqLow: 2,
                 eqMid: 0,
-                eqHigh: -1
+                eqHigh: -1,
+                velocity: 100,
+                staccato: 0.85,
+                humanize: 10
             },
             sax: {
                 attack: 0.03,
@@ -807,14 +875,17 @@ class AudioSettingsController {
                 compRelease: 0.12,
                 eqLow: 0,
                 eqMid: 1,
-                eqHigh: 0
+                eqHigh: 0,
+                velocity: 100,
+                staccato: 0.85,
+                humanize: 10
             }
         };
 
         return instrumentDefaults[instrumentName] || instrumentDefaults.piano;
     }
 
-    // NEW: Apply default settings to audio system
+    // Apply default settings to audio system
     applyDefaultSettings(settings) {
         console.log('🎛️ Applying default settings to audio system');
 
@@ -825,7 +896,7 @@ class AudioSettingsController {
         });
     }
 
-    // NEW: Clear all saved settings
+    // Clear all saved settings
     clearSavedSettings() {
         this.sliders.forEach((config, name) => {
             try {
@@ -836,7 +907,7 @@ class AudioSettingsController {
         });
     }
 
-    // NEW: Show reset feedback
+    // Show reset feedback
     showResetApplied(instrumentName) {
         const notification = document.createElement('div');
         notification.textContent = `🔄 Reset to ${instrumentName} defaults`;
@@ -909,18 +980,18 @@ class AudioSettingsController {
         });
     }
 
-setSliderValue(name, value) {
-    const config = this.sliders.get(name);
-    if (config && config.slider) {
-        // Set the slider value
-        config.slider.value = value;
-        
-        // Update the audio parameter AND the display
-        this.updateSlider(name, value, true);
-        
-        console.log(`🎛️ ${name} reset to ${value}`);
+    setSliderValue(name, value) {
+        const config = this.sliders.get(name);
+        if (config && config.slider) {
+            // Set the slider value
+            config.slider.value = value;
+            
+            // Update the audio parameter AND the display
+            this.updateSlider(name, value, true);
+            
+            console.log(`🎛️ ${name} reset to ${value}`);
+        }
     }
-}
 }
 
 // Create and export the controller instance
