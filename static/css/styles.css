@@ -245,11 +245,17 @@ body.no-scroll {
 
 /* ===== HORIZONTAL VOLUME CONTROL ===== */
 .volume-control {
-    width: 25%;
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: var(--touch-spacing);
+}
+
+@media (min-width: 768px) {
+    .volume-control {
+        width: 25%;
+    }
 }
 
 .volume-icon {
