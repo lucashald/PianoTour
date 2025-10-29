@@ -304,21 +304,6 @@ export function setKeySignature(keySignature) {
 
 export function drawAll(measures, noScroll = false) {
   
-  // Log tie information at the start of drawAll
-  console.log(`drawAll: Called with ${measures.length} measures`);
-  let totalTies = 0;
-  measures.forEach((measure, idx) => {
-    if (measure) {
-      measure.forEach(note => {
-        if (note.tie) {
-          totalTies++;
-          console.log(`drawAll: Found tie in measure ${idx}, note ${note.id}:`, note.tie);
-        }
-      });
-    }
-  });
-  console.log(`drawAll: Total notes with tie data: ${totalTies}`);
-  
   const out = document.getElementById("score");
   if (!out) {
     console.error("drawAll: Score rendering element #score not found!");
@@ -403,21 +388,9 @@ export function drawAll(measures, noScroll = false) {
 
       // NEW: Process ties for this measure
       if (trebleNotesData.length > 0) {
-        console.log(`drawAll: Processing ties for measure ${i} treble clef (${trebleNotesData.length} notes)`);
-        trebleNotesData.forEach(note => {
-          if (note.tie) {
-            console.log(`  - Note ${note.id} has tie:`, note.tie);
-          }
-        });
         processTies(trebleNotesData);
       }
       if (bassNotesData.length > 0) {
-        console.log(`drawAll: Processing ties for measure ${i} bass clef (${bassNotesData.length} notes)`);
-        bassNotesData.forEach(note => {
-          if (note.tie) {
-            console.log(`  - Note ${note.id} has tie:`, note.tie);
-          }
-        });
         processTies(bassNotesData);
       }
 
@@ -1547,7 +1520,6 @@ function processTies(notesData) {
             startNoteId: noteData.tie.startNoteId,
             endNoteId: noteData.tie.endNoteId
           });
-          console.log(`processTies: Added ${noteData.tie.type || 'tie'} from ${noteData.tie.startNoteId} to ${noteData.tie.endNoteId}`);
         }
       }
     }
@@ -1558,7 +1530,6 @@ function processTies(notesData) {
  * Draws all stored ties and slurs
  */
 function drawTies() {
-  console.log(`drawTies: Processing ${tieGroups.length} tie(s)`);
   if (tieGroups.length === 0) return;
 
   // Build a lookup map from note ID to VexFlow note object
@@ -1598,12 +1569,8 @@ function drawTies() {
     const startVexNote = vexNotesById[tie.startNoteId];
     const endVexNote = vexNotesById[tie.endNoteId];
 
-    console.log(`drawTies: Attempting to draw ${tie.type} from ${tie.startNoteId} to ${tie.endNoteId}`);
-    console.log(`  - Start note found: ${!!startVexNote}, End note found: ${!!endVexNote}`);
-
     if (startVexNote && endVexNote) {
       if (tie.type === 'tie') {
-        console.log(`  - Drawing tie...`);
         const staveTie = new Vex.Flow.StaveTie({
           first_note: startVexNote,
           last_note: endVexNote,
@@ -1611,9 +1578,7 @@ function drawTies() {
           last_indices: [0]
         });
         staveTie.setContext(vfContext).draw();
-        console.log(`  - Tie drawn successfully`);
       } else if (tie.type === 'slur') {
-        console.log(`  - Drawing slur...`);
         const curve = new Vex.Flow.Curve(startVexNote, endVexNote, {
           x_shift: -1,
           y_shift: 10,
@@ -1621,11 +1586,9 @@ function drawTies() {
           position_end: Vex.Flow.Stem.UP,
         });
         curve.setContext(vfContext).draw();
-        console.log(`  - Slur drawn successfully`);
       }
     } else {
-      console.warn(`drawTies: Could not find VexFlow notes for tie. Start: ${tie.startNoteId} (${!!startVexNote}), End: ${tie.endNoteId} (${!!endVexNote})`);
-      console.warn(`  Available note IDs in vexNotesById:`, Object.keys(vexNotesById));
+      console.warn(`Could not find start/end notes for tie:`, tie);
     }
   });
 }

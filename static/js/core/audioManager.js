@@ -36,13 +36,13 @@ export class InstrumentControl {
                 envelopeSettings: {
                     attack: 0.01,   // Very quick attack - hammer strikes
                     decay: 0.3,     // Quick decay
-                    sustain: 0.5,   // Good sustain level
-                    release: 0.8,     // Natural decay of strings
+                    sustain: 0.8,   // Good sustain level
+                    release: 1.2,   // Natural decay of strings
 
                     // Piano effects
-                    reverb: { enabled: true, roomSize: 0.15, wet: 0.15 },
-                    compression: { enabled: true, threshold: -15, ratio: 1.15, attack: 0.1, release: 0.3 },
-                    eq: { enabled: true, low: -1, mid: 1, high: 0 }
+                    reverb: { enabled: true, roomSize: 0.2, wet: 0.15 },
+                    compression: { enabled: true, threshold: -18, ratio: 4, attack: 0.003, release: 0.1 },
+                    eq: { enabled: true, low: 1, mid: 0, high: -1 }
                 }
             },
 

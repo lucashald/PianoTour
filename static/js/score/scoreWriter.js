@@ -780,10 +780,7 @@ export function processAndSyncScore(loadedData) {
         currentIndex = measuresData.length > 0 ? measuresData.length - 1 : 0;
 
         // Validate and restore ties from loaded data
-        const tieStats = validateAndRestoreTies();
-        if (tieStats.total > 0) {
-            console.log(`Restored ${tieStats.valid} tie(s) from saved score${tieStats.invalid > 0 ? ` (${tieStats.invalid} invalid ties removed)` : ''}`);
-        }
+        validateAndRestoreTies();
 
         // Recalculate current beats based on the last measure of loaded data
         if (measuresData[currentIndex]) {
@@ -992,7 +989,6 @@ function validateAndRestoreTies() {
                     
                     if (startExists && endExists) {
                         stats.valid++;
-                        console.log(`Restored ${note.tie.type || 'tie'} between notes ${note.tie.startNoteId} and ${note.tie.endNoteId}`);
                     } else {
                         stats.invalid++;
                         console.warn(`Invalid tie found: start=${note.tie.startNoteId} (${startExists}), end=${note.tie.endNoteId} (${endExists}). Removing.`);
