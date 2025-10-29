@@ -343,6 +343,9 @@ const workerScriptContent = `
             chordName: correctedIsRest ? 'Rest' : (note.chordName || undefined),
             midiNumber: typeof note.midiNumber === 'number' ? note.midiNumber : null,
             stemDirection: typeof note.stemDirection === 'number' ? note.stemDirection : null,
+            tie: note.tie, // Preserve tie information
+            performedDuration: note.performedDuration, // Preserve playback timing
+            velocity: note.velocity, // Preserve velocity
         };
 
         if (!validatedNote.isRest && !note.chordName) {

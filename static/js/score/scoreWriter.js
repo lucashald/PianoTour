@@ -779,6 +779,12 @@ export function processAndSyncScore(loadedData) {
         measuresData = JSON.parse(JSON.stringify(loadedData));
         currentIndex = measuresData.length > 0 ? measuresData.length - 1 : 0;
 
+        // Validate and restore ties from loaded data
+        const tieStats = validateAndRestoreTies();
+        if (tieStats.total > 0) {
+            console.log(`Restored ${tieStats.valid} tie(s) from saved score${tieStats.invalid > 0 ? ` (${tieStats.invalid} invalid ties removed)` : ''}`);
+        }
+
         // Recalculate current beats based on the last measure of loaded data
         if (measuresData[currentIndex]) {
             const lastMeasureBeats = calculateMeasureBeats(measuresData[currentIndex]);
@@ -951,6 +957,53 @@ function findBestDuration(beats) {
     if (beats === 1.25) return 'q.'; // 1.25 beats (dotted quarter)
     
     return null;
+}
+
+/**
+ * Validates and restores ties from loaded score data
+ * Ensures that both notes in a tie relationship exist
+ * @returns {object} Statistics about restored ties {total, valid, invalid}
+ */
+function validateAndRestoreTies() {
+    const stats = { total: 0, valid: 0, invalid: 0 };
+    
+    // Build a map of all note IDs for quick lookup
+    const noteIdMap = new Map();
+    measuresData.forEach((measure, measureIndex) => {
+        if (measure) {
+            measure.forEach(note => {
+                if (note.id) {
+                    noteIdMap.set(note.id, { measureIndex, note });
+                }
+            });
+        }
+    });
+    
+    // Validate all ties
+    measuresData.forEach(measure => {
+        if (measure) {
+            measure.forEach(note => {
+                if (note.tie) {
+                    stats.total++;
+                    
+                    // Check if both notes in the tie exist
+                    const startExists = noteIdMap.has(note.tie.startNoteId);
+                    const endExists = noteIdMap.has(note.tie.endNoteId);
+                    
+                    if (startExists && endExists) {
+                        stats.valid++;
+                        console.log(`Restored ${note.tie.type || 'tie'} between notes ${note.tie.startNoteId} and ${note.tie.endNoteId}`);
+                    } else {
+                        stats.invalid++;
+                        console.warn(`Invalid tie found: start=${note.tie.startNoteId} (${startExists}), end=${note.tie.endNoteId} (${endExists}). Removing.`);
+                        delete note.tie;
+                    }
+                }
+            });
+        }
+    });
+    
+    return stats;
 }
 
 /**
