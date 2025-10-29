@@ -411,14 +411,16 @@ document.getElementById('export-audio-btn')?.addEventListener('click', async () 
         const isMinorChordMode = savedData.isMinorChordMode || false;
         const title = savedData.title || null;
 
+        // setKeySignature handles checking if it's already set and updating UI
         setKeySignature(keySignature);
+        
         pianoState.isMinorChordMode = isMinorChordMode;
-        updateUI("Score loaded", {
-          updateKeySignature: true,
-          updateMinorMode: true,
-          // Note: regenerateChords is NOT included here because guitar.html
-          // will handle chord generation via the pianoTourHeavyReady event
-        });
+        
+        // Update minor/major mode display
+        const minorKeyText = document.getElementById('minor-key-text');
+        if (minorKeyText) {
+          minorKeyText.textContent = pianoState.isMinorKey ? "Minor" : "Major";
+        }
       }
 
 

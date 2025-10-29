@@ -15,6 +15,7 @@ import {
   applyKeySignatureCorrection
 } from "../core/note-data.js";
 import { saveToLocalStorage } from "../utils/ioHelpers.js";
+import { updateUI } from "../ui/uiHelpers.js";
 import {
   addPlaybackHighlight,
   clearMeasureHighlight,
@@ -286,6 +287,13 @@ export function setKeySignature(keySignature) {
     return false;
   }
 
+  // Check if the key signature is already set to this value (normalized comparison)
+  const currentKeyData = KEY_SIGNATURES[pianoState.keySignature];
+  if (currentKeyData && keyData.displayName === currentKeyData.displayName) {
+    console.log(`Key signature already set to: ${keyData.displayName}. Skipping redraw.`);
+    return true; // Already set, no need to redraw
+  }
+
   // Update the piano state
   pianoState.keySignature = keyData.displayName;
   pianoState.keySignatureType = keyData.type;
@@ -293,6 +301,12 @@ export function setKeySignature(keySignature) {
   // Redraw the score with new key signature
   safeRedraw();
   saveToLocalStorage();
+
+  // Update UI to reflect the key signature change
+  updateUI(`Key signature: ${keyData.displayName}`, {
+    updateKeySignature: true,
+    regenerateChords: false, // Don't regenerate chords here; caller can do it if needed
+  });
 
   // Log the change
   console.log(
