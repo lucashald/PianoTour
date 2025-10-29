@@ -416,6 +416,8 @@ document.getElementById('export-audio-btn')?.addEventListener('click', async () 
         updateUI("Score loaded", {
           updateKeySignature: true,
           updateMinorMode: true,
+          // Note: regenerateChords is NOT included here because guitar.html
+          // will handle chord generation via the pianoTourHeavyReady event
         });
       }
 

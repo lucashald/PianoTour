@@ -10,7 +10,7 @@ let chordsDatabase = null;
 async function loadChordDatabase() {
     if (chordsDatabase === null) {
         try {
-            const response = await fetch('./static/js/core/ultimate_chord_database.json');
+            const response = await fetch('./static/js/core/chord_database.json');
             if (!response.ok) {
                 throw new Error(`Failed to load chord database: ${response.status}`);
             }

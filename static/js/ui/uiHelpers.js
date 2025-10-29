@@ -224,7 +224,7 @@ export function handleSettingsDisplayToggle(e) {
  * @param {boolean} options.updateKeySignature - Whether to update the key signature button (default: false)
  * @param {boolean} options.regenerateChords - Whether to regenerate chord buttons (default: false)
  */
-export function updateUI(message, options = {}) {
+export async function updateUI(message, options = {}) {
     // Always update the now playing display with the message
     updateNowPlayingDisplay(message);
 
@@ -246,9 +246,11 @@ export function updateUI(message, options = {}) {
 
     // Regenerate chord buttons if requested
     if (options.regenerateChords) {
+        const currentKey = getKeySignature();
         generateChordButtons();
-        createChordDiagrams('.chord-container');
-        createChordPalette();
+        await createChordDiagrams('.chord-container', currentKey);
+        // createChordPalette will use window.guitarInstance as default if not provided
+        await createChordPalette(undefined, currentKey);
     }
 }
 

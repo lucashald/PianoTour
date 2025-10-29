@@ -1,8 +1,8 @@
 // guitarUI.js - Guitar-specific UI components
 import { handleInitialGuitar } from '../instrument/guitarInstrument.js';
 import {
-  getChordByDegree
-} from "../core/note-data.js";
+  getGuitarChordByDegree
+} from "../core/chords.js";
 import audioManager from "../core/audioManager.js";
 
 // ===================================================================
@@ -34,7 +34,7 @@ function convertChordsDbToArray(frets) {
 // Chord Palette Functions
 // ===================================================================
 
-export function createChordPalette(guitarInstance = window.guitarInstance) {
+export async function createChordPalette(guitarInstance = window.guitarInstance, keySignature = null) {
   const container = document.querySelector('#chord-palette');
   if (!container) {
     console.error('Chord palette container not found: #chord-palette');
@@ -51,13 +51,13 @@ export function createChordPalette(guitarInstance = window.guitarInstance) {
 
   // Create buttons for degrees 1-7
   for (let degree = 1; degree <= 7; degree++) {
-    const chord = getChordByDegree(degree);
+    const chord = await getGuitarChordByDegree(degree, keySignature, 'standard');
     if (chord) {
       const button = createChordButton(chord, guitarInstance);
       container.appendChild(button);
     }
   }
-  
+
   console.log('✅ Chord palette created');
   return container;
 }
@@ -191,7 +191,7 @@ export function initializeGuitarControls(containerSelector, guitarInstance = win
 // Chord Diagrams
 // ===================================================================
 
-export function createChordDiagrams(containerSelector) {
+export async function createChordDiagrams(containerSelector, keySignature = null) {
   const container = document.querySelector(containerSelector);
   if (!container) {
     console.log(`Skipping guitar chord diagrams. Container not found: ${containerSelector}`);
@@ -200,19 +200,19 @@ export function createChordDiagrams(containerSelector) {
 
   // Clear existing content
   container.innerHTML = '';
-  
+
   // Create wrapper for all diagrams
   const diagramsWrapper = document.createElement('div');
   diagramsWrapper.className = 'chord-diagrams-wrapper';
 
   // Create diagrams for degrees 1-7
   for (let degree = 1; degree <= 7; degree++) {
-    const chord = getChordByDegree(degree);
+    const chord = await getGuitarChordByDegree(degree, keySignature, 'standard');
     if (chord) {
       // Create container for this diagram
       const diagramContainer = document.createElement('div');
       diagramContainer.className = 'chord-diagram-container';
-      
+
       // Create the chord diagram renderer
       const renderer = new ChordDiagramRenderer(diagramContainer, {
         width: 140,
@@ -220,7 +220,7 @@ export function createChordDiagrams(containerSelector) {
         lite: true,
         showTuning: false
       });
-      
+
       // Convert our chord format to the expected format
       const chordData = {
         key: chord.displayName,
@@ -232,10 +232,10 @@ export function createChordDiagrams(containerSelector) {
           capo: false
         }]
       };
-      
+
       // Render the chord
       renderer.renderChord(chordData, 0);
-      
+
       // Add to wrapper
       diagramsWrapper.appendChild(diagramContainer);
 

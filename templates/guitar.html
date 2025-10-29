@@ -41,17 +41,26 @@
     import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
     import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
     import { initializeGuitar  } from '{{ url_for("static", filename="js/instrument/guitarInstrument.js") }}';
-        import { 
-            createChordDiagrams, createChordPalette, initializeGuitarControls
-        } from '{{ url_for("static", filename="js/ui/guitarUI.js") }}';
+    import {
+        createChordDiagrams, createChordPalette, initializeGuitarControls
+    } from '{{ url_for("static", filename="js/ui/guitarUI.js") }}';
+    import { getKeySignature } from '{{ url_for("static", filename="js/core/note-data.js") }}';
+
     const templateInstrument = '{{ instrument }}' || 'guitar';
-    
+
     pianoState.instrument = templateInstrument;
     console.log("Set instrument to:", templateInstrument);
     addBasicKeyboardListeners();
     const guitar = initializeGuitar('#guitar-fretboard');
-    createChordPalette(guitar);
     initializeGuitarControls('#guitar-controls', guitar);
-    createChordDiagrams('.chord-container');
+
+    // Wait for heavy components to be ready (after localStorage loads) before creating chords
+    // This ensures we use the correct saved key signature
+    document.addEventListener('pianoTourHeavyReady', async () => {
+        console.log('🎸 Creating chord UI with saved key signature');
+        const currentKey = getKeySignature();
+        await createChordDiagrams('.chord-container', currentKey);
+        await createChordPalette(guitar, currentKey);
+    });
 </script>
 {% endblock %}
