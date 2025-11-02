@@ -156,11 +156,6 @@ def player():
 def testplayer():
     return render_template('testplayer.html')
 
-
-@app.route('/integrated')
-def integrated():
-    return render_template('spesIndex.html')
-
 @app.route('/chords')
 def chords():
     """Chords page"""
