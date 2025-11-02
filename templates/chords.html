@@ -361,7 +361,6 @@
         // Load available tunings into dropdown
         async function loadTunings() {
             try {
-                console.log('🔧 Loading tunings...');
                 const tunings = await ChordDB.getAvailableTunings();
                 const tuningSelect = document.getElementById('tuningSelect');
                 
@@ -376,7 +375,6 @@
                     tuningSelect.appendChild(option);
                 });
                 
-                console.log(`✅ Loaded ${tunings.length} tunings:`, tunings);
                 updateTuningDisplay();
             } catch (error) {
                 console.error('❌ Error loading tunings:', error);
@@ -386,7 +384,6 @@
         // Handle tuning changes
         async function handleTuningChange() {
             const selectedTuning = document.getElementById('tuningSelect').value;
-            console.log(`🔧 Tuning changed to: ${selectedTuning}`);
             
             try {
                 const success = await ChordDB.changeGuitarTuning(selectedTuning);
@@ -397,7 +394,6 @@
                     // Re-lookup current chord for new tuning
                     const chordInput = document.getElementById('chordInput');
                     if (chordInput.value.trim()) {
-                        console.log('🔄 Re-looking up current chord for new tuning');
                         await lookupChord();
                     }
                 } else {
@@ -412,7 +408,6 @@
         
         // Main lookup function
         async function lookupChord() {
-            console.log('🔍 Lookup chord button clicked!');
             
             const chordInput = document.getElementById('chordInput');
             const tuningSelect = document.getElementById('tuningSelect');
@@ -421,8 +416,6 @@
             
             const chordName = chordInput.value.trim();
             const tuning = tuningSelect.value;
-            
-            console.log(`Looking up chord: "${chordName}" in ${tuning} tuning`);
             
             if (!chordName) {
                 resultElement.innerHTML = '<p style="color: red;">Please enter a chord name</p>';
@@ -434,9 +427,7 @@
                 allFingeringsElement.innerHTML = 'Loading...';
                 
                 // 1. Get chord data from database
-                console.log('Getting best fingering...');
                 const bestFingering = await ChordDB.getBestFingering(chordName, tuning);
-                console.log('Best fingering result:', bestFingering);
                 
                 // Store current chord data for adding to score
                 currentChordData = {
@@ -451,13 +442,11 @@
                 // 2. Set chord on guitar
                 if (guitarInstance && bestFingering.frets) {
                     const guitarOrderFrets = ChordDB.convertToGuitarOrder(bestFingering.frets);
-                    console.log('🎸 Setting chord on guitar:', guitarOrderFrets);
                     guitarInstance.setChord(guitarOrderFrets);
                 }
                 
                 // 3. Get all fingerings for comparison
                 const allFingerings = await ChordDB.getChordFingerings(chordName, tuning);
-                console.log('All fingerings:', allFingerings);
                 
                 // 4. Display results
                 const guitarOrderFrets = ChordDB.convertToGuitarOrder(bestFingering.frets);
@@ -520,16 +509,13 @@
                 return;
             }
             
-            console.log('🧪 Testing direct chord set...');
             // Test with a C major chord [3,2,0,1,0,0] - guitar order
             const testChord = [0, 1, 0, 2, 3, 0]; // C major in guitar order
-            console.log('Setting test chord:', testChord);
             guitarInstance.setChord(testChord);
         }
         
         // Get random chord
         async function getRandomChord() {
-            console.log('🎲 Random chord button clicked!');
             
             try {
                 const tuning = document.getElementById('tuningSelect').value;
@@ -548,7 +534,6 @@
 
         // Practice mode functions
         function startChordPractice() {
-            console.log('🎯 Starting chord practice');
             practiceMode = true;
             nextRandomChord();
             document.getElementById('practiceResult').innerHTML = '<p style="color: #51cf66;">Practice mode started! Try to play the chord shown above.</p>';
@@ -565,7 +550,6 @@
         // Initialize the score renderer
         function initializeRenderer() {
             try {
-                console.log('🎵 Initializing score renderer...');
                 
                 guitarRenderer = new UniversalMusicRenderer('guitar-score', {
                     instrumentType: 'guitar',
@@ -581,7 +565,6 @@
                 });
                 
                 updateStatus('rendererStatus', 'success', 'Score renderer ready');
-                console.log('✅ Score renderer initialized');
                 
                 window.guitarRenderer = guitarRenderer;
                 return true;
@@ -624,7 +607,6 @@
             
             try {
                 const measures = getMeasures();
-                console.log(`🎵 Rendering guitar score with ${measures.length} measures`);
                 
                 if (measures.length === 0) {
                     document.getElementById('guitar-score').innerHTML = 
@@ -637,7 +619,6 @@
                 updateStatus('scoreStatus', 'success', `${measures.length} measures rendered`);
                 updateScoreInfo();
                 
-                console.log('✅ Guitar score rendered successfully');
             } catch (error) {
                 console.error('❌ Failed to render guitar score:', error);
                 updateStatus('scoreStatus', 'error', 'Render failed');
@@ -652,7 +633,6 @@
             }
             
             try {
-                console.log('🎸➕ Adding current chord to score:', currentChordData);
                 
                 // Convert chord notes to score format
                 const notes = currentChordData.fingering.notes || [currentChordData.name];
@@ -665,7 +645,6 @@
                 });
                 
                 renderScore();
-                console.log('✅ Chord added to score');
             } catch (error) {
                 console.error('❌ Failed to add chord to score:', error);
                 alert('Failed to add chord to score: ' + error.message);
@@ -674,7 +653,6 @@
         
         // Add sample guitar notes for testing
         function addSampleNotes() {
-            console.log('➕ Adding sample guitar notes...');
             
             try {
                 const sampleNotes = [
@@ -689,7 +667,6 @@
                 });
                 
                 renderScore();
-                console.log('✅ Sample notes added and rendered');
                 
             } catch (error) {
                 console.error('❌ Failed to add sample notes:', error);
@@ -698,11 +675,9 @@
         
         // Clear the score
         function clearScore() {
-            console.log('🗑️ Clearing score...');
             try {
                 resetScore();
                 renderScore();
-                console.log('✅ Score cleared');
             } catch (error) {
                 console.error('❌ Failed to clear score:', error);
             }
@@ -728,7 +703,6 @@
                 setTempo(tempo);
                 
                 renderScore();
-                console.log('⚙️ Renderer settings updated');
             } catch (error) {
                 console.error('❌ Failed to update settings:', error);
             }
@@ -736,7 +710,6 @@
         
         // Setup event listeners
         function setupEventListeners() {
-            console.log('🔧 Setting up event listeners...');
             
             // Guitar/chord controls
             document.getElementById('lookupBtn').addEventListener('click', lookupChord);
@@ -761,17 +734,14 @@
             // Enter key support
             document.getElementById('chordInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    console.log('⌨️ Enter key pressed, looking up chord');
                     lookupChord();
                 }
             });
             
-            console.log('✅ Event listeners set up');
         }
         
         // Initialize everything when page loads
         window.addEventListener('load', async () => {
-            console.log('🚀 Page loaded, starting initialization...');
             
             try {
                 updateStatus('databaseStatus', 'warning', 'Loading database...');
@@ -781,25 +751,21 @@
                 
                 // Set instrument state
                 pianoState.instrument = 'guitar';
-                console.log("Set instrument to: guitar");
                 
                 // 1. Initialize chord database
                 const dbInitialized = await ChordDB.initializeChordDatabase();
                 if (dbInitialized) {
                     const chordCount = await ChordDB.getChordCount();
                     updateStatus('databaseStatus', 'success', `Database loaded (${chordCount} chords)`);
-                    console.log('✅ Chord database initialized');
                 } else {
                     updateStatus('databaseStatus', 'error', 'Database failed to load');
                 }
                 
                 // 2. Initialize guitar fretboard
-                console.log('🎸 Initializing guitar...');
                 guitarInstance = initializeGuitar('#guitar-fretboard');
                 
                 if (guitarInstance) {
                     updateStatus('guitarStatus', 'success', 'Guitar ready');
-                    console.log('✅ Guitar instance created:', guitarInstance);
                     window.guitarInstance = guitarInstance;
                     initializeGuitarControls('#guitar-controls', guitarInstance);
                 } else {
@@ -822,8 +788,6 @@
                     renderScore();
                 }
                 await lookupChord();
-                
-                console.log('✅ System fully ready');
                 
             } catch (error) {
                 console.error('❌ Failed to initialize system:', error);
@@ -849,7 +813,6 @@
             pianoState: pianoState
         };
         
-        console.log('🔧 Debug functions available at window.guitarDebug');
     </script>
 </body>
 </html>

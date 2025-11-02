@@ -61,9 +61,6 @@ export function setTimeSignature(numerator, denominator) {
   // Save to localStorage to persist the change
   saveToLocalStorage();
 
-  // Log the change
-  console.log(`Time signature set to: ${numerator}/${denominator}`);
-
   return true;
 }
 
@@ -83,9 +80,6 @@ export function setTimeSignature(numerator, denominator) {
   // Save to localStorage to persist the change
   saveToLocalStorage();
 
-  // Log the change
-  console.log("Tempo set to:", pianoState.timeSignature.tempo);
-
   return true;
 }
 
@@ -96,7 +90,6 @@ export function setTimeSignature(numerator, denominator) {
 * @returns {{trebleBeats: number, bassBeats: number}} Object with total beats for each clef.
 */
 function calculateMeasureBeats(measure) {
-    console.log('calculateMeasureBeats input: measure =', measure);
     let trebleBeats = 0;
     let bassBeats = 0;
 
@@ -108,12 +101,10 @@ function calculateMeasureBeats(measure) {
             bassBeats += beats;
         }
     });
-    console.log('calculateMeasureBeats output:', { trebleBeats, bassBeats });
     return { trebleBeats, bassBeats };
 }
 
 function saveStateToHistory() {
-    console.log('saveStateToHistory called. History length before:', history.length);
     const currentMeasuresClone = JSON.parse(JSON.stringify(measuresData));
     history.push({
         measures: currentMeasuresClone,
@@ -124,7 +115,6 @@ function saveStateToHistory() {
     if (history.length > MAX_HISTORY) {
         history.shift();
     }
-    console.log('saveStateToHistory output: history length after:', history.length);
 }
 
 // Counter to ensure truly unique IDs even for rapid note additions
@@ -157,7 +147,6 @@ function doRemoveNote(measureIndex, noteId) {
         if (currentIndex >= measureIndex) {
             currentIndex = Math.max(0, currentIndex - 1);
         }
-        console.log(`doRemoveNote: Measure ${measureIndex} is now empty and removed.`);
     }
 
     // Recalculate current beats
@@ -170,7 +159,6 @@ function doRemoveNote(measureIndex, noteId) {
         currentBassBeats = 0;
         currentIndex = 0;
         measuresData[0] = [];
-        console.log(`doRemoveNote: All measures removed, starting fresh.`);
     }
 
     return removedNote;
@@ -192,12 +180,10 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
 
     // If the name is being changed, update the chordName with fallback logic
     if (newNoteData.name && newNoteData.name !== existingNote.name) {
-        console.log('Note Data changed');
         let chordName = undefined;
         
         // Parse the name - could be single note "C4" or chord "(C4 E4 G4)"
         if (newNoteData.name.startsWith('(') && newNoteData.name.endsWith(')')) {
-            console.log('chord detected');
             // It's a chord - extract the note names
             const noteNames = newNoteData.name
                 .slice(1, -1) // Remove parentheses
@@ -210,8 +196,6 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
             if (!chordName) {
                 chordName = newNoteData.name; // Use the full formatted name like "(C4 E4 G4)"
             }
-            
-            console.log('chord identified as', chordName);
         } else {
             // It's a single note - use the note name directly
             chordName = newNoteData.name;
@@ -268,7 +252,6 @@ function handleSideEffects() {
 // ===================================================================
 
 export function undoLastWrite() {
-    console.log('undoLastWrite called. History length:', history.length);
 
     if (history.length > 1) {
         history.pop(); // Remove current state
@@ -282,24 +265,20 @@ export function undoLastWrite() {
 
         // Provide visual feedback that undo was successful
         updateNowPlayingDisplay('Undid last action');
-        console.log('undoLastWrite output: state reverted.');
 
     } else if (history.length === 1) {
         resetScore();
 
         // Provide visual feedback that the score was reset
         updateNowPlayingDisplay('Score reset');
-        console.log('undoLastWrite output: score reset (only one state in history).');
 
     } else {
         // Provide visual feedback that there's nothing to undo
         updateNowPlayingDisplay('Nothing to undo');
-        console.log('undoLastWrite output: no history to undo.');
     }
 }
 
 export function writeNote(obj) {
-    console.log('writeNote input: obj =', obj);
 
     const { clef, duration, notes, chordName, isRest = false } = obj;
     const beats = BEAT_VALUES[duration];
@@ -332,7 +311,6 @@ export function writeNote(obj) {
         const splitResult = splitNoteForTie(duration, availableBeats);
         
         if (splitResult) {
-            console.log(`writeNote: Splitting note across measures. First: ${splitResult.firstDuration}, Second: ${splitResult.secondDuration}`);
             
             // Create first note (fits in current measure)
             const firstNoteId = generateUniqueId();
@@ -394,9 +372,6 @@ export function writeNote(obj) {
             saveStateToHistory();
             updateNowPlayingDisplay(`${displayName} (tied)`);
             handleSideEffects();
-            
-            console.log(`writeNote output: Created tied notes across measures. First ID: ${firstNoteId}, Second ID: ${secondNoteId}`);
-            return;
         }
     }
 
@@ -409,7 +384,6 @@ export function writeNote(obj) {
         measuresData[currentIndex] = [];
         currentTrebleBeats = 0;
         currentBassBeats = 0;
-        console.log('writeNote: measure advanced due to overflow. New currentIndex:', currentIndex);
     }
 
     const newNoteId = generateUniqueId(); 
@@ -437,19 +411,16 @@ export function writeNote(obj) {
     saveStateToHistory();
     updateNowPlayingDisplay(displayName);
     handleSideEffects();
-    console.log(`writeNote output: Note written. Beats status - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}`);
 }
 // ===================================================================
 // Editor Functions
 // ===================================================================
 
 export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = null) {
-    console.log('addNoteToMeasure input: measureIndex=', measureIndex, 'noteData=', noteData, 'insertBeforeNoteId=', insertBeforeNoteId);
 
     // Ensure the target measure exists
     if (!measuresData[measureIndex]) {
         measuresData[measureIndex] = [];
-        console.log(`addNoteToMeasure: Initialized new measure ${measureIndex}.`);
     }
 
     // Generate unique ID for the note if it doesn't have one
@@ -480,10 +451,8 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
     const tempMeasure = [...targetMeasure];
     if (insertIndex === -1) {
         tempMeasure.push(noteData);
-        console.log(`addNoteToMeasure: Preparing to append note to measure ${measureIndex}.`);
     } else {
         tempMeasure.splice(insertIndex, 0, noteData);
-        console.log(`addNoteToMeasure: Preparing to insert note at index ${insertIndex} in measure ${measureIndex}.`);
     }
 
     const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
@@ -519,7 +488,6 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
     drawAll(measuresData, true);
     saveToLocalStorage();
 
-    console.log(`addNoteToMeasure output: Note added with ID ${noteData.id}. Current beats - Treble: ${currentTrebleBeats}, Bass: ${currentBassBeats}.`);
     return {
         noteId: noteData.id,
         measureIndex: finalMeasureIndex,
@@ -532,7 +500,6 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
 * Also removes any ties involving this note.
 */
 export function removeNoteFromMeasure(measureIndex, noteId) {
-    console.log('removeNoteFromMeasure input: measureIndex=', measureIndex, 'noteId=', noteId);
 
     // Remove ties first
     removeTiesForNote(noteId);
@@ -543,9 +510,6 @@ export function removeNoteFromMeasure(measureIndex, noteId) {
         saveStateToHistory();
         drawAll(measuresData, true);
         saveToLocalStorage();
-        console.log(`removeNoteFromMeasure output: Note with ID ${noteId} removed from measure ${measureIndex}. Ties also removed.`);
-    } else {
-        console.log('removeNoteFromMeasure output: null (note not found)');
     }
 
     return removedNote;
@@ -556,7 +520,6 @@ export function removeNoteFromMeasure(measureIndex, noteId) {
 * Removes any existing ties involving this note.
 */
 export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
-    console.log('updateNoteInMeasure input: measureIndex=', measureIndex, 'noteId=', noteId, 'newNoteData=', newNoteData);
 
     // Remove ties when note is updated (since the note characteristics might change)
     removeTiesForNote(noteId);
@@ -592,7 +555,6 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
         saveStateToHistory();
         drawAll(measuresData, true);
         saveToLocalStorage();
-        console.log(`updateNoteInMeasure output: Note with ID ${noteId} updated. Ties removed due to update.`);
     }
 
     return success;
@@ -610,7 +572,6 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
  * @returns {object|boolean} {noteId, measureIndex} on success, false on failure
  */
 export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, noteData, insertBeforeNoteId = null) {
-    console.log('placeNote input:', { fromMeasureIndex, fromNoteId, toMeasureIndex, noteData, insertBeforeNoteId });
 
     let noteToPlace = noteData;
 
@@ -643,7 +604,6 @@ export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, noteData
     // Ensure target measure exists
     while (measuresData.length <= toMeasureIndex) {
         measuresData.push([]);
-        console.log(`placeNote: Created new empty measure at index ${measuresData.length - 1}`);
     }
 
     // Pre-check for overflow before adding
@@ -674,8 +634,6 @@ export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, noteData
     drawAll(measuresData, true);
     saveToLocalStorage();
 
-    console.log('placeNote: Note placed successfully.');
-    
     return {
         noteId: noteToPlace.id,
         measureIndex: toMeasureIndex
@@ -751,7 +709,6 @@ function wouldOverflowAfterAdd(measureIndex, noteToAdd, insertBeforeNoteId) {
 
 
 export function resetScore() {
-    console.log('resetScore called.');
     measuresData = [];
     currentIndex = 0;
     currentTrebleBeats = 0;
@@ -764,14 +721,11 @@ export function resetScore() {
     localStorage.removeItem(AUTOSAVE_KEY);
     updateNowPlayingDisplay('');
     drawAll(measuresData);
-    console.log("Score reset.");
 }
 
 export function processAndSyncScore(loadedData) {
-    console.log('processAndSyncScore input: loadedData =', loadedData);
     if (!Array.isArray(loadedData) || loadedData.flat().length === 0) {
         console.error("Loaded data is invalid or empty. Cannot process.");
-        console.log('processAndSyncScore output: false (invalid data)');
         return false;
     }
 
@@ -796,19 +750,15 @@ export function processAndSyncScore(loadedData) {
         // Save the loaded state as the initial state for undo
         saveStateToHistory();
 
-        console.log("Score state successfully synchronized.");
-        console.log('processAndSyncScore output: true');
         return true;
 
     } catch (e) {
         console.error("An error occurred while processing the score:", e);
-        console.log('processAndSyncScore output: false (error)');
         return false;
     }
 }
 
 export function getMeasures() {
-    console.log('getMeasures called. Returning measuresData:', measuresData);
     return measuresData;
 }
 
@@ -817,19 +767,15 @@ export function getMeasures() {
  * This allows simultaneous notes in different clefs to align properly
  */
 export function fillRests() {
-  console.log('fillRests called. Current beats - Treble:', currentTrebleBeats, 'Bass:', currentBassBeats);
   
   // If they're already equal, no rests needed
   if (currentTrebleBeats === currentBassBeats) {
-    console.log('fillRests: Clefs already aligned, no rests needed');
     return;
   }
   
   // Determine which clef is behind and by how much
   const beatDifference = Math.abs(currentTrebleBeats - currentBassBeats);
   const isBassBehind = currentBassBeats < currentTrebleBeats;
-  
-  console.log(`fillRests: ${isBassBehind ? 'Bass' : 'Treble'} clef is behind by ${beatDifference} beats`);
   
   // Convert beat difference to duration
   // Handle common beat values - extend this as needed
@@ -895,8 +841,6 @@ export function fillRests() {
     chordName: "Rest",
     isRest: true
   });
-  
-  console.log(`fillRests: Added ${restDuration} rest to ${isBassBehind ? 'bass' : 'treble'} clef`);
 }
 
 
@@ -1024,7 +968,6 @@ function removeTiesForNote(noteId) {
         }
     });
     
-    console.log(`removeTiesForNote: Removed ${tiesRemoved} tie references for note ${noteId}`);
     return tiesRemoved;
 }
 
@@ -1063,7 +1006,6 @@ function createTieBetweenNotes(startNoteId, endNoteId, type = 'tie') {
         }
     });
     
-    console.log(`createTieBetweenNotes: Created ${type} between ${startNoteId} and ${endNoteId}. Start found: ${startNoteFound}, End found: ${endNoteFound}`);
     return startNoteFound && endNoteFound;
 }
 
@@ -1080,7 +1022,6 @@ export function createTie(startNoteId, endNoteId, type = 'tie') {
         saveStateToHistory();
         drawAll(measuresData, true);
         saveToLocalStorage();
-        console.log(`createTie: Successfully created ${type} between ${startNoteId} and ${endNoteId}`);
     }
     return success;
 }
@@ -1096,12 +1037,10 @@ export function removeTie(noteId) {
         saveStateToHistory();
         drawAll(measuresData, true);
         saveToLocalStorage();
-        console.log(`removeTie: Removed ${removed} ties for note ${noteId}`);
     }
     return removed;
 }
 function doAddNote(measureIndex, noteData, insertBeforeNoteId = null) {
-    console.log('doAddNote: measureIndex:', measureIndex, 'insertBeforeNoteId:', insertBeforeNoteId);
     
     if (!measuresData[measureIndex]) {
         measuresData[measureIndex] = [];
@@ -1112,15 +1051,11 @@ function doAddNote(measureIndex, noteData, insertBeforeNoteId = null) {
 
     if (insertBeforeNoteId !== null) {
         insertIndex = targetMeasure.findIndex(note => note.id === insertBeforeNoteId);
-        console.log('doAddNote: looking for noteId:', insertBeforeNoteId, 'found at index:', insertIndex);
-        console.log('doAddNote: available note IDs in target measure:', targetMeasure.map(n => n.id));
     }
 
     if (insertIndex === -1) {
-        console.log('doAddNote: appending to end (insertIndex = -1)');
         targetMeasure.push(noteData);
     } else {
-        console.log('doAddNote: inserting at index:', insertIndex);
         targetMeasure.splice(insertIndex, 0, noteData);
     }
 
@@ -1215,7 +1150,6 @@ export function createSlur(startNoteId, endNoteId, type = 'slur') {
         saveStateToHistory();
         drawAll(measuresData, true);
         saveToLocalStorage();
-        console.log(`createSlur: Successfully created ${type} between ${startNoteId} and ${endNoteId}, updated ${notesToSlur.length - 1} notes to legato (excluding last note for phrase separation)`);
     }
     
     return success;
@@ -1287,7 +1221,6 @@ export function removeSlur(noteId) {
         saveStateToHistory();
         drawAll(measuresData, true);
         saveToLocalStorage();
-        console.log(`removeSlur: Removed slur and reset ${notesToUpdate.length} notes to staccato timing`);
     }
     
     return notesToUpdate.length;
@@ -1314,7 +1247,6 @@ export function updateAllNotesPerformedDuration(newPerformedDuration) {
         saveStateToHistory();
         drawAll(measuresData, true);
         saveToLocalStorage();
-        console.log(`updateAllNotesPerformedDuration: Updated ${notesUpdated} notes to performedDuration ${newPerformedDuration}`);
     }
     
     return notesUpdated;
@@ -1431,8 +1363,6 @@ export function transposeScore(semitones) {
     drawAll(measuresData);
     saveToLocalStorage();
     updateNowPlayingDisplay(message);
-
-    console.log(`transposeScore: ${message}`);
 
     return {
         success: transposedNoteCount > 0,

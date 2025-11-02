@@ -476,7 +476,6 @@
         // Load available tunings into dropdown
         async function loadTunings() {
             try {
-                console.log('🔧 Loading tunings...');
                 const tunings = await ChordDB.getAvailableTunings();
                 const tuningSelect = document.getElementById('tuningSelect');
                 
@@ -491,7 +490,6 @@
                     tuningSelect.appendChild(option);
                 });
                 
-                console.log(`✅ Loaded ${tunings.length} tunings:`, tunings);
                 updateTuningDisplay();
             } catch (error) {
                 console.error('❌ Error loading tunings:', error);
@@ -501,7 +499,6 @@
         // Handle tuning changes
         async function handleTuningChange() {
             const selectedTuning = document.getElementById('tuningSelect').value;
-            console.log(`🔧 Tuning changed to: ${selectedTuning}`);
             
             try {
                 const success = await ChordDB.changeGuitarTuning(selectedTuning);
@@ -514,7 +511,6 @@
                     // Re-lookup current chord for new tuning
                     const chordInput = document.getElementById('chordInput');
                     if (chordInput.value.trim()) {
-                        console.log('🔄 Re-looking up current chord for new tuning');
                         await lookupChord();
                     }
                 } else {
@@ -536,12 +532,8 @@
                     return;
                 }
 
-                console.log('Updating fretboard notes for tuning:', tuningInfo.notes);
-                
                 // Update notes without destroying DOM structure
                 updateFretboardNotes(tuningInfo.notes);
-                
-                console.log('✅ Fretboard notes updated successfully');
                 
             } catch (error) {
                 console.error('Error updating fretboard:', error);
@@ -599,15 +591,11 @@
         
         // Main lookup function
         async function lookupChord() {
-            console.log('🔍 Lookup chord button clicked!');
-            
             const chordInput = document.getElementById('chordInput');
             const tuningSelect = document.getElementById('tuningSelect');
             
             const chordName = chordInput.value.trim();
             const tuning = tuningSelect.value;
-            
-            console.log(`Looking up chord: "${chordName}" in ${tuning} tuning`);
             
             if (!chordName) {
                 alert('Please enter a chord name');
@@ -619,9 +607,8 @@
                 clearFretboard();
                 
                 // Get chord data from database
-                console.log('Getting best fingering...');
+                try {
                 const bestFingering = await ChordDB.getBestFingering(chordName, tuning);
-                console.log('Best fingering result:', bestFingering);
                 
                 // Store current chord data
                 currentChordData = {
@@ -644,8 +631,6 @@
         // Highlight chord fingering on the fretboard
         function highlightChordOnFretboard(frets, chordName) {
             try {
-                console.log('Highlighting chord on fretboard:', frets);
-                
                 // Clear previous highlights
                 clearFretboard();
                 
@@ -668,8 +653,6 @@
                     }
                 });
                 
-                console.log(`✅ Highlighted chord ${chordName} on fretboard`);
-                
             } catch (error) {
                 console.error('Error highlighting chord:', error);
             }
@@ -681,13 +664,10 @@
             highlightedMarkers.forEach(marker => {
                 marker.classList.remove('highlight');
             });
-            console.log('Cleared fretboard highlights');
         }
         
         // Get random chord
         async function getRandomChord() {
-            console.log('🎲 Random chord button clicked!');
-            
             try {
                 const tuning = document.getElementById('tuningSelect').value;
                 const randomChord = await ChordDB.getRandomChord(tuning);
@@ -706,7 +686,6 @@
         
         // Setup event listeners
         function setupEventListeners() {
-            console.log('🔧 Setting up fretboard event listeners...');
             
             // Guitar controls
             document.getElementById('lookupBtn').addEventListener('click', lookupChord);
@@ -717,17 +696,14 @@
             // Enter key support for chord input
             document.getElementById('chordInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    console.log('⌨️ Enter key pressed, looking up chord');
                     lookupChord();
                 }
             });
             
-            console.log('✅ Fretboard event listeners set up');
         }
         
         // Initialize fretboard-specific functionality
         async function initializeFretboard() {
-            console.log('🎸 Starting fretboard initialization...');
             
             try {
                 updateStatus('databaseStatus', 'warning', 'Loading database...');
@@ -738,7 +714,6 @@
                 if (dbInitialized) {
                     const chordCount = await ChordDB.getChordCount();
                     updateStatus('databaseStatus', 'success', `Database loaded (${chordCount} chords)`);
-                    console.log('✅ Chord database initialized');
                 } else {
                     updateStatus('databaseStatus', 'error', 'Database failed to load');
                 }
@@ -747,7 +722,6 @@
                 try {
                     getFretMap();
                     updateStatus('guitarStatus', 'success', 'Fretboard ready');
-                    console.log('✅ Fretboard initialized');
                 } catch (error) {
                     updateStatus('guitarStatus', 'warning', 'Fretboard partially ready');
                     console.warn('Fretboard initialization had issues:', error);
@@ -764,8 +738,6 @@
                 // 5. Initial chord lookup
                 await lookupChord();
                 
-                console.log('✅ Fretboard system fully ready');
-                
             } catch (error) {
                 console.error('❌ Failed to initialize fretboard system:', error);
                 updateStatus('databaseStatus', 'error', 'Initialization failed');
@@ -775,7 +747,6 @@
         
         // Main initialization - wait for Piano Tour base system first
         async function initialize() {
-            console.log('🚀 Fretboard page starting initialization...');
             
             try {
                 // Wait for Piano Tour base system to be ready
@@ -808,8 +779,6 @@
                     playChord: (noteNames) => getFretMap().playChord(noteNames),
                     stopAll: () => getFretMap().stopAllSustainedNotes()
                 };
-                
-                console.log('🔧 Debug functions available at window.fretDebug');
                 
             } catch (error) {
                 console.error('❌ Failed to initialize fretboard page:', error);
