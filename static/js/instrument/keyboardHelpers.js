@@ -238,8 +238,6 @@ export function handleKeyUp(e) {
 }
 
 export function handleInitialKeyboard(e) {
-  e.stopPropagation();
-  e.preventDefault();
   if (e.repeat) return;
   
   // Ignore modifier keys
@@ -255,9 +253,13 @@ export function handleInitialKeyboard(e) {
   const handledKey = ALL_HANDLED_KEYS[k];
   
   if (!handledKey) {
-    console.log(`Ignoring unhandled key: "${k}"`);
+    console.log(`Ignoring unhandled key: "${k}"`, 'allowing browser default behavior');
     return;
   }
+
+  // Only prevent default for keys we actually handle
+  e.stopPropagation();
+  e.preventDefault();
 
   // Handle chord keys
   if (handledKey.type === 'chord') {
