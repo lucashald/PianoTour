@@ -383,3 +383,7 @@
 .drums-score-viewer__content {
     display: inline-block; /* Make it respect width calculation and allow nowrap from parent */
 }
+
+.settings-toggle-icon {
+  display: none;
+}
