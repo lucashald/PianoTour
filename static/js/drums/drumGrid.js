@@ -102,8 +102,6 @@ function clearPattern() {
     document.querySelectorAll('.pattern-grid__checkbox').forEach(checkbox => {
         checkbox.checked = false;
     });
-
-    console.log('🥁 Pattern cleared');
 }
 
 // ===================================================================
@@ -227,11 +225,8 @@ function addPatternToScore() {
     const notationData = analyzePattern();
 
     if (notationData.length === 0) {
-        console.log('Pattern is empty, nothing to add');
         return;
     }
-
-    console.log('Adding pattern to score:', notationData);
 
     notationData.forEach(noteData => {
         addNoteToMeasure(undefined, noteData);
@@ -268,8 +263,6 @@ function startLoopPreview() {
     const tempo = drumsState.tempo || 120;
     const eighthDuration = (60 / tempo) * 0.5 * 1000; // Duration of one 8th note in ms
 
-    console.log('🥁 Starting loop preview at', tempo, 'BPM');
-
     unlockAndExecuteDrum(() => {
         isLooping = true;
         currentStep = 0;
@@ -299,8 +292,6 @@ function stopLoopPreview() {
     if (btnText) btnText.textContent = 'Loop Preview';
 
     clearPlaybackIndicator();
-
-    console.log('🥁 Loop preview stopped');
 }
 
 /**
@@ -352,8 +343,6 @@ function clearPlaybackIndicator() {
  * Initializes the drum grid module
  */
 export function initializeDrumGrid() {
-    console.log('🥁 Initializing drum grid editor');
-
     const toggleBtn = document.getElementById('patternEditorToggle');
     if (toggleBtn) {
         toggleBtn.addEventListener('click', togglePatternEditor);
@@ -385,8 +374,6 @@ export function initializeDrumGrid() {
             stopLoopPreview();
         }
     });
-
-    console.log('🥁 Drum grid initialized');
 }
 
 // ===================================================================

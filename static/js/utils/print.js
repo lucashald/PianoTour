@@ -15,7 +15,6 @@ const MEASURE_WIDTH = 340;
  * @param {Object} options - Options to pass to the renderer (e.g., instrument type)
  */
 export function renderPrintScore(measures, options = {}) {
-    console.log("renderPrintScore: START");
     const out = document.getElementById("score");
     if (!out) {
         console.error("renderPrintScore: Score rendering element #score not found!");
@@ -38,13 +37,8 @@ export function renderPrintScore(measures, options = {}) {
             ...options
         });
         renderer.render(measures);
-        console.log("renderPrintScore: All systems rendered successfully.");
     } catch (e) {
         console.error("renderPrintScore: Rendering error:", e);
         out.innerHTML = `<div class="error">Rendering error: ${e.message}</div>`;
     }
-
-    console.log("renderPrintScore: END");
 }
-
-console.log("✓ print.js loaded successfully");

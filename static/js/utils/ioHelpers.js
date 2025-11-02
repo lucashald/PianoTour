@@ -36,7 +36,6 @@ export function initializeFileHandlers() {
         const [file] = fileInput.files;
        
         if (file) {
-            console.log(`Loading file: ${file.name}`);
             await handleFile(file);
         }
     });
@@ -55,8 +54,6 @@ export function initializeFileHandlers() {
     saveLocalButton?.addEventListener('click', () => {
         saveToLocalStorage();
     });
-
-    console.log("File handlers initialized.");
 }
 
 // Create progress modal for file processing feedback
@@ -202,7 +199,6 @@ function setupScoreManagerListeners() {
     });
 
     scoreManager.addEventListener('scoreProcessed', (score) => {
-        console.log('Score processed successfully:', score.name);
         if (score.validationErrors && score.validationErrors.length > 0) {
             console.warn('Validation warnings:', score.validationErrors);
             showValidationIssues(score.validationErrors);
@@ -249,7 +245,6 @@ export async function handleFile(file) {
 async function loadJsonFile(file) {
     try {
         const text = await file.text();
-        console.log(`Processing JSON file (${Math.round(text.length/1024)}KB)...`);
         
         showProgressModal();
         
@@ -283,12 +278,9 @@ async function loadJsonFile(file) {
 
 async function applyProcessedScore(processedScore) {
     try {
-        console.log('Applying processed score:', processedScore.name);
-        
         // CRITICAL: Set time signature and tempo BEFORE processing measures
         const timeSignature = processedScore.metadata.timeSignature;
         const tempo = processedScore.metadata.tempo;
-        console.log(`Setting time signature to ${timeSignature.numerator}/${timeSignature.denominator} and tempo to ${tempo} before processing...`);
         
         if (!setTimeSignature(timeSignature.numerator, timeSignature.denominator)) {
             console.warn('Failed to set time signature, using default 4/4');
@@ -336,7 +328,6 @@ async function applyProcessedScore(processedScore) {
                 requestAnimationFrame(() => {
                     try {
                         drawAll(getMeasures());
-                        console.log(`Score rendered successfully with time signature ${timeSignature.numerator}/${timeSignature.denominator}`);
                         resolve();
                     } catch (renderError) {
                         console.error('Rendering error:', renderError);
@@ -346,7 +337,6 @@ async function applyProcessedScore(processedScore) {
                 });
             });
             
-            console.log("JSON file loaded successfully via scoreManager.");
         } else {
             throw new Error("Could not apply the processed score data to scoreWriter");
         }
@@ -387,7 +377,6 @@ async function loadMidiFile(file) {
         }
 
         const vexflowJsonFromServer = await response.json();
-        console.log("MIDI conversion successful, processing through scoreManager...");
         
         updateProgress(0.3, 1, 'Processing converted data...', 'Running validation');
 
@@ -419,8 +408,6 @@ const processedScore = await scoreManager.processScore(JSON.stringify(vexflowJso
         } else {
             hideProgressModal();
         }
-        
-        console.log("MIDI file processed successfully through scoreManager.");
         
     } catch (error) {
         console.error('MIDI loading failed:', error);
@@ -518,7 +505,6 @@ export function saveScoreToFile() {
     a.click();
    
     URL.revokeObjectURL(url);
-    console.log("Score saved successfully.");
 }
 
 // Export MIDI
@@ -564,7 +550,6 @@ export function exportMidi() {
         a.download = 'my-song.mid';
         a.click();
         URL.revokeObjectURL(url);
-        console.log("MIDI exported successfully.");
     })
     .catch(error => {
         console.error('MIDI export failed:', error);
@@ -597,7 +582,6 @@ export function saveToLocalStorage() {
     }
     
     localStorage.setItem('autosavedScore', JSON.stringify(scoreData));
-    console.log('Score autosaved to localStorage');
 }
 
 // Utility functions for external access
