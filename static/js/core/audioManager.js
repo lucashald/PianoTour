@@ -74,7 +74,7 @@ export class InstrumentControl {
 
             cello: {
                 name: 'Cello',
-                baseUrl: '/static/samples/cello-normal/',
+                baseUrl: '/static/samples/cello-all/',
                 sampleUrls: {
                     // Octaves 2-4: Regular bowed cello samples
                     "C2": "C2.wav",
