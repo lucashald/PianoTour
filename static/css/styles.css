@@ -563,23 +563,51 @@ background: linear-gradient(to right,
   touch-action: pan-x;
 }
 
+.controls-tempo-container,
 .controls-transpose-container {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
 }
 
+.controls-tempo-container label,
 .controls-transpose-container label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
   font-size: 18px;
 }
 
-
+.tempo-button-group,
 .transpose-button-group {
   display: inline-flex;
   gap: var(--spacing-sm);
+}
+
+.tempo-controls {
+  display: flex;
+  justify-content: center;
+}
+
+.tempo-dropdown {
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .tempo-dropdown {
+    width: 50%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tempo-dropdown {
+    width: 25%;
+  }
 }
 
 /* Preset Controls */
@@ -1826,32 +1854,6 @@ background: linear-gradient(to right,
   font-weight: 600;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-}
-
-/* Input Styles */
-.time-signature-input,
-.tempo-input,
-.measure-input,
-.chord-input,
-.form-select {
-  min-height: var(--touch-target-min);
-  padding: var(--spacing-sm);
-  border-radius: var(--border-radius);
-  font-size: var(--font-size-base);
-  background: var(--color-blue-darkest);
-  color: var(--color-text-primary);
-  transition: all 0.2s ease;
-  touch-action: manipulation;
-  width: 100%;
-}
-
-.time-signature-input:focus,
-.tempo-input:focus,
-.measure-input:focus,
-.chord-input:focus,
-.form-select:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(118, 181, 149, 0.2);
 }
 
 /* Control Groups */

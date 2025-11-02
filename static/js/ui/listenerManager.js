@@ -23,7 +23,7 @@ import { handleInitialGuitar } from "../instrument/guitarInstrument.js";
 import { initializeGuitarControls, createChordPalette } from "./guitarUI.js";
 
 import { toggleIsMinorKey, show_side_panel } from "../ui/uiHelpers.js";
-
+import { setTempo } from "../score/scoreWriter.js";
 let instrumentDiv;
 
 export function setInstrumentDiv(div) {
@@ -163,6 +163,9 @@ export function addButtonListeners() {
     .getElementById("show-side-panel-btn")
     ?.addEventListener("click", show_side_panel);
   window.addEventListener("resize", handleWindowResize);
+    document
+    .getElementById("tempo-input")
+    ?.addEventListener("change", handleTempoChange);
   addAudioStatusListeners();
 }
 
@@ -187,4 +190,11 @@ export function addInstrumentDraggingListeners() {
       stopAllDragChords();
     }
   });
+}
+
+function handleTempoChange(event) {
+    const newTempo = parseInt(event.target.value, 10);
+    if (!isNaN(newTempo) && newTempo >= 60 && newTempo <= 300) {
+        setTempo(newTempo);
+    }
 }

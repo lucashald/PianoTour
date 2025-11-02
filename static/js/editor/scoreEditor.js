@@ -745,15 +745,6 @@ if (target.id === 'editorToggleRest') {
     editorContainer.addEventListener('change', (event) => {
     const target = event.target;
     
-    // Handle tempo changes
-    if (target.id === 'tempo-input') {
-        const newTempo = parseInt(target.value, 10);
-        if (!isNaN(newTempo) && newTempo >= 60 && newTempo <= 300) {
-            setTempo(newTempo);
-        }
-        return;
-    }
-    
     // Handle time signature changes
     if (target.id === 'time-signature-numerator' || target.id === 'time-signature-denominator') {
         const numerator = parseInt(document.getElementById('time-signature-numerator').value, 10);
