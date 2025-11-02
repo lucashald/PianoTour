@@ -1,4 +1,5 @@
 import os
+import sys
 import librosa
 import numpy as np
 import soundfile as sf # Required for saving WAV files
@@ -95,8 +96,14 @@ def normalize_files_peak_amplitude(input_folder_path, output_folder_name='guitar
 # --- Main execution block ---
 if __name__ == "__main__":
     # Set the folder containing your WAV files.
-    # '.' refers to the current directory where the script is run.
-    folder_to_process = '.' 
+    # Default to '.' (current directory) if no argument provided.
+    # Use command line argument if provided.
+    if len(sys.argv) > 1:
+        folder_to_process = sys.argv[1]
+        output_folder_name = sys.argv[2] if len(sys.argv) > 2 else 'normalized'
+    else:
+        folder_to_process = '.'
+        output_folder_name = 'normalized'
 
     # Run the normalization process
-    normalize_files_peak_amplitude(folder_to_process)
+    normalize_files_peak_amplitude(folder_to_process, output_folder_name)

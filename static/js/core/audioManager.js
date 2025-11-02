@@ -74,16 +74,74 @@ export class InstrumentControl {
 
             cello: {
                 name: 'Cello',
-                baseUrl: '/static/samples/cello/',
+                baseUrl: '/static/samples/cello-normal/',
                 sampleUrls: {
-                    "C2": "C2.wav",   // Or "C2_1.wav", "C2_2.wav", etc. if C2.wav doesn't exist
-                    "G#2": "G#2.wav", // Or "G#2_1.wav", "G#2_2.wav", etc.
-                    "F2": "F2.wav",   // Or "F2_1.wav", "F2_2.wav", etc.
-                    "E2": "E2.wav",   // Or "E2_2.wav", "E2_3.wav", etc.
-                    "D2": "D2.wav",   // Or "D2_1.wav", "D2_2.wav"
-                    "C#2": "C#2.wav", // Or "C#2_2.wav", "C#2_3.wav"
-                    "D#2": "D#2.wav", // Or "D#2_1.wav", "D#2_2.wav", etc.
+                    // Octaves 2-4: Regular bowed cello samples
+                    "C2": "C2.wav",
+                    "C#2": "C#2.wav",
+                    "D2": "D2.wav",
+                    "D#2": "D#2.wav",
+                    "E2": "E2.wav",
+                    "F2": "F2.wav",
+                    "F#2": "F#2.wav",
+                    "G2": "G2.wav",
+                    "G#2": "G#2.wav",
                     "A2": "A2.wav",
+                    "A#2": "A#2.wav",
+                    "B2": "B2.wav",
+                    "C3": "C3.wav",
+                    "C#3": "C#3.wav",
+                    "D3": "D3.wav",
+                    "D#3": "D#3.wav",
+                    "E3": "E3.wav",
+                    "F3": "F3.wav",
+                    "F#3": "F#3.wav",
+                    "G3": "G3.wav",
+                    "G#3": "G#3.wav",
+                    "A3": "A3.wav",
+                    "A#3": "A#3.wav",
+                    "B3": "B3.wav",
+                    "C4": "C4.wav",
+                    "C#4": "C#4.wav",
+                    "D4": "D4.wav",
+                    "D#4": "D#4.wav",
+                    "E4": "E4.wav",
+                    "F4": "F4.wav",
+                    "F#4": "F#4.wav",
+                    "G4": "G4.wav",
+                    "G#4": "G#4.wav",
+                    "A4": "A4.wav",
+                    "A#4": "A#4.wav",
+                    "B4": "B4.wav",
+                    
+                    // Octave 5: Spiccato samples (C3-B3 pitched down 24 semitones)
+                    "C5": "spiccato-C3.wav",
+                    "C#5": "spiccato-C#3.wav",
+                    "D5": "spiccato-D3.wav",
+                    "D#5": "spiccato-D#3.wav",
+                    "E5": "spiccato-E3.wav",
+                    "F5": "spiccato-F3.wav",
+                    "F#5": "spiccato-F#3.wav",
+                    "G5": "spiccato-G3.wav",
+                    "G#5": "spiccato-G#3.wav",
+                    "A5": "spiccato-A3.wav",
+                    "A#5": "spiccato-A#3.wav",
+                    "B5": "spiccato-B3.wav",
+                    
+                    // Octave 6: Pizzicato samples (C3-B3 pitched down 36 semitones)
+                    "C6": "pizzicato-C3.wav",
+                    "C#6": "pizzicato-C#3.wav",
+                    "D6": "pizzicato-D3.wav",
+                    "D#6": "pizzicato-D#3.wav",
+                    "E6": "pizzicato-E3.wav",
+                    "F6": "pizzicato-F3.wav",
+                    "F#6": "pizzicato-F#3.wav",
+                    "G6": "pizzicato-G3.wav",
+                    "G#6": "pizzicato-G#3.wav",
+                    "A6": "pizzicato-A3.wav",
+                    "A#6": "pizzicato-A#3.wav",
+                    "B6": "pizzicato-B3.wav",
+                    "C7": "pizzicato-C4.wav",
                 },
 
                 envelopeSettings: {
@@ -93,6 +151,91 @@ export class InstrumentControl {
                     release: 1.8,     // Medium release
 
                     // Cello effects
+                    reverb: { enabled: true, roomSize: 0.8, wet: 0.35 },
+                    eq: { enabled: true, low: 0, mid: 1, high: 0 },
+                    compression: { enabled: true, threshold: -10, ratio: 1.5, attack: 0.15, release: 0.4 }
+                }
+            },
+
+            violin: {
+                name: 'Violin',
+                baseUrl: '/static/samples/violin-all/',
+                sampleUrls: {
+                    // Octave 2: Spiccato samples (C3-B3)
+                    "C2": "spiccato-C3.wav",
+                    "C#2": "spiccato-C#3.wav",
+                    "D2": "spiccato-D3.wav",
+                    "D#2": "spiccato-D#3.wav",
+                    "E2": "spiccato-E3.wav",
+                    "F2": "spiccato-F3.wav",
+                    "F#2": "spiccato-F#3.wav",
+                    "G2": "spiccato-G3.wav",
+                    "G#2": "spiccato-G#3.wav",
+                    "A2": "spiccato-A3.wav",
+                    "A#2": "spiccato-A#3.wav",
+                    "B2": "spiccato-B3.wav",
+                    
+                    // Octaves 3-5: Regular bowed violin samples
+                    "C3": "C3.wav",
+                    "C#3": "C#3.wav",
+                    "D3": "D3.wav",
+                    "D#3": "D#3.wav",
+                    "E3": "E3.wav",
+                    "F3": "F3.wav",
+                    "F#3": "F#3.wav",
+                    "G3": "G3.wav",
+                    "G#3": "G#3.wav",
+                    "A3": "A3.wav",
+                    "A#3": "A#3.wav",
+                    "B3": "B3.wav",
+                    "C4": "C4.wav",
+                    "C#4": "C#4.wav",
+                    "D4": "D4.wav",
+                    "D#4": "D#4.wav",
+                    "E4": "E4.wav",
+                    "F4": "F4.wav",
+                    "F#4": "F#4.wav",
+                    "G4": "G4.wav",
+                    "G#4": "G#4.wav",
+                    "A4": "A4.wav",
+                    "A#4": "A#4.wav",
+                    "B4": "B4.wav",
+                    "C5": "C5.wav",
+                    "C#5": "C#5.wav",
+                    "D5": "D5.wav",
+                    "D#5": "D#5.wav",
+                    "E5": "E5.wav",
+                    "F5": "F5.wav",
+                    "F#5": "F#5.wav",
+                    "G5": "G5.wav",
+                    "G#5": "G#5.wav",
+                    "A5": "A5.wav",
+                    "A#5": "A#5.wav",
+                    "B5": "B5.wav",
+                    
+                    // Octave 6: Pizzicato samples (C5-C6)
+                    "C6": "pizzicato-C5.wav",
+                    "C#6": "pizzicato-C#5.wav",
+                    "D6": "pizzicato-D5.wav",
+                    "D#6": "pizzicato-D#5.wav",
+                    "E6": "pizzicato-E5.wav",
+                    "F6": "pizzicato-F5.wav",
+                    "F#6": "pizzicato-F#5.wav",
+                    "G6": "pizzicato-G5.wav",
+                    "G#6": "pizzicato-G#5.wav",
+                    "A6": "pizzicato-A5.wav",
+                    "A#6": "pizzicato-A#5.wav",
+                    "B6": "pizzicato-B5.wav",
+                    "C7": "pizzicato-C6.wav",
+                },
+
+                envelopeSettings: {
+                    attack: 0.08,   // Slower attack - bow engagement
+                    decay: 0.4,     // Quick decay to sustain
+                    sustain: 0.9,   // Very high sustain - bowed strings
+                    release: 1.8,   // Medium release
+
+                    // Violin effects
                     reverb: { enabled: true, roomSize: 0.8, wet: 0.35 },
                     eq: { enabled: true, low: 0, mid: 1, high: 0 },
                     compression: { enabled: true, threshold: -10, ratio: 1.5, attack: 0.15, release: 0.4 }

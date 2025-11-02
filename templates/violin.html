@@ -1,0 +1,46 @@
+{% extends "index.html" %}
+
+{% block title %}PianoTour - Interactive violin Studio{% endblock %}
+
+{% block toggles %}
+    {% include 'partials/_toggles.html' %}
+    
+
+{% endblock %}
+
+{% block content %}
+    <div class="violin-info-box">
+        <h4>Violin Range Information</h4>
+        <p>
+        This implementation uses technique variation to optimize the available samples:
+        </p>
+        <p>
+            <strong>C2-B2:</strong> Spiccato (bounced bow) - sharper, more articulate attack. Using C3-B3 samples.
+        </p>
+        <p>
+            <strong>C3-B5:</strong> Regular bowed violin - the primary comfortable playing range
+        </p>
+        <p>
+            <strong>C6-C7:</strong> Pizzicato (plucked) - percussive, lighter character. Using C5-C6 samples.
+        </p>
+        <p>
+            This approach maintains natural sound characteristics while extending playable range through technique variation.
+        </p>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+    import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+    import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
+
+    // Set instrument from template variable, default to 'violin' if not provided
+    const templateInstrument = '{{ instrument }}' || 'violin';
+
+    // Update pianoState
+    pianoState.instrument = templateInstrument;
+
+    console.log("Set instrument to:", templateInstrument);
+    addBasicKeyboardListeners();
+</script>
+{% endblock %}

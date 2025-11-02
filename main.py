@@ -127,6 +127,11 @@ def cello():
     """Guitar instrument route"""
     return render_template('cello.html', instrument='cello')
 
+@app.route('/violin')
+def violin():
+    """Violin instrument route"""
+    return render_template('violin.html', instrument='violin')
+
 
 @app.route('/sax')
 def sax():
