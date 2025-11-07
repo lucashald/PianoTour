@@ -24,7 +24,9 @@ import { initializeGuitarControls, createChordPalette } from "./guitarUI.js";
 
 import { toggleIsMinorKey, show_side_panel } from "../ui/uiHelpers.js";
 import { setTempo } from "../score/scoreWriter.js";
+
 let instrumentDiv;
+let isMouseWheelVelocityEnabled = true;
 
 export function setInstrumentDiv(div) {
   instrumentDiv = div;
@@ -166,6 +168,17 @@ export function addButtonListeners() {
     document
     .getElementById("tempo-input")
     ?.addEventListener("change", handleTempoChange);
+  
+  // Wire up the mouse wheel velocity toggle
+  document
+    .getElementById("toggleVelocityCheckbox")
+    ?.addEventListener("change", handleMouseWheelVelocityToggle);
+  
+  // Initialize mouse wheel velocity control if enabled by default
+  if (isMouseWheelVelocityEnabled) {
+    document.addEventListener('wheel', handleMouseWheelVelocityControl, { passive: false });
+  }
+  
   addAudioStatusListeners();
 }
 
@@ -197,4 +210,77 @@ function handleTempoChange(event) {
     if (!isNaN(newTempo) && newTempo >= 60 && newTempo <= 300) {
         setTempo(newTempo);
     }
+}
+
+/**
+ * Handles the mouse wheel velocity slider control
+ * Allows adjusting velocity with the mouse wheel when enabled
+ */
+function handleMouseWheelVelocityControl(event) {
+  if (!isMouseWheelVelocityEnabled) {
+    return;
+  }
+
+  // Only activate with Alt held down
+  if (!event.altKey) {
+    return;
+  }
+
+  console.log('Alt+wheel detected, adjusting velocity');
+  event.preventDefault();
+
+  const velocitySliderEl = document.getElementById('velocitySlider');
+  if (!velocitySliderEl) {
+    console.error('velocitySlider element not found');
+    return;
+  }
+
+  // Cast to HTMLInputElement for type safety
+  const slider = velocitySliderEl;
+
+  // Get current velocity and calculate new value
+  const sliderInput = slider;
+  let currentVelocity = parseInt(sliderInput.value);
+  const wheelDelta = event.deltaY > 0 ? -1 : 1; // Negative deltaY = scroll up = increase
+  const step = 5; // Increment by 5
+  const newVelocity = Math.max(
+    parseInt(sliderInput.min),
+    Math.min(
+      parseInt(sliderInput.max),
+      currentVelocity + (wheelDelta * step)
+    )
+  );
+
+  // Update the slider value
+  sliderInput.value = String(newVelocity);
+
+  // Update the display value if it exists
+  const velocityValue = document.getElementById('velocityValue');
+  if (velocityValue) {
+    velocityValue.textContent = String(newVelocity);
+  }
+
+  // Update pianoState velocity
+  pianoState.velocity = newVelocity;
+
+  console.log(`Velocity adjusted to ${newVelocity} via mouse wheel`);
+}
+
+/**
+ * Toggles the mouse wheel velocity control on/off
+ */
+function handleMouseWheelVelocityToggle(event) {
+  const wasEnabled = isMouseWheelVelocityEnabled;
+  isMouseWheelVelocityEnabled = (event.target).checked;
+
+  // Only update listeners if state actually changed
+  if (isMouseWheelVelocityEnabled && !wasEnabled) {
+    // Turning on - add the listener
+    document.addEventListener('wheel', handleMouseWheelVelocityControl, { passive: false });
+    console.log('Mouse wheel velocity control enabled');
+  } else if (!isMouseWheelVelocityEnabled && wasEnabled) {
+    // Turning off - remove the listener
+    document.removeEventListener('wheel', handleMouseWheelVelocityControl);
+    console.log('Mouse wheel velocity control disabled');
+  }
 }

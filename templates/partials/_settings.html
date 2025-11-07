@@ -90,6 +90,98 @@
         </div>
     </div>
 
+    
+
+<!-- Articulation controls -->
+    <div class="control-section">
+        <h3>Articulation</h3>
+        <div class="vertical-controls">
+            <div class="volume-control vertical audio-uninitialized" id="velocityControl">
+                <label class="control-label">Velocity</label>
+                <input type="range" 
+                       min="0" 
+                       max="127" 
+                       value="100" 
+                       step="1"
+                       class="volume-slider vertical-slider" 
+                       id="velocitySlider"
+                       aria-label="Velocity">
+                <span class="volume-value" id="velocityValue" aria-live="polite">100</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="staccatoControl">
+                <label class="control-label">Duration</label>
+                <input type="range" 
+                       min="0.1" 
+                       max="1" 
+                       value="0.85" 
+                       step="0.05"
+                       class="volume-slider vertical-slider" 
+                       id="staccatoSlider"
+                       aria-label="Staccato duration">
+                <span class="volume-value" id="staccatoValue" aria-live="polite">0.85</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="humanizeControl">
+                <label class="control-label">Humanize</label>
+                <input type="range" 
+                       min="0" 
+                       max="100" 
+                       value="10" 
+                       step="1"
+                       class="volume-slider vertical-slider" 
+                       id="humanizeSlider"
+                       aria-label="Humanize">
+                <span class="volume-value" id="humanizeValue" aria-live="polite">10%</span>
+            </div>
+        </div>
+    </div>
+    
+<!-- EQ controls -->
+    <div class="control-section">
+        <h3>EQ</h3>
+        <div class="vertical-controls">
+            <div class="volume-control vertical audio-uninitialized" id="eqLowControl">
+                <label class="control-label">Low</label>
+                <input type="range" 
+                       min="-12" 
+                       max="12" 
+                       value="1" 
+                       step="0.1"
+                       class="volume-slider vertical-slider" 
+                       id="eqLowSlider"
+                       aria-label="EQ low frequency">
+                <span class="volume-value" id="eqLowValue" aria-live="polite">+1</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="eqMidControl">
+                <label class="control-label">Mid</label>
+                <input type="range" 
+                       min="-12" 
+                       max="12" 
+                       value="0" 
+                       step="0.1"
+                       class="volume-slider vertical-slider" 
+                       id="eqMidSlider"
+                       aria-label="EQ mid frequency">
+                <span class="volume-value" id="eqMidValue" aria-live="polite">0</span>
+            </div>
+
+            <div class="volume-control vertical audio-uninitialized" id="eqHighControl">
+                <label class="control-label">High</label>
+                <input type="range" 
+                       min="-12" 
+                       max="12" 
+                       value="-1" 
+                       step="0.1"
+                       class="volume-slider vertical-slider" 
+                       id="eqHighSlider"
+                       aria-label="EQ high frequency">
+                <span class="volume-value" id="eqHighValue" aria-live="polite">-1</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Compression controls -->
     <div class="control-section">
         <h3>Compression</h3>
@@ -147,101 +239,19 @@
             </div>
         </div>
     </div>
-
-    <!-- EQ controls -->
-    <div class="control-section">
-        <h3>EQ</h3>
-        <div class="vertical-controls">
-            <div class="volume-control vertical audio-uninitialized" id="eqLowControl">
-                <label class="control-label">Low</label>
-                <input type="range" 
-                       min="-12" 
-                       max="12" 
-                       value="1" 
-                       step="0.1"
-                       class="volume-slider vertical-slider" 
-                       id="eqLowSlider"
-                       aria-label="EQ low frequency">
-                <span class="volume-value" id="eqLowValue" aria-live="polite">+1</span>
-            </div>
-
-            <div class="volume-control vertical audio-uninitialized" id="eqMidControl">
-                <label class="control-label">Mid</label>
-                <input type="range" 
-                       min="-12" 
-                       max="12" 
-                       value="0" 
-                       step="0.1"
-                       class="volume-slider vertical-slider" 
-                       id="eqMidSlider"
-                       aria-label="EQ mid frequency">
-                <span class="volume-value" id="eqMidValue" aria-live="polite">0</span>
-            </div>
-
-            <div class="volume-control vertical audio-uninitialized" id="eqHighControl">
-                <label class="control-label">High</label>
-                <input type="range" 
-                       min="-12" 
-                       max="12" 
-                       value="-1" 
-                       step="0.1"
-                       class="volume-slider vertical-slider" 
-                       id="eqHighSlider"
-                       aria-label="EQ high frequency">
-                <span class="volume-value" id="eqHighValue" aria-live="polite">-1</span>
-            </div>
-        </div>
-    </div>
-
-<!-- Articulation controls -->
-    <div class="control-section">
-        <h3>Articulation</h3>
-        <div class="vertical-controls">
-            <div class="volume-control vertical audio-uninitialized" id="velocityControl">
-                <label class="control-label">Velocity</label>
-                <input type="range" 
-                       min="0" 
-                       max="127" 
-                       value="100" 
-                       step="1"
-                       class="volume-slider vertical-slider" 
-                       id="velocitySlider"
-                       aria-label="Velocity">
-                <span class="volume-value" id="velocityValue" aria-live="polite">100</span>
-            </div>
-
-            <div class="volume-control vertical audio-uninitialized" id="staccatoControl">
-                <label class="control-label">Duration</label>
-                <input type="range" 
-                       min="0.1" 
-                       max="1" 
-                       value="0.85" 
-                       step="0.05"
-                       class="volume-slider vertical-slider" 
-                       id="staccatoSlider"
-                       aria-label="Staccato duration">
-                <span class="volume-value" id="staccatoValue" aria-live="polite">0.85</span>
-            </div>
-
-            <div class="volume-control vertical audio-uninitialized" id="humanizeControl">
-                <label class="control-label">Humanize</label>
-                <input type="range" 
-                       min="0" 
-                       max="100" 
-                       value="10" 
-                       step="1"
-                       class="volume-slider vertical-slider" 
-                       id="humanizeSlider"
-                       aria-label="Humanize">
-                <span class="volume-value" id="humanizeValue" aria-live="polite">10%</span>
-            </div>
-        </div>
-    </div>
+</div>
+              <div class="checkbox-wrapper-velocity">
+  <label class="switch" for="toggleVelocityCheckbox">
+    <input type="checkbox" id="toggleVelocityCheckbox" checked />
+    <div class="slider round"></div>
+  </label>
+  <label for="toggleVelocityCheckbox" class="velocity-label">Alt+Mouse Wheel Controls Velocity</label>
 </div>
 
     <div class="controls-tempo-container">
       <div class="control-section reset-section">
         <button id="resetButton" class="btn btn--info">Reset to Defaults</button>
+
       </div>
 
       <!-- Tempo Row -->

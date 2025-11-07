@@ -1727,3 +1727,83 @@ background: linear-gradient(to right,
 .palette-note:focus:not(:focus-visible) {
   outline: none;
 }
+
+/* ==========================================================================
+   24. Velocity Control Toggle Switch
+   ========================================================================== */
+.check-control {
+  display: none;
+}
+
+.checkbox-wrapper-velocity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: var(--spacing-md) 0;
+}
+
+.checkbox-wrapper-velocity .switch {
+  display: inline-block;
+  height: 34px;
+  position: relative;
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.checkbox-wrapper-velocity .switch input {
+  display: none;
+}
+
+.checkbox-wrapper-velocity .slider {
+  background-color: var(--color-blue-dark);
+  bottom: 0;
+  cursor: pointer;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: 0.4s ease;
+}
+
+.checkbox-wrapper-velocity .slider::before {
+  background-color: #fff;
+  bottom: 4px;
+  content: "";
+  height: 26px;
+  left: 4px;
+  position: absolute;
+  transition: 0.4s ease;
+  width: 26px;
+}
+
+.checkbox-wrapper-velocity input:checked + .slider {
+  background-color: var(--color-green-medium);
+}
+
+.checkbox-wrapper-velocity input:checked + .slider::before {
+  transform: translateX(26px);
+}
+
+.checkbox-wrapper-velocity .slider.round {
+  border-radius: 34px;
+}
+
+.checkbox-wrapper-velocity .slider.round::before {
+  border-radius: 50%;
+}
+
+.velocity-label {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  transition: color 0.3s ease;
+}
+
+.velocity-label:hover {
+  color: var(--color-green-light);
+}
