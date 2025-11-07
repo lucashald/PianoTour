@@ -798,7 +798,7 @@ export function handleInitialGuitar(e, actionData = null) {
     const clefGroups = splitNotesIntoClefs(clickedDetails.notes);
 
     if (clickedDetails.type === 'string') {
-      triggerAttackRelease(clickedDetails.notes, "h", 100, false);
+      triggerAttackRelease(clickedDetails.notes, "h", pianoState.velocity, false);
       
       if (window.guitarInstance) {
         window.guitarInstance.highlightString(clickedDetails.stringNum);
@@ -814,7 +814,7 @@ export function handleInitialGuitar(e, actionData = null) {
       
     } else if (clickedDetails.type === 'strum' || clickedDetails.type === 'palette') {
       clickedDetails.notes.forEach((note, index) => {
-        setTimeout(() => triggerAttackRelease([note], "h", 100, false), index * 10);
+        setTimeout(() => triggerAttackRelease([note], "h", pianoState.velocity, false), index * 10);
       });
       
       if (window.guitarInstance) {

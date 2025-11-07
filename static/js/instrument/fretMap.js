@@ -31,6 +31,7 @@ Add these CSS classes to your stylesheet for proper visual feedback:
 // ===================================================================
 
 import { trigger, triggerAttackRelease } from './playbackHelpers.js';
+import { pianoState } from '../core/appState.js';
 import { NOTES_BY_NAME } from '../core/note-data.js';
 
 // ===================================================================
@@ -165,7 +166,7 @@ export class FretMap {
 
                 if (midiNote) {
                     // Use trigger for sustained notes (on = true)
-                    trigger(midiNote, true, 80);
+                    trigger(midiNote, true, pianoState.velocity);
                     this.playingNotes.add(noteKey);
                     noteButton.classList.add('sustained');
                     console.log(`FretMap: Started sustained note ${noteName} (${midiNote})`);
@@ -217,7 +218,7 @@ export class FretMap {
             
             if (midiNote) {
                 // Use trigger to stop the note (on = false)
-                trigger(midiNote, false, 80);
+                trigger(midiNote, false, pianoState.velocity);
                 this.playingNotes.delete(noteKey);
                 noteButton.classList.remove('sustained');
                 // Mark recently sustained so subsequent click doesn't retrigger short playback
@@ -433,7 +434,7 @@ export class FretMap {
             
             if (midiNote) {
                 // Use triggerAttackRelease for a short note
-                triggerAttackRelease(midiNote, '8n', 80, false);
+                triggerAttackRelease(midiNote, '8n', pianoState.velocity, false);
                 
                 console.log(`FretMap: Played ${noteName} (${midiNote}) - String ${stringNum}, Fret ${fretNum}`);
                 
@@ -555,7 +556,7 @@ export class FretMap {
 
             if (midiNotes.length > 0) {
                 // Play all notes as a chord
-                triggerAttackRelease(midiNotes, '2n', 80, false);
+                triggerAttackRelease(midiNotes, '2n', pianoState.velocity, false);
                 console.log(`FretMap: Played chord:`, midiNotes);
             }
         } catch (error) {

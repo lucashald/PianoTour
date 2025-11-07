@@ -92,36 +92,18 @@ async function startAudio() {
 // ===================================================================
 
 /**
- * Triggers or releases notes using SpessaSynth.
- * @param {string|string[]|number|number[]} notes - A single note or an array of notes (names or MIDI numbers).
- * @param {boolean} on - True to play the note (noteOn), false to stop it (noteOff).
- * @param {number} [velocity=100] - MIDI velocity (1-127).
+ * Triggers or releases notes on the SpessaSynth synthesizer.
+ * @param {string|string[]|number|number[]} notes - The note name(s) or MIDI number(s).
+ * @param {boolean} on - True to trigger attack, false to trigger release.
+ * @param {number} [velocity] - MIDI velocity (1-127). If undefined, uses pianoState.velocity.
  * @param {number} [channel=0] - MIDI channel (0-15).
  */
-function trigger(notes, on, velocity = 100, channel = 0) {
+function trigger(notes, on, velocity, channel = 0) {
   if (!isSpessaReady) return;
 
+  const effectiveVelocity = velocity !== undefined ? velocity : pianoState.velocity;
   const noteArray = Array.isArray(notes) ? notes : [notes];
-  const midiVelocity = Math.max(1, Math.min(127, Math.round(velocity)));
-
-  noteArray.forEach(note => {
-    const midiNote = typeof note === 'string' ? noteNameToMidi(note) : Math.max(0, Math.min(127, note));
-    if (midiNote === undefined) {
-        console.warn("Invalid note:", note);
-        return;
-    }
-
-    try {
-      if (on) {
-        spessaSynth.noteOn(channel, midiNote, midiVelocity);
-      } else {
-        spessaSynth.noteOff(channel, midiNote);
-      }
-    } catch (error) {
-      console.error(`Error processing note ${note} (MIDI: ${midiNote}):`, error);
-    }
-  });
-}
+  const midiVelocity = Math.max(1, Math.min(127, Math.round(effectiveVelocity)));
 
 /**
  * Starts a single piano key press.
@@ -366,7 +348,7 @@ function testSpessaSynth() {
   }
   console.log("🧪 Testing SpessaSynth connection...");
   const testChord = ["C4", "E4", "G4"];
-  trigger(testChord, true, 80);
+  trigger(testChord, true, pianoState.velocity);
   setTimeout(() => trigger(testChord, false), 1000);
 }
 

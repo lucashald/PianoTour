@@ -584,13 +584,10 @@ export function initializeSpectrumVisualizer() {
     initializeSpectrum(spectrumOptions);
     spectrumInitialized = true;
 
-    // Connect to envelope output instead of sampler
-    if (pianoState.envelope) {
-      connectSpectrumToAudio(pianoState.envelope.envelope); // Connect to the actual Tone.js envelope
-      console.log("Spectrum connected to envelope output");
-    } else if (pianoState.sampler) {
+    // Connect to the sampler output to capture velocity modulation
+    if (pianoState.sampler) {
       connectSpectrumToAudio(pianoState.sampler);
-      console.log("Spectrum connected to sampler (fallback - no envelope)");
+      console.log("Spectrum connected to sampler output (captures velocity modulation)");
     } else {
       console.log("No audio source available for spectrum connection");
     }

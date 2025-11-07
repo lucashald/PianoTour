@@ -285,7 +285,7 @@ export function handleInitialKeyboard(e) {
 
       if (chordNotes && chordNotes.length > 0) {
         console.log(`Calling triggerAttackRelease for chord: ${chordName}, notes: ${JSON.stringify(chordNotes)}`);
-        triggerAttackRelease(chordNotes, "q", 100, true, chordName);
+        triggerAttackRelease(chordNotes, "q", pianoState.velocity, true, chordName);
         
         // Clear chord highlights after a brief delay to allow the chord to play
         setTimeout(() => {
@@ -335,7 +335,7 @@ export function handleInitialKeyboard(e) {
       addInstrumentDraggingListeners();
 
       console.log(`Calling triggerAttackRelease for note: ${keyDetails.noteName}`);
-      triggerAttackRelease([keyDetails.noteName], "q", 100, true, keyDetails.noteName);
+      triggerAttackRelease([keyDetails.noteName], "q", pianoState.velocity, true, keyDetails.noteName);
       
       // Clear highlights after a brief delay for single notes too
       setTimeout(() => {

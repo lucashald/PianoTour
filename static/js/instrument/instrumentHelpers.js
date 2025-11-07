@@ -534,7 +534,7 @@ export function handlePointerMove(e) {
 
           const noteInfo = notesByMidiKeyAware(midi);
           if (noteInfo) {
-            trigger([noteInfo.name], true, 80, false);
+            trigger([noteInfo.name], true, pianoState.velocity, false);
           }
         }
       }
@@ -547,7 +547,7 @@ export function handlePointerMove(e) {
           keyEl.classList.remove("pressed", "drag-playing");
           const noteInfo = notesByMidiKeyAware(midi);
           if (noteInfo && keyEl.dataset.playing === "drag") {
-            trigger([noteInfo.name], false, 80, false);
+            trigger([noteInfo.name], false, pianoState.velocity, false);
           }
           keyEl.dataset.playing = "";
         }
@@ -652,7 +652,7 @@ export function stopAllDragNotes() {
       keyEl.classList.remove("pressed", "drag-playing");
       const noteInfo = notesByMidiKeyAware(midi);
       if (noteInfo && keyEl.dataset.playing === "drag") {
-        trigger([noteInfo.name], false, 80, false);
+        trigger([noteInfo.name], false, pianoState.velocity, false);
       }
       keyEl.dataset.playing = "";
     }
@@ -732,7 +732,7 @@ export function handleKeyPointerDown(e) {
       startTime: startTime,
       chordData: chord,
     };
-    trigger(chord.notes, true);
+    trigger(chord.notes, true, pianoState.velocity);
     finalKeyEl.classList.add("pressed");
     finalKeyEl.setPointerCapture(e.pointerId);
 
@@ -744,7 +744,7 @@ export function handleKeyPointerDown(e) {
       let duration = "q";
       if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
       else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
-      trigger(chord.notes, false);
+      trigger(chord.notes, false, pianoState.velocity);
       finalKeyEl.classList.remove("pressed");
       if (finalKeyEl.hasPointerCapture(e.pointerId)) { // Check if still has capture
         finalKeyEl.releasePointerCapture(e.pointerId);
@@ -878,7 +878,7 @@ export function handleInitial(e) {
      // Activate the more advanced listeners for future interactions
 
    // Play the clicked note.
-     triggerAttackRelease([clickedNoteDetails.noteName], "q");
+     triggerAttackRelease([clickedNoteDetails.noteName], "q", pianoState.velocity);
      
    }
 

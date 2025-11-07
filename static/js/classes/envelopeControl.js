@@ -139,6 +139,18 @@ export class EnvelopeControl {
         console.log(`🔗 Effects chain built: ${this.effectsChain.length} effects`);
     }
 
+    /**
+     * Returns the final output node after all effects have been applied.
+     * This is used for spectrum visualization and other audio analysis.
+     * @returns {Tone.AudioNode} The last node in the effects chain, or the envelope if no effects
+     */
+    getFinalOutput() {
+        if (this.effectsChain.length > 0) {
+            return this.effectsChain[this.effectsChain.length - 1];
+        }
+        return this.envelope;
+    }
+
     // ✅ NEW: Enable/disable effects dynamically
     enableEffect(effectName, enabled = true) {
         if (!this.effectsConfig[effectName]) {

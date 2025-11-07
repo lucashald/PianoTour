@@ -75,13 +75,15 @@ export async function startAudio() {
  * Triggers or releases notes on the Tone.js sampler.
  * @param {string|string[]} note - The note name(s) (e.g., "C4", ["C4", "E4", "G4"]).
  * @param {boolean} on - True to trigger attack, false to trigger release.
- * @param {number} [velocity=100] - MIDI velocity (1-127).
+ * @param {number} [velocity=pianoState.velocity] - MIDI velocity (1-127).
  */
  
-export function trigger(note, on, velocity = 100, useEnvelope = true) {
+export function trigger(note, on, velocity, useEnvelope = true) {
   if (!audioManager.isAudioReady() || !pianoState.sampler) return;
 
-  const normalizedVelocity = Math.max(0.1, Math.min(1, velocity / 127));
+  // Use pianoState.velocity if no velocity is passed
+  const effectiveVelocity = velocity !== undefined ? velocity : pianoState.velocity;
+  const normalizedVelocity = Math.min(1, Math.max(0, effectiveVelocity / 127));
   const notes = Array.isArray(note) ? note : [note];
   const now = Tone.now(); // ✅ Get current time
 
@@ -105,10 +107,13 @@ export function trigger(note, on, velocity = 100, useEnvelope = true) {
 /**
  * Starts a single piano key's sound and visual feedback.
  * @param {HTMLElement} el - The SVG element of the key.
- * @param {number} [velocity=100] - MIDI velocity.
+ * @param {number} [velocity] - MIDI velocity. If undefined, uses pianoState.velocity.
  */
-export function startKey(el, velocity = 100) {
+export function startKey(el, velocity) {
   const midi = el.dataset.midi;
+  
+  // Use pianoState.velocity if no velocity is passed
+  const effectiveVelocity = velocity !== undefined ? velocity : pianoState.velocity;
   
   // ✅ FIXED: Check for any existing playing state, not just "note"
   if (!midi || el.dataset.playing) {
@@ -128,7 +133,7 @@ export function startKey(el, velocity = 100) {
   el.dataset.startTime = performance.now().toString();
   el.classList.add("pressed");
   
-  trigger(noteName, true, velocity);
+  trigger(noteName, true, effectiveVelocity);
   
   const spelling = pianoState.keySignatureType === "b" ? "flat" : "sharp";
   pianoState.activeNotes[midi] = { 
@@ -352,9 +357,11 @@ export function stopDiatonicChordFromUI(inputSource) {
   stopDiatonicChord(inputSource);
 }
 
-export function triggerAttackRelease(note, duration = "q", velocity = 100, writeToScore = true, chordName = null) {
+export function triggerAttackRelease(note, duration = "q", velocity, writeToScore = true, chordName = null) {
   if (!audioManager.isAudioReady()) return;
 
+  // Use pianoState.velocity if no velocity is passed
+  const effectiveVelocity = velocity !== undefined ? velocity : pianoState.velocity;
   const durationMs = DURATION_THRESHOLDS[duration] || DURATION_THRESHOLDS.q;
   const notesArray = Array.isArray(note) ? note : [note];
 
@@ -390,7 +397,7 @@ export function triggerAttackRelease(note, duration = "q", velocity = 100, write
   }
   
   // Trigger sampler with attack/release (envelope will shape this)
-  pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, velocity / 127);
+  pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, effectiveVelocity / 127);
 
   // Paint chord visualization immediately for chords
   if (isChord) {
