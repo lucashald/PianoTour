@@ -193,12 +193,12 @@
     function waitForBaseInit() {
         return new Promise((resolve) => {
             if (window.pianoTourInitState && window.pianoTourInitState.baseInitialized) {
-                console.log('✓ Base already initialized, proceeding with editor init');
+
                 resolve();
             } else {
-                console.log('⏳ Waiting for base initialization...');
+
                 document.addEventListener('pianoTourBaseReady', () => {
-                    console.log('✓ Base initialization complete, proceeding with editor init');
+
                     resolve();
                 }, { once: true });
             }
@@ -216,7 +216,7 @@
 const { initializeMusicEditor } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
 const { setPaletteDragState } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
             
-            console.log('✓ Modules loaded, initializing editor...');
+
             
             // Initialize the editor
             initializeMusicEditor();
@@ -225,7 +225,7 @@ const { setPaletteDragState } = await import('{{ url_for("static", filename="js/
             setupFloatingPanelInteractions();
             setupPaletteDrag(setPaletteDragState);
             
-            console.log('✅ Editor initialization complete!');
+
             
         } catch (error) {
             console.error('❌ Error during editor initialization:', error);
@@ -248,7 +248,7 @@ const { setPaletteDragState } = await import('{{ url_for("static", filename="js/
 
     function setupPaletteDrag(setPaletteDragState) {
         const paletteNotes = document.querySelectorAll('.palette-note');
-        console.log(`🎨 Setting up palette drag for ${paletteNotes.length} notes`);
+        console\.log\(`[^a-zA-Z0-9`$]+ ?Setting up palette drag for ${paletteNotes.length} notes`);
         
         paletteNotes.forEach(note => {
             note.addEventListener('dragstart', (event) => {
@@ -258,7 +258,7 @@ const { setPaletteDragState } = await import('{{ url_for("static", filename="js/
                 // Handle interval elements
                 if (type === 'interval') {
                     const intervalType = event.target.dataset.interval;
-                    console.log(`🎵 Starting interval drag: ${intervalType}`);
+                    console\.log\(`[^a-zA-Z0-9`$]+ ?Starting interval drag: ${intervalType}`);
                     
                     // Set interval data for transfer
                     const intervalData = {
@@ -268,7 +268,7 @@ const { setPaletteDragState } = await import('{{ url_for("static", filename="js/
                     setPaletteDragState(true, type, duration);
                 } else {
                     // Handle all other elements (chords, notes, rests) the original way
-                    console.log(`🎯 Starting palette drag: ${type}, duration: ${duration}`);
+                    console\.log\(`[^a-zA-Z0-9`$]+ ?Starting palette drag: ${type}, duration: ${duration}`);
                     setPaletteDragState(true, type, duration);
                     event.dataTransfer.setData('text/plain', type);
                 }

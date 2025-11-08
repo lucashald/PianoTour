@@ -61,13 +61,13 @@ export class FretMap {
         this.allNotes = document.querySelectorAll('.note-marker');
         
         if (this.allNotes.length === 0) {
-            console.log('FretMap: No note-marker elements found. Skipping FretMap initialization.');
+
             return false;
         }
 
         this.setupEventListeners();
         this.isInitialized = true;
-        console.log(`FretMap: Initialized with ${this.allNotes.length} note buttons`);
+
         return true;
     }
 

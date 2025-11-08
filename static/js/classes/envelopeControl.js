@@ -6,7 +6,7 @@ export class EnvelopeControl {
         this.sustain = config.sustain || 0.8;
         this.release = config.release || 1.2;
 
-        // ✅ NEW: Effects configuration
+        // NEW: Effects configuration
         this.effectsConfig = {
             reverb: config.reverb || { enabled: false, roomSize: 0.3, wet: 0.2 },
             delay: config.delay || { enabled: false, delayTime: 0.25, feedback: 0.3, wet: 0.2 },
@@ -25,7 +25,7 @@ export class EnvelopeControl {
     
     init() {
         this.createAudioChain();
-        console.log('🎵 Envelope created with ADSR:', {
+        console.log('Envelope created with ADSR:', {
             attack: this.attack,
             decay: this.decay, 
             sustain: this.sustain,
@@ -33,7 +33,7 @@ export class EnvelopeControl {
         });
     }
     
-    // ✅ NEW: Create envelope and effects chain
+    // NEW: Create envelope and effects chain
     createAudioChain() {
         if (window.Tone) {
             this.envelope = new Tone.AmplitudeEnvelope({
@@ -57,7 +57,6 @@ export class EnvelopeControl {
             this.buildEffectsChain();
 
             this.isConnected = true;
-            console.log('🎛️ Audio chain created with effects');
         } else {
             console.warn('Tone.js not available yet');
         }
@@ -71,7 +70,7 @@ export class EnvelopeControl {
         if (this.effectsConfig.reverb.enabled) {
             this.effectsChain.push(this.effects.reverb);
         }
-        console.log(`🎛️ Reverb created: decay=${this.effectsConfig.reverb.roomSize * 10}s, wet=${this.effectsConfig.reverb.wet}`);
+        console.log(`Reverb created: decay=${this.effectsConfig.reverb.roomSize * 10}s, wet=${this.effectsConfig.reverb.wet}`);
     }
 
     createDelay() {
@@ -136,7 +135,6 @@ export class EnvelopeControl {
             currentNode = effect;
         });
         currentNode.toDestination();
-        console.log(`🔗 Effects chain built: ${this.effectsChain.length} effects`);
     }
 
     /**
@@ -151,7 +149,7 @@ export class EnvelopeControl {
         return this.envelope;
     }
 
-    // ✅ NEW: Enable/disable effects dynamically
+    // NEW: Enable/disable effects dynamically
     enableEffect(effectName, enabled = true) {
         if (!this.effectsConfig[effectName]) {
             console.warn(`Effect ${effectName} not found`);
@@ -160,7 +158,7 @@ export class EnvelopeControl {
         this.effectsConfig[effectName].enabled = enabled;
         this.dispose();
         this.createAudioChain();
-        console.log(`🎛️ Effect ${effectName} ${enabled ? 'enabled' : 'disabled'}`);
+        console.log(`Effect ${effectName} ${enabled ? 'enabled' : 'disabled'}`);
     }
 
     setEffectParameter(effectName, parameter, value) {
@@ -201,17 +199,17 @@ export class EnvelopeControl {
                 if (parameter === 'roomSize') {
                     // Convert roomSize (0-1) to decay time (0-10 seconds)
                     effectValue = value * 10;
-                    console.log(`🎛️ Converting roomSize ${value} to decay ${effectValue}`);
+                    console.log(`Converting roomSize ${value} to decay ${effectValue}`);
                 }
                 
                 // Check if it's an AudioParam (has .value property)
                 if (effect[toneParam] && typeof effect[toneParam] === 'object' && 'value' in effect[toneParam]) {
                     effect[toneParam].value = effectValue;
-                    console.log(`🎛️ ${effectName} ${toneParam}.value set to ${effectValue}`);
+                    console.log(`${effectName} ${toneParam}.value set to ${effectValue}`);
                 } else {
                     // Direct property assignment
                     effect[toneParam] = effectValue;
-                    console.log(`🎛️ ${effectName} ${toneParam} set to ${effectValue}`);
+                    console.log(`${effectName} ${toneParam} set to ${effectValue}`);
                 }
             } else {
                 console.warn(`Parameter ${toneParam} not found on ${effectName} effect`);
@@ -225,7 +223,6 @@ export class EnvelopeControl {
             audioNode.connect(this.envelope);
             // Envelope already connects through effects to destination
             this.connectedNodes.add(audioNode);
-            console.log('🔗 Audio node connected to envelope with effects');
             return true;
         }
         return false;

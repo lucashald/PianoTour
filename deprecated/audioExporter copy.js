@@ -136,7 +136,7 @@ export async function exportScoreAsAudio(measures, bpm = 120, filename = null) {
     throw new Error("No measures to export");
   }
 
-  console.log("🎵 Starting audio export...");
+  console.log("Starting audio export...");
   console.log(`Measures: ${measures.length}, BPM: ${bpm}`);
 
   // Calculate total duration - EXACT same as scorePlayback.js calculates
@@ -164,13 +164,13 @@ export async function exportScoreAsAudio(measures, bpm = 120, filename = null) {
     // Render audio
     console.log("🎬 Rendering audio...");
     const buffer = await offlineContext.render();
-    console.log("✅ Audio rendered successfully");
+    console.log("Audio rendered successfully");
 
     // Convert to WAV and download
     const wavBlob = bufferToWave(buffer, buffer.length);
     downloadAudioFile(wavBlob, filename || generateFilename());
 
-    console.log("✅ Export complete!");
+    console.log("Export complete!");
   } catch (error) {
     console.error("❌ Export failed:", error);
     throw error;
@@ -208,7 +208,7 @@ async function setupOfflineAudioChain(offlineContext, measures, bpm) {
   });
   lastNode.toDestination();
 
-  console.log("🔗 Audio chain connected");
+
 
   // Schedule all notes using EXACT scorePlayback.js logic (without Transport for offline)
   scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelope);
@@ -226,7 +226,7 @@ async function createOfflineSampler(offlineContext, instrument) {
       baseUrl: baseUrl,
       context: offlineContext,
       onload: () => {
-        console.log("✅ Samples loaded in offline context");
+        console.log("Samples loaded in offline context");
         // Small delay to ensure samples are fully ready
         setTimeout(() => resolve(sampler), 100);
       },
@@ -292,7 +292,7 @@ async function createOfflineEffects(offlineContext, effectsConfig) {
   }
 
   await Promise.all(effectPromises);
-  console.log("✅ All effects ready");
+  console.log("All effects ready");
 
   return effects;
 }
@@ -309,7 +309,7 @@ function scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelop
   const secondsPerBeat = 60 / bpm;
   const beatsPerMeasure = pianoState.timeSignature.numerator;
   
-  console.log(`⏱️ Timing: ${secondsPerBeat}s per beat, ${beatsPerMeasure} beats per measure`);
+  console\.log\(`[^a-zA-Z0-9`$]+ ?Timing: ${secondsPerBeat}s per beat, ${beatsPerMeasure} beats per measure`);
   
   // Build tie map (EXACT same as scorePlayback.js)
   const tieMap = buildTieMap(measures);
@@ -328,7 +328,7 @@ function scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelop
     const trebleNotes = measure.filter((n) => n.clef === "treble");
     const bassNotes = measure.filter((n) => n.clef === "bass");
 
-    console.log(`📏 Measure ${measureIndex} starts at ${currentTransportTime.toFixed(3)}s`);
+    console\.log\(`[^a-zA-Z0-9`$]+ ?Measure ${measureIndex} starts at ${currentTransportTime.toFixed(3)}s`);
 
     // Schedule Treble Notes (EXACT same logic)
     trebleNotes.forEach((note) => {
@@ -345,7 +345,7 @@ function scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelop
         envelope,
         tieInfo
       );
-      console.log(`  Treble offset: ${beatsBefore} beats -> ${trebleMeasureOffset} beats (added ${trebleMeasureOffset - beatsBefore})`);
+      console\.log\(`[^a-zA-Z0-9`$]+ ?Treble offset: ${beatsBefore} beats -> ${trebleMeasureOffset} beats (added ${trebleMeasureOffset - beatsBefore})`);
     });
 
     // Schedule Bass Notes (EXACT same logic)
@@ -363,7 +363,7 @@ function scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelop
         envelope,
         tieInfo
       );
-      console.log(`  Bass offset: ${beatsBefore} beats -> ${bassMeasureOffset} beats (added ${bassMeasureOffset - beatsBefore})`);
+      console\.log\(`[^a-zA-Z0-9`$]+ ?Bass offset: ${beatsBefore} beats -> ${bassMeasureOffset} beats (added ${bassMeasureOffset - beatsBefore})`);
     });
 
     // Ensure maxEndTime covers both clefs' durations within the measure
@@ -374,10 +374,10 @@ function scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelop
     }
 
     currentTransportTime += beatsPerMeasure * secondsPerBeat;
-    console.log(`  Measure ${measureIndex} ends, next measure starts at ${currentTransportTime.toFixed(3)}s`);
+    console\.log\(`[^a-zA-Z0-9`$]+ ?Measure ${measureIndex} ends, next measure starts at ${currentTransportTime.toFixed(3)}s`);
   });
 
-  console.log(`✅ Scheduled notes, max end time: ${maxEndTime.toFixed(3)}s`);
+  console\.log\(`[^a-zA-Z0-9`$]+ ?Scheduled notes, max end time: ${maxEndTime.toFixed(3)}s`);
 }
 
 /**
@@ -404,7 +404,7 @@ function scheduleNoteForOffline(
   const noteDurationInSeconds = beatDuration * secondsPerBeat;
   const noteStartTime = currentTransportTime + (clefOffset * secondsPerBeat);
 
-  console.log(`    Note: duration=${note.duration}, beatDuration=${beatDuration}, clefOffset=${clefOffset} beats, noteStartTime=${noteStartTime.toFixed(3)}s`);
+  console\.log\(`[^a-zA-Z0-9`$]+ ?Note: duration=${note.duration}, beatDuration=${beatDuration}, clefOffset=${clefOffset} beats, noteStartTime=${noteStartTime.toFixed(3)}s`);
 
   if (!note.isRest) {
     const notesToPlay = note.name
@@ -437,16 +437,16 @@ function scheduleNoteForOffline(
       notesToPlay.forEach((noteName) => {
         // Use triggerAttackRelease which is atomic
         sampler.triggerAttackRelease(noteName, audioDurationInSeconds, noteStartTime, velocity / 127);
-        console.log(`    Scheduled: ${noteName} at ${noteStartTime}s, duration ${audioDurationInSeconds}s, velocity ${(velocity/127).toFixed(2)}`);
+        console\.log\(`[^a-zA-Z0-9`$]+ ?Scheduled: ${noteName} at ${noteStartTime}s, duration ${audioDurationInSeconds}s, velocity ${(velocity/127).toFixed(2)}`);
       });
 
       envelope.triggerAttack(noteStartTime);
       envelope.triggerRelease(noteStartTime + audioDurationInSeconds);
 
       if (notesToPlay.length === 1) {
-        console.log(`  ♪ ${notesToPlay[0]} at ${noteStartTime.toFixed(3)}s for ${audioDurationInSeconds.toFixed(3)}s`);
+        console\.log\(`[^a-zA-Z0-9`$]+ ?${notesToPlay[0]} at ${noteStartTime.toFixed(3)}s for ${audioDurationInSeconds.toFixed(3)}s`);
       } else {
-        console.log(`  ♫ Chord at ${noteStartTime.toFixed(3)}s`);
+        console\.log\(`[^a-zA-Z0-9`$]+ ?Chord at ${noteStartTime.toFixed(3)}s`);
       }
     }
   }
@@ -518,7 +518,7 @@ function downloadAudioFile(blob, filename) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-  console.log(`💾 Downloaded: ${filename}`);
+  console\.log\(`[^a-zA-Z0-9`$]+ ?Downloaded: ${filename}`);
 }
 
 function generateFilename() {
@@ -602,7 +602,7 @@ export function hideExportProgress() {
 
 export function showExportSuccess(filename) {
   const notification = document.createElement("div");
-  notification.textContent = `✅ Exported: ${filename}`;
+  notification.textContent = `Exported: ${filename}`;
   notification.style.cssText = `
     position: fixed;
     top: 20px;

@@ -105,7 +105,7 @@ export class VolumeControl {
 // Simple unified click handler
 handleClick(source) {
     if (this.audioStatus === 'uninitialized' || this.audioStatus === 'error') {
-        console.log(`${source} clicked - initializing audio`);
+
         this.initializeAudio();
     }
     // Do nothing if loading or ready (ready state handled elsewhere)
@@ -203,7 +203,7 @@ async initializeAudio() {
     this.setAudioStatus('loading');
     try {
         await unlockAndExecute(() => {
-            console.log('Audio initialized');
+
         });
     } catch (error) {
         console.error('Failed to initialize audio:', error);

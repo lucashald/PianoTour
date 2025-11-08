@@ -78,7 +78,7 @@ async function startAudio() {
     pianoState.ctxStarted = true;
     pianoState.samplerReady = true;
 
-    console.log("✅ SpessaSynth audio bridge ready!");
+    console.log("SpessaSynth audio bridge ready!");
     return true;
 
   } catch (error) {
@@ -316,7 +316,7 @@ function handleMidiNoteOff(midiNoteNumber, velocity, channel) {
 function changeProgram(program, channel = 0) {
   if (isSpessaReady) {
     spessaSynth.programChange(channel, program);
-    console.log(`🎼 Program changed to ${program} on channel ${channel}`);
+    console\.log\(`[^a-zA-Z0-9`$]+ ?Program changed to ${program} on channel ${channel}`);
   }
 }
 

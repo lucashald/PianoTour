@@ -160,13 +160,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         await new Promise(resolve => setTimeout(resolve, 50));
         attempts++;
         if (attempts % 20 === 0) { // Log progress every second
-            console.log(`⏳ Still waiting for SpessaSynth... (${attempts / 20}s)`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Still waiting for SpessaSynth... (${attempts / 20}s)`);
         }
     }
 
     // Check if the synth was found or if the loop timed out
     if (window.manager?.synth) {
-        console.log('✅ SpessaSynth found! Hiding overlay.');
+        console.log('SpessaSynth found! Hiding overlay.');
 
         // Start monitoring for sequencer creation
         const checkForSequencer = setInterval(() => {

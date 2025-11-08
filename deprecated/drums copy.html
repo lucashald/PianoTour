@@ -192,7 +192,7 @@
       tempo: drumsState.tempo,
       keySignature: drumsState.keySignature || 'C'
     });
-    console.log('🥁 Drum renderer initialized with 3 measures per system, scrolling disabled');
+
   }
 
   
@@ -226,7 +226,7 @@
 
 // Wait for base initialization to complete
 document.addEventListener("pianoTourBaseReady", () => {
-  console.log("🥁 Base ready, initializing drum-specific components...");
+
   
   // Initialize drum renderer
   initializeDrumRenderer();
@@ -354,7 +354,7 @@ document.addEventListener("pianoTourBaseReady", () => {
       
       if (processAndSyncDrumScore(measures)) {
         renderDrums(getDrumMeasures());
-        console.log("✅ Drum score loaded successfully");
+        console.log("Drum score loaded successfully");
       } else {
         localStorage.removeItem(AUTOSAVE_KEY);
         console.log("⚠️ Invalid drum score data, cleared");

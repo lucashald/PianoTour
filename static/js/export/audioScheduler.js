@@ -151,7 +151,7 @@ export function scheduleAllNotes({
   let totalNotesScheduled = 0;
   let maxEndTime = 0;
 
-  console.log(`📝 Scheduling ${measures.length} measures at ${bpm} BPM`);
+  console\.log\(`[^a-zA-Z0-9`$]+ ?Scheduling ${measures.length} measures at ${bpm} BPM`);
   console.log(`Seconds per beat: ${secondsPerBeat}, Beats per measure: ${beatsPerMeasure}`);
 
   measures.forEach((measure, measureIndex) => {
@@ -210,7 +210,7 @@ export function scheduleAllNotes({
     currentTransportTime += beatsPerMeasure * secondsPerBeat;
   });
 
-  console.log(`✅ Scheduled ${totalNotesScheduled} notes, duration: ${maxEndTime.toFixed(3)}s`);
+  console\.log\(`[^a-zA-Z0-9`$]+ ?Scheduled ${totalNotesScheduled} notes, duration: ${maxEndTime.toFixed(3)}s`);
   
   return maxEndTime;
 }

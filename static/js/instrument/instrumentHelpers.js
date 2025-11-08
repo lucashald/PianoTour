@@ -862,7 +862,7 @@ export function handleInitial(e) {
      return;
    }
 
-   console.log("Initial click on key:", noteInfo.name);
+
 
    // Store the note details for the deferred action
    const clickedNoteDetails = {

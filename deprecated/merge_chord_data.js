@@ -2522,5 +2522,5 @@ const output = generateOutputFile();
 // Write to file
 fs.writeFileSync('chord_definitions_with_frets.js', output);
 
-console.log('✅ Successfully added frets and fingerings to chord definitions!');
+console.log('Successfully added frets and fingerings to chord definitions!');
 console.log('📁 Output written to: chord_definitions_with_frets.js');

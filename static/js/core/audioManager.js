@@ -145,15 +145,25 @@ export class InstrumentControl {
                 },
 
                 envelopeSettings: {
-                    attack: 0.08,   // Slower attack - bow engagement
-                    decay: 0.4,     // Quick decay to sustain
-                    sustain: 0.9,  // Very high sustain - bowed strings
-                    release: 1.8,     // Medium release
+                    // ADSR Envelope
+                    attack: 0.080,      // Bow engagement
+                    decay: 0.40,        // Decay to sustain level
+                    sustain: 0.90,      // High sustain for bowed strings
+                    release: 1.80,      // Natural string decay
 
-                    // Cello effects
-                    reverb: { enabled: true, roomSize: 0.8, wet: 0.35 },
-                    eq: { enabled: true, low: 0, mid: 1, high: 0 },
-                    compression: { enabled: true, threshold: -10, ratio: 1.5, attack: 0.15, release: 0.4 }
+                    // Articulation
+                    velocity: 100,      // Full velocity
+                    duration: 0.85,     // Note duration multiplier
+                    humanize: 0.10,     // 10% humanization
+
+                    // Reverb
+                    reverb: { enabled: true, roomSize: 0.80, wet: 0.35 },
+
+                    // EQ (in dB)
+                    eq: { enabled: true, low: 0.0, mid: 1.0, high: 0.0 },
+
+                    // Compression
+                    compression: { enabled: true, threshold: -10.0, ratio: 1.5, attack: 0.1000, release: 0.40 }
                 }
             },
 
@@ -175,43 +185,17 @@ export class InstrumentControl {
                     "A#2": "spiccato-A#3.wav",
                     "B2": "spiccato-B3.wav",
                     
-                    // Octaves 3-5: Regular bowed violin samples
-                    "C3": "C3.wav",
-                    "C#3": "C#3.wav",
-                    "D3": "D3.wav",
-                    "D#3": "D#3.wav",
-                    "E3": "E3.wav",
-                    "F3": "F3.wav",
-                    "F#3": "F#3.wav",
-                    "G3": "G3.wav",
-                    "G#3": "G#3.wav",
-                    "A3": "A3.wav",
-                    "A#3": "A#3.wav",
-                    "B3": "B3.wav",
-                    "C4": "C4.wav",
-                    "C#4": "C#4.wav",
-                    "D4": "D4.wav",
-                    "D#4": "D#4.wav",
-                    "E4": "E4.wav",
-                    "F4": "F4.wav",
-                    "F#4": "F#4.wav",
-                    "G4": "G4.wav",
-                    "G#4": "G#4.wav",
-                    "A4": "A4.wav",
-                    "A#4": "A#4.wav",
-                    "B4": "B4.wav",
-                    "C5": "C5.wav",
-                    "C#5": "C#5.wav",
-                    "D5": "D5.wav",
-                    "D#5": "D#5.wav",
-                    "E5": "E5.wav",
-                    "F5": "F5.wav",
-                    "F#5": "F#5.wav",
-                    "G5": "G5.wav",
-                    "G#5": "G#5.wav",
-                    "A5": "A5.wav",
-                    "A#5": "A#5.wav",
-                    "B5": "B5.wav",
+                    // Octaves 3-5: use dedicated 'violin-*' samples where available
+                    "G3": "violin-g3.wav",
+                    "A#3": "violin-a#3.wav",
+                    "C#4": "violin-c#4.wav",
+                    "E4": "violin-e4.wav",
+                    "G4": "violin-g4.wav",
+                    "A#4": "violin-a#4.wav",
+                    "C#5": "violin-c#5.wav",
+                    "E5": "violin-e5.wav",
+                    "G5": "violin-g5.wav",
+                    "A#5": "violin-a#5.wav",
                     
                     // Octave 6: Pizzicato samples (C5-C6)
                     "C6": "pizzicato-C5.wav",
@@ -230,15 +214,25 @@ export class InstrumentControl {
                 },
 
                 envelopeSettings: {
-                    attack: 0.08,   // Slower attack - bow engagement
-                    decay: 0.4,     // Quick decay to sustain
-                    sustain: 0.9,   // Very high sustain - bowed strings
-                    release: 1.8,   // Medium release
+                    // ADSR Envelope
+                    attack: 0.080,      // Bow engagement
+                    decay: 0.40,        // Decay to sustain level
+                    sustain: 0.90,      // High sustain for bowed strings
+                    release: 1.80,      // Natural string decay
 
-                    // Violin effects
-                    reverb: { enabled: true, roomSize: 0.8, wet: 0.35 },
-                    eq: { enabled: true, low: 0, mid: 1, high: 0 },
-                    compression: { enabled: true, threshold: -10, ratio: 1.5, attack: 0.15, release: 0.4 }
+                    // Articulation
+                    velocity: 100,      // Full velocity
+                    duration: 0.85,     // Note duration multiplier
+                    humanize: 0.10,     // 10% humanization
+
+                    // Reverb
+                    reverb: { enabled: true, roomSize: 0.80, wet: 0.35 },
+
+                    // EQ (in dB)
+                    eq: { enabled: true, low: 0.0, mid: 1.0, high: 0.0 },
+
+                    // Compression
+                    compression: { enabled: true, threshold: -10.0, ratio: 1.5, attack: 0.1000, release: 0.40 }
                 }
             },
 
@@ -476,7 +470,10 @@ drums: {
         const preset = this.getPreset(instrumentName);
         const settings = preset ? preset.envelopeSettings : this.presets.piano.envelopeSettings;
         
-        return new EnvelopeControl(settings);
+        // IMPORTANT: Create a deep copy to prevent mutation of the original preset
+        const settingsCopy = JSON.parse(JSON.stringify(settings));
+        
+        return new EnvelopeControl(settingsCopy);
     }
 
     /**
@@ -613,7 +610,7 @@ async function initializeAudio() {
     let timeoutId;
     try {
         setAudioStatus('loading');
-        console.log("InitializeAudio: Starting audio initialization");
+
 
         const overallTimeoutPromise = new Promise((_, reject) => {
             timeoutId = setTimeout(() => {
@@ -845,7 +842,7 @@ export async function unlockAndExecute(newAction, replaceExisting = true) {
     });
   }
 
-  console.log('Starting audio initialization with deferred action');
+
   const success = await initializeAudio();
 
   if (!success) {
@@ -891,7 +888,7 @@ export function initializeAudioControls() {
 
 export function initializeAudioManager() {
   initializeAudioState();
-  console.log("Audio manager initialized");
+
 }
 
 export function isAudioReady() {

@@ -689,14 +689,14 @@ export function createSpectrum(options = {}) {
 export function initializeSpectrum(options = {}) {
   try {
     if (spectrumVisualizer) {
-      console.log("Spectrum already initialized");
+
       return;
     }
 
     spectrumVisualizer = createSpectrum(options);
     if (spectrumVisualizer) {
       isSpectrumEnabled = true;
-      console.log("Spectrum initialized successfully");
+
       // Audio connection is handled by audioManager.js via connectSpectrumToAudio()
     }
   } catch (error) {

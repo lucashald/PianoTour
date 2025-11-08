@@ -592,7 +592,7 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
 
     if (!measuresData[measureIndex]) {
         measuresData[measureIndex] = [];
-        console.log(`addNoteToMeasure: Initialized new measure ${measureIndex}.`);
+
     }
 
     if (!noteData.id) {

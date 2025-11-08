@@ -200,7 +200,7 @@ export function initializeDrumAudioState() {
 }
 
 function setDrumAudioStatus(newStatus) {
-    console.log(`🥁 Drum audio status: ${drumsState.audioStatus} → ${newStatus}`);
+    console\.log\(`[^a-zA-Z0-9`$]+ ?Drum audio status: ${drumsState.audioStatus} → ${newStatus}`);
     drumsState.audioStatus = newStatus;
 }
 
@@ -305,7 +305,7 @@ async function initializeToneWithRetryDrum(maxRetries = 3) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             await Tone.start();
-            console.log(`✅ Tone.js for drums started successfully on attempt ${attempt}.`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Tone.js for drums started successfully on attempt ${attempt}.`);
             if (Tone.context.state === 'interrupted') {
                 console.log("🥁 Context was interrupted, attempting resume...");
                 await Tone.context.resume();
@@ -330,7 +330,7 @@ async function initializeDrumSampler() {
         urls: DRUM_SAMPLE_URLS,
         release: 1,
         baseUrl: DRUM_SAMPLE_BASE_URL,
-        onload: () => console.log("✅ All drum samples loaded successfully."),
+        onload: () => console.log("All drum samples loaded successfully."),
         onerror: (error) => console.error("❌ Drum sample loading error:", error),
     }).toDestination();
 
@@ -359,7 +359,7 @@ async function initializeDrumAudio() {
     let timeoutId;
     try {
         setDrumAudioStatus("loading");
-        console.log("🥁 Initializing drum audio components.");
+
 
         const overallTimeoutPromise = new Promise((_, reject) => {
             timeoutId = setTimeout(() => {
@@ -399,17 +399,17 @@ export async function unlockAndExecuteDrum(newAction) {
     console.log('🥁 UnlockAndExecuteDrum called, current status:', drumsState.audioStatus);
 
     if (Tone.context && Tone.context.state !== 'running') {
-        console.log(`🥁 Attempting to resume Drum AudioContext. Current state: ${Tone.context.state}`);
+        console\.log\(`[^a-zA-Z0-9`$]+ ?Attempting to resume Drum AudioContext. Current state: ${Tone.context.state}`);
         try {
             await Tone.context.resume();
-            console.log(`🥁 Drum AudioContext resumed. New state: ${Tone.context.state}`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Drum AudioContext resumed. New state: ${Tone.context.state}`);
         } catch (e) {
             console.warn("⚠️ Failed to resume Drum AudioContext during unlock:", e);
         }
     }
 
     if (drumsState.audioStatus === "ready") {
-        console.log("✅ Drum audio already ready, executing action immediately");
+        console.log("Drum audio already ready, executing action immediately");
         try {
             newAction();
             return true;
@@ -438,7 +438,7 @@ export async function unlockAndExecuteDrum(newAction) {
         });
     }
 
-    console.log("🥁 Starting drum audio initialization with deferred action.");
+
     const success = await initializeDrumAudio();
 
     if (!success) {
@@ -550,11 +550,11 @@ export function handleDrumPlayback() {
     const hasPianoScore = pianoMeasures && pianoMeasures.length > 0;
 
     if (!hasDrumScore && !hasPianoScore) {
-        console.warn('🎵 No drum or piano measures to play');
+        console.warn('No drum or piano measures to play');
         return;
     }
 
-    console.log(`🎵 Starting duet playback - Drums: ${hasDrumScore ? 'Yes' : 'No'}, Piano: ${hasPianoScore ? 'Yes' : 'No'}`);
+    console\.log\(`[^a-zA-Z0-9`$]+ ?Starting duet playback - Drums: ${hasDrumScore ? 'Yes' : 'No'}, Piano: ${hasPianoScore ? 'Yes' : 'No'}`);
 
     const startDuetPlayback = () => {
         try {
@@ -606,7 +606,7 @@ export function handleDrumPlayback() {
             // Start transport
             Tone.Transport.start();
             
-            console.log('🎵 Duet playback started!');
+            console.log('Duet playback started!');
         } catch (error) {
             console.error('❌ Error starting duet playback:', error);
         }
@@ -868,7 +868,7 @@ export function initializeDrumAudioListeners() {
             e.currentTarget.classList.add('btn--active');
             selectedDrumDuration = e.currentTarget.dataset.duration;
             selectedDrumDurationElement = e.currentTarget;
-            console.log(`🥁 Selected drum duration: ${selectedDrumDuration}`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Selected drum duration: ${selectedDrumDuration}`);
         });
     });
 
@@ -898,7 +898,7 @@ export function initializeDrumAudioListeners() {
                 if (typeof scrollToMeasure === 'function') {
                     scrollToMeasure(currentDrumMeasureIdx);
                 }
-                console.log(`🥁 Added ${drumType} to drum score via button.`);
+                console\.log\(`[^a-zA-Z0-9`$]+ ?Added ${drumType} to drum score via button.`);
             });
         });
     });
@@ -953,5 +953,5 @@ export function initializeDrumAudioModule() {
     initializeDrumAudioState();
     initializeDrumAudioListeners();
     setupDrumPlaybackButton();
-    console.log("🥁 Drum Audio Module initialized.");
+
 }

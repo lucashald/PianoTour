@@ -240,7 +240,7 @@ export function handleDrumPlayback() {
     const hasPianoScore = pianoMeasures && pianoMeasures.length > 0;
 
     if (!hasDrumScore && !hasPianoScore) {
-        console.warn('🎵 No drum or piano measures to play');
+        console.warn('No drum or piano measures to play');
         return;
     }
 

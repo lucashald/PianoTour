@@ -247,7 +247,7 @@ export function handleInitialKeyboard(e) {
   }
   
   const k = e.key.toLowerCase();
-  console.log(`handleInitialKeyboard called with key: "${e.key}", lowercase: "${k}"`);
+
 
   // Check if it's a key we handle
   const handledKey = ALL_HANDLED_KEYS[k];
@@ -351,7 +351,7 @@ export function handleInitialKeyboard(e) {
 
   // Handle rest keys (if needed for initial keyboard)
   if (handledKey.type === 'rest') {
-    console.log(`Rest key detected: "${k}" - not typically handled in initial keyboard`);
+
     // You might want to add rest handling here if needed
   }
 }

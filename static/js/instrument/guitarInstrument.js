@@ -214,7 +214,7 @@ class GuitarInstrument {
     // Update all string labels with new tuning
     this.updateStringLabels();
     
-    console.log('✅ Guitar updated for new tuning:', getCurrentTuningNotes());
+    console.log('Guitar updated for new tuning:', getCurrentTuningNotes());
   }
 
   createFretboard() {
@@ -730,7 +730,7 @@ async showControlPanel() {
         // Show control panel, hide chord container
         chordContainer.classList.add('hidden');
         controlPanel.classList.remove('hidden');
-        console.log('✅ Guitar control panel shown');
+        console.log('Guitar control panel shown');
     } else {
         // Hide control panel, show chord container
         // Switch back to standard tuning for chord container compatibility
@@ -743,7 +743,7 @@ async showControlPanel() {
         
         chordContainer.classList.remove('hidden');
         controlPanel.classList.add('hidden');
-        console.log('✅ Chord container shown');
+        console.log('Chord container shown');
     }
     
     return this.controlPanelVisible;
@@ -859,7 +859,7 @@ export function initializeGuitar(containerSelector = '#instrument') {
     // Store globally for other modules to access
     window.guitarInstance = guitar;
     
-    console.log('✅ Guitar instrument initialized');
+
     return guitar;
 }
 

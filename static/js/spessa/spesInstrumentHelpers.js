@@ -1007,5 +1007,5 @@ export function initializeInstrumentUI() {
     ?.addEventListener("click", handleModeCycleClick);
   window.addEventListener("resize", handleWindowResize);
 
-  console.log("Piano instrument UI initialized.");
+
 }

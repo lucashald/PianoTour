@@ -140,7 +140,7 @@ function loadScoreData(scoreData, source) {
     const jsonString = JSON.stringify(scoreData, null, 2);
     jsonEditor.setValue(jsonString);
     const loadMessage = [
-        `✅ Loaded score ${source}`,
+        `Loaded score ${source}`,
         `- ${scoreData.measures.length} measures`,
         `- Key: ${scoreData.keySignature}`,
         `- Tempo: ${scoreData.tempo} BPM`,
@@ -460,7 +460,7 @@ async function applyProcessedScore(processedScore) {
             });
 
             const successMessage = [
-                `✅ Applied to Piano Tour score!`,
+                `Applied to Piano Tour score!`,
                 `- ${processedScore.measures.length} measures processed`,
                 `- Key: ${keySignature}, Tempo: ${tempo} BPM`,
                 `- Time Signature: ${timeSignature.numerator}/${timeSignature.denominator}`,

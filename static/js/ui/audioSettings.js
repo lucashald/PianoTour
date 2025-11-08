@@ -1,5 +1,6 @@
 // audioSettings.js - Audio Settings Control Interface with Proper Audio Updates
 import { pianoState } from '../core/appState.js';
+import { Instrument } from '../core/audioManager.js';
 
 class AudioSettingsController {
     constructor() {
@@ -580,8 +581,8 @@ class AudioSettingsController {
                     // Connect new sampler to new envelope
                     pianoState.envelope.connect(pianoState.sampler);
                     
-                    // Sync sliders with new instrument settings
-                    this.syncWithAudioSettings();
+                    // Load saved settings for this instrument (or defaults if instrument changed)
+                    this.loadSavedSettings();
                     
                     // Dispose old audio objects
                     setTimeout(() => {
@@ -608,7 +609,7 @@ class AudioSettingsController {
     showPresetApplied(presetName) {
         // Create a temporary notification
         const notification = document.createElement('div');
-        notification.textContent = `✅ ${presetName} preset applied`;
+        notification.textContent = `${presetName} preset applied`;
         notification.style.cssText = `
             position: fixed;
             top: 20px;
@@ -640,7 +641,7 @@ class AudioSettingsController {
     showInstrumentChanged(instrumentName) {
         // Create a temporary notification
         const notification = document.createElement('div');
-        notification.textContent = `🎵 Switched to ${instrumentName}`;
+        notification.textContent = `Switched to ${instrumentName}`;
         notification.style.cssText = `
             position: fixed;
             top: 20px;
@@ -739,24 +740,51 @@ class AudioSettingsController {
 
     saveSetting(name, value) {
         try {
-            localStorage.setItem(this.settingsPrefix + name, value.toString());
+            const currentInstrument = pianoState.instrument || 'piano';
+            // Save with instrument-specific key
+            localStorage.setItem(`${this.settingsPrefix}${currentInstrument}-${name}`, value.toString());
+            // Also save which instrument these settings belong to
+            localStorage.setItem(`${this.settingsPrefix}currentInstrument`, currentInstrument);
         } catch (error) {
             console.error(`Failed to save setting ${name}:`, error);
         }
     }
 
     loadSavedSettings() {
-        this.sliders.forEach((config, name) => {
-            try {
-                const savedValue = localStorage.getItem(this.settingsPrefix + name);
-                if (savedValue !== null && config.slider) {
-                    config.slider.value = savedValue;
-                    this.updateSlider(name, savedValue, false);
+        try {
+            const currentInstrument = pianoState.instrument || 'piano';
+            const savedInstrument = localStorage.getItem(`${this.settingsPrefix}currentInstrument`);
+            
+            // Check if instrument has changed
+            if (savedInstrument && savedInstrument !== currentInstrument) {
+                console.log(`Instrument changed from ${savedInstrument} to ${currentInstrument}, loading defaults`);
+                // Load defaults for the new instrument instead of saved settings
+                const defaultSettings = this.getInstrumentDefaults(currentInstrument);
+                if (defaultSettings) {
+                    Object.entries(defaultSettings).forEach(([setting, value]) => {
+                        this.setSliderValue(setting, value);
+                    });
                 }
-            } catch (error) {
-                console.error(`Failed to load setting ${name}:`, error);
+                // Update the saved instrument to current
+                localStorage.setItem(`${this.settingsPrefix}currentInstrument`, currentInstrument);
+                return;
             }
-        });
+            
+            // Load instrument-specific saved settings
+            this.sliders.forEach((config, name) => {
+                try {
+                    const savedValue = localStorage.getItem(`${this.settingsPrefix}${currentInstrument}-${name}`);
+                    if (savedValue !== null && config.slider) {
+                        config.slider.value = savedValue;
+                        this.updateSlider(name, savedValue, false);
+                    }
+                } catch (error) {
+                    console.error(`Failed to load setting ${name}:`, error);
+                }
+            });
+        } catch (error) {
+            console.error('Failed to load saved settings:', error);
+        }
     }
 
     updateAllDisplays() {
@@ -790,11 +818,11 @@ class AudioSettingsController {
 
             console.log('📋 Default settings:', defaultSettings);
 
-            // Apply the default settings to the audio system
-            this.applyDefaultSettings(defaultSettings);
-
-            // Clear saved settings from localStorage
+            // Clear saved settings from localStorage FIRST
             this.clearSavedSettings();
+
+            // Then apply the default settings to the audio system (which will save them)
+            this.applyDefaultSettings(defaultSettings);
 
             // Show feedback
             this.showResetApplied(currentInstrument);
@@ -804,10 +832,55 @@ class AudioSettingsController {
         }
     }
 
-    // Get instrument default settings
+    // Get instrument default settings from audioManager.js presets
     getInstrumentDefaults(instrumentName) {
-        // These are the default settings from your audioManager.js
-        const instrumentDefaults = {
+        try {
+            // Access the Instrument presets that are now imported at the top
+            const preset = Instrument.presets[instrumentName];
+            
+            if (!preset || !preset.envelopeSettings) {
+                console.warn(`No preset found for ${instrumentName}, using fallback defaults`);
+                return this.getFallbackDefaults('piano');
+            }
+
+            // IMPORTANT: Deep clone the settings to avoid mutating the original preset
+            const settings = JSON.parse(JSON.stringify(preset.envelopeSettings));
+            
+            console.log(`Raw preset for ${instrumentName}:`, JSON.stringify(preset.envelopeSettings, null, 2));
+            console.log(`EQ values:`, settings.eq);
+            
+            // Map instrument preset settings to UI slider settings
+            const defaults = {
+                attack: settings.attack,
+                decay: settings.decay,
+                sustain: settings.sustain,
+                release: settings.release,
+                reverbRoom: settings.reverb?.roomSize ?? 0.2,
+                reverbWet: settings.reverb?.wet ?? 0.15,
+                compThreshold: settings.compression?.threshold ?? -18,
+                compRatio: settings.compression?.ratio ?? 4,
+                compAttack: settings.compression?.attack ?? 0.003,
+                compRelease: settings.compression?.release ?? 0.1,
+                eqLow: settings.eq?.low ?? 0,
+                eqMid: settings.eq?.mid ?? 0,
+                eqHigh: settings.eq?.high ?? 0,
+                velocity: settings.velocity ?? 100,
+                staccato: settings.duration ?? 0.85,
+                humanize: Math.round((settings.humanize ?? 0.1) * 100)  // Convert 0.1 to 10%
+            };
+            
+            console.log(`Mapped defaults:`, defaults);
+            return defaults;
+        } catch (error) {
+            console.error('Error loading instrument defaults from audioManager:', error);
+            // Fallback to piano defaults
+            return this.getFallbackDefaults('piano');
+        }
+    }
+
+    // Fallback defaults in case presets are not yet loaded
+    getFallbackDefaults(instrumentName) {
+        const fallbacks = {
             piano: {
                 attack: 0.01,
                 decay: 0.3,
@@ -825,69 +898,13 @@ class AudioSettingsController {
                 velocity: 100,
                 staccato: 0.85,
                 humanize: 10
-            },
-            guitar: {
-                attack: 0.02,
-                decay: 0.5,
-                sustain: 0.9,
-                release: 2.0,
-                reverbRoom: 0.4,
-                reverbWet: 0.25,
-                compThreshold: -16,
-                compRatio: 6,
-                compAttack: 0.003,
-                compRelease: 0.1,
-                eqLow: 0,
-                eqMid: 0,
-                eqHigh: 0,
-                velocity: 100,
-                staccato: 0.85,
-                humanize: 10
-            },
-            cello: {
-                attack: 0.03,
-                decay: 0.2,
-                sustain: 0.95,
-                release: 1.5,
-                reverbRoom: 0.6,
-                reverbWet: 0.3,
-                compThreshold: -20,
-                compRatio: 3,
-                compAttack: 0.005,
-                compRelease: 0.15,
-                eqLow: 2,
-                eqMid: 0,
-                eqHigh: -1,
-                velocity: 100,
-                staccato: 0.85,
-                humanize: 10
-            },
-            sax: {
-                attack: 0.03,
-                decay: 0.2,
-                sustain: 1.0,
-                release: 0.8,
-                reverbRoom: 0.3,
-                reverbWet: 0.2,
-                compThreshold: -15,
-                compRatio: 5,
-                compAttack: 0.004,
-                compRelease: 0.12,
-                eqLow: 0,
-                eqMid: 1,
-                eqHigh: 0,
-                velocity: 100,
-                staccato: 0.85,
-                humanize: 10
             }
         };
-
-        return instrumentDefaults[instrumentName] || instrumentDefaults.piano;
+        return fallbacks[instrumentName] || fallbacks.piano;
     }
 
     // Apply default settings to audio system
     applyDefaultSettings(settings) {
-        console.log('🎛️ Applying default settings to audio system');
 
         // Set each parameter one by one, which will update both the audio and sliders
         Object.entries(settings).forEach(([setting, value]) => {
@@ -896,11 +913,13 @@ class AudioSettingsController {
         });
     }
 
-    // Clear all saved settings
+    // Clear all saved settings for current instrument
     clearSavedSettings() {
+        const currentInstrument = pianoState.instrument || 'piano';
         this.sliders.forEach((config, name) => {
             try {
-                localStorage.removeItem(this.settingsPrefix + name);
+                // Clear instrument-specific settings
+                localStorage.removeItem(`${this.settingsPrefix}${currentInstrument}-${name}`);
             } catch (error) {
                 console.error(`Failed to clear setting ${name}:`, error);
             }
@@ -982,15 +1001,44 @@ class AudioSettingsController {
 
     setSliderValue(name, value) {
         const config = this.sliders.get(name);
-        if (config && config.slider) {
-            // Set the slider value
-            config.slider.value = value;
-            
-            // Update the audio parameter AND the display
-            this.updateSlider(name, value, true);
-            
-            console.log(`🎛️ ${name} reset to ${value}`);
+        if (!config) {
+            console.warn(`❌ Slider config not found for: ${name}`);
+            return;
         }
+        
+        if (!config.slider) {
+            console.warn(`❌ Slider DOM element not found for: ${name}`);
+            return;
+        }
+        
+        // Set the slider value
+        config.slider.value = value;
+        
+        // Update the display label
+        if (config.display) {
+            const displayValue = config.formatDisplay ? config.formatDisplay(value) : value;
+            config.display.textContent = displayValue;
+        }
+        
+        // Update the slider fill visual
+        this.updateSliderFill(config.slider, value);
+        
+        // Force update the audio parameter by temporarily disabling isSyncing
+        const wasSyncing = this.isSyncing;
+        this.isSyncing = false;
+        try {
+            if (config.updateFn) {
+                console.log(`Calling updateFn for ${name} with value ${value}`);
+                config.updateFn.call(this, value);
+            }
+        } catch (error) {
+            console.error(`Error updating ${name}:`, error);
+        } finally {
+            this.isSyncing = wasSyncing;
+        }
+        
+        // Save to localStorage
+        this.saveSetting(name, value);
     }
 }
 

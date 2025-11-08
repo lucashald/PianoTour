@@ -51,7 +51,7 @@ class GuitarControlPanel {
             this.setupEventListeners();
             await this.loadInitialData();
             
-            console.log('✅ Guitar Control Panel initialized successfully');
+
         } catch (error) {
             console.error('❌ Failed to initialize Guitar Control Panel:', error);
             this.updateStatus('databaseStatus', 'error', 'Initialization failed');
@@ -65,7 +65,7 @@ class GuitarControlPanel {
         if (dbInitialized) {
             const chordCount = await ChordDB.getChordCount();
             this.updateStatus('databaseStatus', 'success', `Database loaded (${chordCount} chords)`);
-            console.log('✅ Chord database initialized');
+
         } else {
             this.updateStatus('databaseStatus', 'error', 'Database failed to load');
             throw new Error('Failed to initialize chord database');
@@ -83,7 +83,7 @@ class GuitarControlPanel {
     setupEventListeners() {
         console.log('🔧 Setting up event listeners...');
         // Event listeners are now handled by individual components
-        console.log('✅ Event listeners set up');
+        console.log('Event listeners set up');
     }
 
     async loadInitialData() {
@@ -146,7 +146,7 @@ class ChordAutocomplete {
             // Get all chord symbols and display names from database
             this.chordList = await ChordDB.getAllChordDisplayNames();
             
-            console.log(`✅ Loaded ${this.chordList.length} chords for autocomplete`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Loaded ${this.chordList.length} chords for autocomplete`);
         } catch (error) {
             console.error('❌ Error loading chord data for autocomplete:', error);
             this.chordList = [
@@ -187,7 +187,7 @@ class ChordAutocomplete {
                 // Automatically set the default chord on the guitar
                 if (guitarInstance && defaultChordData.frets && !defaultChordData.isFallback) {
                     guitarInstance.setChord(defaultChordData.frets);
-                    console.log(`🎸 Set default chord: ${defaultChordData.displayName} (degree 1 in ${defaultChordData.keySignature}, ${currentTuning} tuning)`);
+                    console\.log\(`[^a-zA-Z0-9`$]+ ?Set default chord: ${defaultChordData.displayName} (degree 1 in ${defaultChordData.keySignature}, ${currentTuning} tuning)`);
                 } else if (defaultChordData.isFallback) {
                     console.warn(`⚠️ Default chord ${defaultChordData.symbol} not available in ${currentTuning} tuning`);
                 }
@@ -693,7 +693,7 @@ class ChordAutocomplete {
             const guitarInstance = window.guitarInstance;
             if (guitarInstance && bestFingering.frets && !bestFingering.isFallback) {
                 guitarInstance.setChord(bestFingering.frets);
-                console.log(`🎸 Automatically set chord: ${chordData.displayName} in ${currentTuning} tuning`);
+                console\.log\(`[^a-zA-Z0-9`$]+ ?Automatically set chord: ${chordData.displayName} in ${currentTuning} tuning`);
             } else if (bestFingering.isFallback) {
                 console.warn(`⚠️ No fingering available for ${chordSymbol} in ${currentTuning} tuning`);
             }
@@ -816,7 +816,7 @@ class GuitarTuningSelector {
     
     changeTuning(tuningName) {
         try {
-            console.log(`🎸 Changing to ${tuningName} tuning...`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Changing to ${tuningName} tuning...`);
             
             const success = setGuitarTuning(tuningName);
             
@@ -847,7 +847,7 @@ class GuitarTuningSelector {
             const chordSymbol = controlPanel.chordAutocomplete.selectedChordSymbol;
             const chordData = controlPanel.chordAutocomplete.selectedChordObj;
             
-            console.log(`🔄 Updating chord ${chordSymbol} (${chordData.displayName}) for new tuning: ${tuningName}`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Updating chord ${chordSymbol} (${chordData.displayName}) for new tuning: ${tuningName}`);
             
             try {
                 // Get the chord fingering for the new tuning using the chord symbol
@@ -859,10 +859,10 @@ class GuitarTuningSelector {
                         const guitarInstance = window.guitarInstance;
                         if (guitarInstance) {
                             guitarInstance.setChord(bestFingering.frets);
-                            console.log(`🎸 Applied new fingering for ${chordSymbol} in ${tuningName} tuning`);
+                            console\.log\(`[^a-zA-Z0-9`$]+ ?Applied new fingering for ${chordSymbol} in ${tuningName} tuning`);
                         }
                         
-                        console.log(`✅ Successfully updated chord diagram for ${tuningName} tuning`);
+                        console\.log\(`[^a-zA-Z0-9`$]+ ?Successfully updated chord diagram for ${tuningName} tuning`);
                     } else {
                         // Only fallback available - keep current fingering but update UI to show unavailable
                         console.warn(`⚠️ No specific fingering for ${chordSymbol} in ${tuningName} tuning - keeping current fingering`);

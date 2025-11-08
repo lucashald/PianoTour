@@ -58,7 +58,7 @@ export async function createChordPalette(guitarInstance = window.guitarInstance,
     }
   }
 
-  console.log('✅ Chord palette created');
+  console.log('Chord palette created');
   return container;
 }
 
@@ -183,7 +183,7 @@ export function initializeGuitarControls(containerSelector, guitarInstance = win
     container.appendChild(clearChord);
         container.appendChild(search);
 
-    console.log('✅ Guitar controls initialized');
+
     return container;
 }
 

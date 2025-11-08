@@ -152,7 +152,7 @@ function updateCurrentDrumBeats(measureIndex) {
 function ensureMeasureExists(measureIndex) {
     if (measuresData.length === 0) {
         measuresData.push([]);
-        console.log("ensureMeasureExists: Initialized first measure (index 0).");
+
     }
     while (!measuresData[measureIndex]) {
         measuresData.push([]);
@@ -255,9 +255,9 @@ function createTieData(startNoteId, endNoteId) {
  * @returns {boolean} Success status.
  */
 function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
-    console.log(`--- doAddNote Call Start ---`);
+    console\.log\(`[^a-zA-Z0-9`$]+ ?doAddNote Call Start ---`);
     console.log(`Input: explicitMeasureIndex=${explicitMeasureIndex}, noteData=`, noteData, `insertBeforeNoteId=${insertBeforeNoteId}`);
-    console.log(`Initial global state: currentDrumBeats=${currentDrumBeats}, currentIndex=${currentIndex}, measuresData length=${measuresData.length}`);
+
 
     try {
         const actualTargetMeasureIndex = (explicitMeasureIndex !== undefined && explicitMeasureIndex !== null)
@@ -445,13 +445,13 @@ function doAddNote(explicitMeasureIndex, noteData, insertBeforeNoteId = null) {
             }
             updateNowPlayingDisplay(isChord ? 'Chord added' : objectToInsert.drumInstrument);
             handleSideEffects();
-            console.log(`--- doAddNote Call End (Note/Chord added to existing measure) ---`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?doAddNote Call End (Note/Chord added to existing measure) ---`);
             return true;
         }
 
     } catch (error) {
         console.error('doAddNote: Error adding note/chord', error);
-        console.log(`--- doAddNote Call End (Error) ---`);
+        console\.log\(`[^a-zA-Z0-9`$]+ ?doAddNote Call End (Error) ---`);
         return false;
     }
 }

@@ -571,7 +571,7 @@ export function hideExportProgress() {
 
 export function showExportSuccess(filename) {
   const notification = document.createElement("div");
-  notification.textContent = `✅ Exported: ${filename}`;
+  notification.textContent = `Exported: ${filename}`;
   notification.style.cssText = `
     position: fixed;
     top: 20px;

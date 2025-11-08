@@ -936,7 +936,7 @@ document.addEventListener('noteDropped', (event) => {
             octaveDropdown.appendChild(option);
         }
     }
-    console.log("✓ scoreEditor.js initialized successfully with slur support");
+
 }
 
 // Add this to your note-data.js or scoreEditor.js

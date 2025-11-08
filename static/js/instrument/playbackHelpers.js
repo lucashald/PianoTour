@@ -85,20 +85,20 @@ export function trigger(note, on, velocity, useEnvelope = true) {
   const effectiveVelocity = velocity !== undefined ? velocity : pianoState.velocity;
   const normalizedVelocity = Math.min(1, Math.max(0, effectiveVelocity / 127));
   const notes = Array.isArray(note) ? note : [note];
-  const now = Tone.now(); // ✅ Get current time
+  const now = Tone.now(); // Get current time
 
   notes.forEach((n) => {
     if (on) {
       pianoState.sampler.triggerAttack(n, undefined, normalizedVelocity);
       
       if (pianoState.envelope && useEnvelope) {
-        pianoState.envelope.triggerAttack(now); // ✅ Pass time parameter
+        pianoState.envelope.triggerAttack(now); // Pass time parameter
       }
     } else {
       pianoState.sampler.triggerRelease(n);
       
       if (pianoState.envelope && useEnvelope) {
-        pianoState.envelope.triggerRelease(now); // ✅ Pass time parameter
+        pianoState.envelope.triggerRelease(now); // Pass time parameter
       }
     }
   });
@@ -115,7 +115,7 @@ export function startKey(el, velocity) {
   // Use pianoState.velocity if no velocity is passed
   const effectiveVelocity = velocity !== undefined ? velocity : pianoState.velocity;
   
-  // ✅ FIXED: Check for any existing playing state, not just "note"
+  // FIXED: Check for any existing playing state, not just "note"
   if (!midi || el.dataset.playing) {
     console.log("startKey: blocked - already playing or no midi");
     return;
@@ -128,7 +128,7 @@ export function startKey(el, velocity) {
   const noteName = noteInfo.name;
   console.log("startKey: noteName =", noteName);
 
-  // ✅ FIXED: Set playing state BEFORE triggering to prevent double calls
+  // FIXED: Set playing state BEFORE triggering to prevent double calls
   el.dataset.playing = "note";
   el.dataset.startTime = performance.now().toString();
   el.classList.add("pressed");
@@ -149,7 +149,7 @@ export function stopKey(el) {
   const midi = el.dataset.midi;
   console.log("stopKey: midi =", midi, "playing =", el.dataset.playing);
   
-  // ✅ FIXED: Only proceed if actually playing
+  // FIXED: Only proceed if actually playing
   if (!midi || el.dataset.playing !== "note") {
     console.log("stopKey: blocked - not playing or no midi");
     return;
@@ -164,7 +164,7 @@ export function stopKey(el) {
   const noteInfo = notesByMidiKeyAware(midi);
   const noteNameToTrigger = noteInfo.name;
 
-  // ✅ FIXED: Clear state BEFORE triggering to prevent re-entry
+  // FIXED: Clear state BEFORE triggering to prevent re-entry
   delete el.dataset.playing;
   delete el.dataset.startTime;
   el.classList.remove("pressed");
@@ -390,7 +390,7 @@ export function triggerAttackRelease(note, duration = "q", velocity, writeToScor
   const durationInSeconds = durationMs / 1000;
   const now = Tone.now();
   
-  // ✅ FIXED: Only trigger envelope attack, let it follow sampler naturally
+  // FIXED: Only trigger envelope attack, let it follow sampler naturally
   if (pianoState.envelope) {
     pianoState.envelope.triggerAttack(now);
     // Don't manually release - let the envelope follow the sampler's natural end
@@ -415,7 +415,7 @@ export function triggerAttackRelease(note, duration = "q", velocity, writeToScor
     isChord: isChord
   };
 
-  // ✅ FIXED: Longer cleanup delay to account for envelope release
+  // FIXED: Longer cleanup delay to account for envelope release
   const envelopeReleaseTime = 300;
   const cleanupDelay = durationMs + envelopeReleaseTime;
 

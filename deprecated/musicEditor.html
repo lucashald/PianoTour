@@ -219,18 +219,18 @@
     
     async function initializeEditor() {
         if (editorInitialized) {
-            console.log('Editor already initialized');
+
             return;
         }
         
         try {
-            console.log('Waiting for base initialization...');
+
             await waitForBase();
             
-            console.log('Waiting for heavy initialization...');
+
             await waitForHeavy();
             
-            console.log('Initializing music editor...');
+
             
             // Import the music editor module
             const { initializeMusicEditor, getMusicEditor } = await import(
@@ -259,7 +259,7 @@
             setupEditorFeatures();
             
             editorInitialized = true;
-            console.log('Editor initialization complete!');
+
             
         } catch (error) {
             console.error('Editor initialization failed:', error);

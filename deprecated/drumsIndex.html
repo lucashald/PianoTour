@@ -382,7 +382,7 @@ import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drum
       function initializeImmediateUI() {
         setInitialDimensions();
         audioManager.initializeAudioManager();
-        console.log("✅ AudioManager initialized.");
+
         initializeInstrumentUI();
         initializePlayer();
         initializeFileHandlers();
@@ -393,7 +393,7 @@ import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drum
         try {
           drawAll([]); // Piano score
           drawAllDrums([]); // Drum score
-          console.log("✅ Initial layout established for both scores");
+
         } catch (e) {
           console.error("Initial render error:", e);
         }
@@ -421,7 +421,7 @@ import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drum
           Math.min(vw * 0.9, 1040) + "px"
         );
         root.style.setProperty("--instrument-min-height", "120px");
-        console.log("📐 Initial dimensions set");
+
       }
 
       function showLoadingScore() {
@@ -447,13 +447,13 @@ import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drum
       }
 
       async function initializeHeavyComponents() {
-        console.log("⚡ Starting heavy component initialization...");
+
         try {
           await loadScoreFromStorage();
           await loadDrumScoreFromStorage();
           setupUnlockSystem();
           document.dispatchEvent(new CustomEvent("pianoTourHeavyReady"));
-          console.log("✅ Heavy components initialized");
+
         } catch (error) {
           console.error("❌ Error in heavy initialization:", error);
         }
@@ -478,7 +478,7 @@ import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drum
             }
             updateLoadingMessage("🎨 Rendering piano score...");
             await renderScoreAsync(getMeasures());
-            console.log("✅ Piano score loaded successfully");
+            console.log("Piano score loaded successfully");
           } else {
             localStorage.removeItem("autosavedScore");
             console.log("⚠️ Invalid piano score data, cleared");
@@ -508,7 +508,7 @@ import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drum
             }
             updateDrumLoadingMessage("🎨 Rendering drum score...");
             await renderDrumScoreAsync(getDrumMeasures());
-            console.log("✅ Drum score loaded successfully");
+            console.log("Drum score loaded successfully");
           } else {
             localStorage.removeItem("autosavedDrumScore");
             console.log("⚠️ Invalid drum score data, cleared");
@@ -568,7 +568,7 @@ import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drum
         setKeySignature(keySignature);
         pianoState.isMinorChordMode = isMinorChordMode;
         if (title) {
-          console.log(`📄 Piano score title: ${title}`);
+          console\.log\(`[^a-zA-Z0-9`$]+ ?Piano score title: ${title}`);
         }
       }
 
@@ -581,7 +581,7 @@ import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drum
           `🥁 Applied drum metadata: ${keySignature}, Minor: ${isMinorChordMode}`
         );
         if (title) {
-          console.log(`📄 Drum score title: ${title}`);
+          console\.log\(`[^a-zA-Z0-9`$]+ ?Drum score title: ${title}`);
         }
       }
 
@@ -623,12 +623,12 @@ import { initializeDrumGrid } from '{{ url_for("static", filename="js/drums/drum
               });
               initMidi();
               pianoState.midiInitialized = true;
-              console.log("🎵 MIDI systems initialized.");
+
             }
           });
           if (success) {
             console.log(
-              "✅ Audio and MIDI systems are now live (or were already)."
+              "Audio and MIDI systems are now live (or were already)."
             );
           } else {
             console.warn("❌ Failed to initialize audio/MIDI system.");

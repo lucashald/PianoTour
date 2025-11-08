@@ -169,7 +169,7 @@
 
       // --- COMMON DOM READY & EVENT LISTENERS (for base template) ---
       document.addEventListener("DOMContentLoaded", () => {
-        console.log("🚀 Starting optimized initialization...");
+
 
         // PHASE 1: Immediate UI setup (no blocking operations)
         initializeImmediateUI();
@@ -186,7 +186,7 @@
 
         // NEW: Initialize audioManager early, before any user interaction might trigger it
         audioManager.initializeAudioManager();
-        console.log("✅ AudioManager initialized.");
+
 
         // Initialize lightweight components immediately
         initializeInstrumentUI();
@@ -202,7 +202,7 @@
         // Quick initial render with empty score to establish layout
         try {
           drawAll([]); // Empty score - fast render
-          console.log("✅ Initial layout established");
+
         } catch (e) {
           console.error("Initial render error:", e);
         }
@@ -244,7 +244,7 @@
         );
         root.style.setProperty("--instrument-min-height", "120px");
 
-        console.log("📐 Initial dimensions set");
+
       }
 
       function showLoadingScore() {
@@ -266,7 +266,7 @@
       }
 
       async function initializeHeavyComponents() {
-        console.log("⚡ Starting heavy component initialization...");
+
 
         try {
           // Load score from localStorage asynchronously
@@ -281,7 +281,7 @@
           // Dispatch event for child scripts
           document.dispatchEvent(new CustomEvent("pianoTourHeavyReady"));
 
-          console.log("✅ Heavy components initialized");
+
         } catch (error) {
           console.error("❌ Error in heavy initialization:", error);
         }
@@ -316,7 +316,7 @@
             updateLoadingMessage("🎨 Rendering score...");
             await renderScoreAsync(getMeasures());
 
-            console.log("✅ Score loaded successfully");
+            console.log("Score loaded successfully");
           } else {
             localStorage.removeItem("autosavedScore");
             console.log("⚠️ Invalid score data, cleared");
@@ -375,7 +375,7 @@
         );
 
         if (title) {
-          console.log(`📄 Score title: ${title}`);
+          console\.log\(`[^a-zA-Z0-9`$]+ ?Score title: ${title}`);
         }
       }
 
@@ -414,13 +414,13 @@
               });
               initMidi();
               pianoState.midiInitialized = true;
-              console.log("🎵 MIDI systems initialized.");
+
             }
           });
 
           if (success) {
             console.log(
-              "✅ Audio and MIDI systems are now live (or were already)."
+              "Audio and MIDI systems are now live (or were already)."
             );
           } else {
             console.warn("❌ Failed to initialize audio/MIDI system.");

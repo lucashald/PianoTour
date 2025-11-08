@@ -72,7 +72,7 @@
     <!-- NEW: Custom note playing button -->
     <div style="margin: 20px;">
         <button id="play-note-btn" class="btn btn-primary" onclick="window.playPianoNote()">
-            🎵 Play Middle C
+            Play Middle C
         </button>
         <button id="play-chord-btn" class="btn btn-success" onclick="window.playChord()">
             🎶 Play C Major Chord
@@ -178,7 +178,7 @@
                 
                 // Optional: Add event listeners for song changes
                 window.manager.seq.addOnSongChangeEvent((midiData) => {
-                    console.log('🎵 Now playing:', midiData.midiName);
+                    console.log('Now playing:', midiData.midiName);
                 }, 'piano-tour');
             }
         }, 3000);

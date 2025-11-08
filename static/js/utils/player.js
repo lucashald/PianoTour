@@ -25,14 +25,14 @@ class PianoTourPlayer {
         this.preloadSoundFont();
 
         this.isReady = true;
-        console.log('✅ Piano Tour player ready');
+        console.log('Piano Tour player ready');
     }
 
 async waitForLibraries() {
     return new Promise((resolve) => {
         const checkLibraries = () => {
             if (window.SpessaSynth || window.manager) {
-                console.log('✅ SpessaSynth libraries found');
+                console.log('SpessaSynth libraries found');
                 
                 // ADD THIS: Disable looping by default
                 if (window.manager && window.manager.seq) {
@@ -85,7 +85,7 @@ async waitForLibraries() {
             }
         });
 
-        console.log('✅ Connected to HTML elements');
+        console.log('Connected to HTML elements');
     }
 
     async preloadSoundFont() {
@@ -93,7 +93,7 @@ async waitForLibraries() {
             const response = await fetch('/static/soundfonts/default.sf3');
             if (response.ok) {
                 this.soundFontBuffer = await response.arrayBuffer();
-                console.log('✅ SoundFont preloaded');
+                console.log('SoundFont preloaded');
             }
         } catch (error) {
             console.log('⚠️ SoundFont preload failed, will use default');
@@ -115,7 +115,7 @@ async waitForLibraries() {
                 if (this.audioContext.state === 'suspended') {
                     await this.audioContext.resume();
                 }
-                console.log('✅ AudioContext created');
+                console.log('AudioContext created');
             }
 
             // Create synthesizer
@@ -123,12 +123,12 @@ async waitForLibraries() {
                 // Use existing SpessaSynth manager if available
                 if (window.manager && window.manager.synth) {
                     this.synth = window.manager.synth;
-                    console.log('✅ Using existing SpessaSynth');
+                    console.log('Using existing SpessaSynth');
                 } else if (window.SpessaSynth) {
                     const soundFont = this.soundFontBuffer || await this.getDefaultSoundFont();
                     this.synth = new window.SpessaSynth(this.audioContext, soundFont);
                     await this.synth.isReady;
-                    console.log('✅ SpessaSynth synthesizer ready');
+                    console.log('SpessaSynth synthesizer ready');
                 } else {
                     throw new Error('SpessaSynth not available');
                 }
@@ -154,7 +154,7 @@ async waitForLibraries() {
         }
 
         try {
-            console.log(`📂 Loading: ${file.name}`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Loading: ${file.name}`);
 
             const arrayBuffer = await file.arrayBuffer();
 
@@ -183,14 +183,14 @@ async waitForLibraries() {
                 this.sequencer = window.manager.seq;
                 // Load new MIDI into existing sequencer
                 window.manager.seq.loadNewSongList([midiData]);
-                console.log('✅ Loaded into existing sequencer');
+                console.log('Loaded into existing sequencer');
             } else if (window.Sequencer && this.synth) {
                 // Create new sequencer
                 this.sequencer = new window.Sequencer([midiData], this.synth);
-                console.log('✅ Created new sequencer');
+                console.log('Created new sequencer');
             }
 
-            console.log(`🎵 Ready to play: ${file.name}`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Ready to play: ${file.name}`);
 
         } catch (error) {
             console.error('❌ Error loading MIDI:', error);

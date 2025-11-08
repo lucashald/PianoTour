@@ -35,7 +35,7 @@ export function initializeDrumFileHandlers() {
         exportDrumToMidi();
     });
 
-    console.log("Drum file handlers initialized.");
+
 }
 
 // File handler - determines file type and routes to appropriate loader
@@ -91,7 +91,7 @@ async function applyProcessedDrumScore(processedScore) {
             drumsState.timeSignature = timeSignature;
             drumsState.keySignature = processedScore.keySignature || 'C';
             
-            console.log(`✅ Drum score loaded successfully (${processedScore.measures.length} measures, ${timeSignature.numerator}/${timeSignature.denominator})`);
+            console\.log\(`[^a-zA-Z0-9`$]+ ?Drum score loaded successfully (${processedScore.measures.length} measures, ${timeSignature.numerator}/${timeSignature.denominator})`);
             
             document.dispatchEvent(new CustomEvent('drumScoreLoaded'));
             
@@ -123,7 +123,7 @@ async function loadDrumJsonFile(file) {
         await applyProcessedDrumScore(drumScore);
         
         // Trigger re-render in drums.html (the calling code should handle this)
-        console.log("✅ Drum JSON file loaded successfully.");
+        console.log("Drum JSON file loaded successfully.");
         
     } catch (error) {
         // Handle JSON parsing errors specifically
@@ -177,7 +177,7 @@ async function loadDrumMidiFile(file) {
         // Apply the drum score
         await applyProcessedDrumScore(drumScore);
         
-        console.log("✅ MIDI file loaded as drum score successfully.");
+        console.log("MIDI file loaded as drum score successfully.");
         
         // Dispatch event to trigger re-render
         document.dispatchEvent(new CustomEvent('drumScoreLoaded'));

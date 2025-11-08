@@ -372,7 +372,7 @@ function handleEditorNoteSelectClick(measureIndex, clef, noteId) {
 // ===================================================================
 
 export function initializeMusicEditor() {
-    console.log("scoreEditor: Initializing music editor");
+
     
     // Initialize the universal music editor
     const instrumentType = pianoState.instrumentType || 'piano';
@@ -414,7 +414,7 @@ export function initializeMusicEditor() {
         setupEventListeners();
     }, 200);
     
-    console.log("✓ scoreEditor.js initialized successfully with UniversalMusicEditor");
+
 }
 
 // Move event listener setup to separate function
@@ -701,7 +701,7 @@ function setupEventListeners() {
         }
     }
     
-    console.log("✓ scoreEditor.js initialized successfully with UniversalMusicEditor");
+
 }
 
 // Export the music editor instance for external access
