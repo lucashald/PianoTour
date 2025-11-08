@@ -1,6 +1,8 @@
 import os
+import sys
 import librosa
 import numpy as np
+import aubio
 
 # Define MIDI note numbers, their names, and center frequencies
 # This data is based on the standard A4 = 440 Hz tuning system
@@ -39,27 +41,42 @@ MIDI_NOTES = [
 def get_pitch(audio_file):
     """
     Analyzes an audio file and returns its fundamental frequency (pitch).
+    Uses aubio's YIN pitch detection which is a well-established, reliable method.
     
     Args:
         audio_file (str): The path to the WAV file.
         
     Returns:
-        float: The median pitch of the audio in Hertz (Hz), or None if an error occurs.
+        float: The fundamental pitch of the audio in Hertz (Hz), or None if an error occurs.
     """
     try:
-        # Load the audio file. sr=None preserves the original sampling rate.
-        y, sr = librosa.load(audio_file, sr=None)
+        # Use aubio's source to load and process the audio
+        source = aubio.source(audio_file)
+        sr = source.samplerate
         
-        # Estimate pitch using the pYIN algorithm.
-        # Reverting fmin and fmax to a more typical musical range (C2 to C7)
-        # to help prevent detection of lower, potentially spurious, fundamental frequencies.
-        f0, voiced_flag, voiced_probs = librosa.pyin(y, fmin=librosa.note_to_hz('C2'), fmax=librosa.note_to_hz('C7'))
+        # Create pitch detector with YIN algorithm
+        pitch_detector = aubio.pitch("yin", 2048, source.hop_size, sr)
+        pitch_detector.set_unit("Hz")
         
-        # Filter out unvoiced (non-pitched) frames and take the median of the valid pitches.
-        valid_pitches = f0[voiced_flag]
+        # Process the audio
+        pitches = []
+        confidences = []
         
-        if valid_pitches.size > 0:
-            median_pitch = np.median(valid_pitches)
+        while True:
+            samples, read = source()
+            pitch = pitch_detector(samples)[0]  # Get first element of numpy array
+            confidence = pitch_detector.get_confidence()
+            
+            if confidence > 0.1 and pitch > 0:
+                pitches.append(pitch)
+                confidences.append(confidence)
+            
+            if read < source.hop_size:
+                break
+        
+        if pitches:
+            # Use median of detected pitches
+            median_pitch = np.median(pitches)
             return median_pitch
         else:
             return None
@@ -105,19 +122,22 @@ def pitch_to_note_name(pitch_hz, buffer_hz=1.0):
     return closest_note_name
 
 
-def rename_files_by_note(folder_path):
+def rename_files_by_note(folder_path, dry_run=False):
     """
     Iterates through all WAV files in a folder and renames them based on their musical note pitch.
     
     Args:
         folder_path (str): The path to the folder containing the WAV files.
+        dry_run (bool): If True, only prints what would be done without actually renaming files.
+                        Defaults to False.
     """
     
     if not os.path.isdir(folder_path):
         print(f"Error: The folder '{folder_path}' does not exist.")
         return
 
-    print(f"Starting to process WAV files in: {folder_path}")
+    mode_str = "DRY RUN - " if dry_run else ""
+    print(f"{mode_str}Starting to process WAV files in: {folder_path}")
     
     for filename in os.listdir(folder_path):
         if filename.lower().endswith(".wav"): # Use .lower() for case-insensitive check
@@ -144,19 +164,22 @@ def rename_files_by_note(folder_path):
                             counter += 1
                         new_filename = f"{base_name}_{counter}{ext}"
                         new_filepath = os.path.join(folder_path, new_filename)
-                        print(f"Warning: '{note_name}.wav' already exists. Renaming '{filename}' to '{new_filename}'")
+                        print(f"Warning: '{note_name}.wav' already exists. Would rename '{filename}' to '{new_filename}'")
 
-                    # Rename the file
-                    try:
-                        os.rename(old_filepath, new_filepath)
-                        print(f"Renamed '{filename}' (Pitch: {pitch:.2f} Hz) to '{new_filename}'")
-                    except OSError as e:
-                        print(f"Error renaming {filename} to {new_filename}: {e}")
+                    # Rename the file (unless dry_run is True)
+                    if not dry_run:
+                        try:
+                            os.rename(old_filepath, new_filepath)
+                            print(f"Renamed '{filename}' (Pitch: {pitch:.2f} Hz) to '{new_filename}'")
+                        except OSError as e:
+                            print(f"Error renaming {filename} to {new_filename}: {e}")
+                    else:
+                        print(f"Would rename '{filename}' (Pitch: {pitch:.2f} Hz) to '{new_filename}'")
                 else:
                     print(f"Could not determine a suitable note name for '{filename}' (Pitch: {pitch:.2f} Hz), skipping.")
             else:
                 print(f"Could not determine pitch for '{filename}', skipping.")
-    print("File renaming process complete.")
+    print(f"{mode_str}File processing complete.")
 
 # --- Main execution block ---
 if __name__ == "__main__":
@@ -168,5 +191,22 @@ if __name__ == "__main__":
     #   If your WAV files are in a subfolder named 'audio_samples': folder_to_process = 'audio_samples'
     
     folder_to_process = '.' # Set this to your desired folder path
+    dry_run = False
+    
+    # Parse command line arguments
+    if len(sys.argv) > 1:
+        if sys.argv[1] == '--dry-run':
+            dry_run = True
+            print("Running in DRY RUN mode (no files will be renamed)\n")
+        elif sys.argv[1] in ['--help', '-h']:
+            print("Usage: python pitch.py [--dry-run]")
+            print("  --dry-run: Check which files would be renamed without actually renaming them")
+            print("  -h, --help: Show this help message")
+            sys.exit(0)
+        else:
+            folder_to_process = sys.argv[1]
+            if len(sys.argv) > 2 and sys.argv[2] == '--dry-run':
+                dry_run = True
+                print("Running in DRY RUN mode (no files will be renamed)\n")
 
-    rename_files_by_note(folder_to_process)
+    rename_files_by_note(folder_to_process, dry_run=dry_run)
