@@ -90,9 +90,6 @@ async function applyProcessedDrumScore(processedScore) {
             drumsState.tempo = tempo;
             drumsState.timeSignature = timeSignature;
             drumsState.keySignature = processedScore.keySignature || 'C';
-            
-            console\.log\(`[^a-zA-Z0-9`$]+ ?Drum score loaded successfully (${processedScore.measures.length} measures, ${timeSignature.numerator}/${timeSignature.denominator})`);
-            
             document.dispatchEvent(new CustomEvent('drumScoreLoaded'));
             
         } else {

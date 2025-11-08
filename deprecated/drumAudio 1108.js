@@ -80,6 +80,7 @@ const DURATION_TO_BEATS = {
 let selectedDrumDuration = "q";
 let lastScrolledDrumMeasureIndex = -1;
 let drumSampler = null; // Separate sampler for drums
+let deferredDrumAction = null;
 
 // ===================================================================
 // Drum Button Management
@@ -132,7 +133,6 @@ async function initializeDrumSampler() {
         urls: DRUM_SAMPLE_URLS,
         release: 1,
         baseUrl: DRUM_SAMPLE_BASE_URL,
-        onload: () => console.log("Drum samples loaded"),
         onerror: (error) => console.error("❌ Drum sample error:", error),
     }).toDestination();
 
@@ -146,7 +146,6 @@ async function initializeDrumSampler() {
         console.warn("Could not connect drums to spectrum:", error);
     }
     
-    console.log("Drum sampler ready!");
     return drumSampler;
 }
 
@@ -155,13 +154,13 @@ async function initializeDrumSampler() {
  */
 export function triggerDrum(drumInstrument, on, velocity = 1) {
     if (!audioManager.isAudioReady()) {
-        console.warn("Audio not ready");
+        console.warn("🥁 Audio not ready");
         return;
     }
 
     const instrumentProps = DRUM_INSTRUMENT_MAP[drumInstrument];
     if (!instrumentProps || typeof instrumentProps.midi !== 'number') {
-        console.warn(`Unknown drum instrument: ${drumInstrument}`);
+        console.warn(`🥁 Unknown drum instrument: ${drumInstrument}`);
         return;
     }
     
@@ -169,7 +168,7 @@ export function triggerDrum(drumInstrument, on, velocity = 1) {
     const noteToPlay = DRUM_MIDI_TO_NOTE[midiNumber];
     
     if (!noteToPlay || !drumSampler) {
-        console.warn(`No note mapping for ${drumInstrument}`);
+        console.warn(`🥁 No note mapping for ${drumInstrument}`);
         return;
     }
 
@@ -186,28 +185,61 @@ export function triggerDrum(drumInstrument, on, velocity = 1) {
     }
 }
 
-/**
- * Unlock drum audio using shared audioManager
- */
-export async function unlockAndExecuteDrum(action) {
-    console.log('Unlocking drum audio...');
-    
-    // Use shared audio manager unlock
-    const success = await audioManager.unlockAndExecute(async () => {
-        // Initialize drum sampler after shared audio is ready
-        await initializeDrumSampler();
-        // Execute the actual action
-        action();
-    });
-
-    return success;
+export async function unlockDrumAudio() {
+    try {
+        await Tone.start();
+    } catch (error) {
+        console.error("Failed to unlock drum audio:", error);
+    }
 }
 
+export async function unlockAndExecuteDrum(newAction) {
+
+    if (Tone.context && Tone.context.state !== 'running') {
+        try {
+            await Tone.context.resume();
+        } catch (e) {
+            console.warn("⚠️ Failed to resume Drum AudioContext during unlock:", e);
+        }
+    }
+
+    if (drumsState.audioStatus === "ready") {
+        try {
+            newAction();
+            return true;
+        } catch (error) {
+            console.error("❌ Error executing immediate drum action:", error);
+            return false;
+        }
+    }
+
+    deferredDrumAction = newAction;
+
+    if (drumsState.audioStatus === "loading") {
+        return new Promise((resolve) => {
+            const checkReady = setInterval(() => {
+                if (drumsState.audioStatus === "ready") {
+                    clearInterval(checkReady);
+                    resolve(true);
+                } else if (drumsState.audioStatus === "error") {
+                    clearInterval(checkReady);
+                    deferredDrumAction = null;
+                    resolve(false);
+                }
+            }, 50);
+        });
+    }
+    const success = await initializeDrumAudio();
+
+    if (!success) {
+        deferredDrumAction = null;
+    }
+    return success;
+}
 /**
  * Stop drum playback
  */
 export function stopDrumPlayback() {
-    console.log("Stopping drum playback...");
     
     Tone.Transport.stop();
     Tone.Transport.cancel();
@@ -249,11 +281,9 @@ export function handleDrumPlayback() {
     const hasPianoScore = pianoMeasures && pianoMeasures.length > 0;
 
     if (!hasDrumScore && !hasPianoScore) {
-        console.warn('🎵 No drum or piano measures to play');
+        console.warn('No drum or piano measures to play');
         return;
     }
-
-    console.log(`🎵 Starting duet playback - Drums: ${hasDrumScore ? 'Yes' : 'No'}, Piano: ${hasPianoScore ? 'Yes' : 'No'}`);
 
     const startDuetPlayback = async () => {
         try {
@@ -272,13 +302,11 @@ export function handleDrumPlayback() {
 
             // Schedule drum events
             if (hasDrumScore) {
-                console.log('Scheduling drum events');
                 scheduleDrumEvents(drumMeasures, tempo);
             }
 
             // Schedule piano events
             if (hasPianoScore) {
-                console.log('🎹 Scheduling piano events');
                 schedulePianoEvents(pianoMeasures, tempo);
             }
 
@@ -298,7 +326,6 @@ export function handleDrumPlayback() {
             }
 
             Tone.Transport.start();
-            console.log('🎵 Duet playback started!');
         } catch (error) {
             console.error('❌ Error starting duet playback:', error);
         }
@@ -376,8 +403,6 @@ function scheduleDrumEvents(drumMeasures, bpm) {
  * Schedule piano events on the Transport
  */
 function schedulePianoEvents(pianoMeasures, bpm) {
-    console.log('🎹 Scheduling piano events directly');
-    
     let currentTransportTime = 0;
     const beatsPerMeasure = 4; // Assuming 4/4 time
     const secondsPerBeat = 60 / bpm;
@@ -513,7 +538,6 @@ export function initializeDrumAudioListeners() {
             );
             e.currentTarget.classList.add('btn--active');
             selectedDrumDuration = e.currentTarget.dataset.duration;
-            console.log(`Selected duration: ${selectedDrumDuration}`);
         });
     });
 
@@ -545,7 +569,6 @@ export function initializeDrumAudioListeners() {
                 // Scroll to current measure
                 const currentMeasureIdx = getCurrentDrumMeasureIndex();
                 scrollToMeasure(currentMeasureIdx);
-                console.log(`Added ${drumType} to score`);
             });
         });
     });
@@ -554,12 +577,10 @@ export function initializeDrumAudioListeners() {
     document.getElementById('clear-drum-score-btn')?.addEventListener('click', () => {
         resetDrumScore();
         clearAllActiveDrumButtons();
-        console.log('Score cleared');
     });
 
     document.getElementById('undo-drum-btn')?.addEventListener('click', () => {
         undoDrumLastWrite();
-        console.log('Undo performed');
     });
 
     document.getElementById('add-drum-measure-btn')?.addEventListener('click', () => {
@@ -572,7 +593,6 @@ export function initializeDrumAudioListeners() {
         };
         addNoteToMeasure(newMeasureIndex, restNote);
         scrollToMeasure(newMeasureIndex);
-        console.log('Measure added');
     });
 }
 
@@ -593,5 +613,4 @@ export function initializeDrumAudioModule() {
     initializeDrumAudioState();
     initializeDrumAudioListeners();
     setupDrumPlaybackButton();
-    console.log("Drum Audio Module initialized (using shared infrastructure)");
 }
