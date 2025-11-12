@@ -37,7 +37,7 @@ function convertChordsDbToArray(frets) {
 export async function createChordPalette(guitarInstance = window.guitarInstance, keySignature = null) {
   const container = document.querySelector('#chord-palette');
   if (!container) {
-    console.error('Chord palette container not found: #chord-palette');
+    console.log('Skipping chord palette. Container not found: #chord-palette');
     return null;
   }
 

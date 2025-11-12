@@ -53,7 +53,7 @@
 
 {% block scripts %}
 <script type="module">
-  import { exportMidi, initializeFileHandlers } from ('{{ url_for("static", filename="js/utils/scoreRenderer.js") }}');
+  import { exportMidi, initializeFileHandlers } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
   // Initialize file handlers when the page loads
   document.addEventListener('DOMContentLoaded', () => {
     

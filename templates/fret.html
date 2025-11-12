@@ -607,7 +607,6 @@
                 clearFretboard();
                 
                 // Get chord data from database
-                try {
                 const bestFingering = await ChordDB.getBestFingering(chordName, tuning);
                 
                 // Store current chord data
