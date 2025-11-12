@@ -9,7 +9,7 @@ import {
   ALL_NOTE_INFO,
   BLACK_KEY_WIDTH,
   CHORD_STRUCTURES,
-  DURATION_THRESHOLDS,
+  getDurationThresholds,
   MAJOR_DIATONIC_LABELS,
   MINOR_DIATONIC_LABELS,
   NOTES_BY_MIDI,
@@ -741,9 +741,14 @@ export function handleKeyPointerDown(e) {
       stopAllDragChords();
 
       const heldTime = performance.now() - startTime;
-      let duration = "q";
-      if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-      else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+      const thresholds = getDurationThresholds(pianoState.tempo);
+      let duration = "8";
+      if (heldTime >= thresholds.w) duration = "w";
+      else if (heldTime >= thresholds["h."]) duration = "h.";
+      else if (heldTime >= thresholds.h) duration = "h";
+      else if (heldTime >= thresholds["q."]) duration = "q.";
+      else if (heldTime >= thresholds.q) duration = "q";
+      else if (heldTime >= thresholds["8."]) duration = "8.";
       trigger(chord.notes, false, pianoState.velocity);
       finalKeyEl.classList.remove("pressed");
       if (finalKeyEl.hasPointerCapture(e.pointerId)) { // Check if still has capture
@@ -778,9 +783,14 @@ export function handleKeyPointerDown(e) {
         finalKeyEl.releasePointerCapture(e.pointerId);
       }
       const heldTime = performance.now() - startTime;
-      let duration = "q";
-      if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-      else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+      const thresholds = getDurationThresholds(pianoState.tempo);
+      let duration = "8";
+      if (heldTime >= thresholds.w) duration = "w";
+      else if (heldTime >= thresholds["h."]) duration = "h.";
+      else if (heldTime >= thresholds.h) duration = "h";
+      else if (heldTime >= thresholds["q."]) duration = "q.";
+      else if (heldTime >= thresholds.q) duration = "q";
+      else if (heldTime >= thresholds["8."]) duration = "8.";
       const noteInfo = notesByMidiKeyAware(targetMidi);
       const noteNameForScore = noteInfo.name;
       const clef = noteInfo.midi < 60 ? "bass" : "treble";
@@ -890,7 +900,6 @@ export function handleInitial(e) {
 
 /**
 * Initializes the piano application. This is the main entry point.
-* This function now attaches the primary audio unlock listener.
 */
 export function initializeInstrumentUI() {
  instrumentDiv = document.getElementById("instrument");
@@ -965,9 +974,14 @@ function handleKeyUp(e) {
     const restData = pianoState.activeRests[k];
     if (restData) {
       const heldTime = performance.now() - restData.startTime;
-      let duration = "q";
-      if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-      else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+      const thresholds = getDurationThresholds(pianoState.tempo);
+      let duration = "8";
+      if (heldTime >= thresholds.w) duration = "w";
+      else if (heldTime >= thresholds["h."]) duration = "h.";
+      else if (heldTime >= thresholds.h) duration = "h";
+      else if (heldTime >= thresholds["q."]) duration = "q.";
+      else if (heldTime >= thresholds.q) duration = "q";
+      else if (heldTime >= thresholds["8."]) duration = "8.";
 
       const restPositionNote = restData.clef === "bass" ? "D3" : "B4";
       writeNote({
@@ -984,9 +998,14 @@ function handleKeyUp(e) {
     const keyEl = pianoState.noteEls[actualMidi];
     if (keyEl && keyEl.dataset.playing === "note") {
       const heldTime = performance.now() - parseFloat(keyEl.dataset.startTime);
-      let duration = "q";
-      if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-      else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+      const thresholds = getDurationThresholds(pianoState.tempo);
+      let duration = "8";
+      if (heldTime >= thresholds.w) duration = "w";
+      else if (heldTime >= thresholds["h."]) duration = "h.";
+      else if (heldTime >= thresholds.h) duration = "h";
+      else if (heldTime >= thresholds["q."]) duration = "q.";
+      else if (heldTime >= thresholds.q) duration = "q";
+      else if (heldTime >= thresholds["8."]) duration = "8.";
 
       const noteInfo = notesByMidiKeyAware(actualMidi);
       const noteNameForScore = noteInfo.name;

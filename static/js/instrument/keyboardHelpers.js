@@ -2,7 +2,7 @@
 import { pianoState } from "../core/appState.js";
 import audioManager from "../core/audioManager.js";
 import {
-  DURATION_THRESHOLDS,
+  getDurationThresholds,
   getChordByDegree,
   notesByMidiKeyAware
 } from "../core/note-data.js";
@@ -184,9 +184,14 @@ export function handleKeyUp(e) {
       const heldTime = performance.now() - restData.startTime;
       console.log(`Rest held for ${heldTime}ms`);
       
-      let duration = "q";
-      if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-      else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+      const thresholds = getDurationThresholds(pianoState.tempo);
+      let duration = "8";
+      if (heldTime >= thresholds.w) duration = "w";
+      else if (heldTime >= thresholds["h."]) duration = "h.";
+      else if (heldTime >= thresholds.h) duration = "h";
+      else if (heldTime >= thresholds["q."]) duration = "q.";
+      else if (heldTime >= thresholds.q) duration = "q";
+      else if (heldTime >= thresholds["8."]) duration = "8.";
 
       console.log(`Writing rest with duration: ${duration}, clef: ${restData.clef}`);
       const restPositionNote = restData.clef === "bass" ? "D3" : "B4";
@@ -211,9 +216,14 @@ export function handleKeyUp(e) {
       const heldTime = performance.now() - parseFloat(keyEl.dataset.startTime);
       console.log(`Piano key held for ${heldTime}ms`);
       
-      let duration = "q";
-      if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-      else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+      const thresholds = getDurationThresholds(pianoState.tempo);
+      let duration = "8";
+      if (heldTime >= thresholds.w) duration = "w";
+      else if (heldTime >= thresholds["h."]) duration = "h.";
+      else if (heldTime >= thresholds.h) duration = "h";
+      else if (heldTime >= thresholds["q."]) duration = "q.";
+      else if (heldTime >= thresholds.q) duration = "q";
+      else if (heldTime >= thresholds["8."]) duration = "8.";
 
       const noteInfo = notesByMidiKeyAware(actualMidi);
       const noteNameForScore = noteInfo.name;
@@ -414,11 +424,14 @@ export function stopScaleChord(key) {
     console.log("Writing chord to score:", chordData.displayName);
     const heldTime = performance.now() - chordData.startTime;
 
-    let duration = "q"; // Default to quarter note
-    if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-    else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
-    else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
-    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q.";
+    const thresholds = getDurationThresholds(pianoState.tempo);
+    let duration = "8"; // Default to eighth note
+    if (heldTime >= thresholds.w) duration = "w";
+    else if (heldTime >= thresholds["h."]) duration = "h.";
+    else if (heldTime >= thresholds.h) duration = "h";
+    else if (heldTime >= thresholds["q."]) duration = "q.";
+    else if (heldTime >= thresholds.q) duration = "q";
+    else if (heldTime >= thresholds["8."]) duration = "8.";
 
     writeNote({
       clef: chordData.clef,

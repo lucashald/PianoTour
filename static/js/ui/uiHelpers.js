@@ -7,7 +7,7 @@
 
 import { pianoState } from '../core/appState.js';
 import audioManager from '../core/audioManager.js';
-import { CHORD_DEFINITIONS, CHORD_GROUPS, DURATION_THRESHOLDS, getKeySignature } from '../core/note-data.js';
+import { CHORD_DEFINITIONS, CHORD_GROUPS, getDurationThresholds, getKeySignature } from '../core/note-data.js';
 import { trigger } from '../instrument/playbackHelpers.js';
 import { setKeySignature } from '../score/scoreRenderer.js';
 import { writeNote } from '../score/scoreWriter.js';
@@ -146,9 +146,14 @@ export function generateChordButtons() {
                         delete this.dataset.playingChord;
 
                         const heldTime = performance.now() - startTime;
-                        let duration = 'q';
-                        if (heldTime >= DURATION_THRESHOLDS.w) duration = 'w';
-                        else if (heldTime >= DURATION_THRESHOLDS.h) duration = 'h';
+                        const thresholds = getDurationThresholds(pianoState.tempo);
+                        let duration = '8';
+                        if (heldTime >= thresholds.w) duration = 'w';
+                        else if (heldTime >= thresholds["h."]) duration = 'h.';
+                        else if (heldTime >= thresholds.h) duration = 'h';
+                        else if (heldTime >= thresholds["q."]) duration = 'q.';
+                        else if (heldTime >= thresholds.q) duration = 'q';
+                        else if (heldTime >= thresholds["8."]) duration = '8.';
 
                         const chordDisplayName = chordDefinition.displayName;
                         updateNowPlayingDisplay(chordDisplayName); 

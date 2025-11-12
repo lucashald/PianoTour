@@ -3399,13 +3399,36 @@ export const CHORD_STRUCTURES = {
 };
 
 // TIMING
-export const DURATION_THRESHOLDS = {
-  q: 550,
-  "q.": 825,
-  h: 1100,
-  "h.": 1650,
-  w: 2200,
+// Base thresholds at 120 BPM (in milliseconds)
+// Each duration is based on its beat value relative to a quarter note (550ms at 120 BPM)
+const BASE_DURATION_THRESHOLDS = {
+  "8": 275,      // Eighth: 0.5 beats
+  "8.": 412.5,   // Dotted Eighth: 0.75 beats
+  q: 550,        // Quarter: 1 beat
+  "q.": 825,     // Dotted Quarter: 1.5 beats
+  h: 1100,       // Half: 2 beats
+  "h.": 1650,    // Dotted Half: 3 beats
+  w: 2200,       // Whole: 4 beats
 };
+
+/**
+ * Get duration thresholds adjusted for the current tempo
+ * @param {number} tempo - Current tempo in BPM (default: 120)
+ * @returns {object} Duration thresholds in milliseconds
+ */
+export function getDurationThresholds(tempo = 120) {
+  const tempoRatio = 120 / tempo;
+  const thresholds = {};
+  
+  for (const [duration, baseMs] of Object.entries(BASE_DURATION_THRESHOLDS)) {
+    thresholds[duration] = baseMs * tempoRatio;
+  }
+  
+  return thresholds;
+}
+
+// For backwards compatibility, export the default thresholds at 120 BPM
+export const DURATION_THRESHOLDS = getDurationThresholds(120);
 
 export const DURATIONS = [
   { key: "w", name: "Whole", beatValue: 4 },
