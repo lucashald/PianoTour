@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Note Searcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            padding: 40px 40px 0 40px;
+            flex-shrink: 0;
+        }
+        
+        .search-section {
+            padding: 0 40px 30px 40px;
+            flex-shrink: 0;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 24px;
+            font-size: 28px;
+            text-align: center;
+            margin: 0 0 24px 0;
+        }
+        
+        .search-box {
+            margin-bottom: 0;
+            display: flex;
+            gap: 10px;
+        }
+        
+        input {
+            flex: 1;
+            padding: 14px 16px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            padding: 14px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+            white-space: nowrap;
+        }
+        
+        button:hover {
+            background: #764ba2;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .results {
+            display: grid;
+            gap: 12px;
+            overflow-y: auto;
+            flex: 1;
+            padding: 0 40px 40px 40px;
+        }
+        
+        .note-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            align-items: center;
+        }
+        
+        .note-item.black-key {
+            border-left-color: #764ba2;
+        }
+        
+        .note-field {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .note-field label {
+            font-size: 12px;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        .note-field value {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 16px;
+        }
+        
+        .results::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .results::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .results::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+        
+        .results::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎹 MIDI Note Searcher</h1>
+        </div>
+        <div class="search-section">
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Search by note name (C4) or MIDI number (60)..."
+                    autocomplete="off"
+                >
+                <button id="showAllBtn">Show All</button>
+            </div>
+        </div>
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const ALL_NOTE_INFO = [
+            { midi: 36, name: "C2", pitchClass: "C", isBlack: false },
+            { midi: 37, name: "C#2", flatName: "Db2", pitchClass: "C#", isBlack: true },
+            { midi: 38, name: "D2", pitchClass: "D", isBlack: false },
+            { midi: 39, name: "D#2", flatName: "Eb2", pitchClass: "D#", isBlack: true },
+            { midi: 40, name: "E2", pitchClass: "E", isBlack: false },
+            { midi: 41, name: "F2", pitchClass: "F", isBlack: false },
+            { midi: 42, name: "F#2", flatName: "Gb2", pitchClass: "F#", isBlack: true },
+            { midi: 43, name: "G2", pitchClass: "G", isBlack: false },
+            { midi: 44, name: "G#2", flatName: "Ab2", pitchClass: "G#", isBlack: true },
+            { midi: 45, name: "A2", pitchClass: "A", isBlack: false },
+            { midi: 46, name: "A#2", flatName: "Bb2", pitchClass: "A#", isBlack: true },
+            { midi: 47, name: "B2", pitchClass: "B", isBlack: false },
+            { midi: 48, name: "C3", pitchClass: "C", isBlack: false },
+            { midi: 49, name: "C#3", flatName: "Db3", pitchClass: "C#", isBlack: true },
+            { midi: 50, name: "D3", pitchClass: "D", isBlack: false },
+            { midi: 51, name: "D#3", flatName: "Eb3", pitchClass: "D#", isBlack: true },
+            { midi: 52, name: "E3", pitchClass: "E", isBlack: false },
+            { midi: 53, name: "F3", pitchClass: "F", isBlack: false },
+            { midi: 54, name: "F#3", flatName: "Gb3", pitchClass: "F#", isBlack: true },
+            { midi: 55, name: "G3", pitchClass: "G", isBlack: false },
+            { midi: 56, name: "G#3", flatName: "Ab3", pitchClass: "G#", isBlack: true },
+            { midi: 57, name: "A3", pitchClass: "A", isBlack: false },
+            { midi: 58, name: "A#3", flatName: "Bb3", pitchClass: "A#", isBlack: true },
+            { midi: 59, name: "B3", pitchClass: "B", isBlack: false },
+            { midi: 60, name: "C4", pitchClass: "C", isBlack: false },
+            { midi: 61, name: "C#4", flatName: "Db4", pitchClass: "C#", isBlack: true },
+            { midi: 62, name: "D4", pitchClass: "D", isBlack: false },
+            { midi: 63, name: "D#4", flatName: "Eb4", pitchClass: "D#", isBlack: true },
+            { midi: 64, name: "E4", pitchClass: "E", isBlack: false },
+            { midi: 65, name: "F4", pitchClass: "F", isBlack: false },
+            { midi: 66, name: "F#4", flatName: "Gb4", pitchClass: "F#", isBlack: true },
+            { midi: 67, name: "G4", pitchClass: "G", isBlack: false },
+            { midi: 68, name: "G#4", flatName: "Ab4", pitchClass: "G#", isBlack: true },
+            { midi: 69, name: "A4", pitchClass: "A", isBlack: false },
+            { midi: 70, name: "A#4", flatName: "Bb4", pitchClass: "A#", isBlack: true },
+            { midi: 71, name: "B4", pitchClass: "B", isBlack: false },
+            { midi: 72, name: "C5", pitchClass: "C", isBlack: false },
+            { midi: 73, name: "C#5", flatName: "Db5", pitchClass: "C#", isBlack: true },
+            { midi: 74, name: "D5", pitchClass: "D", isBlack: false },
+            { midi: 75, name: "D#5", flatName: "Eb5", pitchClass: "D#", isBlack: true },
+            { midi: 76, name: "E5", pitchClass: "E", isBlack: false },
+            { midi: 77, name: "F5", pitchClass: "F", isBlack: false },
+            { midi: 78, name: "F#5", flatName: "Gb5", pitchClass: "F#", isBlack: true },
+            { midi: 79, name: "G5", pitchClass: "G", isBlack: false },
+            { midi: 80, name: "G#5", flatName: "Ab5", pitchClass: "G#", isBlack: true },
+            { midi: 81, name: "A5", pitchClass: "A", isBlack: false },
+            { midi: 82, name: "A#5", flatName: "Bb5", pitchClass: "A#", isBlack: true },
+            { midi: 83, name: "B5", pitchClass: "B", isBlack: false },
+            { midi: 84, name: "C6", pitchClass: "C", isBlack: false },
+            { midi: 85, name: "C#6", flatName: "Db6", pitchClass: "C#", isBlack: true },
+            { midi: 86, name: "D6", pitchClass: "D", isBlack: false },
+            { midi: 87, name: "D#6", flatName: "Eb6", pitchClass: "D#", isBlack: true },
+            { midi: 88, name: "E6", pitchClass: "E", isBlack: false },
+            { midi: 89, name: "F6", pitchClass: "F", isBlack: false },
+            { midi: 90, name: "F#6", flatName: "Gb6", pitchClass: "F#", isBlack: true },
+            { midi: 91, name: "G6", pitchClass: "G", isBlack: false },
+            { midi: 92, name: "G#6", flatName: "Ab6", pitchClass: "G#", isBlack: true },
+            { midi: 93, name: "A6", pitchClass: "A", isBlack: false },
+            { midi: 94, name: "A#6", flatName: "Bb6", pitchClass: "A#", isBlack: true },
+            { midi: 95, name: "B6", pitchClass: "B", isBlack: false },
+            { midi: 96, name: "C7", pitchClass: "C", isBlack: false },
+        ];
+
+        const searchInput = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('results');
+        const showAllBtn = document.getElementById('showAllBtn');
+        let showingAll = false;
+
+        function renderResults(query) {
+            const trimmed = query.trim().toLowerCase();
+            
+            if (!trimmed) {
+                resultsContainer.innerHTML = '';
+                return;
+            }
+
+            const filtered = ALL_NOTE_INFO.filter(note => {
+                const midiStr = note.midi.toString();
+                const nameMatch = note.name.toLowerCase().includes(trimmed);
+                const flatMatch = note.flatName && note.flatName.toLowerCase().includes(trimmed);
+                const midiMatch = midiStr.includes(trimmed);
+                
+                // Check for range like "60-66"
+                const rangeMatch = trimmed.match(/^(\d+)-(\d+)$/);
+                if (rangeMatch) {
+                    const start = parseInt(rangeMatch[1]);
+                    const end = parseInt(rangeMatch[2]);
+                    return note.midi >= start && note.midi <= end;
+                }
+                
+                return nameMatch || flatMatch || midiMatch;
+            });
+
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results">No notes found</div>';
+                return;
+            }
+
+            displayNotes(filtered);
+        }
+
+        function displayNotes(notes) {
+            resultsContainer.innerHTML = notes.map(note => `
+                <div class="note-item ${note.isBlack ? 'black-key' : ''}">
+                    <div class="note-field">
+                        <label>MIDI</label>
+                        <value>${note.midi}</value>
+                    </div>
+                    <div class="note-field">
+                        <label>Note</label>
+                        <value>${note.name}</value>
+                    </div>
+                    <div class="note-field">
+                        <label>Flat</label>
+                        <value>${note.flatName || '—'}</value>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            showingAll = false;
+            showAllBtn.textContent = 'Show All';
+            renderResults(e.target.value);
+        });
+
+        showAllBtn.addEventListener('click', () => {
+            if (showingAll) {
+                searchInput.value = '';
+                resultsContainer.innerHTML = '';
+                showingAll = false;
+                showAllBtn.textContent = 'Show All';
+            } else {
+                searchInput.value = '';
+                displayNotes(ALL_NOTE_INFO);
+                showingAll = true;
+                showAllBtn.textContent = 'Hide All';
+            }
+        });
+    </script>
+</body>
+</html>
