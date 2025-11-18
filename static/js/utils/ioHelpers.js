@@ -469,19 +469,6 @@ export function saveScoreToFile() {
     const activeScore = scoreManager.getActiveScore();
     
     let scoreData;
-    if (activeScore) {
-        // Use scoreManager data if available
-        scoreData = {
-            keySignature: activeScore.metadata.keySignature,
-            tempo: activeScore.metadata.tempo,
-            timeSignature: activeScore.metadata.timeSignature,
-            instrument: activeScore.metadata.instrument,
-            midiChannel: activeScore.metadata.midiChannel,
-            isMinorChordMode: activeScore.metadata.isMinorChordMode,
-            measures: activeScore.measures
-        };
-    } else {
-        // Fallback to current pianoState
         scoreData = {
             keySignature: pianoState.keySignature,
             tempo: pianoState.tempo,
@@ -493,7 +480,6 @@ export function saveScoreToFile() {
             midiChannel: pianoState.midiChannel,
             measures: getMeasures()
         };
-    }
 
     const dataStr = JSON.stringify(scoreData, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });

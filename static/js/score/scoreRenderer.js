@@ -741,6 +741,7 @@ function handlePaletteDrop(endX, endY, event) {
     clef: clef,
     duration: selectedDuration,
     isRest: paletteDragType === "rest",
+    measure: targetMeasureIndex,
     id: Date.now().toString(),
   };
 
