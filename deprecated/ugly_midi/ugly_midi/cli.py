@@ -12,8 +12,8 @@ import sys
 from pathlib import Path
 
 # Import the converter functions
-from .converter import create_midi_from_multiple_json
-from . import midi_to_json  # Use v3 converter via public API
+from .converter import (create_midi_from_multiple_json, create_json_from_midi,
+                        create_json_from_midi_file)
 
 
 def main():
@@ -74,10 +74,7 @@ Examples:
             sys.exit(1)
 
         try:
-            # Use v3 converter for better accuracy with default quantization
-            # Try to infer tempo from the file, otherwise use CLI arg or default
-            tempo = args.tempo or 120
-            json_data = midi_to_json(midi_file, manual_tempo=tempo)
+            json_data = create_json_from_midi(midi_file)
 
             if args.to_json is True:
                 # Print to stdout

@@ -30,55 +30,43 @@ def redirect_to_canonical():
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def midi_to_json_data(midi_file_path):
+def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=None):
     """
-    Converts a MIDI file to VexFlow JSON format using improved ugly_midi library.
+    Simplified MIDI → JSON conversion using new ugly_midi API.
+
+    The new `ugly_midi.midi_to_json` returns a measure-aware JSON structure
+    by default (v3). We simply forward parameters and return the resulting
+    dictionary to the caller.
     """
     try:
-        # Use improved ugly_midi with manual tempo for 99% accuracy
-        # Try different tempos if the first fails
-        vexflow_json = None
-        
-        # Common tempos to try (most MIDI files are one of these)
-        tempo_candidates = [142, 120, 100, 80, 60, 180, 200]
-        
-        for tempo in tempo_candidates:
-            try:
-                logger.info(f"Trying conversion with tempo {tempo} BPM")
-                vexflow_json = ugly_midi.midi_to_json(
-                    midi_file_path, 
-                    quantize_resolution=0.125,  # Fine quantization for accuracy
-                    manual_tempo=tempo
-                )
-                logger.info(f"Successfully converted with tempo {tempo} BPM")
-                break
-            except Exception as e:
-                logger.warning(f"Tempo {tempo} failed: {e}")
-                continue
-        
-        if not vexflow_json:
-            # Fallback to default parameters
-            logger.info("All tempo attempts failed, using default conversion")
-            vexflow_json = ugly_midi.midi_to_json(midi_file_path)
-        
-        # Return the full VexFlow JSON object (don't transform it)
-        # Ensure it has all required fields
-        result = {
-            'keySignature': vexflow_json.get('keySignature', 'C'),
-            'tempo': vexflow_json.get('tempo', 120),
-            'timeSignature': vexflow_json.get('timeSignature', {'numerator': 4, 'denominator': 4}),
-            'instrument': vexflow_json.get('instrument', 'piano'),
-            'midiChannel': vexflow_json.get('midiChannel', '0'),
-            'isMinorChordMode': vexflow_json.get('isMinorChordMode', False),
-            'measures': vexflow_json.get('measures', [])
-        }
-        
-        logger.info(f"Converted MIDI to {len(result['measures'])} measures at {result['tempo']} BPM")
-        return result
+        logger.info(
+            "Converting MIDI to JSON using ugly_midi (quantize=%s, tempo=%s)",
+            quantize_resolution,
+            manual_tempo,
+        )
 
+        # Call v3 converter through package alias (it will use manual_tempo
+        # if provided and otherwise derive tempo from the MIDI file).
+        # Use v3's default quantization (0.25 = 16th notes) for large file stability.
+        kwargs = {'manual_tempo': manual_tempo}
+        if quantize_resolution is not None:
+            kwargs['quantize_resolution'] = quantize_resolution
+        json_data = ugly_midi.midi_to_json(midi_file_path, **kwargs)
+
+        # Basic validation / fallback if the returned payload is unexpected
+        if not isinstance(json_data, dict) or 'measures' not in json_data:
+            raise ValueError("ugly_midi returned invalid JSON payload")
+
+        logger.info(
+            "Converted MIDI to %d measures at %s BPM",
+            len(json_data.get('measures', [])),
+            json_data.get('tempo', 'unknown'),
+        )
+
+        return json_data
     except Exception as e:
-        logger.error(f"ugly_midi failed to parse MIDI file: {e}")
-        raise ValueError(f"Failed to convert MIDI file: {str(e)}")
+        logger.error("ugly_midi failed to parse MIDI file: %s", e, exc_info=True)
+        raise ValueError(f"Failed to convert MIDI file: {e}")
 
 # --- Flask Routes ---
 

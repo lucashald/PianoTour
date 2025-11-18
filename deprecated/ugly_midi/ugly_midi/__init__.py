@@ -26,7 +26,7 @@ __license__ = "MIT"
 
 # Import main functions for easy access
 from .converter import (
-    # Core conversion functions (v1)
+    # Core conversion functions
     create_midi_from_json,
     create_midi_from_multiple_json,
     create_json_from_midi,
@@ -46,18 +46,6 @@ from .converter import (
     # Constants
     DURATION_TO_BEATS,
 )
-
-# v3: measure-aware, clef-balanced converter (default)
-from .converter_v3 import (  # type: ignore[F401]
-    midi_to_json_v3,
-)
-
-# v2: simplified, beat-based converter (opt-in)
-# Temporarily disabled - converter_v2.py does not exist
-# from .converter_v2 import (  # type: ignore[F401]
-#     create_midi_from_json_v2,
-#     midi_to_json_v2,
-# )
 
 
 # Convenient aliases for common operations
@@ -97,8 +85,7 @@ def midi_to_json(midi_file_path, quantize_resolution=0.25, manual_tempo=142):
         >>> json_data = ugly_midi.midi_to_json('input.mid', manual_tempo=142)
         >>> print(json_data['tempo'])
     """
-    # Use the v3 converter by default; keep the old parameter order and defaults
-    return midi_to_json_v3(midi_file_path, manual_tempo=manual_tempo, quantize_resolution=quantize_resolution)
+    return create_json_from_midi(midi_file_path, quantize_resolution, manual_tempo)
 
 
 def create_ensemble(json_data_list, output_tempo=None):
