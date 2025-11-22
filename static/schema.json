@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Music Notation",
+  "description": "Schema for music notation with support for chords, rests, and multi-clef playback",
+  "type": "object",
+  "required": [
+    "keySignature",
+    "tempo",
+    "timeSignature",
+    "instrument",
+    "midiChannel",
+    "measures"
+  ],
+  "properties": {
+    "keySignature": {
+      "type": "string",
+      "enum": [
+        "C",
+        "G",
+        "D",
+        "A",
+        "E",
+        "B",
+        "F#",
+        "C#",
+        "F",
+        "Bb",
+        "Eb",
+        "Ab",
+        "Db",
+        "Gb",
+        "Cb"
+      ],
+      "description": "The key signature (major keys only)"
+    },
+    "tempo": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 300,
+      "description": "Tempo in beats per minute"
+    },
+    "timeSignature": {
+      "type": "object",
+      "required": ["numerator", "denominator"],
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Top number of time signature"
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Bottom number of time signature"
+        }
+      }
+    },
+    "instrument": {
+      "type": "string",
+      "description": "Musical instrument"
+    },
+    "midiChannel": {
+      "type": "string",
+      "enum": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"],
+      "description": "MIDI channel (0-15)"
+    },
+    "measures": {
+      "type": "array",
+      "description": "Array of measures, where each measure is an array of notes",
+      "items": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/note"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "note": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "clef",
+        "duration",
+        "isRest",
+        "performedDuration",
+        "velocity"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the note"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-G][#b]?[2-7]$",
+          "description": "Note name with optional accidental (# or b) and octave 2-7. Example: C4, F#5, Bb3"
+        },
+        "clef": {
+          "type": "string",
+          "enum": ["treble", "bass"],
+          "description": "The clef for this note"
+        },
+        "duration": {
+          "type": "string",
+          "enum": ["32", "32.", "16", "16.", "8", "8.", "q", "q.", "h", "h.", "w"],
+          "description": "Note duration code (32=32nd, 16=16th, 8=eighth, q=quarter, h=half, w=whole; . = dotted)"
+        },
+        "measure": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Measure number (optional, for reference)"
+        },
+        "isRest": {
+          "type": "boolean",
+          "description": "Whether this is a rest"
+        },
+        "chordName": {
+          "type": "string",
+          "description": "Name of the chord (optional)"
+        },
+        "performedDuration": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Percentage of duration the key is held (0-1), for humanizing and articulation"
+        },
+        "velocity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 127,
+          "description": "MIDI velocity (0-127)"
+        }
+      }
+    }
+  }
+}
