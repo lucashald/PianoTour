@@ -67,9 +67,13 @@ def fret():
 def editor():
     return render_template('editor.html', show_side_panel=True, disable_keyboard=True)
 
+@app.route('/api')
+def api():
+    return render_template('api.html', show_side_panel=True, disable_keyboard=True)
+
 
 @app.route('/json')
-def json():
+def json_page():
     return render_template('json.html', show_side_panel=True, disable_keyboard=True)
 
 
@@ -467,6 +471,84 @@ def health_check():
 @app.route('/settings')
 def settings():
     return render_template('settings.html', show_side_panel=True)
+
+
+# --- Gemini API Configuration ---
+import google.generativeai as genai
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+else:
+    logger.warning("GEMINI_API_KEY not set. LLM features will be disabled.")
+
+@app.route('/api/score/llm-edit', methods=['POST'])
+def llm_edit_score():
+    if not GEMINI_API_KEY:
+        return jsonify({'error': 'LLM features are not configured on the server.'}), 503
+
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+            
+        instructions = data.get('instructions')
+        measures = data.get('measures')
+        
+        if not instructions:
+            return jsonify({'error': 'No instructions provided'}), 400
+            
+        if not measures:
+            return jsonify({'error': 'No score data provided'}), 400
+
+        # Construct the prompt
+        prompt = f"""
+        You are a music composition assistant. I will provide you with a musical score in JSON format and a set of plain English instructions to modify it.
+        
+        Your task is to apply the instructions to the score and return the modified score in the EXACT same JSON format.
+        
+        Rules:
+        1. Return ONLY the valid JSON of the modified measures array. Do not include markdown formatting, code blocks, or explanations.
+        2. Preserve the structure of the measures and notes.
+        3. Only modify what is requested in the instructions.
+        4. If the instructions are impossible or unclear, return the original measures unchanged.
+        
+        Current Score (JSON):
+        {json.dumps(measures)}
+        
+        Instructions:
+        {instructions}
+        
+        Modified Score (JSON):
+        """
+        
+        # Call Gemini API
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        
+        response_text = response.text.strip()
+        
+        # Clean up potential markdown formatting
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.startswith('```'):
+            response_text = response_text[3:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+            
+        response_text = response_text.strip()
+            
+        # Parse and validate JSON
+        modified_measures = json.loads(response_text)
+        
+        if not isinstance(modified_measures, list):
+             return jsonify({'error': 'LLM returned invalid data structure'}), 500
+
+        return jsonify({'measures': modified_measures})
+
+    except Exception as e:
+        logger.error(f"Error during LLM edit: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to process LLM request: {str(e)}'}), 500
 
 # --- Main Execution ---
 if __name__ == '__main__':
