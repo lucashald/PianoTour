@@ -1,4 +1,5 @@
 // static/scoreManager.js
+import { pianoState } from '../core/appState.js';
 
 // This file aims to provide a single, robust function to process raw JSON score data.
 // It handles large files by using a Web Worker internally to prevent UI blocking.
@@ -312,12 +313,12 @@ const workerScriptContent = `
                     correctedDuration = baseDuration;
                     errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Old rest duration '\${note.duration}' converted to '\${correctedDuration}' with isRest: true\`);
                 } else {
-                    correctedDuration = 'q';
+                    correctedDuration = pianoState.quantize;
                     errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid rest duration '\${note.duration}' corrected to '\${correctedDuration}'\`);
                 }
             }
             else {
-                correctedDuration = 'q';
+                correctedDuration = pianoState.quantize;
                 errors.push(\`Measure \${measureIndex}, Note \${noteIndex}: Invalid duration '\${note.duration}' corrected to '\${correctedDuration}'\`);
             }
         }

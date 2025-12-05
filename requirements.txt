@@ -3,3 +3,4 @@ gunicorn
 jsonschema
 pretty_midi
 -e ./vendor/ugly_midi
+google-generativeai>=0.8.5

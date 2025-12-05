@@ -656,10 +656,10 @@
             
             try {
                 const sampleNotes = [
-                    { clef: 'treble', duration: 'q', notes: ['C4'], chordName: 'C4' },
-                    { clef: 'treble', duration: 'q', notes: ['D4'], chordName: 'D4' },
-                    { clef: 'treble', duration: 'q', notes: ['E4'], chordName: 'E4' },
-                    { clef: 'treble', duration: 'q', notes: ['F4'], chordName: 'F4' }
+                    { clef: 'treble', duration: pianoState.quantize, notes: ['C4'], chordName: 'C4' },
+                    { clef: 'treble', duration: pianoState.quantize, notes: ['D4'], chordName: 'D4' },
+                    { clef: 'treble', duration: pianoState.quantize, notes: ['E4'], chordName: 'E4' },
+                    { clef: 'treble', duration: pianoState.quantize, notes: ['F4'], chordName: 'F4' }
                 ];
                 
                 sampleNotes.forEach((noteData) => {

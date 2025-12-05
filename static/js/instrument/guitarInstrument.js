@@ -807,7 +807,7 @@ export function handleInitialGuitar(e, actionData = null) {
       const group = clefGroups[0];
       writeNote({
         clef: group.clef,
-        duration: "q",
+        duration: pianoState.quantize,
         notes: group.notes,
         chordName: group.notes[0],
       });
@@ -833,7 +833,7 @@ export function handleInitialGuitar(e, actionData = null) {
       clefGroups.forEach(group => {
         writeNote({
           clef: group.clef,
-          duration: "q",
+          duration: pianoState.quantize,
           notes: group.notes,
           chordName: identifiedChord,
         });

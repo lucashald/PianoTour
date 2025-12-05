@@ -171,7 +171,7 @@ export function generateChordButtons() {
                 const chordDisplayName = chordDefinition.displayName;
                 updateNowPlayingDisplay(chordDisplayName);
                 // Always write to score regardless of audio state
-                writeNote({ clef, duration: 'q', notes: [], chordName: chordDisplayName, isRest: true });
+                writeNote({ clef, duration: pianoState.quantize, notes: [], chordName: chordDisplayName, isRest: true });
                 document.getElementById('instrument')?.focus();
             }
         }); 

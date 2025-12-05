@@ -888,7 +888,7 @@ export function handleInitial(e) {
      // Activate the more advanced listeners for future interactions
 
    // Play the clicked note.
-     triggerAttackRelease([clickedNoteDetails.noteName], "q", pianoState.velocity);
+     triggerAttackRelease([clickedNoteDetails.noteName], pianoState.quantize, pianoState.velocity);
      
    }
 

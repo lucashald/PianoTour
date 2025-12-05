@@ -300,7 +300,7 @@ export function stopDiatonicChord(key) {
     console.log("Writing chord to score:", chordData);
     const heldTime = performance.now() - chordData.startTime;
 
-    let duration = "q"; // Default to quarter note
+    let duration = pianoState.quantize; // Default to quarter note
     if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
     else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
     else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
@@ -357,7 +357,7 @@ export function stopDiatonicChordFromUI(inputSource) {
   stopDiatonicChord(inputSource);
 }
 
-export function triggerAttackRelease(note, duration = "q", velocity, writeToScore = true, chordName = null) {
+export function triggerAttackRelease(note, duration = pianoState.quantize, velocity, writeToScore = true, chordName = null) {
   if (!audioManager.isAudioReady()) return;
 
   // Use pianoState.velocity if no velocity is passed
@@ -517,7 +517,7 @@ export function stopScaleChord(key) {
     console.log("Writing chord to score:", chordData.displayName);
     const heldTime = performance.now() - chordData.startTime;
 
-    let duration = "q"; // Default to quarter note
+    let duration = pianoState.quantize; // Default to quarter note
     if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
     else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
     else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
