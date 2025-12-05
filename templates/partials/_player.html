@@ -38,9 +38,15 @@
       <button id="connect-midi-btn" class="dropdown-item">
         🎹 Connect MIDI
       </button>
-      <button id="export-audio-btn" class="dropdown-item">
-        📥 Export Audio
-      </button>
+      <div class="dropdown-submenu">
+        <button id="export-menu-btn" class="dropdown-item has-submenu">
+          📥 Export ▸
+        </button>
+        <div id="export-submenu" class="submenu-content hidden">
+          <button id="export-audio-btn" class="dropdown-item">🎵 Export Audio</button>
+          <button id="export-midi-btn" class="dropdown-item">🎼 Export MIDI</button>
+        </div>
+      </div>
       <a href="/print" class="dropdown-item">
         🖨 Print
       </a>

@@ -153,7 +153,7 @@
         drawAll,
         setKeySignature,
       } from '{{ url_for("static", filename="js/score/scoreRenderer.js") }}';
-      import { initializeFileHandlers } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
+      import { initializeFileHandlers, exportMidi } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
       import {
         handleChordDisplayToggle,
         handleSettingsDisplayToggle,
@@ -162,6 +162,7 @@
         handleQuantizeToggle,
         handleInstrumentMenuToggle,
         handleInstrumentSelect,
+        handleExportMenuToggle,
         updateUI,
       } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
       import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
@@ -205,6 +206,15 @@ document.getElementById('export-audio-btn')?.addEventListener('click', async () 
     showExportError(error);
   }
 });
+
+// Export MIDI button handler
+document.getElementById('export-midi-btn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  exportMidi();
+});
+
+// Export menu toggle handler
+document.getElementById('export-menu-btn')?.addEventListener('click', handleExportMenuToggle);
 
       // Store initialization state globally so child scripts can check it
       window.pianoTourInitState = {

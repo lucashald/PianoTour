@@ -6,7 +6,7 @@
 // ===================================================================
 
 import { pianoState } from '../core/appState.js';
-import audioManager from '../core/audioManager.js';
+import audioManager, { unlockAndExecute } from '../core/audioManager.js';
 import { CHORD_DEFINITIONS, CHORD_GROUPS, getDurationThresholds, getKeySignature } from '../core/note-data.js';
 import { trigger } from '../instrument/playbackHelpers.js';
 import { setKeySignature } from '../score/scoreRenderer.js';
@@ -313,21 +313,28 @@ document.addEventListener('click', (e) => {
     const dropdown = document.getElementById('playback-menu-dropdown');
     const button = document.getElementById('playback-menu-btn');
     const instrumentSubmenu = document.getElementById('instrument-submenu');
+    const exportSubmenu = document.getElementById('export-submenu');
     
     if (dropdown && button && !dropdown.classList.contains('hidden')) {
         // Don't close if clicking on instrument submenu or its button
         const instrumentMenuBtn = document.getElementById('instrument-menu-btn');
+        const exportMenuBtn = document.getElementById('export-menu-btn');
         const isInstrumentInteraction = (instrumentMenuBtn && instrumentMenuBtn.contains(e.target)) ||
                                          (instrumentSubmenu && instrumentSubmenu.contains(e.target));
+        const isExportInteraction = (exportMenuBtn && exportMenuBtn.contains(e.target)) ||
+                                     (exportSubmenu && exportSubmenu.contains(e.target));
         
         // Close if clicked outside OR if a non-submenu dropdown item was clicked
-        if (!isInstrumentInteraction) {
+        if (!isInstrumentInteraction && !isExportInteraction) {
             if ((!dropdown.contains(e.target) && !button.contains(e.target)) || 
                 (dropdown.contains(e.target) && e.target.classList.contains('dropdown-item') && !e.target.classList.contains('has-submenu'))) {
                 dropdown.classList.add('hidden');
-                // Also close submenu
+                // Also close submenus
                 if (instrumentSubmenu) {
                     instrumentSubmenu.classList.add('hidden');
+                }
+                if (exportSubmenu) {
+                    exportSubmenu.classList.add('hidden');
                 }
             }
         }
@@ -371,6 +378,25 @@ export function handleInstrumentMenuToggle(e) {
         // Update active state for current instrument
         updateInstrumentMenuActiveState();
     }
+    // Close export submenu if open
+    const exportSubmenu = document.getElementById('export-submenu');
+    if (exportSubmenu) {
+        exportSubmenu.classList.add('hidden');
+    }
+}
+
+export function handleExportMenuToggle(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const submenu = document.getElementById('export-submenu');
+    if (submenu) {
+        submenu.classList.toggle('hidden');
+    }
+    // Close instrument submenu if open
+    const instrumentSubmenu = document.getElementById('instrument-submenu');
+    if (instrumentSubmenu) {
+        instrumentSubmenu.classList.add('hidden');
+    }
 }
 
 export async function handleInstrumentSelect(e) {
@@ -380,23 +406,27 @@ export async function handleInstrumentSelect(e) {
     const instrumentName = e.target.dataset.instrument;
     if (!instrumentName) return;
     
+    // Update UI immediately for responsiveness
+    const instrumentSelect = document.getElementById('instrumentSelect');
+    if (instrumentSelect) {
+        instrumentSelect.value = instrumentName;
+    }
+    
+    // Update active state and close menus
+    pianoState.instrument = instrumentName; // Update state for UI
+    updateInstrumentMenuActiveState();
+    
+    // Close both menus
+    const dropdown = document.getElementById('playback-menu-dropdown');
+    const submenu = document.getElementById('instrument-submenu');
+    if (dropdown) dropdown.classList.add('hidden');
+    if (submenu) submenu.classList.add('hidden');
+    
+    // Use unlockAndExecute to ensure audio is ready before changing instrument
     try {
-        await audioSettingsController.changeInstrument(instrumentName);
-        
-        // Update the settings dropdown to match
-        const instrumentSelect = document.getElementById('instrumentSelect');
-        if (instrumentSelect) {
-            instrumentSelect.value = instrumentName;
-        }
-        
-        // Update active state and close menus
-        updateInstrumentMenuActiveState();
-        
-        // Close both menus
-        const dropdown = document.getElementById('playback-menu-dropdown');
-        const submenu = document.getElementById('instrument-submenu');
-        if (dropdown) dropdown.classList.add('hidden');
-        if (submenu) submenu.classList.add('hidden');
+        await unlockAndExecute(async () => {
+            await audioSettingsController.changeInstrument(instrumentName);
+        });
     } catch (error) {
         console.error('Failed to change instrument:', error);
     }
