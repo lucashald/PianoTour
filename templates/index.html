@@ -115,10 +115,6 @@
               href="/guitar"
               class="btn btn--info"
               ><span>Guitar</span></a
-            >{% endif %} {% if request.path != '/extras' %}<a
-              href="/extras"
-              class="btn btn--info"
-              ><span>More</span></a
             >{% endif %}
           </div>
 
@@ -163,6 +159,8 @@
         handleInstrumentMenuToggle,
         handleInstrumentSelect,
         handleExportMenuToggle,
+        handleKeyMenuToggle,
+        handleKeySelect,
         updateUI,
       } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
       import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
@@ -526,6 +524,11 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
             event: "click",
             handler: handleInstrumentMenuToggle,
           },
+          {
+            id: "key-menu-btn",
+            event: "click",
+            handler: handleKeyMenuToggle,
+          },
         ];
 
         eventHandlers.forEach(({ id, event, handler }) => {
@@ -543,6 +546,11 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
         // Add event listeners for instrument options
         document.querySelectorAll('.instrument-option').forEach(option => {
           option.addEventListener('click', handleInstrumentSelect);
+        });
+
+        // Add event listeners for key signature options
+        document.querySelectorAll('.key-option').forEach(option => {
+          option.addEventListener('click', handleKeySelect);
         });
       }
 

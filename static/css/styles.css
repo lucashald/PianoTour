@@ -1930,7 +1930,26 @@ background: linear-gradient(to right,
   display: none;
 }
 
-.instrument-option.active {
+.instrument-option.active,
+.key-option.active {
   background-color: var(--color-blue-dark);
   font-weight: bold;
+}
+
+.submenu-section {
+  padding: var(--spacing-xs) 0;
+}
+
+.submenu-section:not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-xs);
+}
+
+.submenu-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

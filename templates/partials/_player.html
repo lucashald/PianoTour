@@ -19,8 +19,36 @@
         ⚙ Settings
       </button>
       <div class="dropdown-submenu">
+        <button id="key-menu-btn" class="dropdown-item has-submenu">
+          🎵 Key Signature ▸
+        </button>
+        <div id="key-submenu" class="submenu-content hidden">
+          <div class="submenu-section">
+            <div class="submenu-label">Sharp Keys</div>
+            <button class="dropdown-item key-option" data-key="C">C Major</button>
+            <button class="dropdown-item key-option" data-key="G">G Major</button>
+            <button class="dropdown-item key-option" data-key="D">D Major</button>
+            <button class="dropdown-item key-option" data-key="A">A Major</button>
+            <button class="dropdown-item key-option" data-key="E">E Major</button>
+            <button class="dropdown-item key-option" data-key="B">B Major</button>
+            <button class="dropdown-item key-option" data-key="F#">F# Major</button>
+            <button class="dropdown-item key-option" data-key="C#">C# Major</button>
+          </div>
+          <div class="submenu-section">
+            <div class="submenu-label">Flat Keys</div>
+            <button class="dropdown-item key-option" data-key="F">F Major</button>
+            <button class="dropdown-item key-option" data-key="Bb">B♭ Major</button>
+            <button class="dropdown-item key-option" data-key="Eb">E♭ Major</button>
+            <button class="dropdown-item key-option" data-key="Ab">A♭ Major</button>
+            <button class="dropdown-item key-option" data-key="Db">D♭ Major</button>
+            <button class="dropdown-item key-option" data-key="Gb">G♭ Major</button>
+            <button class="dropdown-item key-option" data-key="Cb">C♭ Major</button>
+          </div>
+        </div>
+      </div>
+      <div class="dropdown-submenu">
         <button id="instrument-menu-btn" class="dropdown-item has-submenu">
-          🎵 Instrument ▸
+          🎹 Instrument ▸
         </button>
         <div id="instrument-submenu" class="submenu-content hidden">
           <button class="dropdown-item instrument-option" data-instrument="piano">🎹 Piano</button>

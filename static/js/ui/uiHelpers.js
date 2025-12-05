@@ -314,18 +314,22 @@ document.addEventListener('click', (e) => {
     const button = document.getElementById('playback-menu-btn');
     const instrumentSubmenu = document.getElementById('instrument-submenu');
     const exportSubmenu = document.getElementById('export-submenu');
+    const keySubmenu = document.getElementById('key-submenu');
     
     if (dropdown && button && !dropdown.classList.contains('hidden')) {
-        // Don't close if clicking on instrument submenu or its button
+        // Don't close if clicking on a submenu or its button
         const instrumentMenuBtn = document.getElementById('instrument-menu-btn');
         const exportMenuBtn = document.getElementById('export-menu-btn');
+        const keyMenuBtn = document.getElementById('key-menu-btn');
         const isInstrumentInteraction = (instrumentMenuBtn && instrumentMenuBtn.contains(e.target)) ||
                                          (instrumentSubmenu && instrumentSubmenu.contains(e.target));
         const isExportInteraction = (exportMenuBtn && exportMenuBtn.contains(e.target)) ||
                                      (exportSubmenu && exportSubmenu.contains(e.target));
+        const isKeyInteraction = (keyMenuBtn && keyMenuBtn.contains(e.target)) ||
+                                  (keySubmenu && keySubmenu.contains(e.target));
         
         // Close if clicked outside OR if a non-submenu dropdown item was clicked
-        if (!isInstrumentInteraction && !isExportInteraction) {
+        if (!isInstrumentInteraction && !isExportInteraction && !isKeyInteraction) {
             if ((!dropdown.contains(e.target) && !button.contains(e.target)) || 
                 (dropdown.contains(e.target) && e.target.classList.contains('dropdown-item') && !e.target.classList.contains('has-submenu'))) {
                 dropdown.classList.add('hidden');
@@ -335,6 +339,9 @@ document.addEventListener('click', (e) => {
                 }
                 if (exportSubmenu) {
                     exportSubmenu.classList.add('hidden');
+                }
+                if (keySubmenu) {
+                    keySubmenu.classList.add('hidden');
                 }
             }
         }
@@ -378,10 +385,14 @@ export function handleInstrumentMenuToggle(e) {
         // Update active state for current instrument
         updateInstrumentMenuActiveState();
     }
-    // Close export submenu if open
+    // Close other submenus if open
     const exportSubmenu = document.getElementById('export-submenu');
     if (exportSubmenu) {
         exportSubmenu.classList.add('hidden');
+    }
+    const keySubmenu = document.getElementById('key-submenu');
+    if (keySubmenu) {
+        keySubmenu.classList.add('hidden');
     }
 }
 
@@ -392,11 +403,71 @@ export function handleExportMenuToggle(e) {
     if (submenu) {
         submenu.classList.toggle('hidden');
     }
-    // Close instrument submenu if open
+    // Close other submenus if open
     const instrumentSubmenu = document.getElementById('instrument-submenu');
     if (instrumentSubmenu) {
         instrumentSubmenu.classList.add('hidden');
     }
+    const keySubmenu = document.getElementById('key-submenu');
+    if (keySubmenu) {
+        keySubmenu.classList.add('hidden');
+    }
+}
+
+export function handleKeyMenuToggle(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const submenu = document.getElementById('key-submenu');
+    if (submenu) {
+        submenu.classList.toggle('hidden');
+        // Update active state for current key
+        updateKeyMenuActiveState();
+    }
+    // Close other submenus if open
+    const instrumentSubmenu = document.getElementById('instrument-submenu');
+    if (instrumentSubmenu) {
+        instrumentSubmenu.classList.add('hidden');
+    }
+    const exportSubmenu = document.getElementById('export-submenu');
+    if (exportSubmenu) {
+        exportSubmenu.classList.add('hidden');
+    }
+}
+
+export function handleKeySelect(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const keyName = e.target.dataset.key;
+    if (!keyName) return;
+    
+    // Use the setKeySignature function
+    if (setKeySignature(keyName)) {
+        updateUI(`Key: ${getKeySignature()}`, {
+            updateKeySignature: true,
+            regenerateChords: true
+        });
+    }
+    
+    // Update active state and close menus
+    updateKeyMenuActiveState();
+    
+    // Close both menus
+    const dropdown = document.getElementById('playback-menu-dropdown');
+    const submenu = document.getElementById('key-submenu');
+    if (dropdown) dropdown.classList.add('hidden');
+    if (submenu) submenu.classList.add('hidden');
+}
+
+function updateKeyMenuActiveState() {
+    const options = document.querySelectorAll('.key-option');
+    options.forEach(option => {
+        if (option.dataset.key === pianoState.keySignature) {
+            option.classList.add('active');
+        } else {
+            option.classList.remove('active');
+        }
+    });
 }
 
 export async function handleInstrumentSelect(e) {
