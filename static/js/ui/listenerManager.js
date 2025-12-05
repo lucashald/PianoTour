@@ -26,6 +26,7 @@ import { initializeGuitarControls, createChordPalette } from "./guitarUI.js";
 
 import { toggleIsMinorKey, show_side_panel } from "../ui/uiHelpers.js";
 import { setTempo } from "../score/scoreWriter.js";
+import { setupPaletteInteractions } from "../ui/paletteHelpers.js";
 
 let instrumentDiv;
 let isMouseWheelVelocityEnabled = true;
@@ -181,6 +182,11 @@ export function addButtonListeners() {
     document.addEventListener('wheel', handleMouseWheelVelocityControl, { passive: false });
   }
   
+  // Wire up the palette drag mode toggle
+  document
+    .getElementById("togglePaletteDragModeCheckbox")
+    ?.addEventListener("change", handlePaletteDragModeToggle);
+  
   // Rest button listeners
   const bassRestBtn = document.getElementById("bass-rest-btn");
   const trebleRestBtn = document.getElementById("treble-rest-btn");
@@ -325,4 +331,14 @@ function handleMouseWheelVelocityToggle(event) {
     document.removeEventListener('wheel', handleMouseWheelVelocityControl);
     console.log('Mouse wheel velocity control disabled');
   }
+}
+
+/**
+ * Toggles between drag mode and click mode for palette items
+ */
+function handlePaletteDragModeToggle(event) {
+  const useDragMode = event.target.checked;
+  pianoState.togglePaletteDragMode = useDragMode;
+  setupPaletteInteractions(useDragMode);
+  console.log(`Palette mode changed to: ${useDragMode ? 'Drag' : 'Click'}`);
 }

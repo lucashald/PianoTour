@@ -858,6 +858,26 @@ background: linear-gradient(to right,
   background: var(--color-peach-light);
 }
 
+/* Selected state for click mode */
+.palette-note-selected {
+  background: var(--color-blue-light, #4da6ff) !important;
+  box-shadow: 0 0 0 3px var(--color-blue, #007bff);
+  transform: scale(1.05);
+}
+
+/* Click mode styling - cursor pointer instead of grab */
+.palette-note.palette-click-mode {
+  cursor: pointer;
+}
+
+.palette-note:not(.palette-click-mode) {
+  cursor: grab;
+}
+
+.palette-note:not(.palette-click-mode):active {
+  cursor: grabbing;
+}
+
 .note-duration {
   font-size: var(--font-size-xs);
   margin-top: 2px;

@@ -472,6 +472,9 @@ bindChordPaletteEvents() {
         chordAutocomplete = new ChordAutocomplete('chordInput', 'chordSuggestions');
         updateChordPalette();
         
+        // Expose chordAutocomplete globally for palette helpers
+        window.chordAutocomplete = chordAutocomplete;
+        
         document.getElementById('chordInput').addEventListener('chordSelected', (e) => {
             console.log('Chord selected:', e.detail.chordName);
             console.log('Full chord object:', e.detail.chordObject);
@@ -481,4 +484,5 @@ bindChordPaletteEvents() {
     window.updateChordPalette = updateChordPalette;
 
 </script>
+
 

@@ -248,8 +248,9 @@
           // Import editor modules
           const { initializeMusicEditor } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
           const { getMeasures, processAndSyncScore } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
-          const { setPaletteDragState, drawAll } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
+          const { drawAll } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
           const { saveToLocalStorage } = await import('{{ url_for("static", filename="js/utils/ioHelpers.js") }}');
+          const { initializePaletteInteractions } = await import('{{ url_for("static", filename="js/ui/paletteHelpers.js") }}');
 
 
           // Initialize the editor
@@ -257,7 +258,7 @@
 
           // Setup additional functionality
           setupFloatingPanelInteractions();
-          setupPaletteDrag(setPaletteDragState);
+          initializePaletteInteractions();
           setupLLMEditorUI(getMeasures, processAndSyncScore, drawAll, saveToLocalStorage);
 
 
@@ -279,37 +280,6 @@
                 `;
           }
         }
-      }
-
-      function setupPaletteDrag(setPaletteDragState) {
-        const paletteNotes = document.querySelectorAll('.palette-note');
-        paletteNotes.forEach(note => {
-          note.addEventListener('dragstart', (event) => {
-            const type = event.target.dataset.type;
-            const duration = event.currentTarget.dataset.duration;
-
-            // Handle interval elements
-            if (type === 'interval') {
-              const intervalType = event.target.dataset.interval;
-
-              // Set interval data for transfer
-              const intervalData = {
-                intervalType: intervalType
-              };
-              event.dataTransfer.setData('application/interval', JSON.stringify(intervalData));
-              setPaletteDragState(true, type, duration);
-            } else {
-              // Handle all other elements (chords, notes, rests) the original way
-              setPaletteDragState(true, type, duration);
-              event.dataTransfer.setData('text/plain', type);
-            }
-          });
-
-          note.addEventListener("dragend", (event) => {
-            console.log("Palette dragend detected, cleaning up");
-            setPaletteDragState(false, null, null);
-          });
-        });
       }
 
       function setupFloatingPanelInteractions() {
