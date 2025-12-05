@@ -10,13 +10,38 @@
     ⏹ Stop
   </button>
 
-  <button id="connect-midi-btn" class="btn btn--info playback-controls__button">
-    🎹 Connect MIDI
-  </button>
-
-  <button id="export-audio-btn" class="btn btn--info playback-controls__button">
-  📥 Export Audio
-</button>
+  <div class="dropdown-menu-container">
+    <button id="playback-menu-btn" class="btn btn--info playback-controls__button">
+      ☰ Menu
+    </button>
+    <div id="playback-menu-dropdown" class="dropdown-content hidden">
+      <button id="settings-btn-menu" class="dropdown-item">
+        ⚙ Settings
+      </button>
+      <button id="connect-midi-btn" class="dropdown-item">
+        🎹 Connect MIDI
+      </button>
+      <button id="export-audio-btn" class="dropdown-item">
+        📥 Export Audio
+      </button>
+      <a href="/print" class="dropdown-item">
+        🖨 Print
+      </a>
+      <button id="load-score-btn" class="dropdown-item">
+        📂 Load
+      </button>
+      <button id="save-score-btn" class="dropdown-item">
+        💾 Save
+      </button>
+    </div>
+  </div>
+  
+  <input
+    type="file"
+    id="load-file"
+    style="display: none"
+    accept=".json, .mid, .midi"
+  />
 <!--
 <button id="show-side-panel-btn" class="btn btn--info playback-controls__button">
     Show Side Panel

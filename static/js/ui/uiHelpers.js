@@ -181,6 +181,10 @@ export function generateChordButtons() {
 
 export function handleChordDisplayToggle(e) {
     e.preventDefault();
+    
+    // Unlock audio when the button is clicked
+    audioManager.unlockAndExecute(() => {});
+
     const chordButtonsContainer = document.getElementById('chordButtons');
     const toggleButtonSpan = e.currentTarget.querySelector('span');
 
@@ -294,3 +298,25 @@ export function show_side_panel() {
         sidePanel.classList.toggle('visible');
     }
 }
+
+export function handlePlaybackMenuToggle(e) {
+    e.preventDefault();
+    const dropdown = document.getElementById('playback-menu-dropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('hidden');
+    }
+}
+
+// Close dropdown when clicking outside or on an item
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('playback-menu-dropdown');
+    const button = document.getElementById('playback-menu-btn');
+    
+    if (dropdown && button && !dropdown.classList.contains('hidden')) {
+        // Close if clicked outside OR if a dropdown item was clicked
+        if ((!dropdown.contains(e.target) && !button.contains(e.target)) || 
+            (dropdown.contains(e.target) && (e.target.classList.contains('dropdown-item') || e.target.closest('.dropdown-item')))) {
+            dropdown.classList.add('hidden');
+        }
+    }
+});

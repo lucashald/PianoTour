@@ -84,9 +84,6 @@
               />
               <span id="minor-key-text">Major</span>
             </label>
-            <a href="/print" class="btn btn--info"><span>Print</span></a>
-            {% block filehandler %} {% include 'partials/_filehandler.html' %}
-            {% endblock %}
           </div>
 
           <div class="controls-button-row">
@@ -169,6 +166,7 @@
         handleChordDisplayToggle,
         handleSettingsDisplayToggle,
         handleKeySignatureClick,
+        handlePlaybackMenuToggle,
         updateUI,
       } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
       import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
@@ -507,6 +505,11 @@ document.getElementById('export-audio-btn')?.addEventListener('click', async () 
             id: "key-signature-btn",
             event: "click",
             handler: handleKeySignatureClick,
+          },
+          {
+            id: "playback-menu-btn",
+            event: "click",
+            handler: handlePlaybackMenuToggle,
           },
         ];
 

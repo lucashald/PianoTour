@@ -1807,3 +1807,48 @@ background: linear-gradient(to right,
 .velocity-label:hover {
   color: var(--color-green-light);
 }
+
+/* ==========================================================================
+   Dropdown Menu Styles
+   ========================================================================== */
+.dropdown-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: block;
+  position: absolute;
+  background-color: var(--color-surface);
+  min-width: 220px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1000;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-xs);
+  right: 0; /* Align to the right of the button */
+  top: 100%; /* Position below the button */
+  margin-top: var(--spacing-xs);
+}
+
+.dropdown-content.hidden {
+  display: none;
+}
+
+.dropdown-item {
+  color: var(--color-text-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-decoration: none;
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: var(--color-blue-medium);
+}

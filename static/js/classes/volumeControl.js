@@ -76,29 +76,42 @@ export class VolumeControl {
 
     // Settings button click handler
     const settingsButton = document.getElementById('settingsButton');
+    const settingsMenuButton = document.getElementById('settings-btn-menu');
     const settingsContainer = document.getElementById('audio-settings');
     const transposeContainer = document.getElementById('transpose-container');
     
-    if (settingsButton) {
-        settingsButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            settingsButton.classList.toggle('active');
-            
-            if (settingsContainer) {
-                settingsContainer.classList.toggle('hidden');
-            }
+    const toggleSettings = (e) => {
+        e.preventDefault();
+        
+        const isActive = settingsButton ? settingsButton.classList.toggle('active') : false;
+        // Sync the menu button state if needed, though it might not have an 'active' style
+        if (settingsMenuButton) {
+             if (isActive) settingsMenuButton.classList.add('active');
+             else settingsMenuButton.classList.remove('active');
+        }
+        
+        if (settingsContainer) {
+            settingsContainer.classList.toggle('hidden');
+        }
 
-            if (transposeContainer) {
-                transposeContainer.classList.toggle('hidden');
-            }
-            
-            // Initialize audio if not already done
-            if (this.audioStatus === 'uninitialized' || this.audioStatus === 'error') {
-                this.initializeAudio();
-            }
-            
-            console.log('Settings icon toggled:', settingsButton.classList.contains('active'));
-        });
+        if (transposeContainer) {
+            transposeContainer.classList.toggle('hidden');
+        }
+        
+        // Initialize audio if not already done
+        if (this.audioStatus === 'uninitialized' || this.audioStatus === 'error') {
+            this.initializeAudio();
+        }
+        
+        console.log('Settings toggled:', isActive);
+    };
+
+    if (settingsButton) {
+        settingsButton.addEventListener('click', toggleSettings);
+    }
+
+    if (settingsMenuButton) {
+        settingsMenuButton.addEventListener('click', toggleSettings);
     }
 }
 
