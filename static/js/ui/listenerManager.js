@@ -16,6 +16,8 @@ import {
   handleInitialKeyboard,
   handleKeyDown,
   handleKeyUp,
+  startRest,
+  endRest,
 } from "../instrument/keyboardHelpers.js";
 
 import { handleInitialGuitar } from "../instrument/guitarInstrument.js";
@@ -177,6 +179,46 @@ export function addButtonListeners() {
   // Initialize mouse wheel velocity control if enabled by default
   if (isMouseWheelVelocityEnabled) {
     document.addEventListener('wheel', handleMouseWheelVelocityControl, { passive: false });
+  }
+  
+  // Rest button listeners
+  const bassRestBtn = document.getElementById("bass-rest-btn");
+  const trebleRestBtn = document.getElementById("treble-rest-btn");
+  
+  if (bassRestBtn) {
+    bassRestBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      bassRestBtn.classList.add("pressed");
+      startRest("bass");
+    });
+    bassRestBtn.addEventListener("pointerup", () => {
+      bassRestBtn.classList.remove("pressed");
+      endRest("bass");
+    });
+    bassRestBtn.addEventListener("pointerleave", () => {
+      if (bassRestBtn.classList.contains("pressed")) {
+        bassRestBtn.classList.remove("pressed");
+        endRest("bass");
+      }
+    });
+  }
+  
+  if (trebleRestBtn) {
+    trebleRestBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      trebleRestBtn.classList.add("pressed");
+      startRest("treble");
+    });
+    trebleRestBtn.addEventListener("pointerup", () => {
+      trebleRestBtn.classList.remove("pressed");
+      endRest("treble");
+    });
+    trebleRestBtn.addEventListener("pointerleave", () => {
+      if (trebleRestBtn.classList.contains("pressed")) {
+        trebleRestBtn.classList.remove("pressed");
+        endRest("treble");
+      }
+    });
   }
   
   addAudioStatusListeners();

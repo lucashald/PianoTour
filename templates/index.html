@@ -57,14 +57,14 @@
           'partials/_score.html' %}  {% endif %} {% endblock %}
           {% block palette %}{% endblock %}
         <div class="outer-wrapper">
-        <section class="instrument-panel">
-          {% block spectrum %} {% if not hide_spectrum %} {% include
-          'partials/_spectrum.html' %} {% endif %} {% endblock %}
-          {% block instrument %} {% if not hide_instrument %} {% include
-          'partials/_instrument.html' %} {% endif %} {% endblock %}
+          <section class="instrument-panel">
+            {% block spectrum %} {% if not hide_spectrum %} {% include
+            'partials/_spectrum.html' %} {% endif %} {% endblock %}
+            {% block instrument %} {% if not hide_instrument %} {% include
+            'partials/_instrument.html' %} {% endif %} {% endblock %}
 
-          {% block content %}{% endblock %}
-        </section>
+            {% block content %}{% endblock %}
+          </section>
         </div>
         {% block after %}{% endblock %}
         <nav class="main-controls">

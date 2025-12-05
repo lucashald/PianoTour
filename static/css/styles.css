@@ -1159,6 +1159,67 @@ background: linear-gradient(to right,
   border-radius: var(--border-radius);
 }
 
+.rest-buttons-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-sm) 0;
+  gap: var(--spacing-md);
+}
+
+.rest-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.rest-btn:hover {
+  background-color: var(--color-blue-medium);
+  border-color: var(--color-blue-light);
+}
+
+.rest-btn:active,
+.rest-btn.pressed {
+  background-color: var(--color-blue-dark);
+  transform: scale(0.95);
+}
+
+.rest-btn .rest-symbol {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text-primary);
+}
+
+.rest-btn .rest-label {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.rest-btn--bass {
+  border-color: var(--color-blue-medium);
+}
+
+.rest-btn--treble {
+  border-color: var(--color-peach-medium);
+}
+
+.rest-btn--bass:hover {
+  border-color: var(--color-blue-light);
+}
+
+.rest-btn--treble:hover {
+  border-color: var(--color-peach-light);
+}
+
 .instrument-panel__keyboard {
   width: 100%;
   min-height: var(--keyboard-min-height-mobile);

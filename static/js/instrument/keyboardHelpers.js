@@ -451,3 +451,55 @@ export function stopScaleChord(key) {
 
   delete pianoState.activeDiatonicChords[key];
 }
+
+/**
+ * Starts a rest for the given clef (for button press)
+ * @param {string} clef - 'bass' or 'treble'
+ * @returns {number} - The start time for duration calculation
+ */
+export function startRest(clef) {
+  const key = clef === 'bass' ? 'bass-rest-btn' : 'treble-rest-btn';
+  const startTime = performance.now();
+  pianoState.activeRests[key] = {
+    startTime,
+    clef,
+  };
+  return startTime;
+}
+
+/**
+ * Ends a rest for the given clef (for button release) and writes it to the score
+ * @param {string} clef - 'bass' or 'treble'
+ */
+export function endRest(clef) {
+  const key = clef === 'bass' ? 'bass-rest-btn' : 'treble-rest-btn';
+  const restData = pianoState.activeRests[key];
+  
+  if (!restData) {
+    console.warn(`No rest data found for ${clef}`);
+    return;
+  }
+  
+  const heldTime = performance.now() - restData.startTime;
+  const thresholds = getDurationThresholds(pianoState.tempo);
+  
+  let duration = pianoState.quantize;
+  if (heldTime >= thresholds.w) duration = "w";
+  else if (heldTime >= thresholds["h."]) duration = "h.";
+  else if (heldTime >= thresholds.h) duration = "h";
+  else if (heldTime >= thresholds["q."]) duration = "q.";
+  else if (heldTime >= thresholds.q) duration = "q";
+  else if (heldTime >= thresholds["8."]) duration = "8.";
+  else if (heldTime >= thresholds["8"]) duration = "8";
+  
+  const restPositionNote = clef === "bass" ? "D3" : "B4";
+  writeNote({
+    clef,
+    duration,
+    notes: [restPositionNote],
+    chordName: "Rest",
+    isRest: true,
+  });
+  
+  delete pianoState.activeRests[key];
+}
