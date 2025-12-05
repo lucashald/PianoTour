@@ -682,7 +682,7 @@ export function initializeMusicEditor() {
         if (target.classList.contains('add-note-initial')) {
             const insertBeforeNoteId = target.dataset.insertBeforeNoteId === 'null' ? null : target.dataset.insertBeforeNoteId;
             const newClef = target.dataset.clef;
-            const newNote = { name: "C4", clef: newClef, duration: "q", isRest: false };
+            const newNote = { name: "C4", clef: newClef, duration: pianoState.quantize, isRest: false };
             const addedNoteResult = addNoteToMeasure(editorSelectedMeasureIndex, newNote, insertBeforeNoteId);
 
             if (addedNoteResult) {
@@ -837,7 +837,7 @@ document.addEventListener('noteDropped', (event) => {
             const chordNote = {
                 name: formatChordForScore(notesToUse, chordDisplayName),
                 clef: targetClef,
-                duration: "q", // Default to quarter note
+                duration: pianoState.quantize,
                 isRest: false,
                 chordName: chordDisplayName // Store the original chord name
             };

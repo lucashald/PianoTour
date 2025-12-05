@@ -49,7 +49,6 @@ let originalVexFlowNoteBBox = null; // Store the bounding box of the VexFlow not
 // NEW: Palette Drag State
 let isPaletteDrag = false;
 let paletteDragType = null;
-let selectedDuration = pianoState.quantize; // Default duration for palette drops
 
 // Event Listener Internal State for Drag/Click Detection (used within enableScoreInteraction)
 let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for drag/click differentiation
@@ -662,7 +661,7 @@ function handlePaletteDrop(endX, endY, event) {
       const intervalNote = {
         name: `(${intervalChord.treble.join(' ')})`,
         clef: clef,
-        duration: selectedDuration,
+        duration: pianoState.quantize,
         isRest: false,
         chordName: intervalChord.displayName
       };
@@ -702,7 +701,7 @@ function handlePaletteDrop(endX, endY, event) {
       const chordNote = {
         name: formatChordForScore(notesToUse, chordDisplayName),
         clef: clef,
-        duration: selectedDuration,
+        duration: pianoState.quantize,
         isRest: false,
         chordName: chordDisplayName
       };
@@ -739,7 +738,7 @@ function handlePaletteDrop(endX, endY, event) {
   const newNote = {
     name: newNoteName,
     clef: clef,
-    duration: selectedDuration,
+    duration: pianoState.quantize,
     isRest: paletteDragType === "rest",
     measure: targetMeasureIndex,
     id: Date.now().toString(),
@@ -760,7 +759,7 @@ function updateDragPreview(x, snapY, noteName) {
 
   let preview = document.getElementById("drag-snap-preview");
   // Get the duration from the original note being dragged
-  const durationText = originalNoteData ? originalNoteData.duration : "q";
+  const durationText = originalNoteData ? originalNoteData.duration : pianoState.quantize;
   const imagePath = getNoteImagePath(durationText, noteName);
   if (!preview) {
     preview = document.createElement("div");
@@ -1503,7 +1502,7 @@ export function setPaletteDragState(isDragging, type, duration) {
   isPaletteDrag = isDragging;
   paletteDragType = type;
   if (duration) {
-    selectedDuration = duration;
+    pianoState.quantize = duration;
   }
   
   // If we're ending a palette drag, clean up immediately
