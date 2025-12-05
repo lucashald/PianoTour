@@ -12,6 +12,7 @@ import { trigger } from '../instrument/playbackHelpers.js';
 import { setKeySignature } from '../score/scoreRenderer.js';
 import { writeNote } from '../score/scoreWriter.js';
 import { createChordDiagrams, createChordPalette } from './guitarUI.js';
+import { audioSettingsController } from './audioSettings.js';
 
 // ===================================================================
 // UI Update Functions
@@ -307,16 +308,28 @@ export function handlePlaybackMenuToggle(e) {
     }
 }
 
-// Close dropdown when clicking outside or on an item
+// Close dropdown when clicking outside or on an item (but not submenu items)
 document.addEventListener('click', (e) => {
     const dropdown = document.getElementById('playback-menu-dropdown');
     const button = document.getElementById('playback-menu-btn');
+    const instrumentSubmenu = document.getElementById('instrument-submenu');
     
     if (dropdown && button && !dropdown.classList.contains('hidden')) {
-        // Close if clicked outside OR if a dropdown item was clicked
-        if ((!dropdown.contains(e.target) && !button.contains(e.target)) || 
-            (dropdown.contains(e.target) && (e.target.classList.contains('dropdown-item') || e.target.closest('.dropdown-item')))) {
-            dropdown.classList.add('hidden');
+        // Don't close if clicking on instrument submenu or its button
+        const instrumentMenuBtn = document.getElementById('instrument-menu-btn');
+        const isInstrumentInteraction = (instrumentMenuBtn && instrumentMenuBtn.contains(e.target)) ||
+                                         (instrumentSubmenu && instrumentSubmenu.contains(e.target));
+        
+        // Close if clicked outside OR if a non-submenu dropdown item was clicked
+        if (!isInstrumentInteraction) {
+            if ((!dropdown.contains(e.target) && !button.contains(e.target)) || 
+                (dropdown.contains(e.target) && e.target.classList.contains('dropdown-item') && !e.target.classList.contains('has-submenu'))) {
+                dropdown.classList.add('hidden');
+                // Also close submenu
+                if (instrumentSubmenu) {
+                    instrumentSubmenu.classList.add('hidden');
+                }
+            }
         }
     }
 });
@@ -347,4 +360,55 @@ export function handleQuantizeToggle(e) {
             btn.textContent = labels[pianoState.quantize] || pianoState.quantize;
         }
     }
+}
+
+export function handleInstrumentMenuToggle(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const submenu = document.getElementById('instrument-submenu');
+    if (submenu) {
+        submenu.classList.toggle('hidden');
+        // Update active state for current instrument
+        updateInstrumentMenuActiveState();
+    }
+}
+
+export async function handleInstrumentSelect(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const instrumentName = e.target.dataset.instrument;
+    if (!instrumentName) return;
+    
+    try {
+        await audioSettingsController.changeInstrument(instrumentName);
+        
+        // Update the settings dropdown to match
+        const instrumentSelect = document.getElementById('instrumentSelect');
+        if (instrumentSelect) {
+            instrumentSelect.value = instrumentName;
+        }
+        
+        // Update active state and close menus
+        updateInstrumentMenuActiveState();
+        
+        // Close both menus
+        const dropdown = document.getElementById('playback-menu-dropdown');
+        const submenu = document.getElementById('instrument-submenu');
+        if (dropdown) dropdown.classList.add('hidden');
+        if (submenu) submenu.classList.add('hidden');
+    } catch (error) {
+        console.error('Failed to change instrument:', error);
+    }
+}
+
+function updateInstrumentMenuActiveState() {
+    const options = document.querySelectorAll('.instrument-option');
+    options.forEach(option => {
+        if (option.dataset.instrument === pianoState.instrument) {
+            option.classList.add('active');
+        } else {
+            option.classList.remove('active');
+        }
+    });
 }

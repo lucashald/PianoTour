@@ -581,12 +581,14 @@ background: linear-gradient(to right,
   gap: var(--spacing-sm);
 }
 
-.tempo-controls {
+.tempo-controls,
+.instrument-controls {
   display: flex;
   justify-content: center;
 }
 
-.tempo-dropdown {
+.tempo-dropdown,
+.instrument-dropdown {
   min-height: var(--touch-target-min);
   padding: var(--spacing-sm);
   border-radius: var(--border-radius);
@@ -599,13 +601,15 @@ background: linear-gradient(to right,
 }
 
 @media (min-width: 768px) {
-  .tempo-dropdown {
+  .tempo-dropdown,
+  .instrument-dropdown {
     width: 50%;
   }
 }
 
 @media (min-width: 1024px) {
-  .tempo-dropdown {
+  .tempo-dropdown,
+  .instrument-dropdown {
     width: 25%;
   }
 }
@@ -1082,7 +1086,7 @@ background: linear-gradient(to right,
 /* Quantize Button */
 .quantize-btn {
   position: absolute;
-  bottom: var(--spacing-sm);
+  bottom: var(--spacing-lg);
   right: var(--spacing-sm);
   z-index: 10;
   opacity: 0.8;
@@ -1527,7 +1531,8 @@ background: linear-gradient(to right,
 
   .time-signature-controls,
   .tempo-controls,
-  .measure-controls {
+  .measure-controls,
+  .instrument-controls {
     flex-direction: row;
     align-items: center;
   }
@@ -1883,4 +1888,49 @@ background: linear-gradient(to right,
 
 .dropdown-item:hover {
   background-color: var(--color-blue-medium);
+}
+
+/* Dropdown Submenu */
+.dropdown-submenu {
+  position: relative;
+}
+
+.dropdown-item.has-submenu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.submenu-content {
+  display: block;
+  position: absolute;
+  background-color: var(--color-surface);
+  min-width: 180px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1001;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-xs);
+  left: 100%;
+  top: 0;
+  margin-left: var(--spacing-xs);
+}
+
+/* Position submenu to the left on smaller screens */
+@media (max-width: 500px) {
+  .submenu-content {
+    left: auto;
+    right: 100%;
+    margin-left: 0;
+    margin-right: var(--spacing-xs);
+  }
+}
+
+.submenu-content.hidden {
+  display: none;
+}
+
+.instrument-option.active {
+  background-color: var(--color-blue-dark);
+  font-weight: bold;
 }

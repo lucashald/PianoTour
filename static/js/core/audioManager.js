@@ -128,7 +128,7 @@ export class InstrumentControl {
 
             cello: {
                 name: 'Cello',
-                baseUrl: '/static/samples/cello/',
+                baseUrl: '/static/samples/cello',
                 sampleUrls: {
                     // Octaves 2-4: Regular bowed cello samples
                     "C2": "/sus/C2_f_d.wav",
@@ -146,20 +146,20 @@ export class InstrumentControl {
                     "Gb4": "/sus/Gb4_f_d.wav",
                     "A4": "/sus/A4_f_d.wav",
 
-                    "C5": "/pizzicato/C2_1.wav",
-                    "Eb5": "/pizzicato/Eb2_1.wav",
-                    "Gb5": "/pizzicato/Gb2_1.wav",
-                    "A5": "/pizzicato/A2_1.wav",
+                    "C5": "/pizzicato/C1_1.wav",
+                    "Eb5": "/pizzicato/Eb1_1.wav",
+                    "Gb5": "/pizzicato/Gb1_1.wav",
+                    "A5": "/pizzicato/A1_1.wav",
 
-                    "C6": "/pizzicato/C3_1.wav",
-                    "Eb6": "/pizzicato/Eb3_1.wav",
-                    "Gb6": "/pizzicato/Gb3_1.wav",
-                    "A6": "/pizzicato/A3_1.wav",
+                    "C6": "/pizzicato/C2_1.wav",
+                    "Eb6": "/pizzicato/Eb2_1.wav",
+                    "Gb6": "/pizzicato/Gb2_1.wav",
+                    "A6": "/pizzicato/A2_1.wav",
 
-                    "C7": "/pizzicato/C4_1.wav",
-                    "Eb7": "/pizzicato/Eb4_1.wav",
-                    "Gb7": "/pizzicato/Gb4_1.wav",
-                    "A7": "/pizzicato/A4_1.wav",
+                    "C7": "/pizzicato/C3_1.wav",
+                    "Eb7": "/pizzicato/Eb3_1.wav",
+                    "Gb7": "/pizzicato/Gb3_1.wav",
+                    "A7": "/pizzicato/A3_1.wav",
                 },
 
                 envelopeSettings: {
