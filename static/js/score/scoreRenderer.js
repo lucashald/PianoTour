@@ -49,7 +49,7 @@ let originalVexFlowNoteBBox = null; // Store the bounding box of the VexFlow not
 // NEW: Palette Drag State
 let isPaletteDrag = false;
 let paletteDragType = null;
-let selectedDuration = "q"; // Default duration for palette drops
+let selectedDuration = pianoState.quantize; // Default duration for palette drops
 
 // Event Listener Internal State for Drag/Click Detection (used within enableScoreInteraction)
 let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for drag/click differentiation

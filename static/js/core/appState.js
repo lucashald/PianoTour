@@ -21,7 +21,7 @@ export const pianoState = {
     keySignature: 'C',
     keySignatureType: '#', // Enharmonic preference
     isMinorKey: false,
-    quantize: 'h',
+    quantize: 'q',
     togglePaletteDragMode: true,
     tempo: 120,
     timeSignature: {

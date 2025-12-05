@@ -167,6 +167,7 @@
         handleSettingsDisplayToggle,
         handleKeySignatureClick,
         handlePlaybackMenuToggle,
+        handleQuantizeToggle,
         updateUI,
       } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
       import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
@@ -510,6 +511,11 @@ document.getElementById('export-audio-btn')?.addEventListener('click', async () 
             id: "playback-menu-btn",
             event: "click",
             handler: handlePlaybackMenuToggle,
+          },
+          {
+            id: "quantize-btn",
+            event: "click",
+            handler: handleQuantizeToggle,
           },
         ];
 
