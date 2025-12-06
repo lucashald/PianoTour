@@ -186,7 +186,9 @@ export function handleKeyUp(e) {
       
       const thresholds = getDurationThresholds(pianoState.tempo);
       let duration = "8";
-      if (heldTime >= thresholds.w) duration = "w";
+      if (pianoState.toggleFixedDuration) {
+        duration = pianoState.quantize;
+      } else if (heldTime >= thresholds.w) duration = "w";
       else if (heldTime >= thresholds["h."]) duration = "h.";
       else if (heldTime >= thresholds.h) duration = "h";
       else if (heldTime >= thresholds["q."]) duration = "q.";
@@ -218,7 +220,9 @@ export function handleKeyUp(e) {
       
       const thresholds = getDurationThresholds(pianoState.tempo);
       let duration = "8";
-      if (heldTime >= thresholds.w) duration = "w";
+      if (pianoState.toggleFixedDuration) {
+        duration = pianoState.quantize;
+      } else if (heldTime >= thresholds.w) duration = "w";
       else if (heldTime >= thresholds["h."]) duration = "h.";
       else if (heldTime >= thresholds.h) duration = "h";
       else if (heldTime >= thresholds["q."]) duration = "q.";
@@ -426,7 +430,9 @@ export function stopScaleChord(key) {
 
     const thresholds = getDurationThresholds(pianoState.tempo);
     let duration = "8"; // Default to eighth note
-    if (heldTime >= thresholds.w) duration = "w";
+    if (pianoState.toggleFixedDuration) {
+      duration = pianoState.quantize;
+    } else if (heldTime >= thresholds.w) duration = "w";
     else if (heldTime >= thresholds["h."]) duration = "h.";
     else if (heldTime >= thresholds.h) duration = "h";
     else if (heldTime >= thresholds["q."]) duration = "q.";

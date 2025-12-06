@@ -743,7 +743,9 @@ export function handleKeyPointerDown(e) {
       const heldTime = performance.now() - startTime;
       const thresholds = getDurationThresholds(pianoState.tempo);
       let duration = "8";
-      if (heldTime >= thresholds.w) duration = "w";
+      if (pianoState.toggleFixedDuration) {
+        duration = pianoState.quantize;
+      } else if (heldTime >= thresholds.w) duration = "w";
       else if (heldTime >= thresholds["h."]) duration = "h.";
       else if (heldTime >= thresholds.h) duration = "h";
       else if (heldTime >= thresholds["q."]) duration = "q.";
@@ -785,7 +787,9 @@ export function handleKeyPointerDown(e) {
       const heldTime = performance.now() - startTime;
       const thresholds = getDurationThresholds(pianoState.tempo);
       let duration = "8";
-      if (heldTime >= thresholds.w) duration = "w";
+      if (pianoState.toggleFixedDuration) {
+        duration = pianoState.quantize;
+      } else if (heldTime >= thresholds.w) duration = "w";
       else if (heldTime >= thresholds["h."]) duration = "h.";
       else if (heldTime >= thresholds.h) duration = "h";
       else if (heldTime >= thresholds["q."]) duration = "q.";
@@ -976,7 +980,9 @@ function handleKeyUp(e) {
       const heldTime = performance.now() - restData.startTime;
       const thresholds = getDurationThresholds(pianoState.tempo);
       let duration = "8";
-      if (heldTime >= thresholds.w) duration = "w";
+      if (pianoState.toggleFixedDuration) {
+        duration = pianoState.quantize;
+      } else if (heldTime >= thresholds.w) duration = "w";
       else if (heldTime >= thresholds["h."]) duration = "h.";
       else if (heldTime >= thresholds.h) duration = "h";
       else if (heldTime >= thresholds["q."]) duration = "q.";
@@ -1000,7 +1006,9 @@ function handleKeyUp(e) {
       const heldTime = performance.now() - parseFloat(keyEl.dataset.startTime);
       const thresholds = getDurationThresholds(pianoState.tempo);
       let duration = "8";
-      if (heldTime >= thresholds.w) duration = "w";
+      if (pianoState.toggleFixedDuration) {
+        duration = pianoState.quantize;
+      } else if (heldTime >= thresholds.w) duration = "w";
       else if (heldTime >= thresholds["h."]) duration = "h.";
       else if (heldTime >= thresholds.h) duration = "h";
       else if (heldTime >= thresholds["q."]) duration = "q.";

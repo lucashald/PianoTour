@@ -44,16 +44,16 @@
         >
         <div id="chordSuggestions" class="chord-suggestions"></div>
         
-        <!-- Search Result and Intervals Container -->
+        <!-- Custom Chords Container (added via search) -->
+        <div class="note-palette-container">
+            <div id="customChordPalette" class="note-palette chord-palette custom-chord-palette">
+                <!-- Custom chords will be added here dynamically -->
+            </div>
+        </div>
+        
+        <!-- Intervals Container -->
         <div class="note-palette-container">
             <div class="note-palette chord-palette">
-                <!-- Search Result Button -->
-                <div id="searchResultButton" class="palette-note palette-note-primary search-result-button" 
-                     data-type="chord" draggable="true">
-                    <span class="chord-symbol">♪</span>
-                    <div class="note-duration">Selected Chord</div>
-                </div>
-
                 <!-- Interval Buttons -->
                 <div class="palette-note palette-note-secondary" data-type="interval" data-interval="major2" draggable="true">
                     <span class="chord-symbol">M2</span>
@@ -152,37 +152,181 @@
     font-size: 14px;
 }
 
+/* Custom chord palette styles */
+.custom-chord-palette {
+    min-height: 0;
+}
+
+.custom-chord-palette:empty {
+    display: none;
+}
+
+.custom-chord-btn {
+    position: relative;
+}
+
+.custom-chord-btn .chord-symbol {
+    font-size: 0.85em;
+}
+
+.remove-chord-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: rgba(255, 0, 0, 0.7);
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.custom-chord-btn:hover .remove-chord-btn {
+    opacity: 1;
+}
+
+.remove-chord-btn:hover {
+    background: rgba(255, 0, 0, 1);
+}
+
 </style>
 
 <script type="module">
     import { CHORD_DEFINITIONS, getChordByDegree, getScale, getRelativeKey } from '{{ url_for("static", filename="js/core/note-data.js") }}';
+    import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
     
     class ChordAutocomplete {
         constructor(inputId, suggestionsId) {
             this.input = document.getElementById(inputId);
             this.suggestionsContainer = document.getElementById(suggestionsId);
-            this.searchResultButton = document.getElementById('searchResultButton');
+            this.customChordPalette = document.getElementById('customChordPalette');
             this.currentHighlight = -1;
             this.chords = this.extractChordNames(CHORD_DEFINITIONS);
             this.userHasTyped = false;
             this.selectedChordObj = null;
+            this.addedChords = new Map(); // Track added chords by name to avoid duplicates
             
             this.bindEvents();
-            this.setDefaultChord();
         }
 
         setDefaultChord() {
             const defaultChordObj = getChordByDegree(1, getRelativeKey());
             this.input.value = defaultChordObj.displayName;
             this.userHasTyped = false;
-            this.updateSearchResultButton(defaultChordObj.displayName, defaultChordObj);
         }
 
-        updateSearchResultButton(chordName, chordObj) {
+        addChordToPalette(chordName, chordObj) {
+            // Don't add duplicates
+            if (this.addedChords.has(chordName)) {
+                // Just update the selected chord reference
+                this.selectedChordObj = chordObj;
+                return;
+            }
+            
             this.selectedChordObj = chordObj;
-            this.searchResultButton.querySelector('.note-duration').textContent = chordName;
-            this.searchResultButton.classList.remove('hidden');
-            this.searchResultButton.dataset.chord = chordName;
+            
+            // Create new chord button
+            const newChordBtn = document.createElement('div');
+            newChordBtn.className = 'palette-note palette-note-primary custom-chord-btn';
+            newChordBtn.dataset.type = 'chord';
+            newChordBtn.dataset.chordName = chordName;
+            
+            // Check current drag mode state
+            const useDragMode = typeof pianoState !== 'undefined' ? pianoState.togglePaletteDragMode : true;
+            newChordBtn.draggable = useDragMode;
+            if (!useDragMode) {
+                newChordBtn.classList.add('palette-click-mode');
+            }
+            
+            newChordBtn.innerHTML = `
+                <span class="chord-symbol">${chordName}</span>
+                <button class="remove-chord-btn" title="Remove chord">&times;</button>
+            `;
+            
+            // Store chord object reference
+            newChordBtn._chordObj = chordObj;
+            
+            // Add remove button handler
+            const removeBtn = newChordBtn.querySelector('.remove-chord-btn');
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeChordFromPalette(chordName, newChordBtn);
+            });
+            
+            // Add click handler for selection (and click mode play/write)
+            newChordBtn.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-chord-btn')) return;
+                this.selectedChordObj = chordObj;
+                this.input.value = chordName;
+                
+                // In click mode, also play and write the chord
+                if (!pianoState.togglePaletteDragMode) {
+                    // Visual feedback
+                    newChordBtn.classList.add('palette-note-selected');
+                    setTimeout(() => {
+                        newChordBtn.classList.remove('palette-note-selected');
+                    }, 200);
+                    
+                    // Play and write chord
+                    const notesToUse = chordObj.treble?.length > 0 ? chordObj.treble : chordObj.bass;
+                    if (notesToUse && notesToUse.length > 0) {
+                        if (typeof window.triggerAttackRelease === 'function') {
+                            window.triggerAttackRelease(
+                                notesToUse,
+                                pianoState.quantize,
+                                pianoState.velocity,
+                                true,  // writeToScore
+                                chordObj.displayName
+                            );
+                        }
+                    }
+                }
+            });
+            newChordBtn._clickModeHandlerAdded = true;
+            
+            // Add dragstart handler - check mode to allow or prevent dragging
+            newChordBtn.addEventListener('dragstart', (e) => {
+                // Prevent dragging in click mode
+                if (!pianoState.togglePaletteDragMode) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                e.dataTransfer.setData('text/plain', chordName);
+                e.dataTransfer.setData('application/chord', JSON.stringify({
+                    type: 'custom-chord',
+                    chord: chordObj,
+                    displayName: chordName
+                }));
+            });
+            
+            // Also add mousedown handler to prevent drag initiation in click mode
+            newChordBtn.addEventListener('mousedown', (e) => {
+                if (!pianoState.togglePaletteDragMode) {
+                    // In click mode, prevent the default drag behavior
+                    e.target.draggable = false;
+                } else {
+                    e.target.draggable = true;
+                }
+            });
+            
+            // Add to palette
+            this.customChordPalette.appendChild(newChordBtn);
+            this.addedChords.set(chordName, { element: newChordBtn, chordObj: chordObj });
+        }
+        
+        removeChordFromPalette(chordName, element) {
+            element.remove();
+            this.addedChords.delete(chordName);
         }
 
         extractChordNames(chordData) {
@@ -304,24 +448,12 @@
                 }
             });
 
-// Also update the search result button dragstart
-this.searchResultButton.addEventListener('dragstart', (e) => {
-    if (this.selectedChordObj) {
-        e.dataTransfer.setData('text/plain', this.selectedChordObj.displayName);
-        e.dataTransfer.setData('application/chord', JSON.stringify({
-            type: 'search-chord',
-            chord: this.selectedChordObj,
-            displayName: this.selectedChordObj.displayName
-        }));
-    }
-});
-
             this.bindChordPaletteEvents();
         }
 
         // Update the chord palette JavaScript in your HTML
 bindChordPaletteEvents() {
-    const chordPaletteItems = document.querySelectorAll('.chord-palette .palette-note');
+    const chordPaletteItems = document.querySelectorAll('.chord-palette .palette-note[data-degree]');
     
     chordPaletteItems.forEach(item => {
         item.addEventListener('click', (e) => {
@@ -428,7 +560,7 @@ bindChordPaletteEvents() {
                 }
             }
             
-            this.updateSearchResultButton(chordName, chordObj);
+            this.addChordToPalette(chordName, chordObj);
             
             this.input.dispatchEvent(new CustomEvent('chordSelected', {
                 detail: { 

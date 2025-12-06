@@ -187,6 +187,11 @@ export function addButtonListeners() {
     .getElementById("togglePaletteDragModeCheckbox")
     ?.addEventListener("change", handlePaletteDragModeToggle);
   
+  // Wire up the fixed duration toggle
+  document
+    .getElementById("toggleFixedDurationCheckbox")
+    ?.addEventListener("change", handleFixedDurationToggle);
+  
   // Rest button listeners
   const bassRestBtn = document.getElementById("bass-rest-btn");
   const trebleRestBtn = document.getElementById("treble-rest-btn");
@@ -341,4 +346,13 @@ function handlePaletteDragModeToggle(event) {
   pianoState.togglePaletteDragMode = useDragMode;
   setupPaletteInteractions(useDragMode);
   console.log(`Palette mode changed to: ${useDragMode ? 'Drag' : 'Click'}`);
+}
+
+/**
+ * Toggles between fixed duration mode and held-time-based duration
+ */
+function handleFixedDurationToggle(event) {
+  const useFixedDuration = event.target.checked;
+  pianoState.toggleFixedDuration = useFixedDuration;
+  console.log(`Fixed duration mode: ${useFixedDuration ? 'ON (using quantize)' : 'OFF (using held time)'}`);
 }

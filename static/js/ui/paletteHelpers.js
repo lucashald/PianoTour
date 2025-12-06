@@ -72,6 +72,15 @@ function handleChordClick(item, degree, duration) {
     } else if (item.id === 'searchResultButton') {
         // Search result chord
         chordObj = window.chordAutocomplete?.selectedChordObj;
+    } else if (item._chordObj) {
+        // Custom chord button with stored chord object
+        chordObj = item._chordObj;
+    } else if (item.dataset.chordName && window.chordAutocomplete) {
+        // Try to find chord in addedChords map
+        const chordData = window.chordAutocomplete.addedChords?.get(item.dataset.chordName);
+        if (chordData) {
+            chordObj = chordData.chordObj;
+        }
     }
     
     if (!chordObj) {
@@ -131,6 +140,37 @@ function updateQuantizeButtonDisplay(duration) {
 }
 
 /**
+ * Update custom chord button mode without cloning (preserves event handlers)
+ * @param {HTMLElement} btn - The custom chord button element
+ * @param {boolean} useDragMode - Whether to use drag mode
+ */
+function updateCustomChordButtonMode(btn, useDragMode) {
+    if (useDragMode) {
+        btn.draggable = true;
+        btn.setAttribute('draggable', 'true');
+        btn.classList.remove('palette-click-mode');
+        // Remove the drag prevention handler if present
+        if (btn._preventDragHandler) {
+            btn.removeEventListener('dragstart', btn._preventDragHandler);
+            btn._preventDragHandler = null;
+        }
+    } else {
+        btn.draggable = false;
+        btn.setAttribute('draggable', 'false');
+        btn.classList.add('palette-click-mode');
+        // Add a handler to prevent dragging in click mode
+        if (!btn._preventDragHandler) {
+            btn._preventDragHandler = (e) => {
+                e.preventDefault();
+                return false;
+            };
+            btn.addEventListener('dragstart', btn._preventDragHandler);
+        }
+    }
+    // Note: Click handler is already added in addChordToPalette and handles both modes
+}
+
+/**
  * Setup palette events based on togglePaletteDragMode
  * @param {boolean} useDragMode - Whether to use drag mode (true) or click mode (false)
  */
@@ -138,7 +178,16 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
     const paletteNotes = document.querySelectorAll('.palette-note');
     
     paletteNotes.forEach(note => {
-        // Remove existing event listeners by cloning and replacing
+        const isCustomChordBtn = note.classList.contains('custom-chord-btn');
+        
+        // For custom chord buttons, don't clone - just update mode-specific properties
+        // Their event handlers are already set up in addChordToPalette
+        if (isCustomChordBtn) {
+            updateCustomChordButtonMode(note, useDragMode);
+            return;
+        }
+        
+        // Remove existing event listeners by cloning and replacing (for static palette items)
         const newNote = note.cloneNode(true);
         note.parentNode.replaceChild(newNote, note);
         
@@ -161,7 +210,7 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
             if (isChordPaletteItem && type === 'chord' && newNote.dataset.degree) {
                 newNote.addEventListener('click', (e) => {
                     const degree = parseInt(e.currentTarget.dataset.degree);
-                    const chordObj = getChordByDegree(degree, getRelativeKey());
+                    const chordObj = getChordByDegree(degree, pianoState.keySignature);
                     if (window.chordAutocomplete) {
                         window.chordAutocomplete.selectChord(chordObj.displayName, chordObj);
                     }

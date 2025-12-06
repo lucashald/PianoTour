@@ -215,8 +215,10 @@
             // Import editor modules
 const { initializeMusicEditor } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
 const { initializePaletteInteractions } = await import('{{ url_for("static", filename="js/ui/paletteHelpers.js") }}');
-            
+const { triggerAttackRelease } = await import('{{ url_for("static", filename="js/instrument/playbackHelpers.js") }}');
 
+// Expose triggerAttackRelease globally for inline scripts (like custom chord palette)
+window.triggerAttackRelease = triggerAttackRelease;
             
             // Initialize the editor
             initializeMusicEditor();

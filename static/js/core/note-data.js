@@ -847,7 +847,7 @@ export const CHORD_DEFINITIONS = {
   "Em": {
     notes: ["E","G","B"],
     treble: ["E4","G4","B4"],
-    bass: ["E3","G4","B3"],
+    bass: ["E3","G3","B3"],
     displayName: "E Minor",
   },
   "Emin7": {

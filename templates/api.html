@@ -251,7 +251,10 @@
           const { drawAll } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
           const { saveToLocalStorage } = await import('{{ url_for("static", filename="js/utils/ioHelpers.js") }}');
           const { initializePaletteInteractions } = await import('{{ url_for("static", filename="js/ui/paletteHelpers.js") }}');
+          const { triggerAttackRelease } = await import('{{ url_for("static", filename="js/instrument/playbackHelpers.js") }}');
 
+          // Expose triggerAttackRelease globally for inline scripts (like custom chord palette)
+          window.triggerAttackRelease = triggerAttackRelease;
 
           // Initialize the editor
           initializeMusicEditor();

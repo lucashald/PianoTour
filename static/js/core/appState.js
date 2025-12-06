@@ -23,6 +23,7 @@ export const pianoState = {
     isMinorKey: false,
     quantize: 'q',
     togglePaletteDragMode: true,
+    toggleFixedDuration: false,
     tempo: 120,
     timeSignature: {
         numerator: 4,
