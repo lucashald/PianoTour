@@ -472,6 +472,9 @@ def health_check():
 def settings():
     return render_template('settings.html', show_side_panel=True)
 
+@app.route('/chordPreview')
+def chord_preview():
+    return render_template('chordPreview.html')
 
 # --- Gemini API Configuration ---
 import google.generativeai as genai

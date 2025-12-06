@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord Preview Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            color: white;
+            margin-top: 50px;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            padding-bottom: 15px;
+            border-bottom: 3px solid rgba(255,255,255,0.3);
+        }
+
+        .test-section {
+            margin-bottom: 60px;
+        }
+
+        .chord-group-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .chord-group-heading {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.5em;
+            border-left: 5px solid #667eea;
+            padding-left: 15px;
+        }
+
+        .chord-group-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .chord-list-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .chord-preview-wrapper {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .chord-preview-wrapper:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .chord-preview-label {
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .chord-preview {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chord-preview-treble::before {
+            content: "Treble";
+            display: block;
+            font-size: 12px;
+            color: #999;
+            position: absolute;
+            margin-top: -140px;
+        }
+
+        .chord-preview-bass::before {
+            content: "Bass";
+            display: block;
+            font-size: 12px;
+            color: #999;
+            position: absolute;
+            margin-top: -140px;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .controls h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+
+        svg {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Chord Preview Test</h1>
+
+        <!-- Controls Section -->
+        <div class="controls">
+            <h3>Test Controls</h3>
+            <div class="button-group">
+                <button onclick="testAllGroups()">All Chord Groups (Both Clefs)</button>
+                <button onclick="testMajorTriads()">Major Triads (Treble)</button>
+                <button onclick="testMinorTriads()">Minor Triads (Bass)</button>
+            </div>
+            <div class="button-group">
+                <button onclick="testCustomChords()">Custom Chords</button>
+                <button onclick="clearAll()">Clear All</button>
+            </div>
+            <div class="info-text">
+                Click a button above to render different chord groups and see how the ChordPreview class handles various configurations.
+            </div>
+        </div>
+
+        <!-- Test Section 1: All Chord Groups -->
+        <div class="test-section" id="section-all-groups" style="display: none;">
+            <h2>All Chord Groups</h2>
+            <div id="all-groups-container"></div>
+        </div>
+
+        <!-- Test Section 2: Major Triads (Treble) -->
+        <div class="test-section" id="section-major-treble" style="display: none;">
+            <h2>Major Triads - Treble Clef</h2>
+            <div id="major-treble-container"></div>
+        </div>
+
+        <!-- Test Section 3: Minor Triads (Bass) -->
+        <div class="test-section" id="section-minor-bass" style="display: none;">
+            <h2>Minor Triads - Bass Clef</h2>
+            <div id="minor-bass-container"></div>
+        </div>
+
+        <!-- Test Section 4: Custom Chords -->
+        <div class="test-section" id="section-custom" style="display: none;">
+            <h2>Custom Chords (Both Clefs)</h2>
+            <div id="custom-container"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { 
+            renderChordPreviews, 
+            renderAllChordGroups, 
+            renderChords,
+            renderChordGroup 
+        } from '/static/js/utils/chordGroupRenderer.js';
+        import { CHORD_GROUPS } from '/static/js/core/note-data.js';
+
+        // Make functions available globally for button clicks
+        window.testAllGroups = function() {
+            clearAll();
+            document.getElementById('section-all-groups').style.display = 'block';
+            renderAllChordGroups('all-groups-container', {
+                chordWidth: 200,
+                chordHeight: 150
+            });
+            console.log('Rendered all chord groups with both clefs');
+        };
+
+        window.testMajorTriads = function() {
+            clearAll();
+            document.getElementById('section-major-treble').style.display = 'block';
+            renderChordGroup('major-treble-container', 'Major Triads', 'treble', {
+                chordWidth: 200,
+                chordHeight: 150
+            });
+            console.log('Rendered Major Triads in treble clef');
+        };
+
+        window.testMinorTriads = function() {
+            clearAll();
+            document.getElementById('section-minor-bass').style.display = 'block';
+            renderChordGroup('minor-bass-container', 'Minor Triads', 'bass', {
+                chordWidth: 200,
+                chordHeight: 150
+            });
+            console.log('Rendered Minor Triads in bass clef');
+        };
+
+        window.testCustomChords = function() {
+            clearAll();
+            document.getElementById('section-custom').style.display = 'block';
+            // Use chord names that actually exist in CHORD_DEFINITIONS
+            renderChords('custom-container', ['C', 'Cmaj7', 'Cmin7', 'C7', 'Caug7', 'Cdim7'], 'both', {
+                chordWidth: 200,
+                chordHeight: 150
+            });
+            console.log('Rendered custom C chords in both clefs');
+        };
+
+        window.clearAll = function() {
+            document.querySelectorAll('.test-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById('all-groups-container').innerHTML = '';
+            document.getElementById('major-treble-container').innerHTML = '';
+            document.getElementById('minor-bass-container').innerHTML = '';
+            document.getElementById('custom-container').innerHTML = '';
+        };
+
+        // Log initialization
+        console.log('Chord Preview Test Page Loaded');
+        console.log('Available chord groups:', CHORD_GROUPS.length);
+    </script>
+</body>
+</html>
