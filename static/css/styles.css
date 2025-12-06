@@ -1868,6 +1868,13 @@ background: linear-gradient(to right,
   max-width: 400px;
 }
 
+/* Container for reset button */
+.reset-button-container {
+  display: flex;
+  justify-content: center;
+  margin: var(--spacing-md) auto;
+}
+
 .checkbox-wrapper-velocity {
   display: flex;
   align-items: center;

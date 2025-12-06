@@ -240,6 +240,11 @@
         </div>
     </div>
 </div>
+
+<div class="reset-button-container">
+  <button id="resetButton" class="btn btn--info">Reset to Defaults</button>
+</div>
+
 <div class="settings-checkboxes-container">
   <div class="checkbox-wrapper-velocity">
     <label class="switch" for="toggleVelocityCheckbox">
@@ -267,9 +272,22 @@
 </div>
 
     <div class="controls-tempo-container">
-      <div class="control-section reset-section">
-        <button id="resetButton" class="btn btn--info">Reset to Defaults</button>
-
+            <!-- Quantize (Note Duration) -->
+      <label class="control-label">Default Note Duration (Quantize)</label>
+      <div class="tempo-controls">
+        <select id="quantize-select" class="tempo-dropdown">
+          <option value="32">32nd</option>
+          <option value="32.">Dotted 32nd</option>
+          <option value="16">16th</option>
+          <option value="16.">Dotted 16th</option>
+          <option value="8">8th</option>
+          <option value="8.">Dotted 8th</option>
+          <option value="q" selected>Quarter</option>
+          <option value="q.">Dotted Quarter</option>
+          <option value="h">Half</option>
+          <option value="h.">Dotted Half</option>
+          <option value="w">Whole</option>
+        </select>
       </div>
 
       <!-- Instrument Selector -->
@@ -313,23 +331,7 @@
       </select>
       </div>
 
-      <!-- Quantize (Note Duration) -->
-      <label class="control-label">Default Note Duration (Quantize)</label>
-      <div class="tempo-controls">
-        <select id="quantize-select" class="tempo-dropdown">
-          <option value="32">32nd</option>
-          <option value="32.">Dotted 32nd</option>
-          <option value="16">16th</option>
-          <option value="16.">Dotted 16th</option>
-          <option value="8">8th</option>
-          <option value="8.">Dotted 8th</option>
-          <option value="q" selected>Quarter</option>
-          <option value="q.">Dotted Quarter</option>
-          <option value="h">Half</option>
-          <option value="h.">Dotted Half</option>
-          <option value="w">Whole</option>
-        </select>
-      </div>
+
     </div>
 
 <script type="module">
