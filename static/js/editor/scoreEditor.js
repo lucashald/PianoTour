@@ -481,6 +481,24 @@ function renderNoteEditBox(smoothScroll = true) {
         document.getElementById('editorToggleClef').textContent = selectedNote.clef === 'treble' ? 'Treble' : 'Bass';
         document.getElementById('editorDurationDropdown').value = selectedNote.duration;
 
+        // Update performed duration slider (stored as 0-1, displayed as 0-100%)
+        const performedDurationSlider = document.getElementById('editorPerformedDuration');
+        const performedDurationValue = document.getElementById('editorPerformedDurationValue');
+        if (performedDurationSlider && performedDurationValue) {
+            const pdValue = Math.round((selectedNote.performedDuration ?? 0.8) * 100);
+            performedDurationSlider.value = pdValue;
+            performedDurationValue.textContent = `${pdValue}%`;
+        }
+
+        // Update velocity slider (stored as 0-127)
+        const velocitySlider = document.getElementById('editorVelocity');
+        const velocityValue = document.getElementById('editorVelocityValue');
+        if (velocitySlider && velocityValue) {
+            const velValue = selectedNote.velocity ?? 100;
+            velocitySlider.value = velValue;
+            velocityValue.textContent = velValue;
+        }
+
         if (isSelectedNoteRest) {
             singleNoteControls.classList.remove('hidden');
             chordNotesEditor.classList.add('hidden');
@@ -742,6 +760,21 @@ if (target.id === 'editorToggleRest') {
         }
     });
 
+    // Handle real-time slider value display updates (input fires while dragging)
+    editorContainer.addEventListener('input', (event) => {
+        const target = event.target;
+        
+        if (target.id === 'editorPerformedDuration') {
+            const valueDisplay = document.getElementById('editorPerformedDurationValue');
+            if (valueDisplay) valueDisplay.textContent = `${target.value}%`;
+        }
+        
+        if (target.id === 'editorVelocity') {
+            const valueDisplay = document.getElementById('editorVelocityValue');
+            if (valueDisplay) valueDisplay.textContent = target.value;
+        }
+    });
+
     editorContainer.addEventListener('change', (event) => {
     const target = event.target;
     
@@ -799,6 +832,16 @@ if (target.id === 'editorToggleRest') {
         }
     } else if (target.id === 'editorDurationDropdown') {
         updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { duration: target.value });
+    } else if (target.id === 'editorPerformedDuration') {
+        const performedDuration = parseInt(target.value, 10) / 100; // Convert from 0-100 to 0-1
+        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { performedDuration });
+        const valueDisplay = document.getElementById('editorPerformedDurationValue');
+        if (valueDisplay) valueDisplay.textContent = `${target.value}%`;
+    } else if (target.id === 'editorVelocity') {
+        const velocity = parseInt(target.value, 10);
+        updateNoteInMeasure(editorSelectedMeasureIndex, selectedNote.id, { velocity });
+        const valueDisplay = document.getElementById('editorVelocityValue');
+        if (valueDisplay) valueDisplay.textContent = target.value;
     }
     
     renderNoteEditBox(false);

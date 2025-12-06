@@ -173,7 +173,8 @@ export function generateChordButtons() {
 
     document.querySelectorAll('#CHORD_GROUPSContainer .btn').forEach(button => {
         button.addEventListener('pointerdown', function (e) {
-            e.preventDefault(); 
+            e.preventDefault();
+            e.stopPropagation(); 
             const chordDefinition = this.chordData;
             if (!chordDefinition) return;
 
@@ -325,6 +326,7 @@ export function generateChordPreviewButtons(clef = 'treble') {
             chordItem.style.cursor = 'pointer';
             chordItem.addEventListener('pointerdown', function (e) {
                 e.preventDefault();
+                e.stopPropagation();
                 const chordDefinition = previewInfo.chordDefinition;
 
                 document.querySelectorAll('#CHORD_GROUPSContainer .chord-preview-item').forEach(item => {

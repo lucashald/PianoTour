@@ -139,6 +139,19 @@
         <!-- Duration options will be populated by JavaScript -->
       </select>
     </div>
+
+    <!-- Playback controls for performed duration and velocity -->
+    <div class="control-section">
+      <label for="editorPerformedDuration">Performed Duration:</label>
+      <input type="range" id="editorPerformedDuration" class="slider-input" min="0" max="100" value="80" step="1">
+      <span id="editorPerformedDurationValue" class="slider-value">80%</span>
+    </div>
+    <div class="control-section">
+      <label for="editorVelocity">Velocity:</label>
+      <input type="range" id="editorVelocity" class="slider-input" min="0" max="127" value="100" step="1">
+      <span id="editorVelocityValue" class="slider-value">100</span>
+    </div>
+
     <div class="control-section">
         <label>Actions:</label>
         <div class="button-group">

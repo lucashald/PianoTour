@@ -72,6 +72,7 @@ export function createChordButton(chord, guitarInstance) {
     // Audio not ready - use handleInitialGuitar
     button.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       if (chord.frets && guitarInstance) {
         guitarInstance.setChord(chord.frets);
         const notes = guitarInstance.getCurrentNotes();
