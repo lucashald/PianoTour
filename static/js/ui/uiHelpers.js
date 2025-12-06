@@ -245,7 +245,6 @@ export function generateChordButtons() {
 }
 
 export function generateChordPreviewButtons(clef = 'treble') {
-    if (chordButtonsGenerated) return;
     if (typeof CHORD_GROUPS === 'undefined' || !document.getElementById('CHORD_GROUPSContainer')) return;
 
     const CHORD_GROUPSContainer = document.getElementById('CHORD_GROUPSContainer');
@@ -416,14 +415,12 @@ export function handleChordDisplayToggle(e) {
             toggleButtonSpan.textContent = 'Bass Chords';
             chordButtonsContainer.classList.remove('hidden');
             e.currentTarget.classList.add('is-active');
-            chordButtonsGenerated = false; // Reset flag to regenerate
             generateChordPreviewButtons('bass');
             break;
         case 2:
             toggleButtonSpan.textContent = 'Treble Chords';
             chordButtonsContainer.classList.remove('hidden');
             e.currentTarget.classList.add('is-active');
-            chordButtonsGenerated = false; // Reset flag to regenerate
             generateChordPreviewButtons('treble');
             break;
     }
@@ -729,4 +726,14 @@ function updateInstrumentMenuActiveState() {
             option.classList.remove('active');
         }
     });
+}
+
+/**
+ * Gets the current clef mode
+ * @returns {string} - 'bass' or 'treble' based on current mode
+ */
+export function getCurrentChordClef() {
+    if (chordButtonMode === 1) return 'bass';
+    if (chordButtonMode === 2) return 'treble';
+    return 'treble'; // Default fallback
 }

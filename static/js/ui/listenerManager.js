@@ -24,7 +24,7 @@ import { handleInitialGuitar } from "../instrument/guitarInstrument.js";
 
 import { initializeGuitarControls, createChordPalette } from "./guitarUI.js";
 
-import { toggleIsMinorKey, show_side_panel } from "../ui/uiHelpers.js";
+import { toggleIsMinorKey, show_side_panel, generateChordPreviewButtons, getCurrentChordClef } from "../ui/uiHelpers.js";
 import { setTempo } from "../score/scoreWriter.js";
 import { setupPaletteInteractions } from "../ui/paletteHelpers.js";
 
@@ -369,4 +369,8 @@ function handleQuantizeChange(event) {
   const quantize = event.target.value;
   pianoState.quantize = quantize;
   console.log(`Quantize changed to: ${quantize}`);
+  
+  // Regenerate chord preview buttons to update their durations
+  const currentClef = getCurrentChordClef();
+  generateChordPreviewButtons(currentClef);
 }
