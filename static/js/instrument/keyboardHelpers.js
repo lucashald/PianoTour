@@ -94,6 +94,12 @@ export function handleKeyDown(e) {
     return;
   }
   
+  // Ignore any key combination with Ctrl, Alt, or Meta (allow browser shortcuts to work)
+  if (e.ctrlKey || e.altKey || e.metaKey) {
+    console.log(`Ignoring key with modifier: "${e.key}" (ctrl: ${e.ctrlKey}, alt: ${e.altKey}, meta: ${e.metaKey})`);
+    return;
+  }
+  
   const k = e.key.toLowerCase();
   console.log(`handleKeyDown: "${e.key}" (lowercase: "${k}")`);
   
@@ -257,6 +263,12 @@ export function handleInitialKeyboard(e) {
   // Ignore modifier keys
   if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) {
     console.log(`Ignoring modifier key: "${e.key}"`);
+    return;
+  }
+  
+  // Ignore any key combination with Ctrl, Alt, or Meta (allow browser shortcuts to work)
+  if (e.ctrlKey || e.altKey || e.metaKey) {
+    console.log(`Ignoring key with modifier: "${e.key}" (ctrl: ${e.ctrlKey}, alt: ${e.altKey}, meta: ${e.metaKey})`);
     return;
   }
   
