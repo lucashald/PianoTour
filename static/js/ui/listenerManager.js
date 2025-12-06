@@ -192,6 +192,11 @@ export function addButtonListeners() {
     .getElementById("toggleFixedDurationCheckbox")
     ?.addEventListener("change", handleFixedDurationToggle);
   
+  // Wire up the quantize dropdown
+  document
+    .getElementById("quantize-select")
+    ?.addEventListener("change", handleQuantizeChange);
+  
   // Rest button listeners
   const bassRestBtn = document.getElementById("bass-rest-btn");
   const trebleRestBtn = document.getElementById("treble-rest-btn");
@@ -355,4 +360,13 @@ function handleFixedDurationToggle(event) {
   const useFixedDuration = event.target.checked;
   pianoState.toggleFixedDuration = useFixedDuration;
   console.log(`Fixed duration mode: ${useFixedDuration ? 'ON (using quantize)' : 'OFF (using held time)'}`);
+}
+
+/**
+ * Handles quantize (note duration) dropdown change
+ */
+function handleQuantizeChange(event) {
+  const quantize = event.target.value;
+  pianoState.quantize = quantize;
+  console.log(`Quantize changed to: ${quantize}`);
 }
