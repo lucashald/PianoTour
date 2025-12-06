@@ -2057,3 +2057,103 @@ background: linear-gradient(to right,
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+/* ==========================================================================
+   25. Chord Preview Styles
+   ========================================================================== */
+
+.chord-preview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+}
+
+.chord-preview-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.chord-preview-button {
+  width: 100%;
+  background: #FFFFFF;
+  border: 2px solid #E0E0E0;
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
+  min-height: 80px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: var(--spacing-xs);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chord-preview-button:hover {
+  border-color: var(--color-green-medium);
+  box-shadow: 0 4px 12px rgba(41, 123, 81, 0.2);
+}
+
+.chord-preview-button.is-active {
+  border-color: var(--color-green-medium);
+  background: #F5F5F5;
+  box-shadow: 0 4px 16px rgba(41, 123, 81, 0.3);
+}
+
+.chord-preview-button.pressed {
+  background: #EFEFEF;
+}
+
+.chord-preview-label {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: center;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* VexFlow SVG styling for chord previews */
+.chord-preview-button svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments for chord previews */
+@media (max-width: 768px) {
+  .chord-preview-item {
+    flex: 0 1 calc(50% - var(--spacing-sm));
+  }
+
+  .chord-preview-button {
+    min-height: 100px;
+  }
+}
+
+@media (min-width: 768px) {
+  .chord-preview-item {
+    flex: 0 1 calc(33.333% - var(--spacing-sm));
+  }
+
+  .chord-preview-button {
+    min-height: 100px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .chord-preview-item {
+    flex: 0 1 calc(25% - var(--spacing-sm));
+  }
+
+  .chord-preview-button {
+    min-height: 100px;
+  }
+}

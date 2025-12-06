@@ -1,3 +1,4 @@
+import { pianoState } from '../core/appState.js';
 import { CHORD_DEFINITIONS, CHORD_GROUPS } from '../core/note-data.js';
 
 export class ChordPreview {
@@ -7,6 +8,7 @@ export class ChordPreview {
         this.chord = options.chord || []; // Can be chord name string or array of notes
         this.width = options.width || 200;
         this.height = options.height || 150;
+        this.spaceAboveStaffLn = options.spaceAboveStaffLn || 3; // Default to 3
         
         // Internal state for beams and ties
         this.vexflowNotes = [];
@@ -91,7 +93,9 @@ export class ChordPreview {
         const context = renderer.getContext();
         this.context = context;
 
-        const stave = new Vex.Flow.Stave(10, 20, this.width - 20);
+        const stave = new Vex.Flow.Stave(10, 0, this.width - 20, {
+            space_above_staff_ln: this.spaceAboveStaffLn
+        });
         stave.addClef(this.clef);
         stave.setContext(context).draw();
 
@@ -99,7 +103,7 @@ export class ChordPreview {
         
         const vexNote = new Vex.Flow.StaveNote({
             keys: keys,
-            duration: 'w',
+            duration: pianoState.quantize,
             clef: this.clef
         });
 
@@ -150,7 +154,10 @@ export class ChordPreview {
         const context = renderer.getContext();
         this.context = context;
 
-        const stave = new Vex.Flow.Stave(10, 20, this.width - 20);
+        const stave = new Vex.Flow.Stave(10, 0, this.width - 20, {
+            space_above_staff_ln: this.spaceAboveStaffLn
+        });
+        
         stave.addClef(this.clef);
         stave.setContext(context).draw();
 

@@ -7,12 +7,13 @@
 
 import { pianoState } from '../core/appState.js';
 import audioManager, { unlockAndExecute } from '../core/audioManager.js';
-import { CHORD_DEFINITIONS, CHORD_GROUPS, getDurationThresholds, getKeySignature } from '../core/note-data.js';
+import { CHORD_DEFINITIONS, CHORD_GROUPS, ALL_NOTE_INFO, getDurationThresholds, getKeySignature } from '../core/note-data.js';
 import { trigger } from '../instrument/playbackHelpers.js';
 import { setKeySignature } from '../score/scoreRenderer.js';
 import { writeNote } from '../score/scoreWriter.js';
 import { createChordDiagrams, createChordPalette } from './guitarUI.js';
 import { audioSettingsController } from './audioSettings.js';
+import { ChordPreview } from '../classes/ChordPreview.js';
 
 // ===================================================================
 // UI Update Functions
@@ -68,6 +69,67 @@ function resolveChordName(chordName) {
     return chordName; // Return original if no enharmonic equivalent found
 }
 
+/**
+ * Calculates the appropriate spaceAboveStaffLn value based on the chord's note range
+ * @param {string[]} notes - Array of note strings like ['C4', 'E4', 'G4']
+ * @param {string} clef - The clef type ('treble' or 'bass')
+ * @returns {number} - spaceAboveStaffLn value between 0 and 6
+ */
+function getSpacingForChord(notes, clef) {
+    if (!notes || notes.length === 0) {
+        console.log('getSpacingForChord: No notes provided, returning default 3');
+        return 3;
+    }
+
+    // Get MIDI numbers for each note
+    const midiNumbers = notes.map(note => {
+        const noteInfo = ALL_NOTE_INFO.find(info => info.name === note);
+        return noteInfo ? noteInfo.midi : null;
+    }).filter(midi => midi !== null);
+
+    if (midiNumbers.length === 0) {
+        console.log('getSpacingForChord: Could not find MIDI numbers for notes, returning default 3');
+        return 3;
+    }
+
+    const highestMidi = Math.max(...midiNumbers);
+    const lowestMidi = Math.min(...midiNumbers);
+
+    console.group(`getSpacingForChord - ${clef} clef`);
+    console.log('Notes:', notes);
+    console.log('MIDI numbers:', midiNumbers);
+    console.log('Highest MIDI:', highestMidi, `(${ALL_NOTE_INFO.find(n => n.midi === highestMidi)?.name || 'unknown'})`);
+    console.log('Lowest MIDI:', lowestMidi, `(${ALL_NOTE_INFO.find(n => n.midi === lowestMidi)?.name || 'unknown'})`);
+
+    let spacing;
+
+    if (clef === 'treble') {
+        if (highestMidi >= 84) {
+            spacing = 5;
+        } else if (highestMidi >= 83 && lowestMidi <= 59) {
+            spacing = 4;
+        } else if (lowestMidi <= 58) {
+            spacing = 2;
+        } else {
+            spacing = 3;
+        }
+    } else {
+        if (lowestMidi <= 39) {
+            spacing = 1;
+        } else if (lowestMidi <= 40 ) {
+            spacing = 2;
+        } else if (highestMidi >= 59 ) {
+            spacing = 4;
+        } else {
+            spacing = 3;
+        }
+    }
+
+    console.log('Final spacing value:', spacing);
+    console.groupEnd();
+
+    return spacing;
+}
 
 export function generateChordButtons() {
     if (typeof CHORD_GROUPS === 'undefined' || !document.getElementById('CHORD_GROUPSContainer')) return;
@@ -182,6 +244,157 @@ export function generateChordButtons() {
     chordButtonsGenerated = true;
 }
 
+export function generateChordPreviewButtons(clef = 'treble') {
+    if (chordButtonsGenerated) return;
+    if (typeof CHORD_GROUPS === 'undefined' || !document.getElementById('CHORD_GROUPSContainer')) return;
+
+    const CHORD_GROUPSContainer = document.getElementById('CHORD_GROUPSContainer');
+    CHORD_GROUPSContainer.innerHTML = ''; // Clear previous buttons
+
+    const previewsToRender = []; // Store preview info to render after DOM is updated
+
+    CHORD_GROUPS.forEach(group => {
+        const section = document.createElement('div');
+        section.className = 'chord-section';
+        const heading = document.createElement('h4');
+        heading.textContent = group.label;
+        section.appendChild(heading);
+
+        const grid = document.createElement('div');
+        grid.className = 'chord-grid';
+
+        group.chords.forEach(chordName => {
+            const resolvedChordName = resolveChordName(chordName);
+            
+            // Check if we've already added this chord to the grid
+            if (grid.querySelector(`[data-chord="${resolvedChordName}"]`)) {
+                return; // Skip if already exists
+            }
+
+            const chordDefinition = CHORD_DEFINITIONS[resolvedChordName];
+            if (!chordDefinition) return;
+
+            // Create chord item wrapper
+            const chordItem = document.createElement('div');
+            chordItem.className = 'chord-preview-item';
+            chordItem.setAttribute('data-chord', resolvedChordName);
+
+            // Add label above preview
+            const label = document.createElement('div');
+            label.className = 'chord-preview-label';
+            label.textContent = chordDefinition.displayName;
+            chordItem.appendChild(label);
+
+            // Create preview container (the preview will BE the button)
+            const previewContainer = document.createElement('div');
+            previewContainer.className = 'chord-preview-button';
+            previewContainer.id = `preview-${resolvedChordName}-${clef}`;
+            chordItem.appendChild(previewContainer);
+
+            grid.appendChild(chordItem);
+
+            // Calculate appropriate spacing based on chord's note range
+            const notesToUse = clef === 'bass' ? chordDefinition.bass : chordDefinition.treble;
+            const spacing = getSpacingForChord(notesToUse, clef);
+
+            // Store preview info to render later
+            previewsToRender.push({
+                elementId: `preview-${resolvedChordName}-${clef}`,
+                chordName: resolvedChordName,
+                chordDefinition: chordDefinition,
+                clef: clef,
+                spaceAboveStaffLn: spacing
+            });
+        });
+        section.appendChild(grid);
+        CHORD_GROUPSContainer.appendChild(section);
+    });
+
+    // NOW render all previews after entire DOM structure is in place
+    previewsToRender.forEach(previewInfo => {
+        const preview = new ChordPreview(previewInfo.elementId, {
+            clef: previewInfo.clef,
+            width: 150,
+            height: 100,
+            spaceAboveStaffLn: previewInfo.spaceAboveStaffLn
+        });
+        preview.render(previewInfo.chordName);
+
+        // Add click/pointer handler to the chord item container (includes label and preview)
+        const chordItem = document.querySelector(`[data-chord="${previewInfo.chordName}"]`);
+        if (chordItem) {
+            chordItem.style.cursor = 'pointer';
+            chordItem.addEventListener('pointerdown', function (e) {
+                e.preventDefault();
+                const chordDefinition = previewInfo.chordDefinition;
+
+                document.querySelectorAll('#CHORD_GROUPSContainer .chord-preview-item').forEach(item => {
+                    item.classList.remove('is-active');
+                });
+                this.classList.add('is-active');
+
+                updateNowPlayingDisplay(chordDefinition.displayName);
+
+                let notesToPlay = [];
+                let selectedClef = '';
+
+                if (chordButtonMode === 1) { notesToPlay = chordDefinition.bass || []; selectedClef = 'bass'; } 
+                else if (chordButtonMode === 2) { notesToPlay = chordDefinition.treble || []; selectedClef = 'treble'; }
+
+                if (notesToPlay.length > 0) {
+                    if (audioManager.isAudioReady()) {
+                        trigger(notesToPlay, true);
+                        this.classList.add('pressed');
+                    }
+                    
+                    const startTime = performance.now();
+                    this.setPointerCapture(e.pointerId);
+                    this.dataset.playingChord = 'true';
+
+                    const endChordPlay = (eUp) => {
+                        if (this.dataset.playingChord === 'true') {
+                            if (audioManager.isAudioReady()) {
+                                trigger(notesToPlay, false);
+                                this.classList.remove('pressed');
+                            }
+                            delete this.dataset.playingChord;
+
+                            const heldTime = performance.now() - startTime;
+                            const thresholds = getDurationThresholds(pianoState.tempo);
+                            let duration = '8';
+                            if (pianoState.toggleFixedDuration) {
+                                duration = pianoState.quantize;
+                            } else if (heldTime >= thresholds.w) duration = 'w';
+                            else if (heldTime >= thresholds["h."]) duration = 'h.';
+                            else if (heldTime >= thresholds.h) duration = 'h';
+                            else if (heldTime >= thresholds["q."]) duration = 'q.';
+                            else if (heldTime >= thresholds.q) duration = 'q';
+                            else if (heldTime >= thresholds["8."]) duration = '8.';
+
+                            const chordDisplayName = chordDefinition.displayName;
+                            updateNowPlayingDisplay(chordDisplayName);
+                            writeNote({ clef: selectedClef, duration, notes: notesToPlay, chordName: chordDisplayName });
+
+                            this.releasePointerCapture(eUp.pointerId);
+                            this.removeEventListener('pointerup', endChordPlay);
+                            this.removeEventListener('pointercancel', endChordPlay);
+                        }
+                    };
+                    this.addEventListener('pointerup', endChordPlay, { once: true });
+                    this.addEventListener('pointercancel', endChordPlay, { once: true });
+                } else {
+                    const chordDisplayName = chordDefinition.displayName;
+                    updateNowPlayingDisplay(chordDisplayName);
+                    writeNote({ clef: selectedClef, duration: pianoState.quantize, notes: [], chordName: chordDisplayName, isRest: true });
+                    document.getElementById('instrument')?.focus();
+                }
+            });
+        }
+    });
+
+    chordButtonsGenerated = true;
+}
+
 export function handleChordDisplayToggle(e) {
     e.preventDefault();
     
@@ -203,13 +416,15 @@ export function handleChordDisplayToggle(e) {
             toggleButtonSpan.textContent = 'Bass Chords';
             chordButtonsContainer.classList.remove('hidden');
             e.currentTarget.classList.add('is-active');
-            if (!chordButtonsGenerated) { generateChordButtons(); }
+            chordButtonsGenerated = false; // Reset flag to regenerate
+            generateChordPreviewButtons('bass');
             break;
         case 2:
             toggleButtonSpan.textContent = 'Treble Chords';
             chordButtonsContainer.classList.remove('hidden');
             e.currentTarget.classList.add('is-active');
-            if (!chordButtonsGenerated) { generateChordButtons(); }
+            chordButtonsGenerated = false; // Reset flag to regenerate
+            generateChordPreviewButtons('treble');
             break;
     }
 }
@@ -259,7 +474,7 @@ export async function updateUI(message, options = {}) {
     // Regenerate chord buttons if requested
     if (options.regenerateChords) {
         const currentKey = getKeySignature();
-        generateChordButtons();
+        generateChordPreviewButtons();
         await createChordDiagrams('.chord-container', currentKey);
         // createChordPalette will use window.guitarInstance as default if not provided
         await createChordPalette(undefined, currentKey);
