@@ -155,7 +155,6 @@
         handleSettingsDisplayToggle,
         handleKeySignatureClick,
         handlePlaybackMenuToggle,
-        handleQuantizeToggle,
         handleInstrumentMenuToggle,
         handleInstrumentSelect,
         handleExportMenuToggle,
@@ -187,7 +186,7 @@
   showExportSuccess, 
   showExportError 
 } from '{{ url_for("static", filename="js/export/audioExporter.js") }}';
-
+import { handleQuantizeChange } from '{{ url_for("static", filename="js/ui/listenerManager.js") }}';
 // Add to your initializePlayer() or similar init function
 document.getElementById('export-audio-btn')?.addEventListener('click', async () => {
   const measures = getMeasures();
@@ -517,7 +516,7 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
           {
             id: "quantize-btn",
             event: "click",
-            handler: handleQuantizeToggle,
+            handler: handleQuantizeChange,
           },
           {
             id: "instrument-menu-btn",

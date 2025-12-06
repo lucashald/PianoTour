@@ -363,14 +363,65 @@ function handleFixedDurationToggle(event) {
 }
 
 /**
- * Handles quantize (note duration) dropdown change
+ * Handles quantize (note duration) change from dropdown or button
  */
-function handleQuantizeChange(event) {
-  const quantize = event.target.value;
+export function handleQuantizeChange(event) {
+  // Handle both dropdown change and button click events
+  let quantize;
+  
+  if (event.target.id === 'quantize-select') {
+    // From dropdown
+    quantize = event.target.value;
+  } else if (event.target.id === 'quantize-btn' || event.target.closest('#quantize-btn')) {
+    // From button click - cycle to next value
+    const options = ['16', '8', 'q', 'h', 'w'];
+    const currentIndex = options.indexOf(pianoState.quantize);
+    const nextIndex = (currentIndex + 1) % options.length;
+    quantize = options[nextIndex];
+    event.preventDefault();
+  } else {
+    // Fallback: assume it's from dropdown
+    quantize = event.target.value;
+  }
+  
   pianoState.quantize = quantize;
   console.log(`Quantize changed to: ${quantize}`);
+  
+  // Update the button UI to reflect the new quantize value
+  updateQuantizeButtonUI(quantize);
+  
+  // Update the dropdown to reflect the new quantize value
+  const dropdown = document.getElementById('quantize-select');
+  if (dropdown && dropdown.value !== quantize) {
+    dropdown.value = quantize;
+  }
   
   // Regenerate chord preview buttons to update their durations
   const currentClef = getCurrentChordClef();
   generateChordPreviewButtons(currentClef);
+}
+
+/**
+ * Updates the quantize button UI to show the current quantize value
+ */
+function updateQuantizeButtonUI(quantize) {
+  const imageMap = {
+    'w': 'whole.png',
+    'h': 'half-up.png',
+    'q': 'quarter-up.png',
+    '8': '8th-up.png',
+    '16': '16th-up.png'
+  };
+  
+  const btn = document.getElementById('quantize-btn');
+  if (btn) {
+    const imgName = imageMap[quantize];
+    if (imgName) {
+      btn.innerHTML = `<img src="/static/images/${imgName}" alt="${quantize}" class="quantize-icon">`;
+    } else {
+      // Fallback for 32 or others
+      const labels = { '32': '1/32' };
+      btn.textContent = labels[quantize] || quantize;
+    }
+  }
 }

@@ -562,34 +562,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-export function handleQuantizeToggle(e) {
-    e.preventDefault();
-    const options = ['16', '8', 'q', 'h', 'w'];
-    const imageMap = {
-        'w': 'whole.png',
-        'h': 'half-up.png',
-        'q': 'quarter-up.png',
-        '8': '8th-up.png',
-        '16': '16th-up.png'
-    };
-    
-    const currentIndex = options.indexOf(pianoState.quantize);
-    const nextIndex = (currentIndex + 1) % options.length;
-    pianoState.quantize = options[nextIndex];
-    
-    const btn = document.getElementById('quantize-btn');
-    if (btn) {
-        const imgName = imageMap[pianoState.quantize];
-        if (imgName) {
-            btn.innerHTML = `<img src="/static/images/${imgName}" alt="${pianoState.quantize}" class="quantize-icon">`;
-        } else {
-            // Fallback for 32 or others
-            const labels = { '32': '1/32' };
-            btn.textContent = labels[pianoState.quantize] || pianoState.quantize;
-        }
-    }
-}
-
 export function handleInstrumentMenuToggle(e) {
     e.preventDefault();
     e.stopPropagation();
