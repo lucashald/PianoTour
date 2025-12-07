@@ -238,19 +238,27 @@ body.no-scroll {
 
 /* Settings Icon */
 .settings-toggle-icon {
-    font-size: 35px;
+    width: 40px;
+    height: 40px;
+    fill: var(--color-text-secondary);
+    flex-shrink: 0;
     cursor: pointer;
-    color: var(--color-text-secondary);
-    transition: color 0.2s ease, transform 0.2s ease;
-    padding: 3px;
-    display: inline-block;
-    transform: translateY(6px);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.settings-toggle-icon:hover {
+    fill: var(--color-primary);
+    background-color: var(--color-blue-dark);
 }
 
 /* Settings Icon Active State */
 .settings-toggle-icon.active {
-    transform: translateY(6px) scaleX(-1);
-    color: var(--color-primary);
+    fill: var(--color-primary);
+}
+
+.settings-toggle-icon:focus {
+    outline: none;
 }
 
 /* ===== HORIZONTAL VOLUME CONTROL ===== */
@@ -900,6 +908,13 @@ background: linear-gradient(to right,
   font-weight: 500;
 }
 
+/* Palette note icons - cropped SVGs scale naturally */
+.palette-icon {
+  height: 45px;
+  width: auto;
+  pointer-events: none;
+}
+
 /* Side Panel & Editor - Slide-in Drawer (non-modal) */
 .piano-app__side-panel {
   position: fixed;
@@ -952,26 +967,36 @@ background: linear-gradient(to right,
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Sidebar toggle button (hamburger) */
+/* Sidebar toggle button (edit icon) */
 .sidebar-toggle-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: transparent;
+  border: none;
   border-radius: var(--border-radius);
-  color: var(--color-text-primary);
-  font-size: 24px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   flex-shrink: 0;
+  padding: 2px;
+}
+
+.sidebar-toggle-icon {
+  width: 40px;
+  height: 40px;
+  fill: var(--color-text-secondary);
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle-btn:hover .sidebar-toggle-icon {
+  fill: var(--color-primary);
 }
 
 .sidebar-toggle-btn:hover {
-  background: var(--color-blue-medium);
-  border-color: var(--color-blue-light);
+  background-color: var(--color-blue-dark);
+  border-radius: 6px;
 }
 
 /* Hide toggle button when sidebar not available */
@@ -1207,11 +1232,18 @@ background: linear-gradient(to right,
   opacity: 1;
 }
 
+.quantize-btn {
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Quantize icon - cropped SVGs scale naturally */
 .quantize-icon {
-  height: 1.5rem;
+  height: 35px;
   width: auto;
-  display: block;
-  margin: 0 auto;
   filter: brightness(0) invert(1); /* Make white for dark buttons */
 }
 
@@ -1302,10 +1334,10 @@ background: linear-gradient(to right,
   transform: scale(0.95);
 }
 
-.rest-btn .rest-symbol {
-  font-size: 1.5rem;
-  line-height: 1;
-  color: var(--color-text-primary);
+.rest-btn .rest-icon {
+  height: 24px;
+  width: auto;
+  filter: invert(1) brightness(2); /* Make SVG white */
 }
 
 .rest-btn .rest-label {

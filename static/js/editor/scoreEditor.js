@@ -1152,6 +1152,30 @@ document.addEventListener('noteDropped', (event) => {
         }
     }
 
+    // Delete key listener to remove selected note
+    document.addEventListener('keydown', (event) => {
+        // Only handle Delete key with no modifiers
+        if (event.key !== 'Delete' || event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) {
+            return;
+        }
+
+        // Return early if no note is selected
+        if (editorSelectedNoteId === null) {
+            return;
+        }
+
+        // Don't interfere if user is typing in an input field
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT')) {
+            return;
+        }
+
+        event.preventDefault();
+        removeNoteFromMeasure(editorSelectedMeasureIndex, editorSelectedNoteId);
+        editorSelectedNoteId = null;
+        renderNoteEditBox(false);
+    });
+
 }
 
 // Add this to your note-data.js or scoreEditor.js

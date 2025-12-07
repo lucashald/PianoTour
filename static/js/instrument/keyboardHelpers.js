@@ -191,15 +191,13 @@ export function handleKeyUp(e) {
       console.log(`Rest held for ${heldTime}ms`);
       
       const thresholds = getDurationThresholds(pianoState.tempo);
+      // Rests don't support dotted durations in our VexFlow implementation
       let duration = "8";
       if (pianoState.toggleFixedDuration) {
-        duration = pianoState.quantize;
+        duration = pianoState.quantize.replace('.', ''); // Remove dot if quantize is dotted
       } else if (heldTime >= thresholds.w) duration = "w";
-      else if (heldTime >= thresholds["h."]) duration = "h.";
       else if (heldTime >= thresholds.h) duration = "h";
-      else if (heldTime >= thresholds["q."]) duration = "q.";
       else if (heldTime >= thresholds.q) duration = "q";
-      else if (heldTime >= thresholds["8."]) duration = "8.";
 
       console.log(`Writing rest with duration: ${duration}, clef: ${restData.clef}`);
       const restPositionNote = restData.clef === "bass" ? "D3" : "B4";
@@ -501,13 +499,12 @@ export function endRest(clef) {
   const heldTime = performance.now() - restData.startTime;
   const thresholds = getDurationThresholds(pianoState.tempo);
   
-  let duration = pianoState.quantize;
+  // Rests don't support dotted durations in our VexFlow implementation
+  // Use only non-dotted durations
+  let duration = pianoState.quantize.replace('.', ''); // Remove dot if quantize is dotted
   if (heldTime >= thresholds.w) duration = "w";
-  else if (heldTime >= thresholds["h."]) duration = "h.";
   else if (heldTime >= thresholds.h) duration = "h";
-  else if (heldTime >= thresholds["q."]) duration = "q.";
   else if (heldTime >= thresholds.q) duration = "q";
-  else if (heldTime >= thresholds["8."]) duration = "8.";
   else if (heldTime >= thresholds["8"]) duration = "8";
   
   const restPositionNote = clef === "bass" ? "D3" : "B4";

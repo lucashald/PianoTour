@@ -132,29 +132,57 @@ const {
   BW: BLACK_KEY_WIDTH,
 } = buildNoteData();
 
-// Map of note durations to their corresponding PNG file paths
+// Map of note durations to their corresponding SVG file paths
 export const NOTE_IMAGE_MAP = {
-  // Regular notes
-  'w': '/static/images/whole.png',
-  'h': '/static/images/half-up.png',
-  'q': '/static/images/quarter-up.png',
-  '8': '/static/images/8th-up.png',
-  '16': '/static/images/16th-up.png',
+  // Regular notes - up stems
+  'w': '/static/images/generatedsvg/note-whole-up.svg',
+  'h': '/static/images/generatedsvg/note-half-up.svg',
+  'q': '/static/images/generatedsvg/note-quarter-up.svg',
+  '8': '/static/images/generatedsvg/note-eighth-up.svg',
+  '16': '/static/images/generatedsvg/note-16th-up.svg',
+  '32': '/static/images/generatedsvg/note-32nd-up.svg',
   
-  // Dotted notes
-  'h.': '/static/images/dotted-half-up.png',
-  'q.': '/static/images/dotted-quarter-up.png',
-  '8.': '/static/images/dotted-8th-up.png',
+  // Dotted notes - up stems
+  'w.': '/static/images/generatedsvg/note-whole-up-dotted.svg',
+  'h.': '/static/images/generatedsvg/note-half-up-dotted.svg',
+  'q.': '/static/images/generatedsvg/note-quarter-up-dotted.svg',
+  '8.': '/static/images/generatedsvg/note-eighth-up-dotted.svg',
+  '16.': '/static/images/generatedsvg/note-16th-up-dotted.svg',
+  '32.': '/static/images/generatedsvg/note-32nd-up-dotted.svg',
   
   // Down stem variants
-  'hdown': '/static/images/half-down.png',
-  'qdown': '/static/images/quarter-down.png',
-  '8down': '/static/images/8th-down.png',
-  '16down': '/static/images/16th-down.png'
+  'hdown': '/static/images/generatedsvg/note-half-down.svg',
+  'qdown': '/static/images/generatedsvg/note-quarter-down.svg',
+  '8down': '/static/images/generatedsvg/note-eighth-down.svg',
+  '16down': '/static/images/generatedsvg/note-16th-down.svg',
+  '32down': '/static/images/generatedsvg/note-32nd-down.svg',
+  
+  // Dotted down stem variants
+  'h.down': '/static/images/generatedsvg/note-half-down-dotted.svg',
+  'q.down': '/static/images/generatedsvg/note-quarter-down-dotted.svg',
+  '8.down': '/static/images/generatedsvg/note-eighth-down-dotted.svg',
+  '16.down': '/static/images/generatedsvg/note-16th-down-dotted.svg',
+  '32.down': '/static/images/generatedsvg/note-32nd-down-dotted.svg',
+  
+  // Rest images
+  'wr': '/static/images/generatedsvg/rest-whole.svg',
+  'hr': '/static/images/generatedsvg/rest-half.svg',
+  'qr': '/static/images/generatedsvg/rest-quarter.svg',
+  '8r': '/static/images/generatedsvg/rest-eighth.svg',
+  '16r': '/static/images/generatedsvg/rest-16th.svg',
+  '32r': '/static/images/generatedsvg/rest-32nd.svg',
+  
+  // Dotted rests
+  'w.r': '/static/images/generatedsvg/rest-whole-dotted.svg',
+  'h.r': '/static/images/generatedsvg/rest-half-dotted.svg',
+  'q.r': '/static/images/generatedsvg/rest-quarter-dotted.svg',
+  '8.r': '/static/images/generatedsvg/rest-eighth-dotted.svg',
+  '16.r': '/static/images/generatedsvg/rest-16th-dotted.svg',
+  '32.r': '/static/images/generatedsvg/rest-32nd-dotted.svg'
 };
 
 // Note positions with stem directions (combined for all notes)
-const NOTE_STEM_DIRECTIONS = {
+export const NOTE_STEM_DIRECTIONS = {
   // Treble clef - down stems (above and including middle line B4)
   'E6': 'down', 'D6': 'down', 'C6': 'down', 'B5': 'down', 'A5': 'down', 'G5': 'down',
   'F5': 'down', 'E5': 'down', 'D5': 'down', 'C5': 'down', 'B4': 'down',
@@ -169,11 +197,17 @@ const NOTE_STEM_DIRECTIONS = {
  'C3': 'up', 'B2': 'up', 'A2': 'up', 'G2': 'up', 'F2': 'up', 'E2': 'up', 'D2': 'up', 'C2': 'up'
 };
 
-// Helper function to get the correct image path based on note name and duration
-export function getNoteImagePath(duration, noteName) {
+// Helper function to get the correct image path based on note name, duration, and whether it's a rest
+export function getNoteImagePath(duration, noteName, isRest = false) {
+  // Handle rests
+  if (isRest) {
+    const restKey = duration + 'r';
+    return NOTE_IMAGE_MAP[restKey] || NOTE_IMAGE_MAP['qr'];
+  }
+  
   // Whole notes don't have stems
-  if (duration === 'w') {
-    return NOTE_IMAGE_MAP['w'];
+  if (duration === 'w' || duration === 'w.') {
+    return NOTE_IMAGE_MAP[duration];
   }
   
   // Get stem direction for this note
@@ -181,8 +215,13 @@ export function getNoteImagePath(duration, noteName) {
   
   // Build the correct duration key based on stem direction
   let durationKey = duration;
-  if (stemDirection === 'down' && NOTE_IMAGE_MAP[duration + 'down']) {
-    durationKey = duration + 'down';
+  if (stemDirection === 'down') {
+    // Handle dotted notes with down stems (e.g., 'q.' -> 'q.down')
+    if (duration.endsWith('.')) {
+      durationKey = duration + 'down';
+    } else {
+      durationKey = duration + 'down';
+    }
   }
   
   return NOTE_IMAGE_MAP[durationKey] || NOTE_IMAGE_MAP['q'];

@@ -10,6 +10,7 @@ import {
   getNoteImagePath,
   KEY_SIGNATURES,
   NOTE_IMAGE_MAP,
+  NOTE_STEM_DIRECTIONS,
   NOTES_BY_NAME,
   createIntervalChord,
   applyKeySignatureCorrection
@@ -729,18 +730,28 @@ function handlePaletteDrop(endX, endY, event) {
     return;
   }
 
-  // Apply key signature correction to the dropped note
-  const rawMIDI = NOTES_BY_NAME[nearestPosition.note];
-  const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
-  const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
-  const newNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearestPosition.note;
+  // For rests, always use standard positions (B4 for treble, D3 for bass)
+  // For notes, apply key signature correction to the dropped note
+  const isRest = paletteDragType === "rest";
+  let newNoteName;
+  
+  if (isRest) {
+    // Rests always go at standard staff positions
+    newNoteName = clef === 'bass' ? 'D3' : 'B4';
+  } else {
+    // Apply key signature correction for notes
+    const rawMIDI = NOTES_BY_NAME[nearestPosition.note];
+    const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
+    const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
+    newNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearestPosition.note;
+  }
 
   // Create the new note object
   const newNote = {
     name: newNoteName,
     clef: clef,
     duration: pianoState.quantize,
-    isRest: paletteDragType === "rest",
+    isRest: isRest,
     measure: targetMeasureIndex,
     id: Date.now().toString(),
   };
@@ -761,7 +772,34 @@ function updateDragPreview(x, snapY, noteName) {
   let preview = document.getElementById("drag-snap-preview");
   // Get the duration from the original note being dragged
   const durationText = originalNoteData ? originalNoteData.duration : pianoState.quantize;
-  const imagePath = getNoteImagePath(durationText, noteName);
+  const isRest = paletteDragType === "rest";
+  const imagePath = getNoteImagePath(durationText, noteName, isRest);
+  
+  // Determine stem direction for proper note head alignment
+  // The SVG images are 120x120 with note heads at specific positions:
+  // - Up-stem notes: note head center at approximately (23, 80)
+  // - Down-stem notes: note head center at approximately (23, 65)
+  // - Whole notes: note head center at approximately (25.5, 80)
+  // - Rests: centered at approximately (60, 60)
+  const stemDirection = NOTE_STEM_DIRECTIONS[noteName] || 'up';
+  const isWhole = durationText === 'w' || durationText === 'w.';
+  
+  // Note head center positions in the 120x120 SVG
+  let noteHeadX, noteHeadY;
+  if (isRest) {
+    noteHeadX = 60; // Rests are centered
+    noteHeadY = 60;
+  } else if (isWhole) {
+    noteHeadX = 25.5; // Whole note head center
+    noteHeadY = 80;
+  } else if (stemDirection === 'down') {
+    noteHeadX = 23; // Down stem note head center
+    noteHeadY = 65;
+  } else {
+    noteHeadX = 23; // Up stem note head center
+    noteHeadY = 80;
+  }
+  
   if (!preview) {
     preview = document.createElement("div");
     preview.id = "drag-snap-preview";
@@ -775,6 +813,11 @@ function updateDragPreview(x, snapY, noteName) {
   }
 
   const isOnLine = snapY % 10 === 0;
+
+  // Container is 48x48, image is displayed at full 120x120 size
+  // We offset the image so the note head center aligns with the container center (24, 24)
+  const imgLeft = 24 - noteHeadX;
+  const imgTop = 24 - noteHeadY;
 
   
   if (isOnLine) {
@@ -791,30 +834,33 @@ function updateDragPreview(x, snapY, noteName) {
           border-radius: 50%;
           width: 48px;
           height: 48px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          overflow: hidden;
           z-index: 1;
         ">
           <img src="${imagePath}" alt="${durationText}" style="
-            width: 40px; 
-            height: 40px; 
-            object-fit: contain;
-          ">
-          <!-- Note name in bottom right -->
-          <div style="
             position: absolute;
-            bottom: -2px;
-            right: -8px;
-            background: rgba(216, 131, 104, 0.9);
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            padding: 1px 4px;
-            border-radius: 3px;
-            line-height: 1;
-          ">${noteName}</div>
+            left: ${imgLeft}px;
+            top: ${imgTop}px;
+            width: 120px; 
+            height: 120px; 
+          ">
         </div>
+        
+        <!-- Note name label - outside the clipped container -->
+        <div style="
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(12px, 8px);
+          background: rgba(216, 131, 104, 0.9);
+          color: white;
+          font-size: 10px;
+          font-weight: bold;
+          padding: 1px 4px;
+          border-radius: 3px;
+          line-height: 1;
+          z-index: 3;
+        ">${noteName}</div>
         
         <!-- Red line with higher z-index -->
         <div style="
@@ -865,30 +911,33 @@ function updateDragPreview(x, snapY, noteName) {
           border-radius: 50%;
           width: 48px;
           height: 48px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          overflow: hidden;
           z-index: 2;
         ">
           <img src="${imagePath}" alt="${durationText}" style="
-            width: 40px; 
-            height: 40px; 
-            object-fit: contain;
-          ">
-          <!-- Note name in bottom right -->
-          <div style="
             position: absolute;
-            bottom: -2px;
-            right: -8px;
-            background: rgba(41, 123, 81, 0.9);
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            padding: 1px 4px;
-            border-radius: 3px;
-            line-height: 1;
-          ">${noteName}</div>
+            left: ${imgLeft}px;
+            top: ${imgTop}px;
+            width: 120px; 
+            height: 120px; 
+          ">
         </div>
+        
+        <!-- Note name label - outside the clipped container -->
+        <div style="
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(12px, 8px);
+          background: rgba(41, 123, 81, 0.9);
+          color: white;
+          font-size: 10px;
+          font-weight: bold;
+          padding: 1px 4px;
+          border-radius: 3px;
+          line-height: 1;
+          z-index: 3;
+        ">${noteName}</div>
       </div>
     `;
   }

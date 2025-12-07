@@ -236,8 +236,10 @@ export function generateChordButtons() {
             } else {
                 const chordDisplayName = chordDefinition.displayName;
                 updateNowPlayingDisplay(chordDisplayName);
-                // Always write to score regardless of audio state
-                writeNote({ clef, duration: pianoState.quantize, notes: [], chordName: chordDisplayName, isRest: true });
+                // When chord has no notes for this clef, write as rest
+                // Use standard rest position: B4 for treble, D3 for bass
+                const restPosition = clef === 'bass' ? 'D3' : 'B4';
+                writeNote({ clef: clef || 'treble', duration: pianoState.quantize, notes: [restPosition], chordName: chordDisplayName, isRest: true });
                 document.getElementById('instrument')?.focus();
             }
         }); 
@@ -386,7 +388,10 @@ export function generateChordPreviewButtons(clef = 'treble') {
                 } else {
                     const chordDisplayName = chordDefinition.displayName;
                     updateNowPlayingDisplay(chordDisplayName);
-                    writeNote({ clef: selectedClef, duration: pianoState.quantize, notes: [], chordName: chordDisplayName, isRest: true });
+                    // When chord has no notes for this clef, write as rest
+                    // Use standard rest position: B4 for treble, D3 for bass
+                    const restPosition = selectedClef === 'bass' ? 'D3' : 'B4';
+                    writeNote({ clef: selectedClef, duration: pianoState.quantize, notes: [restPosition], chordName: chordDisplayName, isRest: true });
                     document.getElementById('instrument')?.focus();
                 }
             });

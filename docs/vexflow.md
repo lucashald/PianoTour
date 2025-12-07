@@ -48,3 +48,16 @@ Returns the staff line number for a specific key in the chord.
 - Y coordinates increase going **down** the page
 - Higher pitched notes have **smaller** Y values (closer to top of screen)
 - Staff lines are numbered from top to bottom (line 0 = top of staff)
+
+We need to make sure that we aren't trying to write rests with "name": "rest"
+
+We want to use a note name to tell vexflow WHERE on the staff to position the rest. Like this:       {
+        "name": "A4",
+        "clef": "treble",
+        "duration": "w",
+        "isRest": true,
+        "measure": 1,
+        "id": "1765084369246",
+        "performedDuration": 0.853,
+        "velocity": 107
+      }

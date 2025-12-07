@@ -406,22 +406,28 @@ export function handleQuantizeChange(event) {
  */
 function updateQuantizeButtonUI(quantize) {
   const imageMap = {
-    'w': 'whole.png',
-    'h': 'half-up.png',
-    'q': 'quarter-up.png',
-    '8': '8th-up.png',
-    '16': '16th-up.png'
+    'w': 'note-whole-up-cropped.svg',
+    'w.': 'note-whole-up-dotted-cropped.svg',
+    'h': 'note-half-up-cropped.svg',
+    'h.': 'note-half-up-dotted-cropped.svg',
+    'q': 'note-quarter-up-cropped.svg',
+    'q.': 'note-quarter-up-dotted-cropped.svg',
+    '8': 'note-eighth-up-cropped.svg',
+    '8.': 'note-eighth-up-dotted-cropped.svg',
+    '16': 'note-16th-up-cropped.svg',
+    '16.': 'note-16th-up-dotted-cropped.svg',
+    '32': 'note-32nd-up-cropped.svg',
+    '32.': 'note-32nd-up-dotted-cropped.svg'
   };
   
   const btn = document.getElementById('quantize-btn');
   if (btn) {
     const imgName = imageMap[quantize];
     if (imgName) {
-      btn.innerHTML = `<img src="/static/images/${imgName}" alt="${quantize}" class="quantize-icon">`;
+      btn.innerHTML = `<img src="/static/images/generatedsvg/${imgName}" alt="${quantize}" class="quantize-icon">`;
     } else {
-      // Fallback for 32 or others
-      const labels = { '32': '1/32' };
-      btn.textContent = labels[quantize] || quantize;
+      // Fallback for unknown durations
+      btn.textContent = quantize;
     }
   }
 }

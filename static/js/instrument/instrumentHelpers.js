@@ -979,15 +979,13 @@ function handleKeyUp(e) {
     if (restData) {
       const heldTime = performance.now() - restData.startTime;
       const thresholds = getDurationThresholds(pianoState.tempo);
+      // Rests don't support dotted durations in our VexFlow implementation
       let duration = "8";
       if (pianoState.toggleFixedDuration) {
-        duration = pianoState.quantize;
+        duration = pianoState.quantize.replace('.', ''); // Remove dot if quantize is dotted
       } else if (heldTime >= thresholds.w) duration = "w";
-      else if (heldTime >= thresholds["h."]) duration = "h.";
       else if (heldTime >= thresholds.h) duration = "h";
-      else if (heldTime >= thresholds["q."]) duration = "q.";
       else if (heldTime >= thresholds.q) duration = "q";
-      else if (heldTime >= thresholds["8."]) duration = "8.";
 
       const restPositionNote = restData.clef === "bass" ? "D3" : "B4";
       writeNote({

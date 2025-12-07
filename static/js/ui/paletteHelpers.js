@@ -47,12 +47,15 @@ function handlePaletteClick(event) {
  * Handle rest palette item click - writes a rest to the score
  */
 function handleRestClick(duration) {
-    // Determine clef based on current selection or default to treble
+    // Default to treble clef for click-to-write rests
+    // Use B4 for treble (standard rest position for VexFlow)
+    const clef = 'treble';
+    const restPosition = 'B4';
     
     writeNote({
-        clef: 'treble',
+        clef: clef,
         duration: duration,
-        notes: ['B4'],
+        notes: [restPosition],
         chordName: "Rest",
         isRest: true
     });
@@ -118,16 +121,18 @@ function updateQuantizeButtonDisplay(duration) {
     if (!quantizeBtn) return;
     
     const noteImages = {
-        '32': '/static/images/16th-up.png',  // No 32nd image, use 16th
-        '16': '/static/images/16th-up.png',
-        '16.': '/static/images/16th-up.png',
-        '8': '/static/images/8th-up.png',
-        '8.': '/static/images/dotted-8th-up.png',
-        'q': '/static/images/quarter-up.png',
-        'q.': '/static/images/dotted-quarter-up.png',
-        'h': '/static/images/half-up.png',
-        'h.': '/static/images/dotted-half-up.png',
-        'w': '/static/images/whole.png'
+        '32': '/static/images/generatedsvg/note-32nd-up-cropped.svg',
+        '32.': '/static/images/generatedsvg/note-32nd-up-dotted-cropped.svg',
+        '16': '/static/images/generatedsvg/note-16th-up-cropped.svg',
+        '16.': '/static/images/generatedsvg/note-16th-up-dotted-cropped.svg',
+        '8': '/static/images/generatedsvg/note-eighth-up-cropped.svg',
+        '8.': '/static/images/generatedsvg/note-eighth-up-dotted-cropped.svg',
+        'q': '/static/images/generatedsvg/note-quarter-up-cropped.svg',
+        'q.': '/static/images/generatedsvg/note-quarter-up-dotted-cropped.svg',
+        'h': '/static/images/generatedsvg/note-half-up-cropped.svg',
+        'h.': '/static/images/generatedsvg/note-half-up-dotted-cropped.svg',
+        'w': '/static/images/generatedsvg/note-whole-up-cropped.svg',
+        'w.': '/static/images/generatedsvg/note-whole-up-dotted-cropped.svg'
     };
     
     const imgSrc = noteImages[duration];

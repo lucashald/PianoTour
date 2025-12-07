@@ -312,9 +312,15 @@ function writeNoteInternal(obj) {
 
     // Ensure `notes` are always an array and create formatted name
     const notesArray = Array.isArray(notes) ? notes : [notes];
-    const formattedName = notesArray.length > 1
+    let formattedName = notesArray.length > 1
         ? `(${notesArray.sort((a, b) => NOTES_BY_NAME[a] - NOTES_BY_NAME[b]).join(' ')})`
         : notesArray[0];
+    
+    // For rests, ensure we have a valid position name for VexFlow rendering
+    // Use B4 for treble, D3 for bass (standard rest positions)
+    if (isRest && (!formattedName || formattedName === 'rest')) {
+        formattedName = clef === 'bass' ? 'D3' : 'B4';
+    }
 
     // Determine the display name - use chordName if provided, otherwise try to identify chord, otherwise use note name(s)
     let displayName = chordName;
