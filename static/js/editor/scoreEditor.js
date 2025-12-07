@@ -651,7 +651,6 @@ function renderNoteEditBox(smoothScroll = true) {
         pianoState.currentSelectedNote = null;
     }
     scrollToMeasure(editorSelectedMeasureIndex, smoothScroll);
-    console.log('scrolling to', editorSelectedMeasureIndex)
 }
 
 // ===================================================================
@@ -1023,6 +1022,7 @@ document.addEventListener('noteDropped', (event) => {
         pitchChanged, 
         newClef, 
         newPitch,
+        chordAnchor,
         droppedData
     } = event.detail;
 
@@ -1081,10 +1081,13 @@ document.addEventListener('noteDropped', (event) => {
             if (pitchChanged && !originalNote.isRest) {
                 // Handle chord transposition
                 if (isChord(originalNote.name)) {
-                    const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
+                    const chordNotes = parseChord(originalNote.name);
+                    // Use top or bottom note as anchor based on where user grabbed
+                    const anchorNote = chordAnchor === 'top' ? chordNotes[chordNotes.length - 1] : chordNotes[0];
+                    const anchorNoteMidi = NOTES_BY_NAME[anchorNote];
                     const newPitchMidi = NOTES_BY_NAME[newPitch];
-                    if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
-                        const semitoneChange = newPitchMidi - originalFirstNoteMidi;
+                    if (anchorNoteMidi !== undefined && newPitchMidi !== undefined) {
+                        const semitoneChange = newPitchMidi - anchorNoteMidi;
                         noteToMove.name = transposeChord(originalNote.name, semitoneChange);
                     }
                 } else {
@@ -1101,10 +1104,13 @@ document.addEventListener('noteDropped', (event) => {
         if (clefChanged) updatedNoteData.clef = newClef;
         if (pitchChanged && !originalNote.isRest) {
             if (isChord(originalNote.name)) {
-                const originalFirstNoteMidi = NOTES_BY_NAME[parseChord(originalNote.name)[0]];
+                const chordNotes = parseChord(originalNote.name);
+                // Use top or bottom note as anchor based on where user grabbed
+                const anchorNote = chordAnchor === 'top' ? chordNotes[chordNotes.length - 1] : chordNotes[0];
+                const anchorNoteMidi = NOTES_BY_NAME[anchorNote];
                 const newPitchMidi = NOTES_BY_NAME[newPitch];
-                if (originalFirstNoteMidi !== undefined && newPitchMidi !== undefined) {
-                    const semitoneChange = newPitchMidi - originalFirstNoteMidi;
+                if (anchorNoteMidi !== undefined && newPitchMidi !== undefined) {
+                    const semitoneChange = newPitchMidi - anchorNoteMidi;
                     updatedNoteData.name = transposeChord(originalNote.name, semitoneChange);
                 }
             } else {

@@ -41,6 +41,7 @@ let vexflowIndexByNoteId = {};
 
 // --- Drag and Drop State ---
 let draggedNote = null; // { measureIndex, clef, noteId, originalNoteData, vexflowIndex }
+let chordAnchorPosition = 'bottom'; // 'top' or 'bottom' - which part of chord was grabbed
 let dragStartPosition = null; // { x, y } in client coordinates. Used to track initial mouse down.
 let isDragging = false; // True if a drag operation has officially begun (moved past threshold)
 let originalNoteData = null; // Store the original note's data from `getMeasures()` for drag operation
@@ -944,16 +945,37 @@ function startDrag(noteInfo, initialClickPos) {
     vexflowNoteMap[noteInfo.measureIndex]?.[noteInfo.clef]?.[vexflowIndex];
   if (vexNote) {
     originalVexFlowNoteBBox = vexNote.getBoundingBox();
+    
+    // Determine if user clicked on top or bottom of the chord
+    const noteKeys = vexNote.getKeys();
+    
+    if (noteKeys && noteKeys.length > 1) {
+      // Use VexFlow's getNoteHeadBounds() to get actual notehead Y positions
+      // This excludes stems, flags, and other decorations
+      const noteHeadBounds = vexNote.getNoteHeadBounds?.();
+      if (noteHeadBounds && noteHeadBounds.y_top !== undefined && noteHeadBounds.y_bottom !== undefined) {
+        // Determine anchor based on which notehead the click is closer to
+        const distFromTop = Math.abs(initialClickPos.y - noteHeadBounds.y_top);
+        const distFromBottom = Math.abs(initialClickPos.y - noteHeadBounds.y_bottom);
+        chordAnchorPosition = distFromTop < distFromBottom ? 'top' : 'bottom';
+      } else {
+        // Fallback to bbox midpoint if getNoteHeadBounds not available
+        const bboxMid = originalVexFlowNoteBBox.y + originalVexFlowNoteBBox.h / 2;
+        chordAnchorPosition = initialClickPos.y < bboxMid ? 'top' : 'bottom';
+      }
+    } else {
+      // Single note - no need for top/bottom logic
+      chordAnchorPosition = 'bottom';
+    }
   } else {
-    console.warn(
-      "startDrag: VexFlow note for BBox not found. BBox fallback active."
-    );
+    console.warn("startDrag: VexFlow note for BBox not found. BBox fallback active.");
     originalVexFlowNoteBBox = {
       x: initialClickPos.x,
       y: initialClickPos.y,
       w: 10,
       h: 10,
     };
+    chordAnchorPosition = 'bottom';
   }
 }
 
@@ -1059,6 +1081,7 @@ function completeDrag(currentX, currentY) {
         pitchChanged: pitchChanged,
         newClef: newClef,
         newPitch: newPitchName,
+        chordAnchor: chordAnchorPosition,
       },
     })
   );
