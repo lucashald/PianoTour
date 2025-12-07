@@ -1,3 +1,5 @@
+Never use dotted whole notes. They always cause vexflow to throw an error.
+
 # VexFlow API Notes
 
 ## Useful Methods for Note Positioning
