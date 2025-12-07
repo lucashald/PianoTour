@@ -163,6 +163,17 @@
             <button id="editorSplitNote" class="btn btn--compact" title="Split into two shorter notes">Split</button>
         </div>
     </div>
+    <div class="control-section">
+      <label>Transpose Note:</label>
+      <div class="button-group">
+        <button id="editorTransposeNoteSemitoneUp" class="btn btn--compact btn--info" title="Up 1 semitone">⭡ Semi</button>
+        <button id="editorTransposeNoteOctaveUp" class="btn btn--compact btn--info" title="Up 1 octave">⮅ Oct</button>
+      </div>
+      <div class="button-group">
+        <button id="editorTransposeNoteSemitoneDown" class="btn btn--compact btn--info" title="Down 1 semitone">⭣ Semi</button>
+        <button id="editorTransposeNoteOctaveDown" class="btn btn--compact btn--info" title="Down 1 octave">⮇ Oct</button>
+      </div>
+    </div>
         <!-- NEW: Tie and Slur Controls -->
 <div class="control-section">
   <label>Ties & Slurs:</label>
@@ -191,6 +202,24 @@
       <div class="button-group">
         <button id="editorDuplicateMeasure" class="btn btn--compact btn--secondary" title="Duplicate this measure">Duplicate</button>
         <button id="editorDeleteMeasure" class="btn btn--compact btn--danger" title="Delete this measure">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Score Editor -->
+  <div class="note-editor" id="editorScoreEditor">
+    <div class="note-editor__header">
+      Score Actions
+    </div>
+    <div class="control-section">
+      <label>Transpose Score:</label>
+      <div class="button-group">
+        <button id="editorTransposeSemitoneUp" class="btn btn--compact btn--info" title="Up 1 semitone">⭡ Semitone</button>
+        <button id="editorTransposeOctaveUp" class="btn btn--compact btn--info" title="Up 1 octave">⮅ Octave</button>
+      </div>
+      <div class="button-group">
+        <button id="editorTransposeSemitoneDown" class="btn btn--compact btn--info" title="Down 1 semitone">⭣ Semitone</button>
+        <button id="editorTransposeOctaveDown" class="btn btn--compact btn--info" title="Down 1 octave">⮇ Octave</button>
       </div>
     </div>
   </div>

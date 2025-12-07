@@ -16,7 +16,7 @@ import {
     enableScoreInteraction,
     scrollToMeasure
 } from '../score/scoreRenderer.js';
-import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur, updateNoteInMeasure, insertMeasure, deleteMeasure, duplicateMeasure, moveMeasureToEnd, splitNote } from '../score/scoreWriter.js';
+import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur, updateNoteInMeasure, insertMeasure, deleteMeasure, duplicateMeasure, moveMeasureToEnd, splitNote, transposeScore } from '../score/scoreWriter.js';
 
 // ===================================================================
 // Internal State
@@ -412,6 +412,39 @@ function handleDeleteMeasure() {
             renderNoteEditBox(false);
         }
     }
+}
+
+/**
+ * Transposes the currently selected note by a number of semitones
+ * @param {number} semitones - Number of semitones to transpose (positive = up, negative = down)
+ */
+function transposeSelectedNote(semitones) {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for transposition');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote || selectedNote.isRest) {
+        console.warn('Cannot transpose: note not found or is a rest');
+        return;
+    }
+
+    // Transpose the note name(s)
+    const transposedName = transposeChord(selectedNote.name, semitones);
+    
+    if (transposedName === selectedNote.name) {
+        console.warn('Transpose failed or note is at range limit');
+        return;
+    }
+
+    // Update the note
+    updateNoteInMeasure(editorSelectedMeasureIndex, editorSelectedNoteId, { name: transposedName });
+    renderNoteEditBox(false);
 }
 
 function renderNoteEditBox(smoothScroll = true) {
@@ -815,6 +848,28 @@ if (target.id === 'editorToggleRest') {
             }
         }
 
+        // Transpose selected note handlers
+        if (target.id === 'editorTransposeNoteSemitoneUp') {
+            if (editorSelectedNoteId) {
+                transposeSelectedNote(1);
+            }
+        }
+        if (target.id === 'editorTransposeNoteSemitoneDown') {
+            if (editorSelectedNoteId) {
+                transposeSelectedNote(-1);
+            }
+        }
+        if (target.id === 'editorTransposeNoteOctaveUp') {
+            if (editorSelectedNoteId) {
+                transposeSelectedNote(12);
+            }
+        }
+        if (target.id === 'editorTransposeNoteOctaveDown') {
+            if (editorSelectedNoteId) {
+                transposeSelectedNote(-12);
+            }
+        }
+
         // Tie and Slur handlers
         if (target.id === 'editorAddTie') {
             handleAddTie();
@@ -850,6 +905,24 @@ if (target.id === 'editorToggleRest') {
         }
         if (target.id === 'editorDeleteMeasure') {
             handleDeleteMeasure();
+        }
+
+        // Transpose handlers
+        if (target.id === 'editorTransposeSemitoneUp') {
+            transposeScore(1);
+            renderNoteEditBox(false);
+        }
+        if (target.id === 'editorTransposeSemitoneDown') {
+            transposeScore(-1);
+            renderNoteEditBox(false);
+        }
+        if (target.id === 'editorTransposeOctaveUp') {
+            transposeScore(12);
+            renderNoteEditBox(false);
+        }
+        if (target.id === 'editorTransposeOctaveDown') {
+            transposeScore(-12);
+            renderNoteEditBox(false);
         }
     });
 
