@@ -114,14 +114,19 @@ function calculateMeasureBeats(measure) {
     let trebleBeats = 0;
     let bassBeats = 0;
 
+    console.log('beatcount: calculateMeasureBeats starting', { measureLength: measure.length });
+
     measure.forEach(note => {
         const beats = BEAT_VALUES[note.duration] || 0;
         if (note.clef === 'treble') {
             trebleBeats += beats;
+            console.log('beatcount: treble note added', { duration: note.duration, beats, totalTrebleBeats: trebleBeats });
         } else if (note.clef === 'bass') {
             bassBeats += beats;
+            console.log('beatcount: bass note added', { duration: note.duration, beats, totalBassBeats: bassBeats });
         }
     });
+    console.log('beatcount: calculateMeasureBeats result', { trebleBeats, bassBeats });
     return { trebleBeats, bassBeats };
 }
 
@@ -172,10 +177,13 @@ function doRemoveNote(measureIndex, noteId) {
 
     // Recalculate current beats
     if (measuresData[currentIndex]) {
+        console.log('beatcount: recalculating beats after note removal', { currentIndex });
         const updatedBeats = calculateMeasureBeats(measuresData[currentIndex]);
         currentTrebleBeats = updatedBeats.trebleBeats;
         currentBassBeats = updatedBeats.bassBeats;
+        console.log('beatcount: updated currentBeats', { currentTrebleBeats, currentBassBeats });
     } else {
+        console.log('beatcount: resetting beats - no measure at currentIndex', { currentIndex });
         currentTrebleBeats = 0;
         currentBassBeats = 0;
         currentIndex = 0;
@@ -252,9 +260,11 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
 
     // Update current beats if editing the current measure
     if (measureIndex === currentIndex) {
+        console.log('beatcount: updating current beats after note update', { measureIndex });
         const updatedBeats = calculateMeasureBeats(measuresData[currentIndex]);
         currentTrebleBeats = updatedBeats.trebleBeats;
         currentBassBeats = updatedBeats.bassBeats;
+        console.log('beatcount: currentBeats after update', { currentTrebleBeats, currentBassBeats });
     }
 
     return true;
@@ -310,6 +320,16 @@ function writeNoteInternal(obj) {
     const { clef, duration, notes, chordName, isRest = false } = obj;
     const beats = BEAT_VALUES[duration];
 
+    console.log('beatcount: writeNoteInternal starting', {
+        clef,
+        duration,
+        beats,
+        currentTrebleBeats,
+        currentBassBeats,
+        currentIndex,
+        timeSignatureNumerator: pianoState.timeSignature.numerator
+    });
+
     // Ensure `notes` are always an array and create formatted name
     const notesArray = Array.isArray(notes) ? notes : [notes];
     let formattedName = notesArray.length > 1
@@ -339,8 +359,17 @@ function writeNoteInternal(obj) {
     const currentBeatsForClef = clef === 'treble' ? currentTrebleBeats : currentBassBeats;
     const availableBeats = pianoState.timeSignature.numerator - currentBeatsForClef;
 
+    console.log('beatcount: checking overflow', {
+        clef,
+        currentBeatsForClef,
+        availableBeats,
+        beats,
+        wouldOverflow: beats > availableBeats
+    });
+
     // Check if the note would overflow and if it can be split with a tie
     if (availableBeats > 0 && beats > availableBeats && !isRest) {
+        console.log('beatcount: attempting to split note with tie', { availableBeats, beats });
         const splitResult = splitNoteForTie(duration, availableBeats);
         
         if (splitResult) {
@@ -365,8 +394,10 @@ function writeNoteInternal(obj) {
             // Update beats for current measure
             if (clef === 'treble') {
                 currentTrebleBeats += BEAT_VALUES[splitResult.firstDuration];
+                console.log('beatcount: updated treble beats after first tied note', { currentTrebleBeats });
             } else {
                 currentBassBeats += BEAT_VALUES[splitResult.firstDuration];
+                console.log('beatcount: updated bass beats after first tied note', { currentBassBeats });
             }
 
             // Advance to next measure
@@ -374,15 +405,16 @@ function writeNoteInternal(obj) {
             measuresData[currentIndex] = [];
             currentTrebleBeats = 0;
             currentBassBeats = 0;
+            console.log('beatcount: advanced to next measure for tied note', { currentIndex });
 
             // Create second note (in new measure)
             const secondNoteId = generateUniqueId();
-            const secondNoteEntry = { 
+            const secondNoteEntry = {
                 id: secondNoteId,
-                name: formattedName, 
-                clef, 
-                duration: splitResult.secondDuration, 
-                measure: currentIndex, 
+                name: formattedName,
+                clef,
+                duration: splitResult.secondDuration,
+                measure: currentIndex,
                 isRest: false,
                 chordName: displayName,
                 performedDuration: humanizeDuration(),
@@ -394,8 +426,10 @@ function writeNoteInternal(obj) {
             // Update beats for new measure
             if (clef === 'treble') {
                 currentTrebleBeats += BEAT_VALUES[splitResult.secondDuration];
+                console.log('beatcount: updated treble beats after second tied note', { currentTrebleBeats });
             } else {
                 currentBassBeats += BEAT_VALUES[splitResult.secondDuration];
+                console.log('beatcount: updated bass beats after second tied note', { currentBassBeats });
             }
 
             // Create the tie between the two notes
@@ -413,13 +447,21 @@ function writeNoteInternal(obj) {
 
     // If we can't split or don't need to split, use original logic
     if (currentBeatsForClef + beats > pianoState.timeSignature.numerator) {
+        console.log('beatcount: note would overflow measure, advancing to next', {
+            currentBeatsForClef,
+            beats,
+            sum: currentBeatsForClef + beats,
+            numerator: pianoState.timeSignature.numerator
+        });
         // Only advance if the current measure has any notes in it
         if (measuresData[currentIndex] && (measuresData[currentIndex].length > 0 || currentTrebleBeats > 0 || currentBassBeats > 0)) {
             currentIndex++;
+            console.log('beatcount: advanced to new measure', { currentIndex });
         }
         measuresData[currentIndex] = [];
         currentTrebleBeats = 0;
         currentBassBeats = 0;
+        console.log('beatcount: reset beats for new measure', { currentTrebleBeats, currentBassBeats });
     }
 
     const newNoteId = generateUniqueId(); 
@@ -435,14 +477,32 @@ function writeNoteInternal(obj) {
         velocity: humanizeNote()
     };
 
-    measuresData[currentIndex] ??= []; 
+    measuresData[currentIndex] ??= [];
     measuresData[currentIndex].push(noteEntry);
 
     if (clef === 'treble') {
         currentTrebleBeats += beats;
+        console.log('beatcount: added treble note to measure', {
+            currentIndex,
+            beats,
+            currentTrebleBeats,
+            noteId: newNoteId
+        });
     } else {
         currentBassBeats += beats;
+        console.log('beatcount: added bass note to measure', {
+            currentIndex,
+            beats,
+            currentBassBeats,
+            noteId: newNoteId
+        });
     }
+
+    console.log('beatcount: writeNoteInternal completed', {
+        currentIndex,
+        currentTrebleBeats,
+        currentBassBeats
+    });
 
     saveStateToHistory();
     updateNowPlayingDisplay(displayName);
@@ -503,9 +563,11 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
         // Update currentIndex if this is the current working measure
         if (measureIndex === currentIndex) {
             currentIndex = finalMeasureIndex;
+            console.log('beatcount: updating beats after overflow in addNoteToMeasure', { currentIndex });
             const newMeasureBeats = calculateMeasureBeats(measuresData[currentIndex]);
             currentTrebleBeats = newMeasureBeats.trebleBeats;
             currentBassBeats = newMeasureBeats.bassBeats;
+            console.log('beatcount: currentBeats after overflow in addNoteToMeasure', { currentTrebleBeats, currentBassBeats });
         }
     } else {
         // No overflow, insert normally
@@ -513,9 +575,11 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
 
         // Update current beats if editing the current measure
         if (measureIndex === currentIndex) {
+            console.log('beatcount: updating beats in addNoteToMeasure', { measureIndex });
             const updatedBeats = calculateMeasureBeats(measuresData[currentIndex]);
             currentTrebleBeats = updatedBeats.trebleBeats;
             currentBassBeats = updatedBeats.bassBeats;
+            console.log('beatcount: currentBeats after addNoteToMeasure', { currentTrebleBeats, currentBassBeats });
         }
     }
 
@@ -902,9 +966,11 @@ export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, noteData
 
     // Update current beats if we modified the current measure
     if (toMeasureIndex === currentIndex) {
+        console.log('beatcount: updating beats after placeNote', { toMeasureIndex });
         const updatedBeats = calculateMeasureBeats(measuresData[currentIndex]);
         currentTrebleBeats = updatedBeats.trebleBeats;
         currentBassBeats = updatedBeats.bassBeats;
+        console.log('beatcount: currentBeats after placeNote', { currentTrebleBeats, currentBassBeats });
     }
 
     // Handle side effects
@@ -1016,10 +1082,13 @@ export function processAndSyncScore(loadedData) {
 
         // Recalculate current beats based on the last measure of loaded data
         if (measuresData[currentIndex]) {
+            console.log('beatcount: recalculating beats from loaded data', { currentIndex });
             const lastMeasureBeats = calculateMeasureBeats(measuresData[currentIndex]);
             currentTrebleBeats = lastMeasureBeats.trebleBeats;
             currentBassBeats = lastMeasureBeats.bassBeats;
+            console.log('beatcount: beats from loaded data', { currentTrebleBeats, currentBassBeats });
         } else {
+            console.log('beatcount: no measure found, resetting beats');
             currentTrebleBeats = 0;
             currentBassBeats = 0;
         }
@@ -1133,26 +1202,35 @@ export function fillRests() {
  * @returns {object|null} {firstDuration, secondDuration} or null if can't split
  */
 function splitNoteForTie(duration, availableBeats) {
+    console.log('beatcount: splitNoteForTie called', { duration, availableBeats });
+
     // Check if ties are enabled
     if (!pianoState.enableTies) {
+        console.log('beatcount: ties disabled, cannot split');
         return null;
     }
-    
+
     const totalBeats = BEAT_VALUES[duration];
     if (!totalBeats || availableBeats >= totalBeats) {
+        console.log('beatcount: no split needed', { totalBeats, availableBeats });
         return null; // No split needed
     }
-    
+
     const remainingBeats = totalBeats - availableBeats;
-    
+    console.log('beatcount: calculating split', { totalBeats, availableBeats, remainingBeats });
+
     // Find the best duration values for each part
     const firstDuration = findBestDuration(availableBeats);
     const secondDuration = findBestDuration(remainingBeats);
-    
+
+    console.log('beatcount: split result', { firstDuration, secondDuration });
+
     if (firstDuration && secondDuration) {
+        console.log('beatcount: returning split', { firstDuration, secondDuration });
         return { firstDuration, secondDuration };
     }
-    
+
+    console.log('beatcount: could not find valid durations for split');
     return null;
 }
 
@@ -1162,16 +1240,17 @@ function splitNoteForTie(duration, availableBeats) {
  * @returns {string|null} Duration string or null if no exact match
  */
 function findBestDuration(beats) {
+    console.log('beatcount: findBestDuration called with beats:', beats);
+
     // Find exact matches first
     for (const [duration, value] of Object.entries(BEAT_VALUES)) {
         if (value === beats) {
+            console.log('beatcount: found exact match:', duration, 'for', beats, 'beats');
             return duration;
         }
     }
 
-    if (beats === 2.5) return 'h.'; // 2.5 beats (dotted half)
-    if (beats === 1.25) return 'q.'; // 1.25 beats (dotted quarter)
-    
+    console.log('beatcount: no exact match found for', beats, 'beats');
     return null;
 }
 
@@ -1336,9 +1415,11 @@ function doAddNote(measureIndex, noteData, insertBeforeNoteId = null) {
 
     // Update current beats if this is the current measure
     if (measureIndex === currentIndex) {
+        console.log('beatcount: updating current beats in doAddNote', { measureIndex });
         const updatedBeats = calculateMeasureBeats(measuresData[currentIndex]);
         currentTrebleBeats = updatedBeats.trebleBeats;
         currentBassBeats = updatedBeats.bassBeats;
+        console.log('beatcount: currentBeats after doAddNote', { currentTrebleBeats, currentBassBeats });
     }
 
     return true;

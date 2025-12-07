@@ -267,12 +267,9 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
             });
         } else {
             // Click mode - disable dragging, use click handlers
+            if (type != 'interval') {
             newNote.setAttribute('draggable', 'false');
             newNote.classList.add('palette-click-mode');
-            
-            // Hide intervals in click mode since they need a target note
-            if (type === 'interval') {
-                newNote.classList.add('hidden');
             }
             
             // For chord palette items, also update the search result when clicked

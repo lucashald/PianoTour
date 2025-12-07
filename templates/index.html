@@ -178,6 +178,7 @@
         handleExportMenuToggle,
         handleKeyMenuToggle,
         handleKeySelect,
+        toggleIsMinorKey,
         updateUI,
         initSidebarToggle,
       } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
@@ -573,6 +574,9 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
         document.querySelectorAll('.key-option').forEach(option => {
           option.addEventListener('click', handleKeySelect);
         });
+
+        // Add event listener for key mode toggle in dropdown
+        document.getElementById('key-mode-toggle-btn')?.addEventListener('click', toggleIsMinorKey);
       }
 
       // Event handler functions

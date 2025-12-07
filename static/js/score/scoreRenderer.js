@@ -359,6 +359,14 @@ export function drawAll(measures, noScroll = false) {
             .join(", ")
         : "D3/1/r";
 
+      console.log(`beatcount: measure ${i} VexFlow specs`, {
+        measureIndex: i,
+        trebleSpec,
+        bassSpec,
+        trebleNotesCount: trebleNotesData.length,
+        bassNotesCount: bassNotesData.length
+      });
+
       const trebleVexNotes = score.notes(trebleSpec, { clef: "treble" });
       const bassVexNotes = score.notes(bassSpec, { clef: "bass" });
       vexflowNoteMap[i].treble = trebleVexNotes;
@@ -405,6 +413,11 @@ export function drawAll(measures, noScroll = false) {
       });
 
       // ADD THIS: Store the voices so we can apply accidentals
+      console.log(`beatcount: measure ${i} creating voices`, {
+        measureIndex: i,
+        trebleVexNotesLength: trebleVexNotes.length,
+        bassVexNotesLength: bassVexNotes.length
+      });
       const trebleVoice = score.voice(trebleVexNotes).setStrict(false);
       const bassVoice = score.voice(bassVexNotes).setStrict(false);
       allVoices.push(trebleVoice, bassVoice);

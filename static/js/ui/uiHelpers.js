@@ -504,6 +504,8 @@ export function handleKeySignatureClick(e) {
 
 export function toggleIsMinorKey() {
     pianoState.isMinorKey = !pianoState.isMinorKey;
+    // Update key menu display names
+    updateKeyMenuActiveState();
     updateUI(`Key: ${getKeySignature()}`, {
         updateKeySignature: true,
         regenerateChords: true
@@ -660,7 +662,11 @@ export function handleKeySelect(e) {
     e.preventDefault();
     e.stopPropagation();
     
-    const keyName = e.target.dataset.key;
+    // Use closest to handle clicks on child elements (img, span)
+    const button = e.target.closest('.key-option');
+    if (!button) return;
+    
+    const keyName = button.dataset.key;
     if (!keyName) return;
     
     // Use the setKeySignature function
@@ -684,12 +690,28 @@ export function handleKeySelect(e) {
 function updateKeyMenuActiveState() {
     const options = document.querySelectorAll('.key-option');
     options.forEach(option => {
+        // Update active state
         if (option.dataset.key === pianoState.keySignature) {
             option.classList.add('active');
         } else {
             option.classList.remove('active');
         }
+        
+        // Update display name based on major/minor mode
+        const keyNameSpan = option.querySelector('.key-name');
+        if (keyNameSpan) {
+            const displayName = pianoState.isMinorKey ? option.dataset.minor : option.dataset.major;
+            if (displayName) {
+                keyNameSpan.textContent = displayName;
+            }
+        }
     });
+    
+    // Update the key mode toggle text in the dropdown
+    const keyModeToggleText = document.getElementById('key-mode-toggle-text');
+    if (keyModeToggleText) {
+        keyModeToggleText.textContent = pianoState.isMinorKey ? 'Minor' : 'Major';
+    }
 }
 
 export async function handleInstrumentSelect(e) {
