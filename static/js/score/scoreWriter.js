@@ -372,6 +372,9 @@ export function writeNote(obj) {
             saveStateToHistory();
             updateNowPlayingDisplay(`${displayName} (tied)`);
             handleSideEffects();
+            
+            // Exit early - we've handled this note by splitting it
+            return;
         }
     }
 
@@ -492,6 +495,249 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
         noteId: noteData.id,
         measureIndex: finalMeasureIndex,
         clef: noteData.clef
+    };
+}
+
+// ===================================================================
+// Measure Management Functions
+// ===================================================================
+
+/**
+ * Re-numbers the `measure` property on all notes to match their array position.
+ * Call this after inserting, deleting, or moving measures.
+ */
+function renumberMeasures() {
+    measuresData.forEach((measure, measureIndex) => {
+        if (Array.isArray(measure)) {
+            measure.forEach(note => {
+                note.measure = measureIndex;
+            });
+        }
+    });
+}
+
+/**
+ * Inserts a new measure after the specified index.
+ * @param {number} afterMeasureIndex - The index after which to insert (0-based). Use -1 to insert at the beginning.
+ * @param {Array} newMeasureData - Optional array of notes for the new measure (defaults to empty)
+ * @returns {number} The index of the newly inserted measure
+ */
+export function insertMeasure(afterMeasureIndex, newMeasureData = []) {
+    const insertAtIndex = afterMeasureIndex + 1;
+    
+    // Ensure the new measure data has proper note structure
+    const preparedMeasure = newMeasureData.map(note => ({
+        ...note,
+        id: note.id || generateUniqueId(),
+        measure: insertAtIndex
+    }));
+    
+    // Insert the new measure into the array
+    measuresData.splice(insertAtIndex, 0, preparedMeasure);
+    
+    // Re-number all measures after the insertion point
+    renumberMeasures();
+    
+    saveStateToHistory();
+    drawAll(measuresData, true);
+    saveToLocalStorage();
+    
+    console.log(`Inserted new measure at index ${insertAtIndex}`);
+    return insertAtIndex;
+}
+
+/**
+ * Deletes a measure at the specified index.
+ * @param {number} measureIndex - The index of the measure to delete (0-based)
+ * @returns {boolean} True if successful, false if not
+ */
+export function deleteMeasure(measureIndex) {
+    // Don't allow deleting if it's the only measure
+    if (measuresData.length <= 1) {
+        console.warn('Cannot delete the only measure');
+        return false;
+    }
+    
+    // Validate index
+    if (measureIndex < 0 || measureIndex >= measuresData.length) {
+        console.warn(`Invalid measure index: ${measureIndex}`);
+        return false;
+    }
+    
+    // Remove ties for all notes in the measure being deleted
+    const measureToDelete = measuresData[measureIndex];
+    if (Array.isArray(measureToDelete)) {
+        measureToDelete.forEach(note => {
+            if (note.id) {
+                removeTiesForNote(note.id);
+            }
+        });
+    }
+    
+    // Remove the measure
+    measuresData.splice(measureIndex, 1);
+    
+    // Re-number all remaining measures
+    renumberMeasures();
+    
+    saveStateToHistory();
+    drawAll(measuresData, true);
+    saveToLocalStorage();
+    
+    console.log(`Deleted measure at index ${measureIndex}`);
+    return true;
+}
+
+/**
+ * Duplicates a measure and inserts the copy after the original.
+ * @param {number} measureIndex - The index of the measure to duplicate (0-based)
+ * @returns {number|false} The index of the new duplicated measure, or false if failed
+ */
+export function duplicateMeasure(measureIndex) {
+    // Validate index
+    if (measureIndex < 0 || measureIndex >= measuresData.length) {
+        console.warn(`Invalid measure index: ${measureIndex}`);
+        return false;
+    }
+    
+    const originalMeasure = measuresData[measureIndex];
+    if (!Array.isArray(originalMeasure)) {
+        console.warn(`Measure at index ${measureIndex} is not valid`);
+        return false;
+    }
+    
+    // Deep clone the measure and generate new IDs for all notes
+    const duplicatedNotes = originalMeasure.map(note => ({
+        ...note,
+        id: generateUniqueId(), // New unique ID for the duplicated note
+        tie: undefined // Don't copy ties - they reference specific note IDs
+    }));
+    
+    // Insert after the original measure
+    const newIndex = insertMeasure(measureIndex, duplicatedNotes);
+    
+    console.log(`Duplicated measure ${measureIndex} to new measure ${newIndex}`);
+    return newIndex;
+}
+
+/**
+ * Moves a measure to the end of the score.
+ * @param {number} measureIndex - The index of the measure to move (0-based)
+ * @returns {number|false} The new index of the moved measure, or false if failed
+ */
+export function moveMeasureToEnd(measureIndex) {
+    // Validate index
+    if (measureIndex < 0 || measureIndex >= measuresData.length) {
+        console.warn(`Invalid measure index: ${measureIndex}`);
+        return false;
+    }
+    
+    // If it's already at the end, nothing to do
+    if (measureIndex === measuresData.length - 1) {
+        console.log('Measure is already at the end');
+        return measureIndex;
+    }
+    
+    // Remove the measure from its current position
+    const [movedMeasure] = measuresData.splice(measureIndex, 1);
+    
+    // Add it to the end
+    measuresData.push(movedMeasure);
+    
+    // Re-number all measures
+    renumberMeasures();
+    
+    saveStateToHistory();
+    drawAll(measuresData, true);
+    saveToLocalStorage();
+    
+    const newIndex = measuresData.length - 1;
+    console.log(`Moved measure from index ${measureIndex} to ${newIndex}`);
+    return newIndex;
+}
+
+// ===================================================================
+// Note Manipulation Functions
+// ===================================================================
+
+/**
+ * Mapping of durations to their split equivalents.
+ * Each duration splits into two notes of the smaller duration.
+ */
+const SPLIT_DURATION_MAP = {
+    'w':   'h',      // whole → 2 halves
+    'h':   'q',      // half → 2 quarters
+    'q':   '8',      // quarter → 2 eighths
+    '8':   '16',     // eighth → 2 sixteenths
+    '16':  '32',     // sixteenth → 2 thirty-seconds
+    '32':  null,     // can't split
+    'w.':  'h.',     // dotted whole → 2 dotted halves
+    'h.':  'q.',     // dotted half → 2 dotted quarters
+    'q.':  '8.',     // dotted quarter → 2 dotted eighths
+    '8.':  '16.',    // dotted eighth → 2 dotted sixteenths
+    '16.': '32.',    // dotted sixteenth → 2 dotted thirty-seconds
+    '32.': null      // can't split
+};
+
+/**
+ * Splits a note into two notes of half the duration.
+ * The original note keeps its ID and becomes the first note.
+ * A new note is created immediately after with a new ID.
+ * Ties involving the original note are removed.
+ * 
+ * @param {number} measureIndex - The measure containing the note
+ * @param {string} noteId - The ID of the note to split
+ * @returns {object|false} { firstNoteId, secondNoteId } on success, false if can't split
+ */
+export function splitNote(measureIndex, noteId) {
+    // Validate measure
+    if (!measuresData[measureIndex]) {
+        console.warn(`splitNote: Invalid measure index ${measureIndex}`);
+        return false;
+    }
+    
+    // Find the note
+    const measure = measuresData[measureIndex];
+    const noteIndex = measure.findIndex(n => n.id === noteId);
+    if (noteIndex === -1) {
+        console.warn(`splitNote: Note ${noteId} not found in measure ${measureIndex}`);
+        return false;
+    }
+    
+    const originalNote = measure[noteIndex];
+    const newDuration = SPLIT_DURATION_MAP[originalNote.duration];
+    
+    // Check if this duration can be split
+    if (!newDuration) {
+        console.warn(`splitNote: Cannot split duration '${originalNote.duration}' - already at minimum`);
+        return false;
+    }
+    
+    // Remove any ties involving this note
+    removeTiesForNote(noteId);
+    
+    // Update the original note's duration
+    originalNote.duration = newDuration;
+    
+    // Create the second note as a copy with new ID
+    const secondNote = {
+        ...originalNote,
+        id: generateUniqueId(),
+        duration: newDuration,
+        tie: undefined  // Don't copy ties
+    };
+    
+    // Insert the second note right after the original
+    measure.splice(noteIndex + 1, 0, secondNote);
+    
+    saveStateToHistory();
+    drawAll(measuresData, true);
+    saveToLocalStorage();
+    
+    console.log(`Split note ${noteId} (${originalNote.duration}) into two ${newDuration} notes`);
+    return {
+        firstNoteId: originalNote.id,
+        secondNoteId: secondNote.id
     };
 }
 

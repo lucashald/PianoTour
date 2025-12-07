@@ -160,6 +160,7 @@
         </div>
         <div class="button-group">
             <button id="editorToggleRest" class="btn btn--compact">Toggle Rest</button>
+            <button id="editorSplitNote" class="btn btn--compact" title="Split into two shorter notes">Split</button>
         </div>
     </div>
         <!-- NEW: Tie and Slur Controls -->
@@ -173,6 +174,25 @@
     <button id="editorRemoveTie" class="btn btn--compact btn--warning">Remove Tie/Slur</button>
     <button id="editorCancelSlur" class="btn btn--compact btn--danger" style="display: none;">Cancel Slur</button>
   </div>
+  </div>
+  </div>
+
+  <!-- Measure Editor -->
+  <div class="note-editor" id="editorMeasureEditor">
+    <div class="note-editor__header">
+      Editing Measure: <span id="editorSelectedMeasureDisplay">1</span>
+    </div>
+    <div class="control-section">
+      <label>Measure Actions:</label>
+      <div class="button-group">
+        <button id="editorMoveToEnd" class="btn btn--compact" title="Move this measure to the end of the score">Move to End</button>
+        <button id="editorAddMeasureAfter" class="btn btn--compact btn--primary" title="Add a new empty measure after this one">Add After</button>
+      </div>
+      <div class="button-group">
+        <button id="editorDuplicateMeasure" class="btn btn--compact btn--secondary" title="Duplicate this measure">Duplicate</button>
+        <button id="editorDeleteMeasure" class="btn btn--compact btn--danger" title="Delete this measure">Delete</button>
+      </div>
+    </div>
   </div>
 
 <!-- Floating Editing Panel -->

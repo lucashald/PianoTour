@@ -16,7 +16,7 @@ import {
     enableScoreInteraction,
     scrollToMeasure
 } from '../score/scoreRenderer.js';
-import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur, updateNoteInMeasure } from '../score/scoreWriter.js';
+import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur, updateNoteInMeasure, insertMeasure, deleteMeasure, duplicateMeasure, moveMeasureToEnd, splitNote } from '../score/scoreWriter.js';
 
 // ===================================================================
 // Internal State
@@ -352,6 +352,68 @@ function cancelSlurMode() {
     console.log('Slur mode cancelled');
 }
 
+// ===================================================================
+// Measure Action Handlers
+// ===================================================================
+
+/**
+ * Moves the current measure to the end of the score
+ */
+function handleMoveMeasureToEnd() {
+    const measures = getMeasures();
+    if (measures.length <= 1) {
+        console.log('Cannot move: only one measure exists');
+        return;
+    }
+    
+    const newIndex = moveMeasureToEnd(editorSelectedMeasureIndex);
+    if (newIndex !== false) {
+        changeMeasure(newIndex);
+    }
+}
+
+/**
+ * Adds a new empty measure after the current one
+ */
+function handleAddMeasureAfter() {
+    const newIndex = insertMeasure(editorSelectedMeasureIndex);
+    changeMeasure(newIndex);
+}
+
+/**
+ * Duplicates the current measure
+ */
+function handleDuplicateMeasure() {
+    const newIndex = duplicateMeasure(editorSelectedMeasureIndex);
+    if (newIndex !== false) {
+        changeMeasure(newIndex);
+    }
+}
+
+/**
+ * Deletes the current measure
+ */
+function handleDeleteMeasure() {
+    const measures = getMeasures();
+    if (measures.length <= 1) {
+        console.log('Cannot delete: must have at least one measure');
+        return;
+    }
+    
+    const wasLastMeasure = editorSelectedMeasureIndex >= measures.length - 1;
+    const success = deleteMeasure(editorSelectedMeasureIndex);
+    
+    if (success) {
+        // Navigate to previous measure if we deleted the last one
+        if (wasLastMeasure) {
+            changeMeasure(editorSelectedMeasureIndex - 1);
+        } else {
+            // Stay on the same index (which now contains the next measure)
+            renderNoteEditBox(false);
+        }
+    }
+}
+
 function renderNoteEditBox(smoothScroll = true) {
     const measures = getMeasures();
     if (editorSelectedMeasureIndex >= measures.length) {
@@ -615,6 +677,12 @@ function changeMeasure(newMeasureIndex, clearSelectedNote = true) {
     // Update measure index
     editorSelectedMeasureIndex = newMeasureIndex;
 
+    // Update measure display in the UI
+    const measureDisplay = document.getElementById('editorSelectedMeasureDisplay');
+    if (measureDisplay) {
+        measureDisplay.textContent = newMeasureIndex + 1; // Display 1-based index
+    }
+
     // Re-render UI
     renderNoteEditBox();
 }
@@ -736,6 +804,17 @@ if (target.id === 'editorToggleRest') {
     renderNoteEditBox(false);
 }
 
+        if (target.id === 'editorSplitNote') {
+            if (editorSelectedNoteId) {
+                const result = splitNote(editorSelectedMeasureIndex, editorSelectedNoteId);
+                if (result) {
+                    // Keep the first note selected after split
+                    editorSelectedNoteId = result.firstNoteId;
+                }
+                renderNoteEditBox(false);
+            }
+        }
+
         // Tie and Slur handlers
         if (target.id === 'editorAddTie') {
             handleAddTie();
@@ -757,6 +836,20 @@ if (target.id === 'editorToggleRest') {
         if (target.classList.contains('remove-chord-note-btn')) {
             const noteIndex = parseInt(target.dataset.noteIndex, 10);
             removeNoteFromChordUI(noteIndex);
+        }
+
+        // Measure action handlers
+        if (target.id === 'editorMoveToEnd') {
+            handleMoveMeasureToEnd();
+        }
+        if (target.id === 'editorAddMeasureAfter') {
+            handleAddMeasureAfter();
+        }
+        if (target.id === 'editorDuplicateMeasure') {
+            handleDuplicateMeasure();
+        }
+        if (target.id === 'editorDeleteMeasure') {
+            handleDeleteMeasure();
         }
     });
 
