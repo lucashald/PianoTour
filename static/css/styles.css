@@ -2084,7 +2084,9 @@ background: linear-gradient(to right,
   color: var(--color-text-primary);
   padding: var(--spacing-sm) var(--spacing-md);
   text-decoration: none;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   width: 100%;
   text-align: left;
   background: none;
@@ -2104,9 +2106,7 @@ background: linear-gradient(to right,
 }
 
 .dropdown-item.has-submenu {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  /* Remove space-between to keep icon/text aligned like other items */
 }
 
 .submenu-content {
@@ -2263,7 +2263,7 @@ background: linear-gradient(to right,
 }
 
 .menu-icon {
-  width: 2em;
-  height: 2em;
-  vertical-align: middle;
+  width: 1.5em;
+  height: 1.5em;
+  flex-shrink: 0;
 }
