@@ -27,7 +27,6 @@ import { getFretMap } from "../instrument/fretMap.js";
 
 const DURATION_TO_BEATS = {
   w: 4,
-  "w.": 6,
   h: 2,
   "h.": 3,
   q: 1,

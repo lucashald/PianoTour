@@ -14,7 +14,6 @@ import { DRUM_INSTRUMENT_MAP } from '../core/drum-data.js';
 // ===================================================================
 
 const BEAT_VALUES = {
-    w: 4, "w.": 6,          // Whole, Dotted Whole
     h: 2, "h.": 3,          // Half, Dotted Half
     q: 1, "q.": 1.5,        // Quarter, Dotted Quarter
     "8": 0.5, "8.": 0.75,   // Eighth, Dotted Eighth
@@ -23,7 +22,7 @@ const BEAT_VALUES = {
 };
 
 const BEATS_TO_DURATION = {
-    4: "w", 6: "w.", 2: "h", 3: "h.", 1: "q", 1.5: "q.",
+    4: "w", 2: "h", 3: "h.", 1: "q", 1.5: "q.",
     0.5: "8", 0.75: "8.", 0.25: "16", 0.375: "16.",
     0.125: "32", 0.1875: "32."
 };

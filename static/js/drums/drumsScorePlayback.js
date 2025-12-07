@@ -24,7 +24,6 @@ import { getDrumMeasures } from "./drumsScoreWriter.js";
 // DURATION_TO_TONE is not actively used but is fixed for future use.
 const DURATION_TO_TONE = {
   w: "1n",
-  "w.": "1n.",
   h: "2n",
   "h.": "2n.",
   q: "4n",
@@ -39,7 +38,6 @@ const DURATION_TO_TONE = {
 // FIX: Added beat values for dotted notes. This is the critical fix.
 const DURATION_TO_BEATS = {
   w: 4,
-  "w.": 6,
   h: 2,
   "h.": 3,
   q: 1,

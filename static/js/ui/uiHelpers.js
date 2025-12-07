@@ -505,15 +505,44 @@ export function toggleIsMinorKey() {
     });
 }
 
-export function show_side_panel() {
-    // Toggle the state
-    pianoState.show_side_panel = !pianoState.show_side_panel;
-    
-    // Toggle the CSS class to show/hide the panel
-    const sidePanel = document.querySelector('.piano-app__side-panel');
+export function openSidePanel() {
+    const sidePanel = document.getElementById('sidePanel');
     if (sidePanel) {
-        sidePanel.classList.toggle('visible');
+        sidePanel.classList.add('open');
     }
+}
+
+export function closeSidePanel() {
+    const sidePanel = document.getElementById('sidePanel');
+    if (sidePanel) {
+        sidePanel.classList.remove('open');
+    }
+}
+
+export function toggleSidePanel() {
+    const sidePanel = document.getElementById('sidePanel');
+    if (sidePanel?.classList.contains('open')) {
+        closeSidePanel();
+    } else {
+        openSidePanel();
+    }
+}
+
+export function initSidebarToggle() {
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+    const closeBtn = document.getElementById('sidebarCloseBtn');
+    
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleSidePanel);
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeSidePanel);
+    }
+}
+
+// Legacy function for backwards compatibility
+export function show_side_panel() {
+    toggleSidePanel();
 }
 
 export function handlePlaybackMenuToggle(e) {

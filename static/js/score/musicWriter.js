@@ -15,7 +15,7 @@ import { saveToLocalStorage } from '../utils/ioHelpers.js';
 
 const BEAT_VALUES = { 
     q: 1, h: 2, w: 4, '8': 0.5, '16': 0.25, '32': 0.125,
-    'q.': 1.5, 'h.': 3, 'w.': 6, '8.': 0.75, '16.': 0.375, '32.': 0.1875 
+    'q.': 1.5, 'h.': 3, '8.': 0.75, '16.': 0.375, '32.': 0.1875 
 };
 
 const AUTOSAVE_KEY = 'autosavedScore';

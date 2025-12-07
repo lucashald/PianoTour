@@ -146,8 +146,19 @@ body.no-scroll {
 
 /* Header */
 .piano-app__header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
   margin-bottom: var(--spacing-md);
+  width: 100%;
+  position: relative;
+}
+
+/* Position toggle button on the left */
+.piano-app__header .sidebar-toggle-btn {
+  position: absolute;
+  left: 0;
 }
 
 .piano-app__header-title {
@@ -533,6 +544,7 @@ background: linear-gradient(to right,
   margin-bottom: var(--spacing-md);
   flex: 1 1 auto;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -541,11 +553,10 @@ background: linear-gradient(to right,
 .score-viewer__container {
   width: 100%;
   height: 100%;
-  overflow-x: auto;
+  overflow-x: scroll;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: auto;
-  scrollbar-gutter: stable;
   display: flex;
   justify-content: safe center;
   align-items: center;
@@ -889,8 +900,82 @@ background: linear-gradient(to right,
   font-weight: 500;
 }
 
-/* Side Panel & Editor */
+/* Side Panel & Editor - Slide-in Drawer (non-modal) */
 .piano-app__side-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: min(320px, 85vw);
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(30, 41, 59, 0.98);
+  backdrop-filter: blur(10px);
+  padding: var(--spacing-lg);
+  padding-top: calc(var(--spacing-lg) + 50px); /* Space for close button */
+  overflow-y: auto;
+  z-index: 1000;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.piano-app__side-panel.open {
+  transform: translateX(0);
+}
+
+/* Sidebar backdrop - just visual, doesn't block interaction */
+.sidebar-backdrop {
+  display: none; /* Disabled - sidebar is non-modal */
+}
+
+/* Sidebar close button */
+.sidebar-close-btn {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: var(--color-text-primary);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  z-index: 10;
+}
+
+.sidebar-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Sidebar toggle button (hamburger) */
+.sidebar-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  color: var(--color-text-primary);
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: var(--color-blue-medium);
+  border-color: var(--color-blue-light);
+}
+
+/* Hide toggle button when sidebar not available */
+.sidebar-toggle-btn.hidden {
   display: none;
 }
 
@@ -1673,30 +1758,17 @@ background: linear-gradient(to right,
     --guitar-fretboard-height: 280px;
   }
 
-  .piano-app {
-    flex-direction: row;
-  }
-
   .piano-app__content-area {
     max-width: var(--max-width-desktop);
     gap: var(--spacing-xl);
   }
 
+  /* Sidebar stays as overlay drawer on desktop too */
   .piano-app__side-panel {
-    display: block;
-    width: 320px;
-    min-height: 100vh;
-    background: rgba(30, 41, 59, 0.95);
-    backdrop-filter: blur(10px);
+    width: 350px;
     padding: var(--spacing-xl);
-    border-radius: 0 var(--border-radius-lg) var(--border-radius-lg) 0;
-    overflow-y: auto;
-    flex-shrink: 0;
+    padding-top: calc(var(--spacing-xl) + 50px);
   }
-
-.piano-app__side-panel.visible {
-    display: block;
-}
 
   .note-palette {
     grid-template-columns: repeat(6, 1fr);
@@ -2156,4 +2228,10 @@ background: linear-gradient(to right,
   .chord-preview-button {
     min-height: 100px;
   }
+}
+
+.menu-icon {
+  width: 2em;
+  height: 2em;
+  vertical-align: middle;
 }

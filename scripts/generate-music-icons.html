@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VexFlow Music Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { margin-bottom: 10px; }
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        .controls button:hover { background: #45a049; }
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e7f3fe;
+            border-left: 4px solid #2196F3;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .icon-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .icon-item .preview {
+            background: #fff;
+            border: 1px solid #ddd;
+            margin-bottom: 8px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-item .name {
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+        .icon-item button {
+            margin-top: 5px;
+            padding: 5px 10px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .section-title {
+            grid-column: 1 / -1;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 10px;
+            background: #333;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 VexFlow Music Icon Generator</h1>
+    <div class="controls">
+        <button onclick="generateAllIcons()">Generate All Icons</button>
+        <button onclick="downloadAllAsSVG()">Download All as ZIP</button>
+        <div id="status">Ready to generate icons...</div>
+    </div>
+    <div id="icon-grid" class="icon-grid"></div>
+
+    <script src="https://unpkg.com/vexflow@3.0.9/releases/vexflow-min.js"></script>
+
+    <script>
+        const generatedIcons = [];
+
+        // Icon size configuration
+        const ICON_WIDTH = 120;
+        const ICON_HEIGHT = 120;
+        
+        function getVex() {
+            return window.Vex;
+        }
+
+        function createRenderer(width = ICON_WIDTH, height = ICON_HEIGHT) {
+            const div = document.createElement('div');
+            const { Renderer } = getVex().Flow;
+            const renderer = new Renderer(div, Renderer.Backends.SVG);
+            renderer.resize(width, height);
+            return { div, renderer, context: renderer.getContext() };
+        }
+
+        function extractSVG(div, name) {
+            const svg = div.querySelector('svg');
+            if (svg) {
+                // Clean up SVG for icon use
+                svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                return {
+                    name: name,
+                    svg: svg.outerHTML
+                };
+            }
+            return null;
+        }
+
+        // Generate a single note icon
+        function generateNoteIcon(duration, stemDirection, dotted = false) {
+            const { Stave, StaveNote, Formatter, Dot } = getVex().Flow;
+            
+            // Use different Y position for stem up vs stem down
+            const yPos = stemDirection === 1 ? 20 : 5;
+            const { div, context } = createRenderer(ICON_WIDTH, ICON_HEIGHT);
+            
+            const durationNames = {
+                'w': 'whole',
+                'h': 'half',
+                'q': 'quarter',
+                '8': 'eighth',
+                '16': '16th',
+                '32': '32nd'
+            };
+
+            const stemName = stemDirection === 1 ? 'up' : 'down';
+            const dottedName = dotted ? '-dotted' : '';
+            const displayDuration = dotted ? duration + 'd' : duration;
+            
+            try {
+                // Create a minimal stave (invisible)
+                const stave = new Stave(0, yPos, ICON_WIDTH);
+                stave.setContext(context);
+                
+                const noteConfig = {
+                    keys: ["b/4"],
+                    duration: displayDuration,
+                    stem_direction: stemDirection
+                };
+                
+                const note = new StaveNote(noteConfig);
+                
+                if (dotted) {
+                    // VexFlow 3.x syntax for adding dots
+                    note.addDotToAll();
+                }
+                
+                // Format and draw
+                Formatter.FormatAndDraw(context, stave, [note]);
+                
+                const name = `note-${durationNames[duration]}-${stemName}${dottedName}`;
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating ${duration} note:`, e);
+                return null;
+            }
+        }
+
+        // Generate a rest icon
+        function generateRestIcon(duration, dotted = false) {
+            const { div, context } = createRenderer(ICON_WIDTH, ICON_HEIGHT);
+            const { Stave, StaveNote, Formatter, Dot } = getVex().Flow;
+            
+            const durationNames = {
+                'w': 'whole',
+                'h': 'half',
+                'q': 'quarter',
+                '8': 'eighth',
+                '16': '16th',
+                '32': '32nd'
+            };
+
+            const dottedName = dotted ? '-dotted' : '';
+            const displayDuration = (dotted ? duration + 'd' : duration) + 'r';
+            
+            try {
+                const stave = new Stave(0, 20, ICON_WIDTH);
+                stave.setContext(context);
+                
+                const rest = new StaveNote({
+                    keys: ["b/4"],
+                    duration: displayDuration
+                });
+                
+                if (dotted) {
+                    // VexFlow 3.x syntax for adding dots
+                    rest.addDotToAll();
+                }
+                
+                Formatter.FormatAndDraw(context, stave, [rest]);
+                
+                const name = `rest-${durationNames[duration]}${dottedName}`;
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating ${duration} rest:`, e);
+                return null;
+            }
+        }
+
+        // Generate clef icon
+        function generateClefIcon(clefType) {
+            const { div, context } = createRenderer(ICON_WIDTH, ICON_HEIGHT);
+            const { Stave } = getVex().Flow;
+            
+            try {
+                const stave = new Stave(0, 0, ICON_WIDTH);
+                stave.addClef(clefType);
+                stave.setContext(context).draw();
+                
+                const name = `clef-${clefType}`;
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating ${clefType} clef:`, e);
+                return null;
+            }
+        }
+
+        // Generate time signature icon
+        function generateTimeSignatureIcon(timeSignature) {
+            const { div, context } = createRenderer(ICON_WIDTH, ICON_HEIGHT);
+            const { Stave } = getVex().Flow;
+            
+            try {
+                const stave = new Stave(0, 0, ICON_WIDTH);
+                stave.addTimeSignature(timeSignature);
+                stave.setContext(context).draw();
+                
+                const name = `time-${timeSignature.replace('/', '-')}`;
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating ${timeSignature} time signature:`, e);
+                return null;
+            }
+        }
+
+        // Generate beamed notes (for eighth, 16th, 32nd)
+        function generateBeamedNotesIcon(duration, noteCount = 2, stemDirection = 1) {
+            const { div, context } = createRenderer(ICON_WIDTH + 40, ICON_HEIGHT);
+            const { Stave, StaveNote, Formatter, Beam } = getVex().Flow;
+            
+            const durationNames = {
+                '8': 'eighth',
+                '16': '16th',
+                '32': '32nd'
+            };
+            
+            const stemName = stemDirection === 1 ? 'up' : 'down';
+            
+            try {
+                const stave = new Stave(0, 20, ICON_WIDTH + 40);
+                stave.setContext(context);
+                
+                const notes = [];
+                for (let i = 0; i < noteCount; i++) {
+                    notes.push(new StaveNote({
+                        keys: ["b/4"],
+                        duration: duration,
+                        stem_direction: stemDirection
+                    }));
+                }
+                
+                const beam = new Beam(notes);
+                
+                Formatter.FormatAndDraw(context, stave, notes);
+                beam.setContext(context).draw();
+                
+                const name = `beamed-${durationNames[duration]}-${noteCount}-${stemName}`;
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating beamed ${duration} notes:`, e);
+                return null;
+            }
+        }
+
+        // Generate triplet icon
+        function generateTripletIcon(duration = 'q', stemDirection = 1) {
+            const { div, context } = createRenderer(ICON_WIDTH + 60, ICON_HEIGHT + 20);
+            const { Stave, StaveNote, Formatter, Beam, Tuplet } = getVex().Flow;
+            
+            const stemName = stemDirection === 1 ? 'up' : 'down';
+            
+            try {
+                const stave = new Stave(0, 25, ICON_WIDTH + 60);
+                stave.setContext(context);
+                
+                const notes = [
+                    new StaveNote({ keys: ["b/4"], duration: duration, stem_direction: stemDirection }),
+                    new StaveNote({ keys: ["b/4"], duration: duration, stem_direction: stemDirection }),
+                    new StaveNote({ keys: ["b/4"], duration: duration, stem_direction: stemDirection })
+                ];
+                
+                const tuplet = new Tuplet(notes);
+                
+                Formatter.FormatAndDraw(context, stave, notes);
+                tuplet.setContext(context).draw();
+                
+                const name = `triplet-${duration}-${stemName}`;
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating triplet:`, e);
+                return null;
+            }
+        }
+
+        // Generate accidental icon
+        function generateAccidentalIcon(accidentalType) {
+            const { div, context } = createRenderer(ICON_WIDTH, ICON_HEIGHT);
+            const { Stave, StaveNote, Formatter, Accidental } = getVex().Flow;
+            
+            const accidentalNames = {
+                '#': 'sharp',
+                'b': 'flat',
+                'n': 'natural',
+                '##': 'double-sharp',
+                'bb': 'double-flat'
+            };
+            
+            try {
+                const stave = new Stave(0, 20, ICON_WIDTH);
+                stave.setContext(context);
+                
+                const note = new StaveNote({
+                    keys: ["b/4"],
+                    duration: "q"
+                }).addAccidental(0, new Accidental(accidentalType));
+                
+                Formatter.FormatAndDraw(context, stave, [note]);
+                
+                const name = `accidental-${accidentalNames[accidentalType]}`;
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating ${accidentalType} accidental:`, e);
+                return null;
+            }
+        }
+
+        // Generate key signature icon
+        function generateKeySignatureIcon(key) {
+            const { div, context } = createRenderer(ICON_WIDTH + 20, ICON_HEIGHT);
+            const { Stave } = getVex().Flow;
+            
+            try {
+                const stave = new Stave(0, 0, ICON_WIDTH + 20);
+                stave.addClef("treble");
+                stave.addKeySignature(key);
+                stave.setContext(context).draw();
+                
+                const name = `key-${key.replace('#', 'sharp').replace('b', 'flat')}`;
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating ${key} key signature:`, e);
+                return null;
+            }
+        }
+
+        // Generate fermata
+        function generateArticulationIcon(articulation, name) {
+            const { div, context } = createRenderer(ICON_WIDTH, ICON_HEIGHT);
+            const { Stave, StaveNote, Formatter } = getVex().Flow;
+            
+            try {
+                const stave = new Stave(0, 20, ICON_WIDTH);
+                stave.setContext(context);
+                
+                const note = new StaveNote({
+                    keys: ["b/4"],
+                    duration: "q"
+                });
+                
+                note.addArticulation(0, new Vex.Flow.Articulation(articulation).setPosition(3));
+                
+                Formatter.FormatAndDraw(context, stave, [note]);
+                
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating ${name}:`, e);
+                return null;
+            }
+        }
+
+        // Generate ornament
+        function generateOrnamentIcon(ornament, name) {
+            const { div, context } = createRenderer(ICON_WIDTH, ICON_HEIGHT);
+            const { Stave, StaveNote, Formatter } = getVex().Flow;
+            
+            try {
+                const stave = new Stave(0, 20, ICON_WIDTH);
+                stave.setContext(context);
+                
+                const note = new StaveNote({
+                    keys: ["b/4"],
+                    duration: "q"
+                });
+                
+                note.addModifier(0, new Vex.Flow.Ornament(ornament));
+                
+                Formatter.FormatAndDraw(context, stave, [note]);
+                
+                return extractSVG(div, name);
+            } catch (e) {
+                console.error(`Error generating ${name}:`, e);
+                return null;
+            }
+        }
+
+        function generateAllIcons() {
+            // Check if VexFlow is initialized
+            if (typeof window.Vex === 'undefined') {
+                alert('VexFlow is still loading. Please wait and try again.');
+                return;
+            }
+            
+            generatedIcons.length = 0;
+            const grid = document.getElementById('icon-grid');
+            grid.innerHTML = '';
+            
+            const status = document.getElementById('status');
+            status.textContent = 'Generating icons...';
+            
+            // ===== NOTES (Stem Up) =====
+            addSectionTitle(grid, '🎵 Notes (Stem Up)');
+            
+            const durations = ['w', 'h', 'q', '8', '16', '32'];
+            
+            durations.forEach(dur => {
+                // Stem up (whole notes don't have stems, but we include for consistency)
+                if (dur !== 'w') {
+                    const icon = generateNoteIcon(dur, 1, false);
+                    if (icon) {
+                        generatedIcons.push(icon);
+                        addIconToGrid(grid, icon);
+                    }
+                    
+                    // Dotted version
+                    const dottedIcon = generateNoteIcon(dur, 1, true);
+                    if (dottedIcon) {
+                        generatedIcons.push(dottedIcon);
+                        addIconToGrid(grid, dottedIcon);
+                    }
+                } else {
+                    // Whole note (no stem)
+                    const icon = generateNoteIcon(dur, 1, false);
+                    if (icon) {
+                        generatedIcons.push(icon);
+                        addIconToGrid(grid, icon);
+                    }
+                    const dottedIcon = generateNoteIcon(dur, 1, true);
+                    if (dottedIcon) {
+                        generatedIcons.push(dottedIcon);
+                        addIconToGrid(grid, dottedIcon);
+                    }
+                }
+            });
+
+            // ===== NOTES (Stem Down) =====
+            addSectionTitle(grid, '🎵 Notes (Stem Down)');
+            
+            durations.forEach(dur => {
+                if (dur !== 'w') {
+                    const icon = generateNoteIcon(dur, -1, false);
+                    if (icon) {
+                        generatedIcons.push(icon);
+                        addIconToGrid(grid, icon);
+                    }
+                    
+                    const dottedIcon = generateNoteIcon(dur, -1, true);
+                    if (dottedIcon) {
+                        generatedIcons.push(dottedIcon);
+                        addIconToGrid(grid, dottedIcon);
+                    }
+                }
+            });
+
+            // ===== RESTS =====
+            addSectionTitle(grid, '😴 Rests');
+            
+            durations.forEach(dur => {
+                const icon = generateRestIcon(dur, false);
+                if (icon) {
+                    generatedIcons.push(icon);
+                    addIconToGrid(grid, icon);
+                }
+                
+                const dottedIcon = generateRestIcon(dur, true);
+                if (dottedIcon) {
+                    generatedIcons.push(dottedIcon);
+                    addIconToGrid(grid, dottedIcon);
+                }
+            });
+
+            // ===== BEAMED NOTES =====
+            addSectionTitle(grid, '🎶 Beamed Notes');
+            
+            ['8', '16', '32'].forEach(dur => {
+                [2, 3, 4].forEach(count => {
+                    [1, -1].forEach(stem => {
+                        const icon = generateBeamedNotesIcon(dur, count, stem);
+                        if (icon) {
+                            generatedIcons.push(icon);
+                            addIconToGrid(grid, icon);
+                        }
+                    });
+                });
+            });
+
+            // ===== TRIPLETS =====
+            addSectionTitle(grid, '🎼 Triplets');
+            
+            ['q', '8'].forEach(dur => {
+                [1, -1].forEach(stem => {
+                    const icon = generateTripletIcon(dur, stem);
+                    if (icon) {
+                        generatedIcons.push(icon);
+                        addIconToGrid(grid, icon);
+                    }
+                });
+            });
+
+            // ===== CLEFS =====
+            addSectionTitle(grid, '🎼 Clefs');
+            
+            ['treble', 'bass', 'alto', 'tenor', 'percussion'].forEach(clef => {
+                const icon = generateClefIcon(clef);
+                if (icon) {
+                    generatedIcons.push(icon);
+                    addIconToGrid(grid, icon);
+                }
+            });
+
+            // ===== TIME SIGNATURES =====
+            addSectionTitle(grid, '⏱️ Time Signatures');
+            
+            ['4/4', '3/4', '2/4', '6/8', '2/2', '3/8', '5/4', '7/8', 'C', 'C|'].forEach(time => {
+                const icon = generateTimeSignatureIcon(time);
+                if (icon) {
+                    generatedIcons.push(icon);
+                    addIconToGrid(grid, icon);
+                }
+            });
+
+            // ===== ACCIDENTALS =====
+            addSectionTitle(grid, '♯♭ Accidentals');
+            
+            ['#', 'b', 'n', '##', 'bb'].forEach(acc => {
+                const icon = generateAccidentalIcon(acc);
+                if (icon) {
+                    generatedIcons.push(icon);
+                    addIconToGrid(grid, icon);
+                }
+            });
+
+            // ===== KEY SIGNATURES =====
+            addSectionTitle(grid, '🔑 Key Signatures');
+            
+            ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'].forEach(key => {
+                const icon = generateKeySignatureIcon(key);
+                if (icon) {
+                    generatedIcons.push(icon);
+                    addIconToGrid(grid, icon);
+                }
+            });
+
+            // ===== ARTICULATIONS =====
+            addSectionTitle(grid, '🎯 Articulations');
+            
+            const articulations = [
+                ['a.', 'staccato'],
+                ['a-', 'tenuto'],
+                ['a>', 'accent'],
+                ['a^', 'marcato'],
+                ['a@a', 'fermata'],
+                ['ao', 'harmonic'],
+                ['a+', 'left-hand-pizzicato']
+            ];
+            
+            articulations.forEach(([code, name]) => {
+                const icon = generateArticulationIcon(code, `articulation-${name}`);
+                if (icon) {
+                    generatedIcons.push(icon);
+                    addIconToGrid(grid, icon);
+                }
+            });
+
+            // ===== ORNAMENTS =====
+            addSectionTitle(grid, '✨ Ornaments');
+            
+            const ornaments = [
+                ['mordent', 'mordent'],
+                ['mordent_inverted', 'mordent-inverted'],
+                ['turn', 'turn'],
+                ['turn_inverted', 'turn-inverted'],
+                ['tr', 'trill'],
+                ['upprall', 'upprall'],
+                ['downprall', 'downprall'],
+                ['prallup', 'prallup'],
+                ['pralldown', 'pralldown']
+            ];
+            
+            ornaments.forEach(([code, name]) => {
+                const icon = generateOrnamentIcon(code, `ornament-${name}`);
+                if (icon) {
+                    generatedIcons.push(icon);
+                    addIconToGrid(grid, icon);
+                }
+            });
+
+            status.textContent = `Generated ${generatedIcons.length} icons successfully!`;
+        }
+
+        function addSectionTitle(grid, title) {
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'section-title';
+            titleDiv.textContent = title;
+            grid.appendChild(titleDiv);
+        }
+
+        function addIconToGrid(grid, icon) {
+            const item = document.createElement('div');
+            item.className = 'icon-item';
+            
+            const preview = document.createElement('div');
+            preview.className = 'preview';
+            preview.innerHTML = icon.svg;
+            
+            const name = document.createElement('div');
+            name.className = 'name';
+            name.textContent = icon.name + '.svg';
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = 'Download';
+            downloadBtn.onclick = () => downloadSingleSVG(icon);
+            
+            item.appendChild(preview);
+            item.appendChild(name);
+            item.appendChild(downloadBtn);
+            grid.appendChild(item);
+        }
+
+        function downloadSingleSVG(icon) {
+            const blob = new Blob([icon.svg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = icon.name + '.svg';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function downloadAllAsSVG() {
+            if (generatedIcons.length === 0) {
+                alert('Please generate icons first!');
+                return;
+            }
+
+            const status = document.getElementById('status');
+            status.textContent = 'Preparing download... (downloading individual files)';
+
+            // Since we can't create a proper ZIP without a library,
+            // we'll download each file with a small delay
+            for (let i = 0; i < generatedIcons.length; i++) {
+                const icon = generatedIcons[i];
+                setTimeout(() => {
+                    downloadSingleSVG(icon);
+                }, i * 100); // 100ms delay between each download
+            }
+
+            status.textContent = `Downloading ${generatedIcons.length} SVG files...`;
+        }
+
+        // Expose functions globally for onclick handlers
+        window.generateAllIcons = generateAllIcons;
+        window.downloadAllAsSVG = downloadAllAsSVG;
+
+        // Auto-generate on load
+        window.onload = () => {
+            document.getElementById('status').textContent = 'Click "Generate All Icons" to start!';
+        };
+    </script>
+</body>
+</html>

@@ -10,7 +10,6 @@ import { NOTES_BY_NAME } from "../core/note-data.js";
 
 export const DURATION_TO_BEATS = {
   w: 4,
-  "w.": 6,
   h: 2,
   "h.": 3,
   q: 1,

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -26,14 +27,22 @@
 
     <div class="piano-app">
       {% if show_side_panel %}
-      <aside class="piano-app__side-panel">
+      <!-- Sidebar backdrop overlay -->
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+      
+      <!-- Sidebar drawer -->
+      <aside class="piano-app__side-panel" id="sidePanel">
+        <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar">×</button>
         {% block editor %}{% endblock %} {% block side %}{% endblock %}
       </aside>
       {% endif %}
 
       <main class="piano-app__content-area">
 
-        		<header class="piano-app__header">
+        <header class="piano-app__header">
+          {% if show_side_panel %}
+          <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Open editor panel">☰</button>
+          {% endif %}
 			{% if request.path != '/' %}
 				<a href="/">
 				<h1 class="piano-app__header-title">Piano Tour</h1>
@@ -161,6 +170,7 @@
         handleKeyMenuToggle,
         handleKeySelect,
         updateUI,
+        initSidebarToggle,
       } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
       import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
       import { initializePlayer } from '{{ url_for("static", filename="js/score/scorePlayback.js") }}';
@@ -237,6 +247,9 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
 
         // NEW: Initialize audioManager early, before any user interaction might trigger it
         audioManager.initializeAudioManager();
+
+        // Initialize sidebar toggle (if present)
+        initSidebarToggle();
 
         // Initialize lightweight components immediately
         initializeInstrumentUI();

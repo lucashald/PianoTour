@@ -15,7 +15,7 @@ import { humanizeNote, humanizeDuration } from '../utils/velocityHumanizer.js';
 // ===================================================================
 
 const BEAT_VALUES = { q: 1, h: 2, w: 4, '8': 0.5, '16': 0.25, '32': 0.125,
-'q.': 1.5, 'h.': 3, 'w.': 6, '8.': 0.75, '16.': 0.375, '32.': 0.1875 };
+'q.': 1.5, 'h.': 3, '8.': 0.75, '16.': 0.375, '32.': 0.1875 };
 const AUTOSAVE_KEY = 'autosavedScore';
 
 // ===================================================================
@@ -30,6 +30,27 @@ let currentBassBeats = 0;
 
 const history = [];
 const MAX_HISTORY = 20;
+
+// Write queue to prevent race conditions during rapid note entry
+let writeQueue = [];
+let isProcessingQueue = false;
+
+function processWriteQueue() {
+    if (isProcessingQueue) return;
+    
+    isProcessingQueue = true;
+    
+    while (writeQueue.length > 0) {
+        const noteData = writeQueue.shift();
+        try {
+            writeNoteInternal(noteData);
+        } catch (error) {
+            console.error('Error processing note write:', error);
+        }
+    }
+    
+    isProcessingQueue = false;
+}
 
 // ===================================================================
 // Helper Functions
@@ -279,6 +300,12 @@ export function undoLastWrite() {
 }
 
 export function writeNote(obj) {
+    // Queue the write and process sequentially to prevent race conditions
+    writeQueue.push(obj);
+    processWriteQueue();
+}
+
+function writeNoteInternal(obj) {
 
     const { clef, duration, notes, chordName, isRest = false } = obj;
     const beats = BEAT_VALUES[duration];
@@ -671,7 +698,6 @@ const SPLIT_DURATION_MAP = {
     '8':   '16',     // eighth → 2 sixteenths
     '16':  '32',     // sixteenth → 2 thirty-seconds
     '32':  null,     // can't split
-    'w.':  'h.',     // dotted whole → 2 dotted halves
     'h.':  'q.',     // dotted half → 2 dotted quarters
     'q.':  '8.',     // dotted quarter → 2 dotted eighths
     '8.':  '16.',    // dotted eighth → 2 dotted sixteenths
@@ -1136,10 +1162,7 @@ function findBestDuration(beats) {
             return duration;
         }
     }
-    
-    // For complex beats, try to use the largest possible duration
-    // This is a simplified approach - you might want to expand this
-    if (beats === 3.5) return 'w.'; // 3.5 beats (dotted whole in 4/4)
+
     if (beats === 2.5) return 'h.'; // 2.5 beats (dotted half)
     if (beats === 1.25) return 'q.'; // 1.25 beats (dotted quarter)
     

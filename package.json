@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@tombatossals/chords-db": "^0.5.1",
-    "@tombatossals/react-chords": "^0.2.10"
+    "@tombatossals/react-chords": "^0.2.10",
+    "jsdom": "^27.0.1",
+    "vexflow": "^5.0.0"
   }
 }

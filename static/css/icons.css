@@ -1,0 +1,346 @@
+/**
+ * icons.css
+ * Icon styling for PianoTour
+ * Works with both inline SVG and the icons.js module
+ */
+
+/* ============================================
+   BASE ICON STYLING
+   ============================================ */
+
+.icon {
+    width: 1.2em;
+    height: 1.2em;
+    vertical-align: middle;
+    fill: currentColor;
+    flex-shrink: 0;
+    display: inline-block;
+}
+
+/* Ensure SVGs inside buttons/links inherit color */
+.icon svg,
+button .icon,
+a .icon,
+.btn .icon {
+    fill: currentColor;
+}
+
+/* ============================================
+   SIZE VARIANTS
+   ============================================ */
+
+.icon-xs {
+    width: 0.8em;
+    height: 0.8em;
+}
+
+.icon-sm {
+    width: 1em;
+    height: 1em;
+}
+
+.icon-md {
+    width: 1.2em;
+    height: 1.2em;
+}
+
+.icon-lg {
+    width: 1.5em;
+    height: 1.5em;
+}
+
+.icon-xl {
+    width: 2em;
+    height: 2em;
+}
+
+.icon-2xl {
+    width: 2.5em;
+    height: 2.5em;
+}
+
+.icon-3xl {
+    width: 3em;
+    height: 3em;
+}
+
+/* Fixed pixel sizes for specific use cases */
+.icon-16 {
+    width: 16px;
+    height: 16px;
+}
+
+.icon-20 {
+    width: 20px;
+    height: 20px;
+}
+
+.icon-24 {
+    width: 24px;
+    height: 24px;
+}
+
+.icon-32 {
+    width: 32px;
+    height: 32px;
+}
+
+.icon-48 {
+    width: 48px;
+    height: 48px;
+}
+
+/* ============================================
+   SPACING HELPERS
+   ============================================ */
+
+/* Icon with text on the right */
+.icon-left {
+    margin-right: 0.4em;
+}
+
+/* Icon with text on the left */
+.icon-right {
+    margin-left: 0.4em;
+}
+
+/* Standalone icon (no margin) */
+.icon-only {
+    margin: 0;
+}
+
+/* ============================================
+   ICON BUTTONS
+   ============================================ */
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5em;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: inherit;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.icon-btn:active {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.icon-btn:focus-visible {
+    outline: 2px solid var(--accent-blue, #4a90e2);
+    outline-offset: 2px;
+}
+
+/* Compact icon button */
+.icon-btn--compact {
+    padding: 0.25em;
+}
+
+/* Circle icon button */
+.icon-btn--circle {
+    border-radius: 50%;
+}
+
+/* ============================================
+   COLOR VARIANTS
+   ============================================ */
+
+.icon-primary {
+    color: var(--accent-blue, #4a90e2);
+}
+
+.icon-success {
+    color: var(--color-success, #51cf66);
+}
+
+.icon-warning {
+    color: var(--color-warning, #fcc419);
+}
+
+.icon-error,
+.icon-danger {
+    color: var(--color-error, #ff6b6b);
+}
+
+.icon-muted {
+    color: var(--text-muted, #888);
+    opacity: 0.7;
+}
+
+/* ============================================
+   ANIMATION HELPERS
+   ============================================ */
+
+.icon-spin {
+    animation: icon-spin 1s linear infinite;
+}
+
+@keyframes icon-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.icon-pulse {
+    animation: icon-pulse 1s ease-in-out infinite;
+}
+
+@keyframes icon-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.icon-bounce {
+    animation: icon-bounce 0.5s ease infinite;
+}
+
+@keyframes icon-bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+/* ============================================
+   BUTTON WITH ICON PATTERNS
+   ============================================ */
+
+/* Button with icon and text */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+.btn-icon .icon {
+    flex-shrink: 0;
+}
+
+/* Icon-only button with accessible text */
+.btn-icon-only {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-only .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ============================================
+   PLAYBACK CONTROL SPECIFIC
+   ============================================ */
+
+.playback-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.playback-controls .icon-btn {
+    font-size: 1.25em;
+}
+
+.playback-controls .icon-btn--main {
+    font-size: 1.5em;
+    background: var(--accent-blue, #4a90e2);
+    color: white;
+    padding: 0.6em;
+}
+
+.playback-controls .icon-btn--main:hover {
+    background: var(--accent-hover, #357abd);
+}
+
+/* ============================================
+   DROPDOWN MENU ICONS
+   ============================================ */
+
+.dropdown-item .icon {
+    margin-right: 0.5em;
+    opacity: 0.8;
+}
+
+.dropdown-item:hover .icon {
+    opacity: 1;
+}
+
+/* ============================================
+   INSTRUMENT SELECTOR ICONS
+   ============================================ */
+
+.instrument-option .icon {
+    width: 1.4em;
+    height: 1.4em;
+    margin-right: 0.5em;
+}
+
+/* ============================================
+   STATUS INDICATORS
+   ============================================ */
+
+.status-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+}
+
+.status-icon--success .icon {
+    color: var(--color-success, #51cf66);
+}
+
+.status-icon--error .icon {
+    color: var(--color-error, #ff6b6b);
+}
+
+.status-icon--warning .icon {
+    color: var(--color-warning, #fcc419);
+}
+
+.status-icon--info .icon {
+    color: var(--accent-blue, #4a90e2);
+}
+
+/* ============================================
+   DARK THEME ADJUSTMENTS
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+    .icon-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* Light theme */
+[data-theme="light"] .icon-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .icon-btn:active {
+    background-color: rgba(0, 0, 0, 0.1);
+}
