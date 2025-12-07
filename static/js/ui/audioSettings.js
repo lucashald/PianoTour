@@ -1,6 +1,7 @@
 // audioSettings.js - Audio Settings Control Interface with Proper Audio Updates
 import { pianoState } from '../core/appState.js';
 import { Instrument } from '../core/audioManager.js';
+import { connectSpectrumToAudio } from './spectrum.js';
 
 class AudioSettingsController {
     constructor() {
@@ -580,6 +581,10 @@ class AudioSettingsController {
                     console.log(`${instrumentName} samples loaded successfully`);
                     // Connect new sampler to new envelope
                     pianoState.envelope.connect(pianoState.sampler);
+                    
+                    // Reconnect spectrum to new sampler
+                    connectSpectrumToAudio(pianoState.sampler);
+                    console.log('Spectrum reconnected to new sampler');
                     
                     // Load saved settings for this instrument (or defaults if instrument changed)
                     this.loadSavedSettings();
