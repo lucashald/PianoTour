@@ -16,7 +16,8 @@ export class EnvelopeControl {
             distortion: config.distortion || { enabled: false, distortion: 0.4, wet: 0.5 }
         };
 
-        this.envelope = null;
+        this.input = null; // Replaces this.envelope as the entry point
+        this.sampler = null; // Reference to the sampler for direct control
         this.isConnected = false;
         this.connectedNodes = new Set();
         
@@ -25,7 +26,7 @@ export class EnvelopeControl {
     
     init() {
         this.createAudioChain();
-        console.log('Envelope created with ADSR:', {
+        console.log('EnvelopeControl initialized with settings:', {
             attack: this.attack,
             decay: this.decay, 
             sustain: this.sustain,
@@ -33,15 +34,32 @@ export class EnvelopeControl {
         });
     }
     
-    // NEW: Create envelope and effects chain
+    // Bind the sampler to this control to enable per-note envelope updates
+    bindSampler(sampler) {
+        this.sampler = sampler;
+        // Apply initial settings
+        this.updateSamplerSettings();
+        console.log('Sampler bound to EnvelopeControl');
+    }
+
+    updateSamplerSettings() {
+        if (this.sampler) {
+            // Tone.Sampler only supports Attack and Release curves for now
+            // We map our ADSR values to the sampler's properties
+            if (this.sampler.attack !== undefined) this.sampler.attack = this.attack;
+            if (this.sampler.release !== undefined) this.sampler.release = this.release;
+            
+            // Note: Decay and Sustain are not directly supported by standard Tone.Sampler
+            // but we keep the values for UI consistency or future custom implementation
+        }
+    }
+    
+    // Create audio chain (Input -> Effects -> Destination)
     createAudioChain() {
         if (window.Tone) {
-            this.envelope = new Tone.AmplitudeEnvelope({
-                attack: this.attack,
-                decay: this.decay,
-                sustain: this.sustain,
-                release: this.release
-            });
+            // We use a Gain node as the input point instead of a monophonic envelope
+            // This allows polyphonic signals from the sampler to pass through without being gated
+            this.input = new Tone.Gain(1);
 
             // Create effects objects and chain
             this.effects = {};
@@ -129,7 +147,7 @@ export class EnvelopeControl {
     }
 
     buildEffectsChain() {
-        let currentNode = this.envelope;
+        let currentNode = this.input;
         this.effectsChain.forEach(effect => {
             currentNode.connect(effect);
             currentNode = effect;
@@ -140,16 +158,16 @@ export class EnvelopeControl {
     /**
      * Returns the final output node after all effects have been applied.
      * This is used for spectrum visualization and other audio analysis.
-     * @returns {Tone.AudioNode} The last node in the effects chain, or the envelope if no effects
+     * @returns {Tone.AudioNode} The last node in the effects chain, or the input if no effects
      */
     getFinalOutput() {
         if (this.effectsChain.length > 0) {
             return this.effectsChain[this.effectsChain.length - 1];
         }
-        return this.envelope;
+        return this.input;
     }
 
-    // NEW: Enable/disable effects dynamically
+    // Enable/disable effects dynamically
     enableEffect(effectName, enabled = true) {
         if (!this.effectsConfig[effectName]) {
             console.warn(`Effect ${effectName} not found`);
@@ -158,6 +176,7 @@ export class EnvelopeControl {
         this.effectsConfig[effectName].enabled = enabled;
         this.dispose();
         this.createAudioChain();
+        // Re-bind sampler if it exists, though connection is handled by audioManager/playbackHelpers
         console.log(`Effect ${effectName} ${enabled ? 'enabled' : 'disabled'}`);
     }
 
@@ -217,57 +236,47 @@ export class EnvelopeControl {
         }
     }
 
-    // Connect an audio source to this envelope
+    // Connect an audio source to this input chain
     connect(audioNode) {
         if (audioNode && audioNode.connect) {
-            audioNode.connect(this.envelope);
-            // Envelope already connects through effects to destination
+            audioNode.connect(this.input);
             this.connectedNodes.add(audioNode);
             return true;
         }
         return false;
     }
     
-    // Trigger the envelope attack
+    // Trigger methods are now handled by the Sampler directly for polyphony
     triggerAttack(time) {
-        if (this.envelope) {
-            this.envelope.triggerAttack(time);
-        }
+        // No-op: Sampler handles per-voice attack
     }
     
     triggerRelease(time) {
-        if (this.envelope) {
-            const releaseTime = time !== undefined ? time : Tone.now();
-            this.envelope.triggerRelease(releaseTime);
-        }
+        // No-op: Sampler handles per-voice release
     }
     
     // Update envelope parameters
     setAttack(value) {
         this.attack = value;
-        if (this.envelope) {
-            this.envelope.attack = value;
+        if (this.sampler && this.sampler.attack !== undefined) {
+            this.sampler.attack = value;
         }
     }
     
     setDecay(value) {
         this.decay = value;
-        if (this.envelope) {
-            this.envelope.decay = value;
-        }
+        // Sampler doesn't support decay natively, stored for future use
     }
     
     setSustain(value) {
         this.sustain = value;
-        if (this.envelope) {
-            this.envelope.sustain = value;
-        }
+        // Sampler doesn't support sustain level natively, stored for future use
     }
     
     setRelease(value) {
         this.release = value;
-        if (this.envelope) {
-            this.envelope.release = value;
+        if (this.sampler && this.sampler.release !== undefined) {
+            this.sampler.release = value;
         }
     }
     
@@ -295,13 +304,14 @@ export class EnvelopeControl {
         this.dispose();
         this.connectedNodes.clear();
         this.isConnected = false;
+        this.sampler = null;
     }
 
-    // Cleanup for envelope and effects
+    // Cleanup for input and effects
     dispose() {
-        if (this.envelope) {
-            this.envelope.dispose();
-            this.envelope = null;
+        if (this.input) {
+            this.input.dispose();
+            this.input = null;
         }
         if (this.effects) {
             Object.values(this.effects).forEach(effect => {

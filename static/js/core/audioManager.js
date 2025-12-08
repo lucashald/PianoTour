@@ -587,10 +587,14 @@ export function initializeSpectrumVisualizer() {
     initializeSpectrum(spectrumOptions);
     spectrumInitialized = true;
 
-    // Connect to the sampler output to capture velocity modulation
-    if (pianoState.sampler) {
+    // Connect spectrum to the end of the audio chain (after effects)
+    if (pianoState.envelope) {
+      connectSpectrumToAudio(pianoState.envelope.getFinalOutput());
+      console.log("Spectrum connected to envelope output (post-effects)");
+    } else if (pianoState.sampler) {
+      // Fallback if envelope not ready
       connectSpectrumToAudio(pianoState.sampler);
-      console.log("Spectrum connected to sampler output (captures velocity modulation)");
+      console.log("Spectrum connected to sampler output (pre-effects)");
     } else {
       console.log("No audio source available for spectrum connection");
     }
@@ -654,9 +658,17 @@ async function initializeAudio() {
                     onerror: (error) => console.error("Sample loading error:", error)
                 });
 
+                // Bind sampler to envelope control for per-note parameter updates
+                pianoState.envelope.bindSampler(pianoState.sampler);
+
+                console.log('🔌 Sampler created. Checking if auto-connected to destination...');
+                console.log('🔌 Sampler output node:', pianoState.sampler.output);
+
                 // Connect sampler -> envelope -> destination
-                pianoState.envelope.connect(pianoState.sampler);
-                console.log('Current envelope settings:', pianoState.envelope.getSettings());
+                const connected = pianoState.envelope.connect(pianoState.sampler);
+                console.log('🔌 Connection result:', connected);
+                console.log('🔌 Envelope output should go to destination');
+                console.log('📊 Current envelope settings:', pianoState.envelope.getSettings());
 
                 await Tone.loaded();
 

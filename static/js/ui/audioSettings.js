@@ -582,9 +582,14 @@ class AudioSettingsController {
                     // Connect new sampler to new envelope
                     pianoState.envelope.connect(pianoState.sampler);
                     
-                    // Reconnect spectrum to new sampler
-                    connectSpectrumToAudio(pianoState.sampler);
-                    console.log('Spectrum reconnected to new sampler');
+                    // Reconnect spectrum to envelope output (post-effects)
+                    if (pianoState.envelope) {
+                        connectSpectrumToAudio(pianoState.envelope.getFinalOutput());
+                        console.log('Spectrum reconnected to envelope output');
+                    } else {
+                        connectSpectrumToAudio(pianoState.sampler);
+                        console.log('Spectrum reconnected to sampler output');
+                    }
                     
                     // Load saved settings for this instrument (or defaults if instrument changed)
                     this.loadSavedSettings();

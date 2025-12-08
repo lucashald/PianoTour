@@ -389,14 +389,14 @@ export function triggerAttackRelease(note, duration = pianoState.quantize, veloc
 
   const durationInSeconds = durationMs / 1000;
   const now = Tone.now();
-  
-  // FIXED: Only trigger envelope attack, let it follow sampler naturally
+
+  // Trigger envelope: attack → decay → sustain (for note duration) → release
   if (pianoState.envelope) {
     pianoState.envelope.triggerAttack(now);
-    // Don't manually release - let the envelope follow the sampler's natural end
+    pianoState.envelope.triggerRelease(now + durationInSeconds);
   }
-  
-  // Trigger sampler with attack/release (envelope will shape this)
+
+  // Trigger sampler with note duration (sampler handles release phase)
   pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, effectiveVelocity / 127);
 
   // Paint chord visualization immediately for chords
