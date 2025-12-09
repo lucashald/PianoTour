@@ -63,6 +63,10 @@ def index():
 def fret():
     return render_template('fret.html', instrument='guitar')
 
+@app.route('/playable-guitar')
+def playable_guitar():
+    return render_template('playable-guitar.html', instrument='guitar')
+
 @app.route('/editor')
 def editor():
     return render_template('editor.html', show_side_panel=True, disable_keyboard=True)
