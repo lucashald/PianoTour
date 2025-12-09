@@ -568,40 +568,83 @@ class AudioSettingsController {
             const oldEnvelope = pianoState.envelope;
             pianoState.envelope = Instrument.createEnvelope(instrumentName);
 
-            // Get new sample URLs
-            const sampleUrls = Instrument.getSampleUrls(instrumentName);
-            const baseUrl = Instrument.getBaseUrl(instrumentName);
-
-            // Create new sampler
+            // Get preset to check type
+            const preset = Instrument.getPreset(instrumentName);
             const oldSampler = pianoState.sampler;
-            pianoState.sampler = new Tone.Sampler({
-                urls: sampleUrls,
-                baseUrl: baseUrl,
-                onload: () => {
-                    console.log(`${instrumentName} samples loaded successfully`);
-                    // Connect new sampler to new envelope
-                    pianoState.envelope.connect(pianoState.sampler);
+
+            if (preset && preset.type === 'synth') {
+                console.log(`Initializing synth instrument: ${instrumentName}`);
+                const polySynth = new Tone.PolySynth(preset.baseSynth);
+                polySynth.set(preset.params);
+                pianoState.sampler = polySynth;
+
+                // Create and chain preset-specific effects
+                let sourceNode = polySynth;
+                if (preset.effects && preset.effects.length > 0) {
+                    const effects = preset.effects.map(effectDef => {
+                        return new effectDef.type(effectDef.params);
+                    });
                     
-                    // Reconnect spectrum to envelope output (post-effects)
-                    if (pianoState.envelope) {
-                        connectSpectrumToAudio(pianoState.envelope.getFinalOutput());
-                        console.log('Spectrum reconnected to envelope output');
-                    } else {
-                        connectSpectrumToAudio(pianoState.sampler);
-                        console.log('Spectrum reconnected to sampler output');
+                    if (effects.length > 0) {
+                        polySynth.connect(effects[0]);
+                        for (let i = 0; i < effects.length - 1; i++) {
+                            effects[i].connect(effects[i+1]);
+                        }
+                        sourceNode = effects[effects.length - 1];
                     }
-                    
-                    // Load saved settings for this instrument (or defaults if instrument changed)
-                    this.loadSavedSettings();
-                    
-                    // Dispose old audio objects
-                    setTimeout(() => {
-                        if (oldEnvelope) oldEnvelope.dispose();
-                        if (oldSampler) oldSampler.dispose();
-                    }, 1000);
-                },
-                onerror: (error) => console.error("Sample loading error:", error)
-            });
+                }
+                
+                // Connect source (synth or last effect) to envelope input
+                pianoState.envelope.connect(sourceNode);
+
+                // Synth setup complete immediately
+                console.log(`${instrumentName} synth initialized`);
+                
+                if (pianoState.envelope) {
+                    connectSpectrumToAudio(pianoState.envelope.getFinalOutput());
+                }
+                
+                this.loadSavedSettings();
+                
+                setTimeout(() => {
+                    if (oldEnvelope) oldEnvelope.dispose();
+                    if (oldSampler) oldSampler.dispose();
+                }, 100);
+
+            } else {
+                // Sample-based instrument
+                const sampleUrls = Instrument.getSampleUrls(instrumentName);
+                const baseUrl = Instrument.getBaseUrl(instrumentName);
+
+                pianoState.sampler = new Tone.Sampler({
+                    urls: sampleUrls,
+                    baseUrl: baseUrl,
+                    onload: () => {
+                        console.log(`${instrumentName} samples loaded successfully`);
+                        // Connect new sampler to new envelope
+                        pianoState.envelope.connect(pianoState.sampler);
+                        
+                        // Reconnect spectrum to envelope output (post-effects)
+                        if (pianoState.envelope) {
+                            connectSpectrumToAudio(pianoState.envelope.getFinalOutput());
+                            console.log('Spectrum reconnected to envelope output');
+                        } else {
+                            connectSpectrumToAudio(pianoState.sampler);
+                            console.log('Spectrum reconnected to sampler output');
+                        }
+                        
+                        // Load saved settings for this instrument (or defaults if instrument changed)
+                        this.loadSavedSettings();
+                        
+                        // Dispose old audio objects
+                        setTimeout(() => {
+                            if (oldEnvelope) oldEnvelope.dispose();
+                            if (oldSampler) oldSampler.dispose();
+                        }, 1000);
+                    },
+                    onerror: (error) => console.error("Sample loading error:", error)
+                });
+            }
 
             // Show feedback
             this.showInstrumentChanged(Instrument.getDisplayName(instrumentName));
@@ -985,8 +1028,8 @@ class AudioSettingsController {
         if (effects.reverb) {
             console.log(`  Reverb: decay=${effects.reverb.decay}, wet=${effects.reverb.wet.value}`);
         }
-        if (effects.compressor) {
-            console.log(`  Compressor: threshold=${effects.compressor.threshold.value}dB, ratio=${effects.compressor.ratio.value}`);
+        if (effects.compression) {
+            console.log(`  Compressor: threshold=${effects.compression.threshold.value}dB, ratio=${effects.compression.ratio.value}`);
         }
         if (effects.eq) {
             console.log(`  EQ: low=${effects.eq.low.value}dB, mid=${effects.eq.mid.value}dB, high=${effects.eq.high.value}dB`);

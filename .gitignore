@@ -4,6 +4,10 @@ test-logs/
 test-results/
 tests/
 node_modules/
+examples/
+static/js/spessa/
+scripts/
+docs/
 
 # Files to ignore
 settings.js

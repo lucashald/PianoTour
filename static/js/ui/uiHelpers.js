@@ -767,3 +767,29 @@ export function getCurrentChordClef() {
     if (chordButtonMode === 2) return 'treble';
     return 'treble'; // Default fallback
 }
+
+// Handle Synth Submenu Toggle
+document.addEventListener('click', (e) => {
+    const synthMenuBtn = document.getElementById('synth-menu-btn');
+    // Use closest because the click might be on the img or text inside the button
+    const targetBtn = e.target.closest('#synth-menu-btn');
+    
+    if (targetBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const submenu = document.getElementById('synth-submenu');
+        if (submenu) {
+            submenu.classList.toggle('hidden');
+        }
+    } else {
+        // Close synth submenu if clicking elsewhere
+        const synthSubmenu = document.getElementById('synth-submenu');
+        if (synthSubmenu && !synthSubmenu.contains(e.target)) {
+             // Only close if we are not clicking the button (handled above)
+             // And if we are active?
+             // Actually, if we click "Piano", handleInstrumentSelect closes everything.
+             // If we click empty space in instrument menu?
+             // Let's just leave it open unless clicked again or instrument selected.
+        }
+    }
+});

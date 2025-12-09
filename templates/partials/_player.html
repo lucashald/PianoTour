@@ -59,6 +59,16 @@
           <button class="dropdown-item instrument-option" data-instrument="sax"><img src="/static/images/svg/1sax.svg" class="menu-icon" alt="Saxophone"> Saxophone</button>
           <button class="dropdown-item instrument-option" data-instrument="clarinet"><img src="/static/images/svg/1clarinet.svg" class="menu-icon" alt="Clarinet"> Clarinet</button>
           <button class="dropdown-item instrument-option" data-instrument="french_horn"><img src="/static/images/svg/1frenchhorn.svg" class="menu-icon" alt="French Horn"> French Horn</button>
+          <div class="dropdown-submenu">
+            <button id="synth-menu-btn" class="dropdown-item has-submenu">
+              <img src="/static/images/svg/1synth.svg" class="menu-icon" alt="Synth"> Synth ▸
+            </button>
+            <div id="synth-submenu" class="submenu-content hidden">
+              <button class="dropdown-item instrument-option" data-instrument="celloSynth">Cello Synth</button>
+              <button class="dropdown-item instrument-option" data-instrument="warmSynth">Warm Synth</button>
+              <button class="dropdown-item instrument-option" data-instrument="ambientSynth">Ambient Synth</button>
+            </div>
+          </div>
         </div>
       </div>
       <button id="connect-midi-btn" class="dropdown-item">

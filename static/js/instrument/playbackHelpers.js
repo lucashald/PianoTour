@@ -87,21 +87,20 @@ export function trigger(note, on, velocity, useEnvelope = true) {
   const notes = Array.isArray(note) ? note : [note];
   const now = Tone.now(); // Get current time
 
-  notes.forEach((n) => {
-    if (on) {
-      pianoState.sampler.triggerAttack(n, undefined, normalizedVelocity);
-      
-      if (pianoState.envelope && useEnvelope) {
-        pianoState.envelope.triggerAttack(now); // Pass time parameter
-      }
-    } else {
-      pianoState.sampler.triggerRelease(n);
-      
-      if (pianoState.envelope && useEnvelope) {
-        pianoState.envelope.triggerRelease(now); // Pass time parameter
-      }
+  // Pass array directly to sampler for better PolySynth handling
+  if (on) {
+    pianoState.sampler.triggerAttack(notes, now, normalizedVelocity);
+    
+    if (pianoState.envelope && useEnvelope) {
+      pianoState.envelope.triggerAttack(now);
     }
-  });
+  } else {
+    pianoState.sampler.triggerRelease(notes, now);
+    
+    if (pianoState.envelope && useEnvelope) {
+      pianoState.envelope.triggerRelease(now);
+    }
+  }
 }
 
 /**
@@ -149,14 +148,22 @@ export function stopKey(el) {
   const midi = el.dataset.midi;
   console.log("stopKey: midi =", midi, "playing =", el.dataset.playing);
   
-  // FIXED: Only proceed if actually playing
-  if (!midi || el.dataset.playing !== "note") {
-    console.log("stopKey: blocked - not playing or no midi");
+  // FIXED: Only proceed if midi exists
+  if (!midi) {
+    console.log("stopKey: blocked - no midi");
     return;
   }
   
+  // Check active notes instead of relying solely on element state (which might be lost on redraws)
   const activeNote = pianoState.activeNotes[midi];
+  
   if (!activeNote) {
+    // Clean up element state if it got desynced
+    if (el.dataset.playing) {
+        delete el.dataset.playing;
+        delete el.dataset.startTime;
+        el.classList.remove("pressed");
+    }
     console.log("stopKey: no active note found");
     return;
   }
@@ -164,10 +171,18 @@ export function stopKey(el) {
   const noteInfo = notesByMidiKeyAware(midi);
   const noteNameToTrigger = noteInfo.name;
 
-  // FIXED: Clear state BEFORE triggering to prevent re-entry
+  // FIXED: Clear state on the element passed AND the stored element
   delete el.dataset.playing;
   delete el.dataset.startTime;
   el.classList.remove("pressed");
+  
+  // Also clear the stored element if different
+  if (activeNote.el && activeNote.el !== el) {
+      delete activeNote.el.dataset.playing;
+      delete activeNote.el.dataset.startTime;
+      activeNote.el.classList.remove("pressed");
+  }
+  
   delete pianoState.activeNotes[midi];
 
   trigger(noteNameToTrigger, false);

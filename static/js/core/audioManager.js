@@ -7,6 +7,9 @@ import {
 } from '../ui/spectrum.js';
 import { pianoState } from "./appState.js";
 import { EnvelopeControl } from '../classes/envelopeControl.js';
+import celloSynthPreset from '../instrumentPresets/cello.js';
+import warmSynthPreset from '../instrumentPresets/warmSynth.js';
+import ambientSynthPreset from '../instrumentPresets/ambientSynth.js';
 
 /**
  * Instrument preset class that manages sample URLs and envelope settings
@@ -126,6 +129,9 @@ export class InstrumentControl {
                 }
             },
 
+            ambientSynth: ambientSynthPreset,
+            warmSynth: warmSynthPreset,
+            celloSynth: celloSynthPreset,
             cello: {
                 name: 'Cello',
                 baseUrl: '/static/samples/cello',
@@ -642,31 +648,78 @@ async function initializeAudio() {
                 
                 // Get current instrument (default to piano)
                 const currentInstrument = pianoState.instrument || 'piano';
+                const preset = Instrument.getPreset(currentInstrument);
 
-                // Create instrument-specific envelope
+                // Create instrument-specific envelope (handles global effects like reverb/EQ)
                 pianoState.envelope = Instrument.createEnvelope(currentInstrument);
 
-                // Get instrument-specific sample URLs and base URL
-                const sampleUrls = Instrument.getSampleUrls(currentInstrument);
-                const baseUrl = Instrument.getBaseUrl(currentInstrument);
+                if (preset && preset.type === 'synth') {
+                    console.log(`Initializing synth instrument: ${currentInstrument}`);
+                    
+                    // Create PolySynth (allows playing chords)
+                    const polySynth = new Tone.PolySynth(preset.baseSynth);
+                    polySynth.set(preset.params);
+                    pianoState.sampler = polySynth;
 
-                // Create sampler with instrument-specific settings
-                pianoState.sampler = new Tone.Sampler({
-                    urls: sampleUrls,
-                    baseUrl: baseUrl,
-                    onload: () => console.log(`All ${currentInstrument} samples loaded successfully.`),
-                    onerror: (error) => console.error("Sample loading error:", error)
-                });
+                    // Create and chain preset-specific effects
+                    if (preset.effects && preset.effects.length > 0) {
+                        const effects = preset.effects.map(effectDef => {
+                            return new effectDef.type(effectDef.params);
+                        });
+                        
+                        // Chain: PolySynth -> Effect1 -> Effect2 -> EnvelopeControl Input
+                        // Note: Tone.PolySynth output is not directly chainable in all versions, 
+                        // but usually works as a Source.
+                        // We chain the effects, then connect the last effect to the envelope input.
+                        
+                        if (effects.length > 0) {
+                            // Connect synth to first effect
+                            polySynth.connect(effects[0]);
+                            
+                            // Chain effects to each other
+                            for (let i = 0; i < effects.length - 1; i++) {
+                                effects[i].connect(effects[i+1]);
+                            }
+                            
+                            // Connect last effect to envelope input
+                            effects[effects.length - 1].connect(pianoState.envelope.input);
+                        }
+                    } else {
+                        // Direct connection if no effects
+                        polySynth.connect(pianoState.envelope.input);
+                    }
+                    
+                    // Note: We don't bindSampler for Synths as they handle their own envelopes internally
+                    // and PolySynth structure is different from Sampler.
+                    
+                    console.log(`Synth ${currentInstrument} initialized and connected.`);
+                    
+                } else {
+                    // Sample-based instrument initialization
+                    
+                    // Get instrument-specific sample URLs and base URL
+                    const sampleUrls = Instrument.getSampleUrls(currentInstrument);
+                    const baseUrl = Instrument.getBaseUrl(currentInstrument);
 
-                // Bind sampler to envelope control for per-note parameter updates
-                pianoState.envelope.bindSampler(pianoState.sampler);
+                    // Create sampler with instrument-specific settings
+                    pianoState.sampler = new Tone.Sampler({
+                        urls: sampleUrls,
+                        baseUrl: baseUrl,
+                        onload: () => console.log(`All ${currentInstrument} samples loaded successfully.`),
+                        onerror: (error) => console.error("Sample loading error:", error)
+                    });
 
-                console.log('🔌 Sampler created. Checking if auto-connected to destination...');
-                console.log('🔌 Sampler output node:', pianoState.sampler.output);
+                    // Bind sampler to envelope control for per-note parameter updates
+                    pianoState.envelope.bindSampler(pianoState.sampler);
 
-                // Connect sampler -> envelope -> destination
-                const connected = pianoState.envelope.connect(pianoState.sampler);
-                console.log('🔌 Connection result:', connected);
+                    console.log('🔌 Sampler created. Checking if auto-connected to destination...');
+                    console.log('🔌 Sampler output node:', pianoState.sampler.output);
+
+                    // Connect sampler -> envelope -> destination
+                    const connected = pianoState.envelope.connect(pianoState.sampler);
+                    console.log('🔌 Connection result:', connected);
+                }
+                
                 console.log('🔌 Envelope output should go to destination');
                 console.log('📊 Current envelope settings:', pianoState.envelope.getSettings());
 

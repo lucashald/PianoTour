@@ -114,14 +114,14 @@ export class EnvelopeControl {
     }
 
     createCompression() {
-        this.effects.compressor = new Tone.Compressor({
+        this.effects.compression = new Tone.Compressor({
             threshold: this.effectsConfig.compression.threshold,
             ratio: this.effectsConfig.compression.ratio,
             attack: this.effectsConfig.compression.attack,
             release: this.effectsConfig.compression.release
         });
         if (this.effectsConfig.compression.enabled) {
-            this.effectsChain.push(this.effects.compressor);
+            this.effectsChain.push(this.effects.compression);
         }
     }
 
@@ -212,19 +212,29 @@ export class EnvelopeControl {
             // Get the actual Tone.js parameter name
             const toneParam = parameterMap[parameter] || parameter;
             
+            // Special handling for roomSize -> decay conversion
+            let effectValue = value;
+            if (parameter === 'roomSize') {
+                // Convert roomSize (0-1) to decay time (0-10 seconds)
+                effectValue = value * 10;
+                console.log(`Converting roomSize ${value} to decay ${effectValue}`);
+            }
+
             if (effect[toneParam] !== undefined) {
-                // Special handling for roomSize -> decay conversion
-                let effectValue = value;
-                if (parameter === 'roomSize') {
-                    // Convert roomSize (0-1) to decay time (0-10 seconds)
-                    effectValue = value * 10;
-                    console.log(`Converting roomSize ${value} to decay ${effectValue}`);
-                }
-                
-                // Check if it's an AudioParam (has .value property)
-                if (effect[toneParam] && typeof effect[toneParam] === 'object' && 'value' in effect[toneParam]) {
-                    effect[toneParam].value = effectValue;
-                    console.log(`${effectName} ${toneParam}.value set to ${effectValue}`);
+                // Check if it's an AudioParam (has .value property) - simplified check
+                if (effect[toneParam] && effect[toneParam].value !== undefined) {
+                    try {
+                        // Use rampTo to smooth transition if available, otherwise set value
+                        if (effect[toneParam].rampTo) {
+                            effect[toneParam].rampTo(effectValue, 0.1);
+                        } else {
+                            effect[toneParam].value = effectValue;
+                        }
+                        console.log(`${effectName} ${toneParam}.value set to ${effectValue}`);
+                    } catch (e) {
+                        // Fallback
+                        effect[toneParam].value = effectValue;
+                    }
                 } else {
                     // Direct property assignment
                     effect[toneParam] = effectValue;
