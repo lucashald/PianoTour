@@ -8,6 +8,7 @@ examples/
 static/js/spessa/
 scripts/
 docs/
+guitar/
 
 # Files to ignore
 settings.js

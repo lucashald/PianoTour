@@ -578,13 +578,16 @@ class AudioSettingsController {
                 polySynth.set(preset.params);
                 pianoState.sampler = polySynth;
 
+                // Bind PolySynth to envelope control using bindSynth
+                pianoState.envelope.bindSynth(pianoState.sampler);
+
                 // Create and chain preset-specific effects
                 let sourceNode = polySynth;
                 if (preset.effects && preset.effects.length > 0) {
                     const effects = preset.effects.map(effectDef => {
                         return new effectDef.type(effectDef.params);
                     });
-                    
+
                     if (effects.length > 0) {
                         polySynth.connect(effects[0]);
                         for (let i = 0; i < effects.length - 1; i++) {
@@ -593,19 +596,19 @@ class AudioSettingsController {
                         sourceNode = effects[effects.length - 1];
                     }
                 }
-                
+
                 // Connect source (synth or last effect) to envelope input
                 pianoState.envelope.connect(sourceNode);
 
                 // Synth setup complete immediately
                 console.log(`${instrumentName} synth initialized`);
-                
+
                 if (pianoState.envelope) {
                     connectSpectrumToAudio(pianoState.envelope.getFinalOutput());
                 }
-                
+
                 this.loadSavedSettings();
-                
+
                 setTimeout(() => {
                     if (oldEnvelope) oldEnvelope.dispose();
                     if (oldSampler) oldSampler.dispose();
@@ -621,9 +624,13 @@ class AudioSettingsController {
                     baseUrl: baseUrl,
                     onload: () => {
                         console.log(`${instrumentName} samples loaded successfully`);
+
+                        // Bind sampler to envelope control
+                        pianoState.envelope.bindSampler(pianoState.sampler);
+
                         // Connect new sampler to new envelope
                         pianoState.envelope.connect(pianoState.sampler);
-                        
+
                         // Reconnect spectrum to envelope output (post-effects)
                         if (pianoState.envelope) {
                             connectSpectrumToAudio(pianoState.envelope.getFinalOutput());

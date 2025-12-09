@@ -655,32 +655,35 @@ async function initializeAudio() {
 
                 if (preset && preset.type === 'synth') {
                     console.log(`Initializing synth instrument: ${currentInstrument}`);
-                    
+
                     // Create PolySynth (allows playing chords)
                     const polySynth = new Tone.PolySynth(preset.baseSynth);
                     polySynth.set(preset.params);
                     pianoState.sampler = polySynth;
+
+                    // Bind PolySynth to envelope control using bindSynth
+                    pianoState.envelope.bindSynth(pianoState.sampler);
 
                     // Create and chain preset-specific effects
                     if (preset.effects && preset.effects.length > 0) {
                         const effects = preset.effects.map(effectDef => {
                             return new effectDef.type(effectDef.params);
                         });
-                        
+
                         // Chain: PolySynth -> Effect1 -> Effect2 -> EnvelopeControl Input
-                        // Note: Tone.PolySynth output is not directly chainable in all versions, 
+                        // Note: Tone.PolySynth output is not directly chainable in all versions,
                         // but usually works as a Source.
                         // We chain the effects, then connect the last effect to the envelope input.
-                        
+
                         if (effects.length > 0) {
                             // Connect synth to first effect
                             polySynth.connect(effects[0]);
-                            
+
                             // Chain effects to each other
                             for (let i = 0; i < effects.length - 1; i++) {
                                 effects[i].connect(effects[i+1]);
                             }
-                            
+
                             // Connect last effect to envelope input
                             effects[effects.length - 1].connect(pianoState.envelope.input);
                         }
@@ -688,12 +691,9 @@ async function initializeAudio() {
                         // Direct connection if no effects
                         polySynth.connect(pianoState.envelope.input);
                     }
-                    
-                    // Note: We don't bindSampler for Synths as they handle their own envelopes internally
-                    // and PolySynth structure is different from Sampler.
-                    
+
                     console.log(`Synth ${currentInstrument} initialized and connected.`);
-                    
+
                 } else {
                     // Sample-based instrument initialization
                     

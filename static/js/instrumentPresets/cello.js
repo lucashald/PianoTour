@@ -5,7 +5,7 @@ const Tone = window.Tone;
 export default {
   name: 'Cello Synth',
   type: 'synth',
-  baseSynth: Tone ? Tone.FMSynth : null,
+  baseSynth: Tone ? Tone.FMSynth : 'FMSynth',
   params: {
     harmonicity: 3.01,
     modulationIndex: 14,

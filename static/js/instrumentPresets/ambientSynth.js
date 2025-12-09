@@ -5,7 +5,7 @@ const Tone = window.Tone;
 export default {
   name: 'Ambient Synth',
   type: 'synth',
-  baseSynth: Tone ? Tone.DuoSynth : null,
+  baseSynth: Tone ? Tone.DuoSynth : 'DuoSynth',
   params: {
     vibratoAmount: 0,
     harmonicity: 1,

@@ -17,10 +17,11 @@ export class EnvelopeControl {
         };
 
         this.input = null; // Replaces this.envelope as the entry point
-        this.sampler = null; // Reference to the sampler for direct control
+        this.sampler = null; // Reference to the sampler (Tone.Sampler) for direct control
+        this.synth = null; // Reference to the synth (Tone.PolySynth, etc.) for set/get control
         this.isConnected = false;
         this.connectedNodes = new Set();
-        
+
         this.init();
     }
     
@@ -34,23 +35,93 @@ export class EnvelopeControl {
         });
     }
     
-    // Bind the sampler to this control to enable per-note envelope updates
+    // Bind a Tone.Sampler to this control to enable per-note envelope updates
     bindSampler(sampler) {
         this.sampler = sampler;
+        this.synth = null; // Clear synth if binding a sampler
         // Apply initial settings
         this.updateSamplerSettings();
-        console.log('Sampler bound to EnvelopeControl');
+    }
+
+    // Bind a Tone.Synth/PolySynth to this control to enable per-note envelope updates
+    bindSynth(synth) {
+        this.synth = synth;
+        this.sampler = null; // Clear sampler if binding a synth
+        // Apply initial settings
+        this.updateSynthSettings();
     }
 
     updateSamplerSettings() {
-        if (this.sampler) {
-            // Tone.Sampler only supports Attack and Release curves for now
-            // We map our ADSR values to the sampler's properties
-            if (this.sampler.attack !== undefined) this.sampler.attack = this.attack;
-            if (this.sampler.release !== undefined) this.sampler.release = this.release;
-            
-            // Note: Decay and Sustain are not directly supported by standard Tone.Sampler
-            // but we keep the values for UI consistency or future custom implementation
+        if (!this.sampler) return;
+
+        // Tone.Sampler only supports Attack and Release via direct properties
+        if (this.sampler.attack !== undefined) {
+            this.sampler.attack = this.attack;
+        }
+        if (this.sampler.release !== undefined) {
+            this.sampler.release = this.release;
+        }
+    }
+
+    updateSynthSettings() {
+        if (!this.synth) return;
+
+        // Use set() method for Synth/PolySynth instruments
+        if (typeof this.synth.set === 'function') {
+            this._updateSynthParams({
+                attack: this.attack,
+                decay: this.decay,
+                sustain: this.sustain,
+                release: this.release
+            });
+        }
+    }
+    
+    _updateSynthParam(param, value) {
+        this._updateSynthParams({ [param]: value });
+    }
+
+    _updateSynthParams(params) {
+        if (this.synth && typeof this.synth.set === 'function' && typeof this.synth.get === 'function') {
+            const current = this.synth.get();
+            const update = {};
+
+            this._findAndSetEnvelopes(current, update, params);
+
+            if (Object.keys(update).length > 0) {
+                this.synth.set(update);
+            }
+        }
+    }
+
+    _findAndSetEnvelopes(source, target, params) {
+        if (!source || typeof source !== 'object') return;
+
+        for (const key in source) {
+            const value = source[key];
+            if (key.toLowerCase().includes('envelope')) {
+                // Potential envelope object
+                const envelopeUpdate = {};
+                let hasUpdate = false;
+                for (const param in params) {
+                    // Check if property exists in source envelope object
+                    // Note: source[key] contains current values.
+                    if (value && typeof value === 'object' && param in value) {
+                        envelopeUpdate[param] = params[param];
+                        hasUpdate = true;
+                    }
+                }
+                if (hasUpdate) {
+                    target[key] = envelopeUpdate;
+                }
+            } else if (value && typeof value === 'object') {
+                // Recurse
+                const subTarget = {};
+                this._findAndSetEnvelopes(value, subTarget, params);
+                if (Object.keys(subTarget).length > 0) {
+                    target[key] = subTarget;
+                }
+            }
         }
     }
     
@@ -268,23 +339,41 @@ export class EnvelopeControl {
     // Update envelope parameters
     setAttack(value) {
         this.attack = value;
+        // Update synth if bound
+        if (this.synth) {
+            this._updateSynthParam('attack', value);
+        }
+        // Update sampler if bound (Tone.Sampler supports attack)
         if (this.sampler && this.sampler.attack !== undefined) {
             this.sampler.attack = value;
         }
     }
-    
+
     setDecay(value) {
         this.decay = value;
-        // Sampler doesn't support decay natively, stored for future use
+        // Update synth if bound
+        if (this.synth) {
+            this._updateSynthParam('decay', value);
+        }
+        // Sampler doesn't support decay
     }
-    
+
     setSustain(value) {
         this.sustain = value;
-        // Sampler doesn't support sustain level natively, stored for future use
+        // Update synth if bound
+        if (this.synth) {
+            this._updateSynthParam('sustain', value);
+        }
+        // Sampler doesn't support sustain
     }
-    
+
     setRelease(value) {
         this.release = value;
+        // Update synth if bound
+        if (this.synth) {
+            this._updateSynthParam('release', value);
+        }
+        // Update sampler if bound (Tone.Sampler supports release)
         if (this.sampler && this.sampler.release !== undefined) {
             this.sampler.release = value;
         }
@@ -315,6 +404,7 @@ export class EnvelopeControl {
         this.connectedNodes.clear();
         this.isConnected = false;
         this.sampler = null;
+        this.synth = null;
     }
 
     // Cleanup for input and effects
