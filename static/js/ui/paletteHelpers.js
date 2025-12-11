@@ -3,7 +3,7 @@
 
 import { pianoState } from '../core/appState.js';
 import { setPaletteDragState } from '../score/scoreRenderer.js';
-import { writeNote } from '../score/scoreWriter.js';
+import { writeNote, updateNoteInMeasure } from '../score/scoreWriter.js';
 import { getChordByDegree } from '../core/note-data.js';
 import { triggerAttackRelease } from '../instrument/playbackHelpers.js';
 
@@ -36,10 +36,19 @@ function handlePaletteClick(event) {
         console.log(`Interval ${intervalType} selected - use drag mode for intervals`);
     } else if (type === 'note') {
         // Handle note duration click - this sets the duration for subsequent keyboard input
-        // Since we don't know what note to play, just update the quantize
+        // Update the quantize value
         pianoState.quantize = duration;
         updateQuantizeButtonDisplay(duration);
         console.log(`Note duration set to: ${duration}`);
+
+        // If a note is currently selected in the editor, update its duration
+        if (pianoState.currentSelectedNote) {
+            const { measureIndex, noteId } = pianoState.currentSelectedNote;
+            const success = updateNoteInMeasure(measureIndex, noteId, { duration: duration });
+            if (success) {
+                console.log(`Updated selected note duration to: ${duration}`);
+            }
+        }
     }
 }
 

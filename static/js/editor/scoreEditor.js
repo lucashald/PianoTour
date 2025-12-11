@@ -646,6 +646,12 @@ function renderNoteEditBox(smoothScroll = true) {
     highlightSelectedMeasure(editorSelectedMeasureIndex);
     if (selectedNote) {
         highlightSelectedNote(editorSelectedMeasureIndex, selectedNote.clef, selectedNote.id);
+        // Update pianoState with currently selected note info
+        pianoState.currentSelectedNote = {
+            measureIndex: editorSelectedMeasureIndex,
+            clef: selectedNote.clef,
+            noteId: selectedNote.id
+        };
     } else {
         clearSelectedNoteHighlight();
         pianoState.currentSelectedNote = null;
