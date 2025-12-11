@@ -1,4 +1,10 @@
 {
   "image": "mcr.microsoft.com/devcontainers/universal:latest",
-  "postCreateCommand": "curl -L https://fly.io/install.sh | sh && export FLYCTL_INSTALL=\"/home/codespace/.fly\" && export PATH=\"$FLYCTL_INSTALL/bin:$PATH\""
+  "forwardPorts": [4000],
+  "portsAttributes": {
+    "4000": {
+      "label": "Flask Server",
+      "onAutoForward": "notify"
+    }
+  }
 }

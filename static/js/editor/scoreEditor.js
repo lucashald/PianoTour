@@ -1054,11 +1054,13 @@ document.addEventListener('noteDropped', (event) => {
             // Add the chord to the measure
             const result = addNoteToMeasure(toMeasureIndex, chordNote, insertBeforeNoteId);
             if (result) {
-                editorSelectedMeasureIndex = result.measureIndex;
-                editorSelectedNoteId = result.noteId;
-                renderNoteEditBox(false);
+                // Dispatch event to automatically select and scroll to the new note
+                const event = new CustomEvent('noteAddedToScore', {
+                    detail: result
+                });
+                document.dispatchEvent(event);
             }
-            
+
             console.log(`Added ${chordDisplayName} chord to ${targetClef} clef:`, notesToUse);
             return;
             
@@ -1174,6 +1176,15 @@ document.addEventListener('noteDropped', (event) => {
         removeNoteFromMeasure(editorSelectedMeasureIndex, editorSelectedNoteId);
         editorSelectedNoteId = null;
         renderNoteEditBox(false);
+    });
+
+    // Listen for notes added from the palette and automatically select them
+    document.addEventListener('noteAddedToScore', (event) => {
+        const { noteId, measureIndex, clef } = event.detail;
+        if (noteId && measureIndex !== undefined && clef) {
+            // Automatically select the newly added note
+            handleEditorNoteSelectClick(measureIndex, clef, noteId);
+        }
     });
 
 }

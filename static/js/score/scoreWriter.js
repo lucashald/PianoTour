@@ -37,18 +37,26 @@ let isProcessingQueue = false;
 
 function processWriteQueue() {
     if (isProcessingQueue) return;
-    
+
     isProcessingQueue = true;
-    
+
     while (writeQueue.length > 0) {
         const noteData = writeQueue.shift();
         try {
-            writeNoteInternal(noteData);
+            const result = writeNoteInternal(noteData);
+
+            // Dispatch event with the note information if note was successfully added
+            if (result) {
+                const event = new CustomEvent('noteAddedToScore', {
+                    detail: result
+                });
+                document.dispatchEvent(event);
+            }
         } catch (error) {
             console.error('Error processing note write:', error);
         }
     }
-    
+
     isProcessingQueue = false;
 }
 
@@ -311,6 +319,8 @@ export function undoLastWrite() {
 
 export function writeNote(obj) {
     // Queue the write and process sequentially to prevent race conditions
+    // Note: Due to the queue processing, we cannot directly return the result
+    // The result will be available through the noteAddedToScore event
     writeQueue.push(obj);
     processWriteQueue();
 }
@@ -439,9 +449,13 @@ function writeNoteInternal(obj) {
             saveStateToHistory();
             updateNowPlayingDisplay(`${displayName} (tied)`);
             handleSideEffects();
-            
-            // Exit early - we've handled this note by splitting it
-            return;
+
+            // Return the second note info (the note in the new measure)
+            return {
+                noteId: secondNoteId,
+                measureIndex: currentIndex,
+                clef: clef
+            };
         }
     }
 
@@ -507,6 +521,13 @@ function writeNoteInternal(obj) {
     saveStateToHistory();
     updateNowPlayingDisplay(displayName);
     handleSideEffects();
+
+    // Return the note information
+    return {
+        noteId: newNoteId,
+        measureIndex: currentIndex,
+        clef: clef
+    };
 }
 // ===================================================================
 // Editor Functions

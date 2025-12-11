@@ -680,8 +680,15 @@ function handlePaletteDrop(endX, endY, event) {
         isRest: false,
         chordName: intervalChord.displayName
       };
-      
-      addNoteToMeasure(targetMeasureIndex, intervalNote);
+
+      const result = addNoteToMeasure(targetMeasureIndex, intervalNote);
+      if (result) {
+        // Dispatch event to automatically select and scroll to the new note
+        const event = new CustomEvent('noteAddedToScore', {
+          detail: result
+        });
+        document.dispatchEvent(event);
+      }
       return;
       
     } catch (error) {
@@ -720,9 +727,16 @@ function handlePaletteDrop(endX, endY, event) {
         isRest: false,
         chordName: chordDisplayName
       };
-      
+
       // Add the chord to the measure
-      addNoteToMeasure(targetMeasureIndex, chordNote);
+      const result = addNoteToMeasure(targetMeasureIndex, chordNote);
+      if (result) {
+        // Dispatch event to automatically select and scroll to the new note
+        const event = new CustomEvent('noteAddedToScore', {
+          detail: result
+        });
+        document.dispatchEvent(event);
+      }
       return;
       
     } catch (error) {
@@ -772,7 +786,14 @@ function handlePaletteDrop(endX, endY, event) {
   if (paletteDragType === "major" || paletteDragType === "minor") {
   }
 
-  addNoteToMeasure(targetMeasureIndex, newNote);
+  const result = addNoteToMeasure(targetMeasureIndex, newNote);
+  if (result) {
+    // Dispatch event to automatically select and scroll to the new note
+    const event = new CustomEvent('noteAddedToScore', {
+      detail: result
+    });
+    document.dispatchEvent(event);
+  }
 }
 
 function updateDragPreview(x, snapY, noteName) {

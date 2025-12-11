@@ -12,6 +12,7 @@ export const pianoState = {
     chordButtonMode: 0, // 0: Hidden, 1: Bass, 2: Treble
     keyBoardMode: 1, // 0: Basic, 1: Expanded
     showSettings: 0,
+    verboseLogs: true,
 
     isDragging: false,
     currentlyPlayingKeys: new Set(), // Track drag-playing keys
