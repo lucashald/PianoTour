@@ -1,0 +1,909 @@
+{
+  "keySignature": "C",
+  "tempo": 120,
+  "timeSignature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "instrument": "piano",
+  "midiChannel": 0,
+  "measures": [
+    [
+      {
+        "id": "m0-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 0,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "m0-treble-1",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "h",
+        "measure": 0,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp0-0-treble",
+        "name": "C5",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 0,
+        "isRest": false,
+        "chordName": "C5",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp1-0-treble",
+        "name": "A4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 0,
+        "isRest": false,
+        "chordName": "A4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      }
+    ],
+    [
+      {
+        "id": "m1-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 1,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp2-0-treble",
+        "name": "C5",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 1,
+        "isRest": false,
+        "chordName": "C5",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m1-treble-2",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 1,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp3-0-treble",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 1,
+        "isRest": false,
+        "chordName": "B4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m1-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 1,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m2-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 2,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp4-0-treble",
+        "name": "G#4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 2,
+        "isRest": false,
+        "chordName": "G#4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m2-treble-2",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 2,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp5-0-treble",
+        "name": "A4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 2,
+        "isRest": false,
+        "chordName": "A4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m2-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 2,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m3-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 3,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp6-0-treble",
+        "name": "G4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 3,
+        "isRest": false,
+        "chordName": "G4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp7-0-treble",
+        "name": "G4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 3,
+        "isRest": false,
+        "chordName": "G4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp8-0-treble",
+        "name": "G4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 3,
+        "isRest": false,
+        "chordName": "G4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m3-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 3,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m4-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 4,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp9-0-treble",
+        "name": "F#4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 4,
+        "isRest": false,
+        "chordName": "F#4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp10-0-treble",
+        "name": "F#4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 4,
+        "isRest": false,
+        "chordName": "F#4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp11-0-treble",
+        "name": "F#4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 4,
+        "isRest": false,
+        "chordName": "F#4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m4-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 4,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m5-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 5,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp12-0-treble",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 5,
+        "isRest": false,
+        "chordName": "F4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp13-0-treble",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 5,
+        "isRest": false,
+        "chordName": "F4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp14-0-treble",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 5,
+        "isRest": false,
+        "chordName": "F4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m5-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 5,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m6-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 6,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp15-0-treble",
+        "name": "E4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 6,
+        "isRest": false,
+        "chordName": "E4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp16-0-treble",
+        "name": "A4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 6,
+        "isRest": false,
+        "chordName": "A4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp17-0-treble",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 6,
+        "isRest": false,
+        "chordName": "F4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp18-0-treble",
+        "name": "A4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 6,
+        "isRest": false,
+        "chordName": "A4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      }
+    ],
+    [
+      {
+        "id": "m7-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 7,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp19-0-treble",
+        "name": "(C4 E4)",
+        "clef": "treble",
+        "duration": "h",
+        "measure": 7,
+        "isRest": false,
+        "chordName": "(C4 E4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m7-treble-2",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "h",
+        "measure": 7,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m8-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "h.",
+        "measure": 8,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "m8-treble-1",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "h",
+        "measure": 8,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp20-0-treble",
+        "name": "C4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 8,
+        "isRest": false,
+        "chordName": "C4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp21-0-bass",
+        "name": "A3",
+        "clef": "bass",
+        "duration": "q",
+        "measure": 8,
+        "isRest": false,
+        "chordName": "A3",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m8-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 8,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m9-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "h",
+        "measure": 9,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp22-0-treble",
+        "name": "C4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 9,
+        "isRest": false,
+        "chordName": "C4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m9-treble-2",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "h.",
+        "measure": 9,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp23-0-bass",
+        "name": "B3",
+        "clef": "bass",
+        "duration": "q",
+        "measure": 9,
+        "isRest": false,
+        "chordName": "B3",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m9-bass-4",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "q",
+        "measure": 9,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m10-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 10,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp24-0-treble",
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 10,
+        "isRest": false,
+        "chordName": "F4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m10-treble-2",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 10,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp25-0-treble",
+        "name": "E4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 10,
+        "isRest": false,
+        "chordName": "E4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m10-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 10,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m11-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 11,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp26-0-treble",
+        "name": "(A4 C5)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 11,
+        "isRest": false,
+        "chordName": "(A4 C5)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp27-0-treble",
+        "name": "(A4 C5)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 11,
+        "isRest": false,
+        "chordName": "(A4 C5)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp28-0-treble",
+        "name": "(A4 C5)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 11,
+        "isRest": false,
+        "chordName": "(A4 C5)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m11-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 11,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m12-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 12,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp29-0-treble",
+        "name": "(G4 B4)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 12,
+        "isRest": false,
+        "chordName": "(G4 B4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp30-0-treble",
+        "name": "(G4 B4)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 12,
+        "isRest": false,
+        "chordName": "(G4 B4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp31-0-treble",
+        "name": "(G4 B4)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 12,
+        "isRest": false,
+        "chordName": "(G4 B4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m12-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 12,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m13-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 13,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp32-0-treble",
+        "name": "(F#4 A4)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 13,
+        "isRest": false,
+        "chordName": "(F#4 A4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp33-0-treble",
+        "name": "(F#4 A4)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 13,
+        "isRest": false,
+        "chordName": "(F#4 A4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp34-0-treble",
+        "name": "(F#4 A4)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 13,
+        "isRest": false,
+        "chordName": "(F#4 A4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m13-treble-4",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 13,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ],
+    [
+      {
+        "id": "m14-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 14,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp35-0-treble",
+        "name": "(E4 G#4)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 14,
+        "isRest": false,
+        "chordName": "(E4 G#4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp36-0-treble",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 14,
+        "isRest": false,
+        "chordName": "B4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp37-0-treble",
+        "name": "(F4 A4)",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 14,
+        "isRest": false,
+        "chordName": "(F4 A4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "grp38-0-treble",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "measure": 14,
+        "isRest": false,
+        "chordName": "B4",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      }
+    ],
+    [
+      {
+        "id": "m15-bass-0",
+        "name": "D3",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 15,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      },
+      {
+        "id": "grp39-0-treble",
+        "name": "(E4 G#4)",
+        "clef": "treble",
+        "duration": "h",
+        "measure": 15,
+        "isRest": false,
+        "chordName": "(E4 G#4)",
+        "midiNumber": null,
+        "stemDirection": null,
+        "velocity": 80
+      },
+      {
+        "id": "m15-treble-2",
+        "name": "B4",
+        "clef": "treble",
+        "duration": "h",
+        "measure": 15,
+        "isRest": true,
+        "chordName": "Rest",
+        "midiNumber": null,
+        "stemDirection": null
+      }
+    ]
+  ]
+}

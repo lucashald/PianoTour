@@ -604,6 +604,9 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
         }
     }
 
+    // Ensure the note's measure property is correctly set to the final measure
+    noteData.measure = finalMeasureIndex;
+
     // Save history and handle side effects
     saveStateToHistory();
     drawAll(measuresData, true);

@@ -774,12 +774,12 @@ function handlePaletteDrop(endX, endY, event) {
   }
 
   // Create the new note object
+  // Note: measure property will be set by addNoteToMeasure()
   const newNote = {
     name: newNoteName,
     clef: clef,
     duration: pianoState.quantize,
     isRest: isRest,
-    measure: targetMeasureIndex,
     id: Date.now().toString(),
   };
 
