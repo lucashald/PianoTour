@@ -8,7 +8,7 @@ import { pianoState } from "../core/appState.js";
 import { NOTES_BY_NAME, identifyChordStrict, transposeNote } from '../core/note-data.js';
 import { updateNowPlayingDisplay } from '../ui/uiHelpers.js';
 import { saveToLocalStorage } from '../utils/ioHelpers.js';
-import { drawAll } from './scoreRenderer.js';
+import { drawAll, scrollToMeasure } from './scoreRenderer.js';
 import { humanizeNote, humanizeDuration } from '../utils/velocityHumanizer.js';
 // ===================================================================
 // Constants
@@ -921,6 +921,8 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
         saveStateToHistory();
         drawAll(measuresData, true);
         saveToLocalStorage();
+        // Scroll to the updated note so user can see the change
+        scrollToMeasure(measureIndex, true);
     }
 
     return success;
