@@ -348,14 +348,24 @@ export function drawAll(measures, noScroll = false) {
 
       vexflowNoteMap[i] = { treble: [], bass: [] };
 
+      // Helper function to get VexFlow-compatible duration (removes dots from rests)
+      const getVexFlowDuration = (note) => {
+        // VexFlow doesn't support dotted rests, so convert them to non-dotted equivalents
+        if (note.isRest && note.duration.includes('.')) {
+          // Remove the dot for rests - VexFlow will render them as non-dotted
+          return note.duration.replace('.', '');
+        }
+        return note.duration;
+      };
+
       const trebleSpec = trebleNotesData.length
         ? trebleNotesData
-            .map((n) => `${n.name}/${n.duration}${n.isRest ? "/r" : ""}`)
+            .map((n) => `${n.name}/${getVexFlowDuration(n)}${n.isRest ? "/r" : ""}`)
             .join(", ")
         : "B4/1/r";
       const bassSpec = bassNotesData.length
         ? bassNotesData
-            .map((n) => `${n.name}/${n.duration}${n.isRest ? "/r" : ""}`)
+            .map((n) => `${n.name}/${getVexFlowDuration(n)}${n.isRest ? "/r" : ""}`)
             .join(", ")
         : "D3/1/r";
 

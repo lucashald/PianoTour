@@ -1,0 +1,3 @@
+Dotted rests currently render the same as their non-dotted version. The dotted duration (h. = 3 beats) is still stored in the data model and will be used for playback timing. We only strip the dot when creating the VexFlow visual spec, so the rest will render as a regular half rest visually, but will still play with the correct 3-beat duration during playback.
+
+So the timing is correct, just the visual appearance of the rest won't show the dot.
