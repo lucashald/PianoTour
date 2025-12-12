@@ -24,6 +24,7 @@ import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTime
 
 let editorSelectedNoteId = null; // ID of the currently selected note
 let editorSelectedMeasureIndex = 0;
+let editorSelectedClef = 'treble';
 let slurMode = false; // Track if we're in slur creation mode
 let slurStartNoteId = null; // Track the first note for slur creation
 
@@ -279,6 +280,64 @@ function handleAddAutoSlur() {
         }
     } else {
         console.log('No suitable note found to slur to');
+    }
+}
+
+/**
+ * Handles duplicating the currently selected note/chord
+ */
+function handleDuplicateNote() {
+    if (!editorSelectedNoteId) {
+        console.warn('No note selected for duplication');
+        return;
+    }
+
+    const measures = getMeasures();
+    const currentMeasure = measures[editorSelectedMeasureIndex];
+    if (!currentMeasure) return;
+
+    const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
+    if (!selectedNote) {
+        console.warn('Selected note not found');
+        return;
+    }
+
+    // Find the note that comes after the selected note in the same clef
+    const currentNoteIndex = currentMeasure.findIndex(note => note.id === editorSelectedNoteId);
+    let insertBeforeNoteId = null;
+
+    // Look for the next note in the same clef
+    for (let i = currentNoteIndex + 1; i < currentMeasure.length; i++) {
+        if (currentMeasure[i].clef === selectedNote.clef) {
+            insertBeforeNoteId = currentMeasure[i].id;
+            break;
+        }
+    }
+
+    // Create a copy of the note with all its properties
+    const duplicatedNote = {
+        name: selectedNote.name,
+        clef: selectedNote.clef,
+        duration: selectedNote.duration,
+        isRest: selectedNote.isRest,
+        performedDuration: selectedNote.performedDuration,
+        velocity: selectedNote.velocity
+    };
+
+    // Preserve chordName if it exists
+    if (selectedNote.chordName) {
+        duplicatedNote.chordName = selectedNote.chordName;
+    }
+
+    // Add the duplicated note
+    const result = addNoteToMeasure(editorSelectedMeasureIndex, duplicatedNote, insertBeforeNoteId);
+
+    if (result) {
+        console.log(`Note duplicated: ${result.noteId}`);
+        // Automatically select the newly duplicated note
+        handleEditorNoteSelectClick(result.measureIndex, result.clef, result.noteId);
+    } else {
+        console.warn('Failed to duplicate note');
     }
 }
 
@@ -779,6 +838,41 @@ function removeNoteFromChordUI(noteIndexToRemove) {
 }
 
 // ===================================================================
+// Clef Selection (for palette)
+// ===================================================================
+
+/**
+ * Get the currently selected clef for palette operations
+ * @returns {string} - 'treble' or 'bass'
+ */
+export function getSelectedClef() {
+    return editorSelectedClef;
+}
+
+/**
+ * Set the selected clef for palette operations
+ * @param {string} clef - 'treble' or 'bass'
+ */
+export function setSelectedClef(clef) {
+    if (clef === 'treble' || clef === 'bass') {
+        editorSelectedClef = clef;
+        console.log(`Selected clef set to: ${clef}`);
+    } else {
+        console.warn(`Invalid clef: ${clef}`);
+    }
+}
+
+/**
+ * Toggle between treble and bass clef
+ * @returns {string} - The new clef value
+ */
+export function toggleSelectedClef() {
+    editorSelectedClef = editorSelectedClef === 'treble' ? 'bass' : 'treble';
+    console.log(`Toggled to: ${editorSelectedClef}`);
+    return editorSelectedClef;
+}
+
+// ===================================================================
 // Initialization Function (Exported)
 // ===================================================================
 
@@ -891,7 +985,9 @@ if (target.id === 'editorToggleRest') {
         if (target.id === 'editorCancelSlur') {
             cancelSlurMode();
         }
-
+        if (target.id === 'editorDuplicateNote') {
+            handleDuplicateNote();
+        }
         if (target.id === 'addNoteToChordBtn') addNoteToChordUI();
         if (target.classList.contains('remove-chord-note-btn')) {
             const noteIndex = parseInt(target.dataset.noteIndex, 10);

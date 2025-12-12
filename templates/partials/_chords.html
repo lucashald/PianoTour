@@ -231,97 +231,31 @@
                 this.selectedChordObj = chordObj;
                 return;
             }
-            
+
             this.selectedChordObj = chordObj;
-            
-            // Create new chord button
+
+            // Create new chord button - minimal setup, event handlers added by setupPaletteInteractions
             const newChordBtn = document.createElement('div');
             newChordBtn.className = 'palette-note palette-note-primary custom-chord-btn';
             newChordBtn.dataset.type = 'chord';
             newChordBtn.dataset.chordName = chordName;
-            
-            // Check current drag mode state
-            const useDragMode = typeof pianoState !== 'undefined' ? pianoState.togglePaletteDragMode : true;
-            newChordBtn.draggable = useDragMode;
-            if (!useDragMode) {
-                newChordBtn.classList.add('palette-click-mode');
-            }
-            
+
             newChordBtn.innerHTML = `
                 <span class="chord-symbol">${chordName}</span>
                 <button class="remove-chord-btn" title="Remove chord">&times;</button>
             `;
-            
-            // Store chord object reference
+
+            // Store chord object reference - this will be preserved by setupPaletteInteractions
             newChordBtn._chordObj = chordObj;
-            
-            // Add remove button handler
-            const removeBtn = newChordBtn.querySelector('.remove-chord-btn');
-            removeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.removeChordFromPalette(chordName, newChordBtn);
-            });
-            
-            // Add click handler for selection (and click mode play/write)
-            newChordBtn.addEventListener('click', (e) => {
-                if (e.target.classList.contains('remove-chord-btn')) return;
-                this.selectedChordObj = chordObj;
-                this.input.value = chordName;
-                
-                // In click mode, also play and write the chord
-                if (!pianoState.togglePaletteDragMode) {
-                    // Visual feedback
-                    newChordBtn.classList.add('palette-note-selected');
-                    setTimeout(() => {
-                        newChordBtn.classList.remove('palette-note-selected');
-                    }, 200);
-                    
-                    // Play and write chord
-                    const notesToUse = chordObj.treble?.length > 0 ? chordObj.treble : chordObj.bass;
-                    if (notesToUse && notesToUse.length > 0) {
-                        if (typeof window.triggerAttackRelease === 'function') {
-                            window.triggerAttackRelease(
-                                notesToUse,
-                                pianoState.quantize,
-                                pianoState.velocity,
-                                true,  // writeToScore
-                                chordObj.displayName
-                            );
-                        }
-                    }
-                }
-            });
-            newChordBtn._clickModeHandlerAdded = true;
-            
-            // Add dragstart handler - check mode to allow or prevent dragging
-            newChordBtn.addEventListener('dragstart', (e) => {
-                // Prevent dragging in click mode
-                if (!pianoState.togglePaletteDragMode) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
-                e.dataTransfer.setData('text/plain', chordName);
-                e.dataTransfer.setData('application/chord', JSON.stringify({
-                    type: 'custom-chord',
-                    chord: chordObj,
-                    displayName: chordName
-                }));
-            });
-            
-            // Also add mousedown handler to prevent drag initiation in click mode
-            newChordBtn.addEventListener('mousedown', (e) => {
-                if (!pianoState.togglePaletteDragMode) {
-                    // In click mode, prevent the default drag behavior
-                    e.target.draggable = false;
-                } else {
-                    e.target.draggable = true;
-                }
-            });
-            
+
             // Add to palette
             this.customChordPalette.appendChild(newChordBtn);
             this.addedChords.set(chordName, { element: newChordBtn, chordObj: chordObj });
+
+            // Trigger setupPaletteInteractions to add the proper event handlers
+            if (typeof window.setupPaletteInteractions === 'function') {
+                window.setupPaletteInteractions(pianoState.togglePaletteDragMode);
+            }
         }
         
         removeChordFromPalette(chordName, element) {
@@ -451,31 +385,12 @@
             this.bindChordPaletteEvents();
         }
 
-        // Update the chord palette JavaScript in your HTML
+        // Note: This only handles updating the autocomplete selection, not playing/writing chords
+        // The actual chord play/write behavior is handled by paletteHelpers.js
 bindChordPaletteEvents() {
-    const chordPaletteItems = document.querySelectorAll('.chord-palette .palette-note[data-degree]');
-    
-    chordPaletteItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            const degree = parseInt(e.currentTarget.dataset.degree);
-            const chordObj = getChordByDegree(degree);
-            this.selectChord(chordObj.displayName, chordObj);
-        });
-
-        item.addEventListener('dragstart', (e) => {
-            const degree = parseInt(e.currentTarget.dataset.degree);
-            const chordObj = getChordByDegree(degree);
-            
-            // Store the full chord data for drag and drop
-            e.dataTransfer.setData('text/plain', chordObj.displayName);
-            e.dataTransfer.setData('application/chord', JSON.stringify({
-                type: 'diatonic-chord',
-                chord: chordObj,
-                degree: degree,
-                displayName: chordObj.displayName
-            }));
-        });
-    });
+    // Diatonic chord event handling is now done by paletteHelpers.js
+    // which handles both autocomplete updates AND play/write with proper clef selection
+    // This function is kept as a no-op to avoid breaking existing code
 }
 
 

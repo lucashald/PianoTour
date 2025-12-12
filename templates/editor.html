@@ -185,6 +185,9 @@
     <button id="editorRemoveTie" class="btn btn--compact btn--warning">Remove Tie/Slur</button>
     <button id="editorCancelSlur" class="btn btn--compact btn--danger" style="display: none;">Cancel Slur</button>
   </div>
+  <div class="button-group">
+    <button id="editorDuplicateNote" class="btn btn--compact btn--warning">Duplicate Note</button>
+  </div>
   </div>
   </div>
 
@@ -200,7 +203,7 @@
         <button id="editorAddMeasureAfter" class="btn btn--compact btn--primary" title="Add a new empty measure after this one">Add After</button>
       </div>
       <div class="button-group">
-        <button id="editorDuplicateMeasure" class="btn btn--compact btn--secondary" title="Duplicate this measure">Duplicate</button>
+        <button id="editorDuplicateMeasure" class="btn btn--compact btn--secondary" title="Duplicate this measure">Duplicate Measure</button>
         <button id="editorDeleteMeasure" class="btn btn--compact btn--danger" title="Delete this measure">Delete</button>
       </div>
     </div>
@@ -276,11 +279,12 @@
             
             // Import editor modules
 const { initializeMusicEditor } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
-const { initializePaletteInteractions } = await import('{{ url_for("static", filename="js/ui/paletteHelpers.js") }}');
+const { initializePaletteInteractions, setupPaletteInteractions } = await import('{{ url_for("static", filename="js/ui/paletteHelpers.js") }}');
 const { triggerAttackRelease } = await import('{{ url_for("static", filename="js/instrument/playbackHelpers.js") }}');
 
-// Expose triggerAttackRelease globally for inline scripts (like custom chord palette)
+// Expose functions globally for inline scripts (like custom chord palette)
 window.triggerAttackRelease = triggerAttackRelease;
+window.setupPaletteInteractions = setupPaletteInteractions;
             
             // Initialize the editor
             initializeMusicEditor();

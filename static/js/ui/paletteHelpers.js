@@ -6,6 +6,7 @@ import { setPaletteDragState } from '../score/scoreRenderer.js';
 import { writeNote, updateNoteInMeasure } from '../score/scoreWriter.js';
 import { getChordByDegree } from '../core/note-data.js';
 import { triggerAttackRelease } from '../instrument/playbackHelpers.js';
+import { getSelectedClef, toggleSelectedClef } from '../editor/scoreEditor.js';
 
 /**
  * Handle palette item click in click mode (non-drag mode)
@@ -56,11 +57,11 @@ function handlePaletteClick(event) {
  * Handle rest palette item click - writes a rest to the score
  */
 function handleRestClick(duration) {
-    // Default to treble clef for click-to-write rests
-    // Use B4 for treble (standard rest position for VexFlow)
-    const clef = 'treble';
-    const restPosition = 'B4';
-    
+    // Use the currently selected clef from the editor
+    const clef = getSelectedClef();
+    // Use B4 for treble, D3 for bass (standard rest positions for VexFlow)
+    const restPosition = clef === 'treble' ? 'B4' : 'D3';
+
     writeNote({
         clef: clef,
         duration: duration,
@@ -68,7 +69,7 @@ function handleRestClick(duration) {
         chordName: "Rest",
         isRest: true
     });
-    
+
     console.log(`Rest written: duration=${duration}, clef=${clef}`);
 }
 
@@ -77,7 +78,7 @@ function handleRestClick(duration) {
  */
 function handleChordClick(item, degree, duration) {
     let chordObj = null;
-    
+
     if (degree) {
         // Diatonic chord (I, ii, iii, IV, V, vi, vii°)
         chordObj = getChordByDegree(parseInt(degree), pianoState.keySignature);
@@ -94,21 +95,32 @@ function handleChordClick(item, degree, duration) {
             chordObj = chordData.chordObj;
         }
     }
-    
+
     if (!chordObj) {
         console.warn('No chord object found for click');
         return;
     }
-    
-    // Determine which clef to use based on the chord's note range
-    // Use treble if treble notes exist, otherwise bass
-    const notesToUse = chordObj.treble?.length > 0 ? chordObj.treble : chordObj.bass;
-    
+
+    // Use the currently selected clef to determine which voicing to use
+    const selectedClef = getSelectedClef();
+
+    // Debug logging
+    console.log('Chord object:', chordObj);
+    console.log('Selected clef:', selectedClef);
+    console.log('Treble notes:', chordObj.treble);
+    console.log('Bass notes:', chordObj.bass);
+
+    const notesToUse = selectedClef === 'bass' && chordObj.bass?.length > 0
+        ? chordObj.bass
+        : chordObj.treble;
+
+    console.log('Notes to use:', notesToUse);
+
     if (!notesToUse || notesToUse.length === 0) {
-        console.warn('No notes found in chord object');
+        console.warn('No notes found in chord object for selected clef');
         return;
     }
-    
+
     // Play and write the chord using triggerAttackRelease
     // writeToScore=true will handle writing to the score
     triggerAttackRelease(
@@ -118,8 +130,35 @@ function handleChordClick(item, degree, duration) {
         true,  // writeToScore
         chordObj.displayName
     );
-    
-    console.log(`Chord played and written: ${chordObj.displayName}, notes=${notesToUse.join(' ')}, duration=${duration}`);
+
+    console.log(`Chord played and written: ${chordObj.displayName}, clef=${selectedClef}, notes=${notesToUse.join(' ')}, duration=${duration}`);
+}
+
+/**
+ * Handle clef toggle button click - toggles between treble and bass clef
+ */
+function handleClefToggle() {
+    const newClef = toggleSelectedClef();
+    updateClefToggleDisplay(newClef);
+}
+
+/**
+ * Update the clef toggle button display
+ */
+function updateClefToggleDisplay(clef) {
+    const toggleBtn = document.getElementById('paletteToggleClef');
+    if (!toggleBtn) return;
+
+    const img = toggleBtn.querySelector('img');
+    const label = toggleBtn.querySelector('.note-duration');
+
+    if (clef === 'treble') {
+        if (img) img.src = '/static/images/generatedsvg/clef-treble-cropped.svg';
+        if (label) label.textContent = 'Treble Clef';
+    } else {
+        if (img) img.src = '/static/images/generatedsvg/clef-bass-cropped.svg';
+        if (label) label.textContent = 'Bass Clef';
+    }
 }
 
 /**
@@ -154,34 +193,74 @@ function updateQuantizeButtonDisplay(duration) {
 }
 
 /**
- * Update custom chord button mode without cloning (preserves event handlers)
+ * Setup custom chord button with proper event handlers
  * @param {HTMLElement} btn - The custom chord button element
  * @param {boolean} useDragMode - Whether to use drag mode
  */
-function updateCustomChordButtonMode(btn, useDragMode) {
-    if (useDragMode) {
-        btn.draggable = true;
-        btn.setAttribute('draggable', 'true');
-        btn.classList.remove('palette-click-mode');
-        // Remove the drag prevention handler if present
-        if (btn._preventDragHandler) {
-            btn.removeEventListener('dragstart', btn._preventDragHandler);
-            btn._preventDragHandler = null;
-        }
-    } else {
-        btn.draggable = false;
-        btn.setAttribute('draggable', 'false');
-        btn.classList.add('palette-click-mode');
-        // Add a handler to prevent dragging in click mode
-        if (!btn._preventDragHandler) {
-            btn._preventDragHandler = (e) => {
-                e.preventDefault();
-                return false;
-            };
-            btn.addEventListener('dragstart', btn._preventDragHandler);
+function setupCustomChordButton(btn, useDragMode) {
+    // Remove all existing click handlers by cloning (except the remove button)
+    const removeBtn = btn.querySelector('.remove-chord-btn');
+    const removeBtnClone = removeBtn ? removeBtn.cloneNode(true) : null;
+
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+
+    // Restore the remove button handler if it existed
+    if (removeBtnClone) {
+        const newRemoveBtn = newBtn.querySelector('.remove-chord-btn');
+        if (newRemoveBtn && window.chordAutocomplete) {
+            newRemoveBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const chordName = newBtn.dataset.chordName;
+                window.chordAutocomplete.removeChordFromPalette(chordName, newBtn);
+            });
         }
     }
-    // Note: Click handler is already added in addChordToPalette and handles both modes
+
+    if (useDragMode) {
+        // Drag mode
+        newBtn.draggable = true;
+        newBtn.setAttribute('draggable', 'true');
+        newBtn.classList.remove('palette-click-mode');
+
+        // Add dragstart handler
+        newBtn.addEventListener('dragstart', (e) => {
+            const chordName = e.currentTarget.dataset.chordName;
+            const chordObj = e.currentTarget._chordObj;
+
+            if (chordObj) {
+                e.dataTransfer.setData('text/plain', chordName);
+                e.dataTransfer.setData('application/chord', JSON.stringify({
+                    type: 'custom-chord',
+                    chord: chordObj,
+                    displayName: chordName
+                }));
+            }
+        });
+
+        // In drag mode, click selects the chord in the autocomplete
+        newBtn.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-chord-btn')) return;
+            if (window.chordAutocomplete) {
+                const chordObj = e.currentTarget._chordObj;
+                const chordName = e.currentTarget.dataset.chordName;
+                window.chordAutocomplete.selectedChordObj = chordObj;
+                window.chordAutocomplete.input.value = chordName;
+            }
+        });
+    } else {
+        // Click mode - use handlePaletteClick
+        newBtn.draggable = false;
+        newBtn.setAttribute('draggable', 'false');
+        newBtn.classList.add('palette-click-mode');
+
+        newBtn.addEventListener('click', handlePaletteClick);
+    }
+
+    // Preserve the chord object reference
+    newBtn._chordObj = btn._chordObj;
+
+    return newBtn;
 }
 
 /**
@@ -190,14 +269,28 @@ function updateCustomChordButtonMode(btn, useDragMode) {
  */
 export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteDragMode) {
     const paletteNotes = document.querySelectorAll('.palette-note');
-    
+
     paletteNotes.forEach(note => {
         const isCustomChordBtn = note.classList.contains('custom-chord-btn');
-        
-        // For custom chord buttons, don't clone - just update mode-specific properties
-        // Their event handlers are already set up in addChordToPalette
+        const isClefToggleBtn = note.id === 'paletteToggleClef';
+
+        // Handle clef toggle button separately - always clickable, never draggable
+        if (isClefToggleBtn) {
+            // Remove existing event listeners by cloning
+            const newNote = note.cloneNode(true);
+            note.parentNode.replaceChild(newNote, note);
+
+            newNote.setAttribute('draggable', 'false');
+            newNote.addEventListener('click', handleClefToggle);
+
+            // Initialize the display
+            updateClefToggleDisplay(getSelectedClef());
+            return;
+        }
+
+        // For custom chord buttons, setup with unified event handlers
         if (isCustomChordBtn) {
-            updateCustomChordButtonMode(note, useDragMode);
+            setupCustomChordButton(note, useDragMode);
             return;
         }
         
