@@ -52,6 +52,14 @@ let originalVexFlowNoteBBox = null; // Store the bounding box of the VexFlow not
 let isPaletteDrag = false;
 let paletteDragType = null;
 
+// Drag Preview Cache - prevents unnecessary DOM recreation
+let dragPreviewCache = {
+  isOnLine: null,
+  noteName: null,
+  duration: null,
+  imagePath: null
+};
+
 // Event Listener Internal State for Drag/Click Detection (used within enableScoreInteraction)
 let mouseDownInitialPos = null; // Stores {x, y} of the initial mousedown for drag/click differentiation
 let mouseDownNoteTarget = null; // Stores noteInfo if mousedown occurred on a note
@@ -593,7 +601,10 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
         const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
         const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
         const previewNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearest.note;
-        updateDragPreview(currentX, nearest.y, previewNoteName);
+        // Convert relative coordinates to absolute screen coordinates for fixed positioning
+        const absoluteX = event.clientX;
+        const absoluteY = rect.top + nearest.y;
+        updateDragPreview(absoluteX, absoluteY, previewNoteName);
       }
     }
   });
@@ -637,9 +648,61 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     resetDragState();
   });
 
-  // Palette drops
+  // Palette drops - dragover only for preventing default behavior
   scoreElement.addEventListener("dragover", (event) => {
     event.preventDefault();
+  });
+
+  // Use document-level mousemove for smooth 60fps drag preview updates
+  // This bypasses the sluggish dragover event which only fires every few hundred milliseconds
+  document.addEventListener("mousemove", (event) => {
+    if (!isPaletteDrag) return;
+
+    const rect = scoreElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Check if mouse is within the score area
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+      clearDragPreview();
+      clearMeasureHighlight();
+      return;
+    }
+
+    // Check if we're over a valid drop zone
+    const measureIndex = detectMeasureClick(x, y);
+
+    if (measureIndex !== -1) {
+      // Valid drop zone - show preview at exact position
+      const clef = detectClefRegion(y);
+      const nearest = findNearestStaffPosition(y, clef);
+      if (nearest) {
+        // Convert relative coordinates to absolute screen coordinates for fixed positioning
+        const absoluteX = event.clientX;
+        const absoluteY = rect.top + nearest.y;
+        updateDragPreview(absoluteX, absoluteY, nearest.note);
+        highlightSelectedMeasure(measureIndex);
+      }
+    } else {
+      // Invalid drop zone - check if we can snap
+      const snapped = findNearestValidMeasure(x, y);
+      if (snapped) {
+        // Show preview at snapped position
+        const clef = detectClefRegion(snapped.snappedY);
+        const nearest = findNearestStaffPosition(snapped.snappedY, clef);
+        if (nearest) {
+          // Convert relative coordinates to absolute screen coordinates for fixed positioning
+          const absoluteX = rect.left + snapped.snappedX;
+          const absoluteY = rect.top + nearest.y;
+          updateDragPreview(absoluteX, absoluteY, nearest.note);
+          highlightSelectedMeasure(snapped.measureIndex);
+        }
+      } else {
+        // Too far from any valid position - clear preview
+        clearDragPreview();
+        clearMeasureHighlight();
+      }
+    }
   });
 
   scoreElement.addEventListener("drop", (event) => {
@@ -663,14 +726,24 @@ function handlePaletteDrop(endX, endY, event) {
     console.log('Processing interval drop...');
     try {
       const parsedIntervalData = JSON.parse(intervalData);
-      
-      const targetMeasureIndex = detectMeasureClick(endX, endY);
+
+      let targetMeasureIndex = detectMeasureClick(endX, endY);
+      let actualY = endY;
+
+      // If drop is invalid, try to snap to nearest valid position
       if (targetMeasureIndex === -1) {
-        return;
+        const snapped = findNearestValidMeasure(endX, endY);
+        if (!snapped) {
+          console.log('Drop too far from any valid measure, ignoring');
+          return;
+        }
+        targetMeasureIndex = snapped.measureIndex;
+        actualY = snapped.snappedY;
+        console.log(`Snapped to measure ${targetMeasureIndex}, Y: ${endY} -> ${actualY}`);
       }
 
-      const clef = detectClefRegion(endY);
-      const nearestPosition = findNearestStaffPosition(endY, clef);
+      const clef = detectClefRegion(actualY);
+      const nearestPosition = findNearestStaffPosition(actualY, clef);
       if (!nearestPosition) {
         console.warn("handlePaletteDrop: Could not determine staff position for interval drop.");
         return;
@@ -726,20 +799,30 @@ function handlePaletteDrop(endX, endY, event) {
 
   // Check for chord data in the drag event
   const chordData = event ? event.dataTransfer.getData('application/chord') : null;
-  
+
   if (chordData) {
     // Handle chord drop
     try {
       const parsedChordData = JSON.parse(chordData);
       const chordObj = parsedChordData.chord;
       const chordDisplayName = parsedChordData.displayName;
-      
-      const targetMeasureIndex = detectMeasureClick(endX, endY);
+
+      let targetMeasureIndex = detectMeasureClick(endX, endY);
+      let actualY = endY;
+
+      // If drop is invalid, try to snap to nearest valid position
       if (targetMeasureIndex === -1) {
-        return;
+        const snapped = findNearestValidMeasure(endX, endY);
+        if (!snapped) {
+          console.log('Drop too far from any valid measure, ignoring');
+          return;
+        }
+        targetMeasureIndex = snapped.measureIndex;
+        actualY = snapped.snappedY;
+        console.log(`Snapped chord to measure ${targetMeasureIndex}, Y: ${endY} -> ${actualY}`);
       }
 
-      const clef = detectClefRegion(endY);
+      const clef = detectClefRegion(actualY);
       const notesToUse = getChordNotesForClef(chordObj, clef);
       
       if (notesToUse.length === 0) {
@@ -773,13 +856,23 @@ function handlePaletteDrop(endX, endY, event) {
   }
 
   // Original palette drop logic for non-chord items
-  const targetMeasureIndex = detectMeasureClick(endX, endY);
+  let targetMeasureIndex = detectMeasureClick(endX, endY);
+  let actualY = endY;
+
+  // If drop is invalid, try to snap to nearest valid position
   if (targetMeasureIndex === -1) {
-    return;
+    const snapped = findNearestValidMeasure(endX, endY);
+    if (!snapped) {
+      console.log('Drop too far from any valid measure, ignoring');
+      return;
+    }
+    targetMeasureIndex = snapped.measureIndex;
+    actualY = snapped.snappedY;
+    console.log(`Snapped note to measure ${targetMeasureIndex}, Y: ${endY} -> ${actualY}`);
   }
 
-  const clef = detectClefRegion(endY);
-  const nearestPosition = findNearestStaffPosition(endY, clef);
+  const clef = detectClefRegion(actualY);
+  const nearestPosition = findNearestStaffPosition(actualY, clef);
   if (!nearestPosition) {
     console.warn("handlePaletteDrop: Could not determine staff position for the drop.");
     return;
@@ -836,7 +929,7 @@ function updateDragPreview(x, snapY, noteName) {
   const durationText = originalNoteData ? originalNoteData.duration : pianoState.quantize;
   const isRest = paletteDragType === "rest";
   const imagePath = getNoteImagePath(durationText, noteName, isRest);
-  
+
   // Determine stem direction for proper note head alignment
   // The SVG images are 120x120 with note heads at specific positions:
   // - Up-stem notes: note head center at approximately (23, 80)
@@ -845,7 +938,7 @@ function updateDragPreview(x, snapY, noteName) {
   // - Rests: centered at approximately (60, 60)
   const stemDirection = NOTE_STEM_DIRECTIONS[noteName] || 'up';
   const isWhole = durationText === 'w' || durationText === 'w.';
-  
+
   // Note head center positions in the 120x120 SVG
   let noteHeadX, noteHeadY;
   if (isRest) {
@@ -861,17 +954,16 @@ function updateDragPreview(x, snapY, noteName) {
     noteHeadX = 23; // Up stem note head center
     noteHeadY = 80;
   }
-  
+
   if (!preview) {
     preview = document.createElement("div");
     preview.id = "drag-snap-preview";
     preview.style.cssText = `
-      position: absolute;
+      position: fixed;
       pointer-events: none;
       z-index: 1000;
-      transition: top 0.1s ease-out;
     `;
-    document.getElementById("score").appendChild(preview);
+    document.body.appendChild(preview);
   }
 
   const isOnLine = snapY % 10 === 0;
@@ -881,129 +973,174 @@ function updateDragPreview(x, snapY, noteName) {
   const imgLeft = 24 - noteHeadX;
   const imgTop = 24 - noteHeadY;
 
-  
-  if (isOnLine) {
-    // Staff line - red line has higher z-index than note circle
-    preview.innerHTML = `
-      <div style="position: relative; width: 120px; height: 3px;">
-        <!-- Note circle with lower z-index -->
-        <div style="
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -50%);
-          background: rgba(255, 255, 255, 0.33);
-          border-radius: 50%;
-          width: 48px;
-          height: 48px;
-          overflow: hidden;
-          z-index: 1;
-        ">
-          <img src="${imagePath}" alt="${durationText}" style="
+  // Check what needs to be updated
+  const structureChanged = (
+    dragPreviewCache.isOnLine !== isOnLine ||
+    preview.innerHTML === ''
+  );
+
+  const imageChanged = dragPreviewCache.imagePath !== imagePath;
+  const imagePositionChanged = (
+    dragPreviewCache.duration !== durationText ||
+    imageChanged
+  );
+  const noteNameChanged = dragPreviewCache.noteName !== noteName;
+
+  // Rebuild structure only if line/space changed or preview is empty
+  if (structureChanged) {
+    if (isOnLine) {
+      // Staff line - red line has higher z-index than note circle
+      preview.innerHTML = `
+        <div style="position: relative; width: 120px; height: 3px;">
+          <!-- Note circle with lower z-index -->
+          <div style="
             position: absolute;
-            left: ${imgLeft}px;
-            top: ${imgTop}px;
-            width: 120px; 
-            height: 120px; 
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.33);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            overflow: hidden;
+            z-index: 1;
           ">
-        </div>
-        
-        <!-- Note name label - outside the clipped container -->
-        <div style="
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          transform: translate(12px, 8px);
-          background: rgba(216, 131, 104, 0.9);
-          color: white;
-          font-size: 10px;
-          font-weight: bold;
-          padding: 1px 4px;
-          border-radius: 3px;
-          line-height: 1;
-          z-index: 3;
-        ">${noteName}</div>
-        
-        <!-- Red line with higher z-index -->
-        <div style="
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%; 
-          height: 3px; 
-          background: rgba(216, 131, 104, 0.9);
-          border-radius: 2px;
-          z-index: 2;
-        "></div>
-      </div>
-    `;
-  } else {
-    // Space - dashed line split around the note circle
-    preview.innerHTML = `
-      <div style="position: relative; width: 120px; height: 0px;">
-        <!-- Left dashed line -->
-        <div style="
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 36px; 
-          height: 0px; 
-          border-top: 3px dashed rgba(41, 123, 81, 0.8);
-          z-index: 1;
-        "></div>
-        
-        <!-- Right dashed line -->
-        <div style="
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 36px; 
-          height: 0px; 
-          border-top: 3px dashed rgba(41, 123, 81, 0.8);
-          z-index: 1;
-        "></div>
-        
-        <!-- Note circle with higher z-index -->
-        <div style="
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -50%);
-          background: rgba(255, 255, 255, 0.33);
-          border-radius: 50%;
-          width: 48px;
-          height: 48px;
-          overflow: hidden;
-          z-index: 2;
-        ">
-          <img src="${imagePath}" alt="${durationText}" style="
+            <img class="preview-note-img" src="${imagePath}" alt="${durationText}" style="
+              position: absolute;
+              left: ${imgLeft}px;
+              top: ${imgTop}px;
+              width: 120px;
+              height: 120px;
+            ">
+          </div>
+
+          <!-- Note name label - outside the clipped container -->
+          <div class="preview-note-name" style="
             position: absolute;
-            left: ${imgLeft}px;
-            top: ${imgTop}px;
-            width: 120px; 
-            height: 120px; 
-          ">
+            left: 50%;
+            top: 50%;
+            transform: translate(12px, 8px);
+            background: rgba(216, 131, 104, 0.9);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 1px 4px;
+            border-radius: 3px;
+            line-height: 1;
+            z-index: 3;
+          ">${noteName}</div>
+
+          <!-- Red line with higher z-index -->
+          <div style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: rgba(216, 131, 104, 0.9);
+            border-radius: 2px;
+            z-index: 2;
+          "></div>
         </div>
-        
-        <!-- Note name label - outside the clipped container -->
-        <div style="
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          transform: translate(12px, 8px);
-          background: rgba(41, 123, 81, 0.9);
-          color: white;
-          font-size: 10px;
-          font-weight: bold;
-          padding: 1px 4px;
-          border-radius: 3px;
-          line-height: 1;
-          z-index: 3;
-        ">${noteName}</div>
-      </div>
-    `;
+      `;
+    } else {
+      // Space - dashed line split around the note circle
+      preview.innerHTML = `
+        <div style="position: relative; width: 120px; height: 0px;">
+          <!-- Left dashed line -->
+          <div style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 36px;
+            height: 0px;
+            border-top: 3px dashed rgba(41, 123, 81, 0.8);
+            z-index: 1;
+          "></div>
+
+          <!-- Right dashed line -->
+          <div style="
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 36px;
+            height: 0px;
+            border-top: 3px dashed rgba(41, 123, 81, 0.8);
+            z-index: 1;
+          "></div>
+
+          <!-- Note circle with higher z-index -->
+          <div style="
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.33);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            overflow: hidden;
+            z-index: 2;
+          ">
+            <img class="preview-note-img" src="${imagePath}" alt="${durationText}" style="
+              position: absolute;
+              left: ${imgLeft}px;
+              top: ${imgTop}px;
+              width: 120px;
+              height: 120px;
+            ">
+          </div>
+
+          <!-- Note name label - outside the clipped container -->
+          <div class="preview-note-name" style="
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(12px, 8px);
+            background: rgba(41, 123, 81, 0.9);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 1px 4px;
+            border-radius: 3px;
+            line-height: 1;
+            z-index: 3;
+          ">${noteName}</div>
+        </div>
+      `;
+    }
+    dragPreviewCache.isOnLine = isOnLine;
   }
-  
+
+  // Update image src and position if needed (much faster than innerHTML rebuild)
+  if (imageChanged || imagePositionChanged) {
+    const img = preview.querySelector('.preview-note-img');
+    if (img) {
+      if (imageChanged) {
+        img.src = imagePath;
+      }
+      if (imagePositionChanged) {
+        img.style.left = `${imgLeft}px`;
+        img.style.top = `${imgTop}px`;
+      }
+    }
+  }
+
+  // Update note name label if it changed
+  if (noteNameChanged) {
+    const noteNameLabel = preview.querySelector('.preview-note-name');
+    if (noteNameLabel) {
+      noteNameLabel.textContent = noteName;
+    }
+  }
+
+  // Update cache
+  dragPreviewCache.noteName = noteName;
+  dragPreviewCache.duration = durationText;
+  dragPreviewCache.imagePath = imagePath;
+
+  // Always update position (this is cheap and needed every frame)
+  // x and snapY are now absolute screen coordinates (for position: fixed)
   preview.style.left = `${x - 60}px`;
   preview.style.top = `${snapY - 1}px`;
   preview.style.display = "block";
@@ -1022,6 +1159,11 @@ function clearDragPreview() {
   if (preview) {
     preview.style.display = "none";
   }
+  // Reset cache
+  dragPreviewCache.isOnLine = null;
+  dragPreviewCache.noteName = null;
+  dragPreviewCache.duration = null;
+  dragPreviewCache.imagePath = null;
 }
 
 function startDrag(noteInfo, initialClickPos) {
@@ -1405,6 +1547,94 @@ function detectNoteClick(x, y) {
 
   return null;
 }
+
+/**
+ * Finds the nearest valid measure to the given coordinates with a snap threshold.
+ * Returns the snapped coordinates and measure index if within snap distance, otherwise null.
+ * @param {number} x - The X coordinate
+ * @param {number} y - The Y coordinate
+ * @param {number} snapThreshold - Maximum distance (in pixels) to snap to nearest measure (default: 80)
+ * @returns {Object|null} - { measureIndex, snappedX, snappedY } or null if too far from any valid position
+ */
+function findNearestValidMeasure(x, y, snapThreshold = 80) {
+  const measureWidth = 340;
+
+  // Calculate the current vertical offset (same logic as detectMeasureClick)
+  const scoreContainer = document.getElementById("score")?.parentElement;
+  const containerHeight = scoreContainer ? scoreContainer.clientHeight : 350;
+  const scoreHeight = 300;
+  const verticalOffset = Math.max(20, (containerHeight - scoreHeight) / 2);
+
+  // Use calibrated bounds if available
+  const scoreTopY = TREBLE_STAFF_TOP_Y || verticalOffset + 20;
+  const scoreBottomY = BASS_STAFF_BOTTOM_Y || verticalOffset + 280;
+
+  const topMargin = 50;
+  const bottomMargin = 50;
+
+  // Clamp Y to valid vertical range
+  let snappedY = y;
+  if (y < scoreTopY - topMargin) {
+    snappedY = scoreTopY - topMargin;
+  } else if (y > scoreBottomY + bottomMargin) {
+    snappedY = scoreBottomY + bottomMargin;
+  }
+
+  // Find the nearest measure horizontally
+  let nearestMeasureIndex = -1;
+  let minDistance = Infinity;
+  let snappedX = x;
+
+  for (let i = 0; i < measureXPositions.length; i++) {
+    const measureStartX = measureXPositions[i];
+    const measureEndX = measureStartX + measureWidth;
+    const measureCenterX = measureStartX + measureWidth / 2;
+
+    // If x is within the measure bounds, use it directly
+    if (x >= measureStartX && x <= measureEndX) {
+      nearestMeasureIndex = i;
+      snappedX = x;
+      minDistance = 0;
+      break;
+    }
+
+    // Otherwise, check distance to measure edges
+    let distanceToMeasure;
+    let potentialSnappedX;
+
+    if (x < measureStartX) {
+      // To the left of this measure
+      distanceToMeasure = measureStartX - x;
+      potentialSnappedX = measureStartX + 10; // Snap slightly inside the measure
+    } else {
+      // To the right of this measure
+      distanceToMeasure = x - measureEndX;
+      potentialSnappedX = measureEndX - 10; // Snap slightly inside the measure
+    }
+
+    if (distanceToMeasure < minDistance) {
+      minDistance = distanceToMeasure;
+      nearestMeasureIndex = i;
+      snappedX = potentialSnappedX;
+    }
+  }
+
+  // Check vertical distance too
+  const verticalDistance = Math.abs(y - snappedY);
+  const totalDistance = Math.sqrt(minDistance * minDistance + verticalDistance * verticalDistance);
+
+  // Only snap if within threshold
+  if (totalDistance > snapThreshold || nearestMeasureIndex === -1) {
+    return null;
+  }
+
+  return {
+    measureIndex: nearestMeasureIndex,
+    snappedX: snappedX,
+    snappedY: snappedY
+  };
+}
+
 /**
  * Detects which measure was clicked or interacted with based on X, Y coordinates.
  * This function assumes a fixed measure width and accounts for vertical centering.

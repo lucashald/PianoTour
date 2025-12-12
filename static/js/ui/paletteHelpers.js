@@ -8,6 +8,11 @@ import { getChordByDegree } from '../core/note-data.js';
 import { triggerAttackRelease } from '../instrument/playbackHelpers.js';
 import { getSelectedClef, toggleSelectedClef } from '../editor/scoreEditor.js';
 
+// Create a transparent 1x1 image to hide browser's default drag preview
+// This is the standard cross-browser approach for custom drag previews
+const transparentDragImage = new Image();
+transparentDragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
 /**
  * Handle palette item click in click mode (non-drag mode)
  * Immediately plays the note/chord and writes it to the score
@@ -232,6 +237,9 @@ function setupCustomChordButton(btn, useDragMode) {
 
         // Add dragstart handler
         newBtn.addEventListener('dragstart', (e) => {
+            // Hide browser's default drag preview
+            e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+
             const chordName = e.currentTarget.dataset.chordName;
             const chordObj = e.currentTarget._chordObj;
 
@@ -338,7 +346,10 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
                 const duration = event.currentTarget.dataset.duration;
                 const degree = event.currentTarget.dataset.degree;
                 const intervalType = event.currentTarget.dataset.interval;
-                
+
+                // Hide browser's default drag preview - we show our own custom preview in dragover
+                event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+
                 // Handle interval elements
                 if (type === 'interval') {
                     const intervalData = {
@@ -384,6 +395,9 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
             } else {
                 // Intervals remain draggable in click mode, so add dragstart handler
                 newNote.addEventListener('dragstart', (event) => {
+                    // Hide browser's default drag preview
+                    event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+
                     const intervalType = event.currentTarget.dataset.interval;
                     const intervalData = {
                         intervalType: intervalType
