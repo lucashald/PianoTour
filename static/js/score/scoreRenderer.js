@@ -604,7 +604,7 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
         // Convert relative coordinates to absolute screen coordinates for fixed positioning
         const absoluteX = event.clientX;
         const absoluteY = rect.top + nearest.y;
-        updateDragPreview(absoluteX, absoluteY, previewNoteName);
+        updateDragPreview(absoluteX, absoluteY, previewNoteName, nearest.type);
       }
     }
   });
@@ -680,7 +680,7 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
         // Convert relative coordinates to absolute screen coordinates for fixed positioning
         const absoluteX = event.clientX;
         const absoluteY = rect.top + nearest.y;
-        updateDragPreview(absoluteX, absoluteY, nearest.note);
+        updateDragPreview(absoluteX, absoluteY, nearest.note, nearest.type);
         highlightSelectedMeasure(measureIndex);
       }
     } else {
@@ -694,7 +694,7 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
           // Convert relative coordinates to absolute screen coordinates for fixed positioning
           const absoluteX = rect.left + snapped.snappedX;
           const absoluteY = rect.top + nearest.y;
-          updateDragPreview(absoluteX, absoluteY, nearest.note);
+          updateDragPreview(absoluteX, absoluteY, nearest.note, nearest.type);
           highlightSelectedMeasure(snapped.measureIndex);
         }
       } else {
@@ -917,7 +917,7 @@ function handlePaletteDrop(endX, endY, event) {
   }
 }
 
-function updateDragPreview(x, snapY, noteName) {
+function updateDragPreview(x, snapY, noteName, noteType = null) {
 // Early exit if we're not actually dragging
   if (!isDragging && !isPaletteDrag) {
     clearDragPreview();
@@ -966,7 +966,9 @@ function updateDragPreview(x, snapY, noteName) {
     document.body.appendChild(preview);
   }
 
-  const isOnLine = snapY % 10 === 0;
+  // Determine if we're on a line or in a space based on noteType
+  // If noteType is provided, use it; otherwise fall back to the old calculation for backward compatibility
+  const isOnLine = noteType ? (noteType === 'line' || noteType === 'ledger') : (snapY % 10 === 0);
 
   // Container is 48x48, image is displayed at full 120x120 size
   // We offset the image so the note head center aligns with the container center (24, 24)
