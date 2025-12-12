@@ -648,26 +648,20 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     resetDragState();
   });
 
-  // Palette drops - dragover only for preventing default behavior
+  // Use dragover for drag preview updates during palette drag operations
+  // We use dragover instead of mousemove because mousemove is suppressed during HTML5 drag operations
+  // We've already hidden the browser's default drag preview with a transparent image
   scoreElement.addEventListener("dragover", (event) => {
+    // Prevent default to allow drop
     event.preventDefault();
-  });
+    event.dataTransfer.dropEffect = "copy";
 
-  // Use document-level mousemove for smooth 60fps drag preview updates
-  // This bypasses the sluggish dragover event which only fires every few hundred milliseconds
-  document.addEventListener("mousemove", (event) => {
+    // Only show custom preview during palette drags
     if (!isPaletteDrag) return;
 
     const rect = scoreElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-
-    // Check if mouse is within the score area
-    if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
-      clearDragPreview();
-      clearMeasureHighlight();
-      return;
-    }
 
     // Check if we're over a valid drop zone
     const measureIndex = detectMeasureClick(x, y);
@@ -702,6 +696,22 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
         clearDragPreview();
         clearMeasureHighlight();
       }
+    }
+  });
+
+  // Handle drag event when dragging outside the score area
+  // This clears the preview when the user drags away from the score
+  document.addEventListener("drag", (event) => {
+    if (!isPaletteDrag) return;
+
+    const rect = scoreElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Check if mouse is outside the score area
+    if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+      clearDragPreview();
+      clearMeasureHighlight();
     }
   });
 
