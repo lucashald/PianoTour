@@ -721,6 +721,9 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
   });
 
   scoreElement.addEventListener("drop", (event) => {
+    // Immediately cancel drag preview so it doesn't have to "catch up" to the mouse
+    clearDragPreview();
+    
     event.preventDefault();
     const rect = scoreElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
