@@ -30,6 +30,10 @@
                 <span class="chord-symbol">vii°</span>
                 <div class="note-duration">Leading Tone</div>
             </div>
+            <div class="palette-note clef-toggle-btn" id="chordPaletteToggleClef" draggable="false">
+                <img src="/static/images/generatedsvg/clef-treble-cropped.svg" alt="Toggle Clef" class="palette-icon">
+                <div class="note-duration">Treble Clef</div>
+            </div>
         </div>
     </div>
 
@@ -499,15 +503,16 @@ bindChordPaletteEvents() {
             console.warn('No scale data available for current key');
             return;
         }
-        
-        const chordPaletteItems = document.querySelectorAll('.chord-palette .palette-note');
-        
+
+        // Only select chord buttons (not clef toggle or other palette items)
+        const chordPaletteItems = document.querySelectorAll('.chord-palette .palette-note[data-degree]');
+
         chordPaletteItems.forEach((item, index) => {
             const degree = parseInt(item.dataset.degree);
             const chordObj = getChordByDegree(degree);
             const chordSymbol = item.querySelector('.chord-symbol');
             const noteDuration = item.querySelector('.note-duration');
-            
+
             const romanNumeral = scaleData.labels[index];
             chordSymbol.textContent = romanNumeral;
         });

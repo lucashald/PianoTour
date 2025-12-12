@@ -656,8 +656,11 @@ function handlePaletteDrop(endX, endY, event) {
 
   // Check for interval data in the drag event
   const intervalData = event ? event.dataTransfer.getData('application/interval') : null;
-  
+
+  console.log('handlePaletteDrop called, intervalData:', intervalData);
+
   if (intervalData) {
+    console.log('Processing interval drop...');
     try {
       const parsedIntervalData = JSON.parse(intervalData);
       
@@ -676,15 +679,30 @@ function handlePaletteDrop(endX, endY, event) {
       // Create interval chord using drop position as root
       const rootNoteName = nearestPosition.note;
       const intervalChord = createIntervalChord(rootNoteName, parsedIntervalData.intervalType);
-      
+
       if (!intervalChord) {
         console.warn("handlePaletteDrop: Could not create interval chord.");
         return;
       }
-      
+
+      // Use the appropriate notes for the detected clef (same as chords)
+      const notesToUse = getChordNotesForClef(intervalChord, clef);
+
+      console.log('Interval chord object:', intervalChord);
+      console.log('Notes to use for interval:', notesToUse);
+      console.log('Notes to use length:', notesToUse.length);
+
+      if (notesToUse.length === 0) {
+        console.warn('No suitable notes found for interval in target clef');
+        return;
+      }
+
+      const formattedName = formatChordForScore(notesToUse, intervalChord.displayName);
+      console.log('Formatted interval name:', formattedName);
+
       // Create the interval note
       const intervalNote = {
-        name: `(${intervalChord.treble.join(' ')})`,
+        name: formattedName,
         clef: clef,
         duration: pianoState.quantize,
         isRest: false,

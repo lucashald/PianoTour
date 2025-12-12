@@ -143,22 +143,29 @@ function handleClefToggle() {
 }
 
 /**
- * Update the clef toggle button display
+ * Update the clef toggle button display - updates all clef toggle buttons
  */
 function updateClefToggleDisplay(clef) {
-    const toggleBtn = document.getElementById('paletteToggleClef');
-    if (!toggleBtn) return;
+    // Update both clef toggle buttons (note palette and chord palette)
+    const toggleButtons = [
+        document.getElementById('paletteToggleClef'),
+        document.getElementById('chordPaletteToggleClef')
+    ];
 
-    const img = toggleBtn.querySelector('img');
-    const label = toggleBtn.querySelector('.note-duration');
+    toggleButtons.forEach(toggleBtn => {
+        if (!toggleBtn) return;
 
-    if (clef === 'treble') {
-        if (img) img.src = '/static/images/generatedsvg/clef-treble-cropped.svg';
-        if (label) label.textContent = 'Treble Clef';
-    } else {
-        if (img) img.src = '/static/images/generatedsvg/clef-bass-cropped.svg';
-        if (label) label.textContent = 'Bass Clef';
-    }
+        const img = toggleBtn.querySelector('img');
+        const label = toggleBtn.querySelector('.note-duration');
+
+        if (clef === 'treble') {
+            if (img) img.src = '/static/images/generatedsvg/clef-treble-cropped.svg';
+            if (label) label.textContent = 'Treble Clef';
+        } else {
+            if (img) img.src = '/static/images/generatedsvg/clef-bass-cropped.svg';
+            if (label) label.textContent = 'Bass Clef';
+        }
+    });
 }
 
 /**
@@ -272,7 +279,9 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
 
     paletteNotes.forEach(note => {
         const isCustomChordBtn = note.classList.contains('custom-chord-btn');
-        const isClefToggleBtn = note.id === 'paletteToggleClef';
+        const isClefToggleBtn = note.classList.contains('clef-toggle-btn') ||
+                                note.id === 'paletteToggleClef' ||
+                                note.id === 'chordPaletteToggleClef';
 
         // Handle clef toggle button separately - always clickable, never draggable
         if (isClefToggleBtn) {
@@ -368,12 +377,27 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
                 setPaletteDragState(false, null, null);
             });
         } else {
-            // Click mode - disable dragging, use click handlers
+            // Click mode - disable dragging for most items, use click handlers
             if (type != 'interval') {
-            newNote.setAttribute('draggable', 'false');
-            newNote.classList.add('palette-click-mode');
+                newNote.setAttribute('draggable', 'false');
+                newNote.classList.add('palette-click-mode');
+            } else {
+                // Intervals remain draggable in click mode, so add dragstart handler
+                newNote.addEventListener('dragstart', (event) => {
+                    const intervalType = event.currentTarget.dataset.interval;
+                    const intervalData = {
+                        intervalType: intervalType
+                    };
+                    event.dataTransfer.setData('application/interval', JSON.stringify(intervalData));
+                    setPaletteDragState(true, 'interval', pianoState.quantize);
+                });
+
+                newNote.addEventListener('dragend', (event) => {
+                    console.log("Interval dragend detected in click mode, cleaning up");
+                    setPaletteDragState(false, null, null);
+                });
             }
-            
+
             // For chord palette items, also update the search result when clicked
             if (isChordPaletteItem && type === 'chord' && newNote.dataset.degree) {
                 newNote.addEventListener('click', (e) => {
@@ -384,7 +408,7 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
                     }
                 });
             }
-            
+
             newNote.addEventListener('click', handlePaletteClick);
         }
     });
