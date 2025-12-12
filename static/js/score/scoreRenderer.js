@@ -53,10 +53,12 @@ let isPaletteDrag = false;
 let paletteDragType = null;
 
 // Drag Preview Cache - prevents unnecessary DOM recreation
+// All images are preloaded at module init, so no server polling occurs
 let dragPreviewCache = {
   isOnLine: null,
   noteName: null,
   duration: null,
+  stemDirection: null,  // Track stem direction explicitly to avoid recalculating image path
   imagePath: null
 };
 
@@ -611,6 +613,9 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
 
   // Mouse Up
   document.addEventListener("mouseup", (event) => {
+    // Immediately cancel drag preview so it doesn't have to "catch up" to the mouse
+    clearDragPreview();
+    
     if (!mouseDownInitialPos) return;
 
     const scoreRect = scoreElement.getBoundingClientRect();
@@ -938,8 +943,7 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
   // Get the duration from the original note being dragged
   const durationText = originalNoteData ? originalNoteData.duration : pianoState.quantize;
   const isRest = paletteDragType === "rest";
-  const imagePath = getNoteImagePath(durationText, noteName, isRest);
-
+  
   // Determine stem direction for proper note head alignment
   // The SVG images are 120x120 with note heads at specific positions:
   // - Up-stem notes: note head center at approximately (23, 80)
@@ -948,6 +952,17 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
   // - Rests: centered at approximately (60, 60)
   const stemDirection = NOTE_STEM_DIRECTIONS[noteName] || 'up';
   const isWhole = durationText === 'w' || durationText === 'w.';
+
+  // Only calculate image path if duration or stem direction changed
+  let imagePath = dragPreviewCache.imagePath;
+  if (
+    dragPreviewCache.duration !== durationText || 
+    dragPreviewCache.stemDirection !== stemDirection
+  ) {
+    // Image path needs recalculation - but note: all images are preloaded at module init
+    // so this doesn't cause server polling, just DOM updates
+    imagePath = getNoteImagePath(durationText, noteName, isRest);
+  }
 
   // Note head center positions in the 120x120 SVG
   let noteHeadX, noteHeadY;
@@ -994,6 +1009,7 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
   const imageChanged = dragPreviewCache.imagePath !== imagePath;
   const imagePositionChanged = (
     dragPreviewCache.duration !== durationText ||
+    dragPreviewCache.stemDirection !== stemDirection ||
     imageChanged
   );
   const noteNameChanged = dragPreviewCache.noteName !== noteName;
@@ -1017,10 +1033,8 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
             overflow: hidden;
             z-index: 1;
           ">
-            <img class="preview-note-img" src="${imagePath}" alt="${durationText}" style="
+            <img class="preview-note-img" src="" alt="" style="
               position: absolute;
-              left: ${imgLeft}px;
-              top: ${imgTop}px;
               width: 120px;
               height: 120px;
             ">
@@ -1040,7 +1054,7 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
             border-radius: 3px;
             line-height: 1;
             z-index: 3;
-          ">${noteName}</div>
+          "></div>
 
           <!-- Red line with higher z-index -->
           <div style="
@@ -1094,10 +1108,8 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
             overflow: hidden;
             z-index: 2;
           ">
-            <img class="preview-note-img" src="${imagePath}" alt="${durationText}" style="
+            <img class="preview-note-img" src="" alt="" style="
               position: absolute;
-              left: ${imgLeft}px;
-              top: ${imgTop}px;
               width: 120px;
               height: 120px;
             ">
@@ -1117,38 +1129,58 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
             border-radius: 3px;
             line-height: 1;
             z-index: 3;
-          ">${noteName}</div>
+          "></div>
         </div>
       `;
     }
     dragPreviewCache.isOnLine = isOnLine;
-  }
 
-  // Update image src and position if needed (much faster than innerHTML rebuild)
-  if (imageChanged || imagePositionChanged) {
+    // After rebuilding structure, always update the image and label
     const img = preview.querySelector('.preview-note-img');
+    const label = preview.querySelector('.preview-note-name');
     if (img) {
-      if (imageChanged) {
+      // Only set src if it's actually different to avoid unnecessary server requests
+      if (img.src !== imagePath && !img.src.endsWith(imagePath)) {
         img.src = imagePath;
+        img.alt = durationText;
       }
-      if (imagePositionChanged) {
-        img.style.left = `${imgLeft}px`;
-        img.style.top = `${imgTop}px`;
+      img.style.left = `${imgLeft}px`;
+      img.style.top = `${imgTop}px`;
+    }
+    if (label) {
+      label.textContent = noteName;
+    }
+  } else {
+    // Structure unchanged - only update what changed
+    if (imageChanged || imagePositionChanged) {
+      const img = preview.querySelector('.preview-note-img');
+      if (img) {
+        if (imageChanged) {
+          // Only set src if it's actually different to avoid unnecessary server requests
+          if (img.src !== imagePath && !img.src.endsWith(imagePath)) {
+            img.src = imagePath;
+            img.alt = durationText;
+          }
+        }
+        if (imagePositionChanged) {
+          img.style.left = `${imgLeft}px`;
+          img.style.top = `${imgTop}px`;
+        }
+      }
+    }
+
+    if (noteNameChanged) {
+      const noteNameLabel = preview.querySelector('.preview-note-name');
+      if (noteNameLabel) {
+        noteNameLabel.textContent = noteName;
       }
     }
   }
 
-  // Update note name label if it changed
-  if (noteNameChanged) {
-    const noteNameLabel = preview.querySelector('.preview-note-name');
-    if (noteNameLabel) {
-      noteNameLabel.textContent = noteName;
-    }
-  }
-
-  // Update cache
+  // Update cache with all tracked values
   dragPreviewCache.noteName = noteName;
   dragPreviewCache.duration = durationText;
+  dragPreviewCache.stemDirection = stemDirection;
   dragPreviewCache.imagePath = imagePath;
 
   // Always update position (this is cheap and needed every frame)
