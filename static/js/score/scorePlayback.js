@@ -221,14 +221,8 @@ function scheduleNoteEvents(
 
       // Schedule piano key highlighting + fretboard playback highlighting
       Tone.Transport.scheduleOnce((time) => {
-        notesToPlay.forEach((n) => {
-          const midi = NOTES_BY_NAME[n];
-          if (midi && pianoState.noteEls[midi]) {
-            Tone.Draw.schedule(() => {
-              pianoState.noteEls[midi].classList.add("pressed");
-            }, time);
-          }
-        });
+        // Visuals now handled by trigger() -> updateKeyVisuals()
+        
         // Fretboard playback highlight (if fretboard is present)
         const fretMap = (typeof getFretMap === "function") ? getFretMap() : null;
         if (fretMap && typeof fretMap.isReady === "function" && fretMap.isReady()) {
@@ -258,14 +252,8 @@ function scheduleNoteEvents(
 
       // Schedule piano key un-highlighting + clear fretboard playback highlighting
       Tone.Transport.scheduleOnce((time) => {
-        notesToPlay.forEach((n) => {
-          const midi = NOTES_BY_NAME[n];
-          if (midi && pianoState.noteEls[midi]) {
-            Tone.Draw.schedule(() => {
-              pianoState.noteEls[midi].classList.remove("pressed");
-            }, time);
-          }
-        });
+        // Visuals now handled by trigger() -> updateKeyVisuals()
+
         const fretMap = (typeof getFretMap === "function") ? getFretMap() : null;
         if (fretMap && typeof fretMap.isReady === "function" && fretMap.isReady()) {
           Tone.Draw.schedule(() => {

@@ -14,6 +14,7 @@ import { writeNote } from '../score/scoreWriter.js';
 import { createChordDiagrams, createChordPalette } from './guitarUI.js';
 import { audioSettingsController } from './audioSettings.js';
 import { ChordPreview } from '../classes/ChordPreview.js';
+import { paintChordOnTheFly, clearChordHi } from '../instrument/instrumentHelpers.js';
 
 // ===================================================================
 // UI Update Functions
@@ -189,6 +190,8 @@ export function generateChordButtons() {
             if (chordButtonMode === 1) { notesToPlay = chordDefinition.bass || []; clef = 'bass'; } 
             else if (chordButtonMode === 2) { notesToPlay = chordDefinition.treble || []; clef = 'treble'; }
 
+            // paintChordOnTheFly({ notes: notesToPlay }); // Handled by trigger
+
             if (notesToPlay.length > 0) {
                 // Only play audio if audio is ready
                 if (audioManager.isAudioReady()) {
@@ -207,6 +210,7 @@ export function generateChordButtons() {
                             trigger(notesToPlay, false);
                             this.classList.remove('pressed');
                         }
+                        // clearChordHi(); // Handled by trigger
                         delete this.dataset.playingChord;
 
                         const heldTime = performance.now() - startTime;
@@ -344,6 +348,8 @@ export function generateChordPreviewButtons(clef = 'treble') {
                 if (chordButtonMode === 1) { notesToPlay = chordDefinition.bass || []; selectedClef = 'bass'; } 
                 else if (chordButtonMode === 2) { notesToPlay = chordDefinition.treble || []; selectedClef = 'treble'; }
 
+                // paintChordOnTheFly({ notes: notesToPlay }); // Handled by trigger
+
                 if (notesToPlay.length > 0) {
                     if (audioManager.isAudioReady()) {
                         trigger(notesToPlay, true);
@@ -360,6 +366,7 @@ export function generateChordPreviewButtons(clef = 'treble') {
                                 trigger(notesToPlay, false);
                                 this.classList.remove('pressed');
                             }
+                            // clearChordHi(); // Handled by trigger
                             delete this.dataset.playingChord;
 
                             const heldTime = performance.now() - startTime;

@@ -159,8 +159,8 @@ export function handleKeyUp(e) {
   }
   
   console.log("Clearing chord and key highlights in handleKeyUp");
-  clearChordHi();
-  clearHi();
+  // clearChordHi(); // Handled by trigger/updateKeyVisuals
+  // clearHi();
 
   const k = e.key.toLowerCase();
   console.log(`handleKeyUp called with key: "${e.key}", lowercase: "${k}"`);
@@ -311,11 +311,7 @@ export function handleInitialKeyboard(e) {
         console.log(`Calling triggerAttackRelease for chord: ${chordName}, notes: ${JSON.stringify(chordNotes)}`);
         triggerAttackRelease(chordNotes, pianoState.quantize, pianoState.velocity, true, chordName);
         
-        // Clear chord highlights after a brief delay to allow the chord to play
-        setTimeout(() => {
-          clearChordHi();
-          clearHi();
-        }, 250);
+        // Visual cleanup is handled by triggerAttackRelease
       } else {
         console.warn(`No notes found for chord ${chordName} (${handledKey.useBass ? 'bass' : 'treble'})`);
       }
@@ -361,11 +357,7 @@ export function handleInitialKeyboard(e) {
       console.log(`Calling triggerAttackRelease for note: ${keyDetails.noteName}`);
       triggerAttackRelease([keyDetails.noteName], pianoState.quantize, pianoState.velocity, true, keyDetails.noteName);
       
-      // Clear highlights after a brief delay for single notes too
-      setTimeout(() => {
-        clearChordHi();
-        clearHi();
-      }, 250);
+      // Visual cleanup is handled by triggerAttackRelease
     };
 
     console.log("Calling audioManager.unlockAndExecute for piano note");
@@ -405,7 +397,7 @@ export function playScaleChord(degree, key, writeToScore = true, useBass = false
 
   // Play the chord
   trigger(notesForPlayback, true);
-  paintChordOnTheFly({ notes: notesForPlayback });
+  // paintChordOnTheFly({ notes: notesForPlayback }); // Handled by trigger
 
   // Store chord data for release handling
   pianoState.activeDiatonicChords[key] = {

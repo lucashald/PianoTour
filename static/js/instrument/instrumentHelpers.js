@@ -429,6 +429,38 @@ export function paintChordOnTheFly(chord) {
   pianoState.chordHi = midis;
 }
 
+/**
+ * Updates the visual state of piano keys based on active notes.
+ * Handles both single note (pressed) and chord (root/third/fifth/etc) coloring.
+ * @param {string[]} notes - Array of note names (e.g. ['C4', 'E4', 'G4']).
+ * @param {boolean} isActive - Whether the notes are being played (true) or released (false).
+ */
+export function updateKeyVisuals(notes, isActive) {
+  // Convert notes to midis
+  const midis = notes.map((n) => NOTES_BY_NAME[n]).filter((m) => m !== undefined);
+  const isChord = midis.length > 1;
+
+  midis.forEach((midi, index) => {
+    const el = pianoState.noteEls[midi];
+    if (!el) return;
+
+    if (isActive) {
+      el.classList.add("pressed");
+      
+      // If it's a chord (more than 1 note), apply specific colors
+      if (isChord) {
+        if (index === 0) el.classList.add("chord-root");
+        if (index === 1) el.classList.add("chord-third");
+        if (index === 2) el.classList.add("chord-fifth");
+        if (index === 3) el.classList.add("chord-seventh");
+        if (index === 4) el.classList.add("chord-ninth");
+      }
+    } else {
+      el.classList.remove("pressed", "chord-root", "chord-third", "chord-fifth", "chord-seventh", "chord-ninth");
+    }
+  });
+}
+
 // ===================================================================
 // Event Handlers (Enhanced with Click-and-Drag)
 // ===================================================================
@@ -733,7 +765,7 @@ export function handleKeyPointerDown(e) {
       chordData: chord,
     };
     trigger(chord.notes, true, pianoState.velocity);
-    finalKeyEl.classList.add("pressed");
+    // finalKeyEl.classList.add("pressed"); // Handled by trigger
     finalKeyEl.setPointerCapture(e.pointerId);
 
     const handleKeyPointerUp = () => {
@@ -752,7 +784,7 @@ export function handleKeyPointerDown(e) {
       else if (heldTime >= thresholds.q) duration = "q";
       else if (heldTime >= thresholds["8."]) duration = "8.";
       trigger(chord.notes, false, pianoState.velocity);
-      finalKeyEl.classList.remove("pressed");
+      // finalKeyEl.classList.remove("pressed"); // Handled by trigger
       if (finalKeyEl.hasPointerCapture(e.pointerId)) { // Check if still has capture
         finalKeyEl.releasePointerCapture(e.pointerId);
       }

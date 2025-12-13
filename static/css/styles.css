@@ -1406,6 +1406,8 @@ background: linear-gradient(to right,
 .instrument-panel__keyboard .chord-root  { fill: var(--color-blue-light) !important; }
 .instrument-panel__keyboard .chord-third { fill: var(--color-green-light) !important; }
 .instrument-panel__keyboard .chord-fifth { fill: var(--color-peach-light) !important; }
+.instrument-panel__keyboard .chord-seventh { fill: var(--color-gold-light) !important; }
+.instrument-panel__keyboard .chord-ninth { fill: var(--color-danger) !important; }
 
 /* Hand Overlay */
 #handOverlay {
@@ -2275,4 +2277,3 @@ background: linear-gradient(to right,
   object-fit: contain;
     filter: brightness(0) invert(1); /* Make white for dark buttons */
 }
-

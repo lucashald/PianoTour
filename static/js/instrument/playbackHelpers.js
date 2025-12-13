@@ -29,7 +29,8 @@ import {
 import { writeNote } from "../score/scoreWriter.js";
 import {
   paintChord,
-  paintChordOnTheFly
+  paintChordOnTheFly,
+  updateKeyVisuals
 } from "./instrumentHelpers.js";
 
 // Import spectrum visualization functions - SIMPLIFIED
@@ -101,6 +102,9 @@ export function trigger(note, on, velocity, useEnvelope = true) {
       pianoState.envelope.triggerRelease(now);
     }
   }
+
+  // Update visual state
+  updateKeyVisuals(notes, on);
 }
 
 /**
@@ -130,7 +134,7 @@ export function startKey(el, velocity) {
   // FIXED: Set playing state BEFORE triggering to prevent double calls
   el.dataset.playing = "note";
   el.dataset.startTime = performance.now().toString();
-  el.classList.add("pressed");
+  // el.classList.add("pressed"); // Handled by trigger
   
   trigger(noteName, true, effectiveVelocity);
   
@@ -174,13 +178,13 @@ export function stopKey(el) {
   // FIXED: Clear state on the element passed AND the stored element
   delete el.dataset.playing;
   delete el.dataset.startTime;
-  el.classList.remove("pressed");
+  // el.classList.remove("pressed"); // Handled by trigger
   
   // Also clear the stored element if different
   if (activeNote.el && activeNote.el !== el) {
       delete activeNote.el.dataset.playing;
       delete activeNote.el.dataset.startTime;
-      activeNote.el.classList.remove("pressed");
+      // activeNote.el.classList.remove("pressed"); // Handled by trigger
   }
   
   delete pianoState.activeNotes[midi];
@@ -267,7 +271,7 @@ export function playDiatonicChord(degree, key, writeToScore = true) {
   }
   // Play the chord
   trigger(notesForPlayback, true);
-  paintChordOnTheFly({ notes: notesForPlayback });
+  // paintChordOnTheFly({ notes: notesForPlayback }); // Handled by trigger
 
   // Store chord data consistently for both input methods
   pianoState.activeDiatonicChords[key] = {
@@ -414,10 +418,8 @@ export function triggerAttackRelease(note, duration = pianoState.quantize, veloc
   // Trigger sampler with note duration (sampler handles release phase)
   pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, effectiveVelocity / 127);
 
-  // Paint chord visualization immediately for chords
-  if (isChord) {
-    paintChordOnTheFly({ notes: notesArray });
-  }
+  // Update visual state immediately
+  updateKeyVisuals(notesArray, true);
 
   // Store chord data
   pianoState.activeDiatonicChords[attackReleaseKey] = {
@@ -456,9 +458,7 @@ export function triggerAttackRelease(note, duration = pianoState.quantize, veloc
 
     // Handle visual cleanup for chords
     if (isChord) {
-      if (typeof clearChordHi === 'function') {
-        clearChordHi();
-      }
+      updateKeyVisuals(notesArray, false);
 
       setTimeout(() => {
         const remainingChords = Object.keys(pianoState.activeDiatonicChords).length;
@@ -466,6 +466,9 @@ export function triggerAttackRelease(note, duration = pianoState.quantize, veloc
           paintChord();
         }
       }, 50);
+    } else {
+      // Also cleanup for single notes (since trigger doesn't handle release for triggerAttackRelease automatically)
+      updateKeyVisuals(notesArray, false);
     }
 
     // Final spectrum cleanup check
@@ -501,7 +504,7 @@ export function playScaleChord(degree, key, writeToScore = true, useBass = false
 
   // Play the chord
   trigger(notesForPlayback, true);
-  paintChordOnTheFly({ notes: notesForPlayback });
+  // paintChordOnTheFly({ notes: notesForPlayback }); // Handled by trigger
 
   // Store chord data for release handling
   pianoState.activeDiatonicChords[key] = {
