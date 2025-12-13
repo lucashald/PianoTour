@@ -668,6 +668,10 @@ export function startSliderDrag(e) {
     if (isChordMode) updateLabels();
     pianoState.overlay.releasePointerCapture(e.pointerId);
     document.removeEventListener("pointermove", handleSliderMove);
+  if (!pianoState.stickyHighlights) {
+    clearHi();
+    clearChordHi();
+  }
   };
 
   document.addEventListener("pointermove", handleSliderMove);

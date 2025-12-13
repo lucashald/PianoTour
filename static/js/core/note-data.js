@@ -114,6 +114,45 @@ const buildNoteData = () => {
     if (note.flatName) {
       notesByName[note.flatName] = note.midi;
     }
+
+    // Add enharmonic equivalents
+    const match = note.name.match(/-?\d+$/);
+    if (match) {
+      const octave = parseInt(match[0], 10);
+      
+      // F -> E# (same octave)
+      if (note.pitchClass === 'F') {
+        notesByName[`E#${octave}`] = note.midi;
+        // Default pitch-class mapping (no octave) map to octave 4 (E# -> E#4)
+        if (octave === 4) {
+          notesByName['E#'] = note.midi;
+        }
+      }
+      // E -> Fb (same octave)
+      else if (note.pitchClass === 'E') {
+        notesByName[`Fb${octave}`] = note.midi;
+        // Default pitch-class mapping (no octave) map to octave 4 (Fb -> Fb4)
+        if (octave === 4) {
+          notesByName['Fb'] = note.midi;
+        }
+      }
+      // C -> B# (previous octave)
+      else if (note.pitchClass === 'C') {
+        notesByName[`B#${octave - 1}`] = note.midi;
+        // Default pitch-class mapping (no octave) map B# to match C4 -> B#3 (use when octave === 4)
+        if (octave === 4) {
+          notesByName['B#'] = note.midi;
+        }
+      }
+      // B -> Cb (next octave)
+      else if (note.pitchClass === 'B') {
+        notesByName[`Cb${octave + 1}`] = note.midi;
+        // Default pitch-class mapping (no octave) map to Cb -> Cb4 (when B3 produced)
+        if (octave === 3) {
+          notesByName['Cb'] = note.midi;
+        }
+      }
+    }
   });
 
   return {
@@ -124,6 +163,8 @@ const buildNoteData = () => {
     ALL_NOTE_INFO: ALL_NOTE_INFO,
   };
 };
+
+
 
 const {
   NOTES_BY_MIDI,

@@ -13,6 +13,7 @@ export const pianoState = {
     keyBoardMode: 1, // 0: Basic, 1: Expanded
     showSettings: 0,
     verboseLogs: true,
+    stickyHighlights: false,
 
     isDragging: false,
     currentlyPlayingKeys: new Set(), // Track drag-playing keys
