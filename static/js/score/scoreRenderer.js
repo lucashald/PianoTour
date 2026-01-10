@@ -1033,7 +1033,6 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
             border-radius: 50%;
             width: 48px;
             height: 48px;
-            overflow: hidden;
             z-index: 1;
           ">
             <img class="preview-note-img" src="" alt="" style="
@@ -1108,7 +1107,6 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
             border-radius: 50%;
             width: 48px;
             height: 48px;
-            overflow: hidden;
             z-index: 2;
           ">
             <img class="preview-note-img" src="" alt="" style="
