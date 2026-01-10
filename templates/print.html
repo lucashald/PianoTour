@@ -3,180 +3,355 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piano Tour - Print Score</title>
-    
-    <!-- VexFlow and external dependencies -->
+    <title>Print Score - Piano Tour</title>
+
+    <!-- VexFlow Library -->
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
+
+    <style>
+        /* ==========================================================================
+           Print-Optimized Styles
+           ========================================================================== */
+
+        /* Base Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: white;
+            color: black;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Page container for screen preview */
+        .page-container {
+            max-width: 8.5in;
+            margin: 0 auto;
+            background: white;
+            padding: 0.75in;
+            min-height: 11in;
+        }
+
+        /* Header Section */
+        .score-header {
+            margin-bottom: 0.5in;
+            border-bottom: 2px solid #000;
+            padding-bottom: 0.25in;
+        }
+
+        .score-title {
+            font-size: 24pt;
+            font-weight: bold;
+            margin-bottom: 8pt;
+            text-align: center;
+            border: 1px dashed transparent;
+            padding: 4px;
+            cursor: text;
+        }
+
+        .score-title:hover {
+            border-color: #ccc;
+        }
+
+        .score-title:focus {
+            outline: 2px solid #297B51;
+            border-color: #297B51;
+        }
+
+        .score-metadata {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11pt;
+            margin-top: 8pt;
+        }
+
+        .metadata-left,
+        .metadata-center,
+        .metadata-right {
+            flex: 1;
+        }
+
+        .metadata-center {
+            text-align: center;
+        }
+
+        .metadata-right {
+            text-align: right;
+        }
+
+        /* Score Content */
+        .score-content {
+            margin: 0.25in 0;
+        }
+
+        /* System (line of music) container */
+        .score-system {
+            margin-bottom: 0.2in;
+            page-break-inside: avoid;
+        }
+
+        .score-system svg {
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Individual score SVG */
+        #score {
+            width: 100%;
+            overflow: visible;
+        }
+
+        /* Footer */
+        .score-footer {
+            margin-top: 0.5in;
+            padding-top: 0.25in;
+            border-top: 1px solid #666;
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+        }
+
+        /* Loading/Error States */
+        .message {
+            padding: 1in;
+            text-align: center;
+            font-size: 14pt;
+        }
+
+        .error {
+            color: #c00;
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
+            .page-container {
+                max-width: 100%;
+                margin: 0;
+                padding: 0.5in;
+            }
+
+            .score-system {
+                page-break-inside: avoid;
+            }
+
+            /* Force page breaks between pages if needed */
+            .page-break {
+                page-break-before: always;
+            }
+
+            /* Hide elements not needed in print */
+            .no-print {
+                display: none !important;
+            }
+
+            @page {
+                size: letter portrait;
+                margin: 0.5in;
+            }
+        }
+
+        /* Screen-only controls */
+        .print-controls {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .print-btn {
+            background: #297B51;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+
+        .print-btn:hover {
+            background: #1f5f3d;
+        }
+
+        .print-btn.secondary {
+            background: #666;
+        }
+
+        .print-btn.secondary:hover {
+            background: #444;
+        }
+
+        @media print {
+            .print-controls {
+                display: none;
+            }
+
+            .score-title {
+                border: none !important;
+                cursor: default;
+            }
+
+            .score-title:hover {
+                border-color: transparent;
+            }
+        }
+    </style>
 </head>
 <body>
-    
-    <div id="piano-section" class="score-section" style="display: none;">
-        <div class="section-header">
-            <h2>Piano Score</h2>
-        </div>
-        <div id="piano-score" class="score-container"></div>
+    <!-- Print Controls (hidden when printing) -->
+    <div class="print-controls no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ Print</button>
+        <button class="print-btn secondary" onclick="window.close()">✕ Close</button>
     </div>
-    
-    <div id="drum-section" class="score-section" style="display: none;">
-        <div class="section-header">
-            <h2>Drum Score</h2>
+
+    <!-- Page Container -->
+    <div class="page-container">
+        <!-- Header -->
+        <div class="score-header">
+            <h1 class="score-title" id="scoreTitle" contenteditable="true">Piano Score</h1>
+            <div class="score-metadata">
+                <div class="metadata-left">
+                    <div id="scoreComposer"></div>
+                    <div id="scoreDate"></div>
+                </div>
+                <div class="metadata-center">
+                    <div id="scoreKeySignature"></div>
+                    <div id="scoreTimeSignature"></div>
+                </div>
+                <div class="metadata-right">
+                    <div id="scoreTempo"></div>
+                    <div id="scoreMeasureCount"></div>
+                </div>
+            </div>
         </div>
-        <div id="drum-score" class="score-container"></div>
+
+        <!-- Score Content -->
+        <div class="score-content" id="scoreContent">
+            <div class="message">Loading score...</div>
+        </div>
+
+        <!-- Footer -->
+        <div class="score-footer">
+            <div>Created with Piano Tour • <span id="printDate"></span></div>
+        </div>
     </div>
 
     <script type="module">
-        // Import piano modules
-        import { 
-            getMeasures as getPianoMeasures, 
-            processAndSyncScore as processAndSyncPianoScore 
-        } from '/static/js/score/scoreWriter.js';
+        // Import necessary modules from existing codebase
+        import { pianoState } from '/static/js/core/appState.js';
+        import { drawAllPrint } from '/static/js/score/printRenderer.js';
+        import { processAndSyncScore } from '/static/js/score/scoreWriter.js';
 
-        // Import drum modules
-        import { 
-            getDrumMeasures, 
-            processAndSyncScore as processAndSyncDrumScore,
-            AUTOSAVE_KEY as DRUM_AUTOSAVE_KEY
-        } from '/static/js/drums/drumsScoreWriter.js';
-
-        import { UniversalMusicRenderer } from '/static/js/classes/UniversalMusicRenderer.js';
-        import { pianoState, drumsState } from '/static/js/core/appState.js';
-
-        const PIANO_AUTOSAVE_KEY = 'autosavedScore';
-
-        // Function to render piano score for printing
-        function renderPrintPianoScore(measuresData) {
-            console.log("Rendering piano score for printing...");
-            
-            if (!measuresData || measuresData.length === 0) {
-                console.warn("No piano measures to render");
-                return false;
-            }
-
-            const renderer = new UniversalMusicRenderer('piano-score', {
-                instrumentType: 'piano',
-                measuresPerSystem: 3,
-                measureWidth: 350,
-                showTablature: false,
-                timeSignature: pianoState.timeSignature,
-                tempo: pianoState.tempo,
-                keySignature: pianoState.keySignature || 'C'
-            });
-
+        // Load score data from localStorage
+        function loadScoreData() {
             try {
-                renderer.render(measuresData);
-                console.log("Piano score rendered successfully for printing");
-                return true;
+                const savedScoreJSON = localStorage.getItem('autosavedScore');
+
+                if (!savedScoreJSON) {
+                    showError('No saved score found. Please create a score in the editor first.');
+                    return null;
+                }
+
+                const savedData = JSON.parse(savedScoreJSON);
+
+                // Handle both array format and object format
+                const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+
+                if (!measures || !Array.isArray(measures) || measures.length === 0) {
+                    showError('Score data is empty or invalid.');
+                    return null;
+                }
+
+                return {
+                    measures: measures,
+                    keySignature: savedData.keySignature || 'C',
+                    timeSignature: savedData.timeSignature || { numerator: 4, denominator: 4 },
+                    tempo: savedData.tempo || 120,
+                    title: savedData.title || 'Untitled',
+                    composer: savedData.composer || '',
+                    enableBeaming: savedData.enableBeaming !== false, // Default to true
+                };
             } catch (error) {
-                console.error("❌ Error rendering piano score:", error);
-                document.getElementById('piano-score').innerHTML = 
-                    '<div class="error">Error rendering piano score: ' + error.message + '</div>';
-                return false;
+                console.error('Error loading score:', error);
+                showError('Failed to load score data: ' + error.message);
+                return null;
             }
         }
 
-        // Function to render drum score for printing
-        function renderPrintDrumScore(measuresData) {
-            console.log("Rendering drum score for printing...");
-            
-            if (!measuresData || measuresData.length === 0) {
-                console.warn("No drum measures to render");
-                return false;
+        // Display metadata in header
+        function displayMetadata(scoreData) {
+            document.getElementById('scoreTitle').textContent = scoreData.title || 'Piano Score';
+
+            if (scoreData.composer) {
+                document.getElementById('scoreComposer').textContent = 'Composer: ' + scoreData.composer;
             }
 
-            const renderer = new UniversalMusicRenderer('drum-score', {
-                instrumentType: 'drums',
-                measuresPerSystem: 4,
-                measureWidth: 320,
-                showTablature: false,
-                timeSignature: drumsState.timeSignature,
-                tempo: drumsState.tempo,
-                keySignature: drumsState.keySignature || 'C'
-            });
+            const keyDisplay = scoreData.keySignature || 'C Major';
+            document.getElementById('scoreKeySignature').textContent = 'Key: ' + keyDisplay;
 
-            try {
-                renderer.render(measuresData);
-                console.log("Drum score rendered successfully for printing");
-                return true;
-            } catch (error) {
-                console.error("❌ Error rendering drum score:", error);
-                document.getElementById('drum-score').innerHTML = 
-                    '<div class="error">Error rendering drum score: ' + error.message + '</div>';
-                return false;
-            }
+            const timeNumerator = scoreData.timeSignature?.numerator || 4;
+            const timeDenominator = scoreData.timeSignature?.denominator || 4;
+            document.getElementById('scoreTimeSignature').textContent = `Time: ${timeNumerator}/${timeDenominator}`;
+
+            document.getElementById('scoreTempo').textContent = `♩ = ${scoreData.tempo || 120} BPM`;
+            document.getElementById('scoreMeasureCount').textContent = `${scoreData.measures.length} measure${scoreData.measures.length !== 1 ? 's' : ''}`;
+
+            const now = new Date();
+            document.getElementById('printDate').textContent = now.toLocaleDateString();
         }
 
-        // Load and render both scores from localStorage
-        document.addEventListener("DOMContentLoaded", () => {
-            console.log("Print page loaded, attempting to load piano and drum scores...");
+        // Show error message
+        function showError(message) {
+            const scoreContent = document.getElementById('scoreContent');
+            scoreContent.innerHTML = `<div class="message error">${message}</div>`;
+        }
 
-            let pianoLoaded = false;
-            let drumLoaded = false;
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🖨️ Print page loading...');
 
-            // Load Piano Score
-            const savedPianoScoreJSON = localStorage.getItem(PIANO_AUTOSAVE_KEY);
-            if (savedPianoScoreJSON) {
-                try {
-                    const savedData = JSON.parse(savedPianoScoreJSON);
-                    const measures = Array.isArray(savedData) ? savedData : savedData.measures;
+            const scoreData = loadScoreData();
 
-                    if (processAndSyncPianoScore(measures)) {
-                        // Apply piano-specific settings if saved data is in new format
-                        if (!Array.isArray(savedData)) {
-                            pianoState.keySignature = savedData.keySignature || 'C';
-                            pianoState.isMinorChordMode = savedData.isMinorChordMode || false;
-                            pianoState.tempo = savedData.tempo || 120;
-                            pianoState.timeSignature = savedData.timeSignature || { numerator: 4, denominator: 4 };
-                        }
+            if (scoreData) {
+                // Update pianoState with loaded data
+                pianoState.keySignature = scoreData.keySignature;
+                pianoState.timeSignature = scoreData.timeSignature;
+                pianoState.tempo = scoreData.tempo;
+                pianoState.enableBeaming = scoreData.enableBeaming;
 
-                        pianoLoaded = renderPrintPianoScore(getPianoMeasures());
-                        if (pianoLoaded) {
-                            document.getElementById('piano-section').style.display = 'block';
-                        }
+                // Process and sync the score data
+                if (processAndSyncScore(scoreData.measures)) {
+                    displayMetadata(scoreData);
+
+                    // Render using the print renderer (which will use scoreRenderer under the hood)
+                    try {
+                        await drawAllPrint('scoreContent', scoreData.measures);
+                        console.log('✅ Score rendered successfully');
+
+                        // Optional: Auto-open print dialog after a short delay
+                        // setTimeout(() => window.print(), 1000);
+                    } catch (error) {
+                        console.error('Error rendering score:', error);
+                        showError('Failed to render score: ' + error.message);
                     }
-                } catch (e) {
-                    console.error("Failed to parse piano score:", e);
+                } else {
+                    showError('Invalid score data format.');
                 }
-            }
-
-            // Load Drum Score
-            const savedDrumScoreJSON = localStorage.getItem(DRUM_AUTOSAVE_KEY);
-            if (savedDrumScoreJSON) {
-                try {
-                    const savedData = JSON.parse(savedDrumScoreJSON);
-                    const measures = Array.isArray(savedData) ? savedData : savedData.measures;
-
-                    if (processAndSyncDrumScore(measures)) {
-                        // Apply drum-specific settings if saved data is in new format
-                        if (!Array.isArray(savedData)) {
-                            drumsState.tempo = savedData.tempo || 120;
-                            drumsState.timeSignature = savedData.timeSignature || { numerator: 4, denominator: 4 };
-                        }
-
-                        drumLoaded = renderPrintDrumScore(getDrumMeasures());
-                        if (drumLoaded) {
-                            document.getElementById('drum-section').style.display = 'block';
-                        }
-                    }
-                } catch (e) {
-                    console.error("Failed to parse drum score:", e);
-                }
-            }
-
-            // Handle cases where no scores were loaded
-            if (!pianoLoaded && !drumLoaded) {
-                document.body.innerHTML = `
-                    <div class="no-scores">
-                        <h2>No scores to print</h2>
-                        <p>Please create a piano or drum score in the main application first.</p>
-                        <a href="/" class="back-button">← Back to Piano</a>
-                        <a href="/drums" class="back-button">← Back to Drums</a>
-                    </div>`;
-            } else {
-                // Update page title based on what's available
-                let titleParts = [];
-                if (pianoLoaded) titleParts.push('Piano');
-                if (drumLoaded) titleParts.push('Drums');
             }
         });
     </script>
