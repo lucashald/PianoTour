@@ -34,8 +34,8 @@ export async function drawAllPrint(containerId, measures) {
     return;
   }
 
-  // Ensure all notes have chordName populated
-  populateChordNames(measures);
+  // Ensure all notes have chordName populated (use short symbol form for annotations)
+  populateChordNames(measures, true);
 
   if (typeof Vex === 'undefined' || !Vex.Flow) {
     console.error('drawAllPrint: VexFlow library not loaded.');
@@ -66,8 +66,8 @@ export async function drawAllPrint(containerId, measures) {
     container.appendChild(systemDiv);
 
     try {
-      // Create VexFlow factory for this system
-      const systemWidth = MEASURE_WIDTH * measuresInThisSystem + 40;
+      // Always use full line width so partial systems have proper note spacing
+      const systemWidth = MEASURE_WIDTH * MEASURES_PER_LINE + 40;
       const factory = new Vex.Flow.Factory({
         renderer: {
           elementId: systemDiv.id,
@@ -181,11 +181,14 @@ export async function drawAllPrint(containerId, measures) {
         const bassVoice = score.voice(bassVexNotes).setStrict(false);
         allVoices.push(trebleVoice, bassVoice);
 
-        // Create system
+        // Create system — use full line width for partial systems
+        const effectiveMeasureWidth = measuresInThisSystem < MEASURES_PER_LINE
+          ? MEASURE_WIDTH * MEASURES_PER_LINE
+          : MEASURE_WIDTH;
         const system = factory.System({
           x: currentX,
           y: SYSTEM_Y_START,
-          width: MEASURE_WIDTH,
+          width: effectiveMeasureWidth,
           spaceBetweenStaves: 10,
         });
 
