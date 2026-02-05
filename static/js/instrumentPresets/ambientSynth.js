@@ -10,7 +10,7 @@ export default {
     vibratoAmount: 0,
     harmonicity: 1,
     voice0: {
-      volume: -11, // -1dB relative to base
+      volume: -2,
       oscillator: {
         type: 'sine',
       },
@@ -19,10 +19,10 @@ export default {
         Q: 1,
       },
       envelope: {
-        attack: 0.963,
-        decay: 0.625,
-        sustain: 0.926,
-        release: 0.599,
+        attack: 0.6,
+        decay: 0.4,
+        sustain: 0.6,
+        release: 0.4,
       },
       filterEnvelope: {
         attack: 0.008,

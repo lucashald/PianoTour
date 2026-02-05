@@ -10,7 +10,7 @@ export default {
     vibratoAmount: 0,
     harmonicity: 1,
     voice0: {
-      volume: -10, // Base volume adjusted to avoid clipping
+      volume: -2,
       oscillator: {
         type: 'square',
       },
