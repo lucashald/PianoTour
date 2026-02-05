@@ -1105,7 +1105,7 @@ export function resetScore() {
     // Save the initial empty state so the first note can be undone
     saveStateToHistory();
 
-    localStorage.removeItem(AUTOSAVE_KEY);
+    saveToLocalStorage();
     updateNowPlayingDisplay('');
     drawAll(measuresData);
 }
@@ -1142,6 +1142,8 @@ export function processAndSyncScore(loadedData) {
         history.length = 0;
         // Save the loaded state as the initial state for undo
         saveStateToHistory();
+
+        saveToLocalStorage();
 
         return true;
 
