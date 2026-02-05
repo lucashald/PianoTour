@@ -6,8 +6,10 @@ import { pianoState } from "../core/appState.js";
 import {
   getCurrentVexFlowKeySignature,
 } from "../core/note-data.js";
+import { populateChordNames } from "./scoreWriter.js";
 
 // Print layout constants
+const displayChordName = true;
 const MEASURES_PER_LINE = 2;
 const MEASURE_WIDTH = 340; // Match scoreRenderer.js measure width
 const SYSTEM_HEIGHT = 250;
@@ -31,6 +33,9 @@ export async function drawAllPrint(containerId, measures) {
     container.innerHTML = '<div class="message">No measures to render.</div>';
     return;
   }
+
+  // Ensure all notes have chordName populated
+  populateChordNames(measures);
 
   if (typeof Vex === 'undefined' || !Vex.Flow) {
     console.error('drawAllPrint: VexFlow library not loaded.');
@@ -108,6 +113,26 @@ export async function drawAllPrint(containerId, measures) {
 
         const trebleVexNotes = score.notes(trebleSpec, { clef: 'treble' });
         const bassVexNotes = score.notes(bassSpec, { clef: 'bass' });
+
+        // Add chord name annotations
+        if (displayChordName) {
+          trebleNotesData.forEach((noteData, idx) => {
+            if (noteData.chordName && trebleVexNotes[idx]) {
+              const annotation = new Vex.Flow.Annotation(noteData.chordName)
+                .setFont({ family: 'Arial', size: 12, weight: 'bold' })
+                .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.BOTTOM);
+              trebleVexNotes[idx].addModifier(annotation, 0);
+            }
+          });
+          bassNotesData.forEach((noteData, idx) => {
+            if (noteData.chordName && bassVexNotes[idx]) {
+              const annotation = new Vex.Flow.Annotation(noteData.chordName)
+                .setFont({ family: 'Arial', size: 12, weight: 'bold' })
+                .setVerticalJustification(Vex.Flow.Annotation.VerticalJustify.BOTTOM);
+              bassVexNotes[idx].addModifier(annotation, 0);
+            }
+          });
+        }
 
         vexflowNoteMap[absoluteMeasureIndex].treble = trebleVexNotes;
         vexflowNoteMap[absoluteMeasureIndex].bass = bassVexNotes;

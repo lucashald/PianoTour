@@ -1011,6 +1011,22 @@ export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, noteData
 }
 
 /**
+ * Populates or corrects the chordName field on every note in the given measures.
+ * Uses identifyChordStrict to identify chords; falls back to the note's name.
+ * @param {Array} [measures] - Array of measures to process. Defaults to internal measuresData.
+ */
+export function populateChordNames(measures) {
+    const target = measures || measuresData;
+    target.forEach(measure => {
+        if (!Array.isArray(measure)) return;
+        measure.forEach((note, i) => {
+            const updated = applyChordNameGeneration(note);
+            measure[i] = updated;
+        });
+    });
+}
+
+/**
  * Applies chord name generation logic
  */
 function applyChordNameGeneration(noteData) {
@@ -1102,6 +1118,9 @@ export function processAndSyncScore(loadedData) {
     try {
         measuresData = JSON.parse(JSON.stringify(loadedData));
         currentIndex = measuresData.length > 0 ? measuresData.length - 1 : 0;
+
+        // Populate or correct chordName on every note
+        populateChordNames();
 
         // Validate and restore ties from loaded data
         validateAndRestoreTies();
