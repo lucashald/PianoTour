@@ -567,7 +567,7 @@ function buildNoteContextMenu(menu, detail) {
         placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { isRest: newIsRest });
         renderNoteEditBox(false);
     });
-    addMenuItem(menu, 'Toggle Clef', () => {
+    addMenuItem(menu, 'Change Clef', () => {
         placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { clef: note.clef === 'treble' ? 'bass' : 'treble' });
         renderNoteEditBox(false);
     });
@@ -606,6 +606,17 @@ function buildNoteContextMenu(menu, detail) {
         const result = addNoteToMeasure(editorSelectedMeasureIndex, newNote, insertBeforeId);
         if (result) handleEditorNoteSelectClick(result.measureIndex, result.clef, result.noteId);
     });
+
+    addSeparator(menu);
+
+    // Duration submenu (opens upward since it's at the bottom)
+    addSubmenu(menu, 'Duration', DURATIONS.map(d => ({
+        label: d.name + (d.key === note.duration ? ' ✓' : ''),
+        action: () => {
+            updateNoteInMeasure(editorSelectedMeasureIndex, note.id, { duration: d.key });
+            renderNoteEditBox(false);
+        }
+    })), { openUp: true });
 }
 
 /**
@@ -665,7 +676,7 @@ function addSeparator(menu) {
  * @param {string} label - Submenu trigger label.
  * @param {Array<{label: string, action: Function}>} items - Submenu items.
  */
-function addSubmenu(menu, label, items) {
+function addSubmenu(menu, label, items, options = {}) {
     const wrapper = document.createElement('div');
     wrapper.className = 'editor-context-menu__submenu-wrapper';
 
@@ -676,6 +687,7 @@ function addSubmenu(menu, label, items) {
 
     const submenu = document.createElement('div');
     submenu.className = 'editor-context-menu__submenu';
+    if (options.openUp) submenu.classList.add('editor-context-menu__submenu--open-up');
 
     items.forEach(({ label: itemLabel, action }) => {
         const item = document.createElement('div');
@@ -716,15 +728,21 @@ function showContextMenu(clientX, clientY, menu) {
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
 
-    // Check submenus for right-edge overflow and flip if needed
+    // Check submenus for edge overflow and adjust positioning
     const submenus = menu.querySelectorAll('.editor-context-menu__submenu');
     submenus.forEach(sub => {
         // Temporarily show to measure
         sub.style.display = 'block';
         const subRect = sub.getBoundingClientRect();
         sub.style.display = '';
+        // Flip horizontally if it goes off the right edge
         if (subRect.right > window.innerWidth) {
             sub.classList.add('editor-context-menu__submenu--flip-left');
+        }
+        // Shift up if it goes below the viewport
+        if (subRect.bottom > window.innerHeight) {
+            const overflow = subRect.bottom - window.innerHeight + 8;
+            sub.style.top = `${-4 - overflow}px`;
         }
     });
 

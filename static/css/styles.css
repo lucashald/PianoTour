@@ -2355,6 +2355,8 @@ background: linear-gradient(to right,
   min-width: 180px;
   padding: 4px 0;
   display: none;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
 }
 
 /* Invisible hover bridge spanning the gap between menu and submenu */
@@ -2376,6 +2378,12 @@ background: linear-gradient(to right,
 .editor-context-menu__submenu--flip-left::before {
   right: auto;
   left: 100%;
+}
+
+/* Open submenu upward (anchored to bottom of trigger) */
+.editor-context-menu__submenu--open-up {
+  top: auto;
+  bottom: -4px;
 }
 
 .editor-context-menu__submenu-wrapper:hover > .editor-context-menu__submenu {
