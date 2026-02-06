@@ -9,7 +9,8 @@ import {
 import { populateChordNames } from "./scoreWriter.js";
 
 // Print layout constants
-const displayChordName = true;
+export let displayChordName = true;
+export function setDisplayChordName(value) { displayChordName = value; }
 const MEASURES_PER_LINE = 2;
 const MEASURE_WIDTH = 340; // Match scoreRenderer.js measure width
 const SYSTEM_HEIGHT = 250;

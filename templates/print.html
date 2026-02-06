@@ -216,6 +216,7 @@
     <!-- Print Controls (hidden when printing) -->
     <div class="print-controls no-print">
         <button class="print-btn" onclick="window.print()">🖨️ Print</button>
+        <button class="print-btn secondary" id="toggleAnnotationsBtn">Annotations: On</button>
         <button class="print-btn secondary" onclick="window.close()">✕ Close</button>
     </div>
 
@@ -254,7 +255,7 @@
     <script type="module">
         // Import necessary modules from existing codebase
         import { pianoState } from '/static/js/core/appState.js';
-        import { drawAllPrint } from '/static/js/score/printRenderer.js';
+        import { drawAllPrint, displayChordName, setDisplayChordName } from '/static/js/score/printRenderer.js';
         import { processAndSyncScore } from '/static/js/score/scoreWriter.js';
 
         // Load score data from localStorage
@@ -322,12 +323,16 @@
         }
 
         // Initialize on page load
+        let loadedScoreData = null;
+
         document.addEventListener('DOMContentLoaded', async () => {
             console.log('🖨️ Print page loading...');
 
             const scoreData = loadScoreData();
 
             if (scoreData) {
+                loadedScoreData = scoreData;
+
                 // Update pianoState with loaded data
                 pianoState.keySignature = scoreData.keySignature;
                 pianoState.timeSignature = scoreData.timeSignature;
@@ -353,6 +358,16 @@
                     showError('Invalid score data format.');
                 }
             }
+
+            // Toggle annotations button
+            const toggleBtn = document.getElementById('toggleAnnotationsBtn');
+            toggleBtn.addEventListener('click', async () => {
+                setDisplayChordName(!displayChordName);
+                toggleBtn.textContent = displayChordName ? 'Annotations: On' : 'Annotations: Off';
+                if (loadedScoreData) {
+                    await drawAllPrint('scoreContent', loadedScoreData.measures);
+                }
+            });
         });
     </script>
 </body>
