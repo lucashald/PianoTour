@@ -474,5 +474,113 @@ Submenus (Transpose, Ties & Slurs) appear on hover, positioned to the right of t
 - **Slur mode active:** If `slurMode` is true, the context menu should either not appear or show a "Cancel Slur" option
 - **No note selected after right-click on empty area:** Don't show note-specific items
 - **Multiple menus:** Always remove existing menu before showing a new one
-- **Touch devices:** Context menu should not interfere with long-press behavior (can be addressed later if needed)
+- **Touch devices:** See the Mobile Support section below for full details.
 - **`renderNoteEditBox()` on `/` route:** This function populates the sidebar note lists. When called from `initializeScoreInteraction()` on a route without `#editorContainer`, it should either be skipped or handle the missing DOM gracefully. The simplest approach: check for `document.getElementById('editorContainer')` before calling it.
+
+---
+
+## Mobile Support
+
+### Current State
+
+The score interaction in `scoreRenderer.js` (lines 552-654) uses exclusively **mouse events** (`mousedown`, `mousemove`, `mouseup`). There are no `touchstart`/`touchmove`/`touchend` listeners on the score element. The piano keys use `pointerdown`/`pointermove` (which handle touch), but the score does not.
+
+This means on mobile today, you cannot click notes or drag them on the score — even on the `/editor` route. The sidebar buttons work (standard DOM elements), but direct score interaction is mouse-only.
+
+### Impact of the Context Menu Plan on Mobile
+
+The `contextmenu` event behaves inconsistently on mobile:
+
+- **Android Chrome/Firefox:** Long-press fires `contextmenu` after ~500ms, but the underlying `mousedown`/`mouseup` detection doesn't work on touch, so the score can't detect what was pressed.
+- **iOS Safari:** Long-press triggers the native text selection / callout menu. The `contextmenu` event is **not reliably fired**, and `preventDefault()` doesn't suppress the native callout.
+
+The context menu changes won't break anything on mobile (the score is already non-interactive there), but they also won't work without additional touch support.
+
+### Steps Required for Mobile Support
+
+#### Mobile Step 1: Migrate Score Interaction to Pointer Events (Prerequisite)
+
+`enableScoreInteraction()` in `scoreRenderer.js` (line 528) needs to handle touch. The simplest approach is to switch from mouse events to **pointer events**, matching the pattern already used for piano keys in `listenerManager.js` (lines 115-116). Pointer events unify mouse and touch into one API.
+
+**Changes to `scoreRenderer.js`:**
+
+| Current (mouse-only) | New (pointer, unified) |
+|----------------------|----------------------|
+| `mousedown` (line 553) | `pointerdown` |
+| `mousemove` (line 568) | `pointermove` |
+| `mouseup` (line 615) | `pointerup` |
+
+Additional requirements:
+- Add `touch-action: none` CSS on the score element to prevent browser scroll/zoom interference
+- Guard `event.button !== 0` checks to only apply for mouse pointer types (`event.pointerType === 'mouse'`)
+- The drag threshold (`DRAG_THRESHOLD`) may need to increase for touch since fingers are less precise than cursors
+
+This step has **shared benefit** beyond context menus — it enables all score interaction on mobile (clicking, dragging, selecting).
+
+#### Mobile Step 2: Long-Press Timer for Context Menu Trigger
+
+Since `contextmenu` isn't reliable on mobile (especially iOS), implement a manual long-press timer:
+
+```javascript
+let longPressTimer = null;
+const LONG_PRESS_DURATION = 500; // ms
+
+scoreElement.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === 'touch') {
+        longPressTimer = setTimeout(() => {
+            const rect = scoreElement.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            const noteTarget = detectNoteClick(x, y);
+            const measureIndex = detectMeasureClick(x, y);
+
+            document.dispatchEvent(new CustomEvent('scoreContextMenu', {
+                detail: { clientX: event.clientX, clientY: event.clientY, noteTarget, measureIndex }
+            }));
+        }, LONG_PRESS_DURATION);
+    }
+});
+
+scoreElement.addEventListener("pointermove", () => clearTimeout(longPressTimer));
+scoreElement.addEventListener("pointerup", () => clearTimeout(longPressTimer));
+scoreElement.addEventListener("pointercancel", () => clearTimeout(longPressTimer));
+```
+
+This integrates with the existing `scoreContextMenu` custom event, so the same context menu build/show logic handles both desktop right-click and mobile long-press.
+
+#### Mobile Step 3: CSS Touch Adjustments
+
+| CSS Change | Why |
+|-----------|-----|
+| `-webkit-touch-callout: none` on score element | Suppress native iOS callout on long-press |
+| `touch-action: none` on score element | Prevent scroll/zoom during score interaction |
+| Menu items minimum 44x44px tap targets | Apple HIG / Material Design touch guidelines |
+| Position menu **above** touch point | Prevent finger from covering the menu |
+
+#### Mobile Step 4: Gesture Disambiguation (Tap vs Long-Press vs Drag)
+
+On touch, three gestures must be distinguished on the same element:
+
+| Gesture | Duration | Movement | Action |
+|---------|----------|----------|--------|
+| **Tap** | Short (< 500ms) | None | Select note / select measure |
+| **Long-press** | Hold >= 500ms | None | Show context menu |
+| **Drag** | Any | Beyond threshold | Move note to new position |
+
+The long-press timer must be cancelled if the user starts dragging (movement exceeds threshold). The existing drag threshold logic in `scoreRenderer.js` (lines 576-588) already handles tap-vs-drag — the long-press timer adds a third branch.
+
+#### Mobile Step 5: Submenu UX Change
+
+Submenus that open on `:hover` don't work on touch. On touch devices, submenus should **tap-to-expand** instead. This can be handled by detecting `pointerType` when the menu is shown and binding `click` instead of `mouseenter` for submenu triggers on touch.
+
+### Mobile Implementation Effort Summary
+
+| Step | Scope | Benefit |
+|------|-------|---------|
+| Pointer events migration | Moderate — update ~6 event listeners in `enableScoreInteraction()` | Enables **all** score interaction on mobile (clicking, dragging, selecting) |
+| Long-press timer | Small — ~20 lines in `scoreRenderer.js` | Mobile context menu trigger |
+| CSS touch adjustments | Small — a few CSS rules | Suppress native callouts, proper tap targets |
+| Gesture disambiguation | Moderate — adjust existing drag/click logic | Clean tap / long-press / drag interaction model |
+| Submenu UX | Small — conditional event binding | Submenus usable on touch |
+
+The pointer events migration (Step 1) is the largest piece and is valuable independently — it would make the entire editor usable on tablets and phones, not just the context menu.
