@@ -112,6 +112,9 @@ export function addAdvancedInstrumentListeners() {
     return;
   }
 
+  // Prevent browser scroll/zoom when touching the piano
+  pianoState.svg.style.touchAction = "none";
+
   pianoState.svg.addEventListener("pointerdown", handleKeyPointerDown);
   pianoState.svg.addEventListener("pointermove", handlePointerMove);
   pianoState.svg.addEventListener("selectstart", (e) => e.preventDefault());

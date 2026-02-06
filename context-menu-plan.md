@@ -1,3 +1,19 @@
+Mobile implementation changes made:
+
+Changes to scoreRenderer.js
+Migrated to Pointer Events — Replaced all three mouse event listeners:
+
+mousedown → pointerdown (line 559)
+mousemove → pointermove (line 575)
+mouseup → pointerup (line 622)
+Guarded event.button check — The event.button !== 0 guard now only applies when event.pointerType === 'mouse', so touch/pen interactions aren't rejected (line 560)
+
+Touch-aware drag threshold — Added DRAG_THRESHOLD_TOUCH = 15 (vs 5 for mouse) and the threshold is selected dynamically based on activePointerType (lines 89-90, line 589)
+
+touch-action: none — Applied on the score element to prevent browser scroll/zoom interference during touch interactions (line 537)
+
+These changes unify mouse and touch input through the Pointer Events API, enabling all score interactions (clicking, dragging, selecting) on touch devices.
+
 # Right-Click Context Menu Implementation Plan
 
 ## Overview
@@ -2678,13 +2694,3 @@ Read scoreEditor.js (lines 1311-1335)
 Edit scoreEditor.js
 Added 2 lines
 Fixed. The scoreContextMenu handler now checks if the right-clicked note is already selected (editorSelectedNoteId !== noteTarget.noteId). If it's already selected, it skips the call to handleEditorNoteSelectClick() which would have toggled it off, so the context menu items will work correctly against the selected note.
-
-There is a small gap between the context menu and the sub-menus which can sometimes cause the entire menu to disappear as the mouse goes between them.
-Grep "editor-context-menu__submenu" (in /workspaces/PianoTour/static/css/styles.css)
-4 lines of output
-Read styles.css (lines 2343-2374)
-The margin-left: 2px gap is the problem. I'll remove the visual gap and use a transparent padding bridge on the submenu instead so the hover area is continuous.
-
-Edit styles.css
-Added 4 lines
-You've hit your limit · resets 8pm (UTC)

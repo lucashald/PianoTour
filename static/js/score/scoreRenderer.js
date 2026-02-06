@@ -85,7 +85,8 @@ let vexflowBeams = []; // Store beams for each measure
 let tieGroups = []; // Store tie information for drawing
 
 // Drag threshold to differentiate between click and drag
-const DRAG_THRESHOLD = 5; // pixels
+const DRAG_THRESHOLD = 5; // pixels (mouse)
+const DRAG_THRESHOLD_TOUCH = 15; // pixels (touch — fingers are less precise)
 
 // Staff position to note mappings
 // Positions are numbered from top (0) to bottom, including ledger lines
@@ -532,10 +533,14 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     return;
   }
 
+  // Prevent browser default touch gestures (scroll/zoom) on the score
+  scoreElement.style.touchAction = "none";
+
   let mouseDownInitialPos = null;
   let mouseDownNoteTarget = null;
   let hasMouseMovedSinceMousedown = false;
   let isDraggingInitiated = false;
+  let activePointerType = null;
 
   // Cleanup function
   function resetDragState() {
@@ -543,15 +548,16 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     mouseDownNoteTarget = null;
     hasMouseMovedSinceMousedown = false;
     isDraggingInitiated = false;
+    activePointerType = null;
     isDragging = false;
     draggedNote = null;
     scoreElement.style.cursor = "default";
     clearDragPreview();
   }
 
-  // Mouse Down
-  scoreElement.addEventListener("mousedown", (event) => {
-    if (event.button !== 0) return;
+  // Pointer Down (unified mouse + touch)
+  scoreElement.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.preventDefault();
 
     const rect = scoreElement.getBoundingClientRect();
@@ -562,10 +568,11 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     mouseDownNoteTarget = detectNoteClick(x, y);
     hasMouseMovedSinceMousedown = false;
     isDraggingInitiated = false;
+    activePointerType = event.pointerType;
   });
 
-  // Mouse Move
-  scoreElement.addEventListener("mousemove", (event) => {
+  // Pointer Move (unified mouse + touch)
+  scoreElement.addEventListener("pointermove", (event) => {
     if (!mouseDownInitialPos) return;
 
     const rect = scoreElement.getBoundingClientRect();
@@ -579,7 +586,8 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
         Math.pow(currentY - mouseDownInitialPos.y, 2)
       );
       
-      if (distance > DRAG_THRESHOLD && mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
+      const threshold = activePointerType === 'touch' ? DRAG_THRESHOLD_TOUCH : DRAG_THRESHOLD;
+      if (distance > threshold && mouseDownNoteTarget && mouseDownNoteTarget.noteId !== null) {
         hasMouseMovedSinceMousedown = true;
         isDraggingInitiated = true;
         isDragging = true;
@@ -611,8 +619,8 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     }
   });
 
-  // Mouse Up
-  document.addEventListener("mouseup", (event) => {
+  // Pointer Up (unified mouse + touch)
+  document.addEventListener("pointerup", (event) => {
     // Immediately cancel drag preview so it doesn't have to "catch up" to the mouse
     clearDragPreview();
     
