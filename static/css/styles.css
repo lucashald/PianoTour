@@ -2345,7 +2345,7 @@ background: linear-gradient(to right,
 
 .editor-context-menu__submenu {
   position: absolute;
-  left: 100%;
+  left: calc(100% + 2px);
   top: -4px;
   background: rgba(30, 41, 59, 0.97);
   backdrop-filter: blur(20px);
@@ -2355,19 +2355,27 @@ background: linear-gradient(to right,
   min-width: 180px;
   padding: 4px 0;
   display: none;
-  padding-left: 6px;
-  margin-left: -6px;
-  background-clip: padding-box;
+}
+
+/* Invisible hover bridge spanning the gap between menu and submenu */
+.editor-context-menu__submenu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: 8px;
+  height: 100%;
 }
 
 /* Flip submenu to left side when near viewport edge */
 .editor-context-menu__submenu--flip-left {
   left: auto;
-  right: 100%;
-  margin-left: 0;
-  padding-left: 0;
-  padding-right: 6px;
-  margin-right: -6px;
+  right: calc(100% + 2px);
+}
+
+.editor-context-menu__submenu--flip-left::before {
+  right: auto;
+  left: 100%;
 }
 
 .editor-context-menu__submenu-wrapper:hover > .editor-context-menu__submenu {
