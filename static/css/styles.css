@@ -2345,7 +2345,7 @@ background: linear-gradient(to right,
 
 .editor-context-menu__submenu {
   position: absolute;
-  left: calc(100% + 2px);
+  left: calc(100%);
   top: -4px;
   background: rgba(30, 41, 59, 0.97);
   backdrop-filter: blur(20px);
@@ -2372,7 +2372,7 @@ background: linear-gradient(to right,
 /* Flip submenu to left side when near viewport edge */
 .editor-context-menu__submenu--flip-left {
   left: auto;
-  right: calc(100% + 2px);
+  right: calc(100%);
 }
 
 .editor-context-menu__submenu--flip-left::before {
