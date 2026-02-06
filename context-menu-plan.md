@@ -584,3 +584,42 @@ Submenus that open on `:hover` don't work on touch. On touch devices, submenus s
 | Submenu UX | Small — conditional event binding | Submenus usable on touch |
 
 The pointer events migration (Step 1) is the largest piece and is valuable independently — it would make the entire editor usable on tablets and phones, not just the context menu.
+
+
+Progress update:
+Here's a summary of what changed in scoreEditor.js:
+
+initializeMusicEditor() (line 879-1292) was split into three functions:
+
+initializeScoreInteraction() (line 884, exported) — Score-facing setup that any route can use:
+
+enableScoreInteraction() call with changeMeasure and handleEditorNoteSelectClick callbacks
+noteDropped event listener (drag-and-drop handling)
+Delete key listener
+noteAddedToScore event listener
+initializeEditorSidebar() (line 1063, exported) — Sidebar DOM wiring, only for /editor:
+
+renderNoteEditBox(false) initial render
+editorContainer click/input/change event delegation
+Duration and octave dropdown population
+initializeMusicEditor() (line 1316, exported) — Preserved as a convenience wrapper that calls both initializeScoreInteraction() then initializeEditorSidebar()
+
+Both editor.html and api.html still import and call initializeMusicEditor() — no changes needed there. The behavior is identical; this is a pure refactor. You can verify by loading the /editor route and checking the console for the context-menu: log messages showing both functions being called in sequence.
+
+Here's a summary of what was completed:
+
+Sidebar guard refactor — complete. The key changes in scoreEditor.js:
+
+renderNoteEditBox() (line 509) — now checks !!document.getElementById('editorContainer') before calling sidebar functions. Highlighting and scrolling always run regardless of sidebar presence.
+
+renderSidebarNoteList() (line 546) — extracted function handling treble/bass note list buttons and measure navigation. Only called when sidebar exists.
+
+renderSidebarNoteEditor() (line 660) — extracted function handling the expanded note editor panel. Only called when sidebar exists.
+
+initializeScoreInteraction() (line 902) — score-facing setup, works on any route.
+
+initializeEditorSidebar() (line 1071) — sidebar DOM wiring, has its own early return if editorContainer is not found.
+
+initializeMusicEditor() (line 1334) — convenience wrapper calling both.
+
+All console logs include "context-menu" as requested. The refactor is purely structural — no behavior changes on existing routes.

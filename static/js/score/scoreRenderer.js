@@ -653,6 +653,29 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     resetDragState();
   });
 
+  // Right-click context menu — dispatch custom event with click target info
+  scoreElement.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+
+    const rect = scoreElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const noteTarget = detectNoteClick(x, y);
+    const measureIndex = detectMeasureClick(x, y);
+
+    console.log("context-menu: contextmenu event fired on score", { noteTarget, measureIndex });
+
+    document.dispatchEvent(new CustomEvent('scoreContextMenu', {
+      detail: {
+        clientX: event.clientX,
+        clientY: event.clientY,
+        noteTarget,
+        measureIndex
+      }
+    }));
+  });
+
   // Use dragover for drag preview updates during palette drag operations
   // We use dragover instead of mousemove because mousemove is suppressed during HTML5 drag operations
   // We've already hidden the browser's default drag preview with a transparent image
