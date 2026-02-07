@@ -2277,3 +2277,118 @@ background: linear-gradient(to right,
   object-fit: contain;
     filter: brightness(0) invert(1); /* Make white for dark buttons */
 }
+
+/* ==========================================================================
+   CONTEXT MENU STYLES
+   ========================================================================== */
+
+.editor-context-menu {
+  position: fixed;
+  z-index: 5000;
+  background: rgba(30, 41, 59, 0.97);
+  backdrop-filter: blur(20px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 200px;
+  padding: 4px 0;
+  color: white;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.editor-context-menu__header {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+.editor-context-menu__separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 4px 0;
+}
+
+.editor-context-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.editor-context-menu__item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.editor-context-menu__item--disabled {
+  color: #475569;
+  pointer-events: none;
+}
+
+/* Submenu parent item arrow indicator */
+.editor-context-menu__item--has-submenu::after {
+  content: "▸";
+  margin-left: 12px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Submenu container */
+.editor-context-menu__submenu-wrapper {
+  position: relative;
+}
+
+.editor-context-menu__submenu {
+  position: absolute;
+  left: calc(100%);
+  top: -4px;
+  background: rgba(30, 41, 59, 0.97);
+  backdrop-filter: blur(20px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 180px;
+  padding: 4px 0;
+  display: none;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+/* Invisible hover bridge spanning the gap between menu and submenu */
+.editor-context-menu__submenu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: 8px;
+  height: 100%;
+}
+
+/* Flip submenu to left side when near viewport edge */
+.editor-context-menu__submenu--flip-left {
+  left: auto;
+  right: calc(100%);
+}
+
+.editor-context-menu__submenu--flip-left::before {
+  right: auto;
+  left: 100%;
+}
+
+/* Open submenu upward (anchored to bottom of trigger) */
+.editor-context-menu__submenu--open-up {
+  top: auto;
+  bottom: -4px;
+}
+
+.editor-context-menu__submenu-wrapper:hover > .editor-context-menu__submenu {
+  display: block;
+}
+

@@ -16,6 +16,16 @@
     <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
     {% block head %}{% endblock %}
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-1035610756">
+</script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'AW-1035610756');
+</script>
   </head>
   <body id="page-instrument">
     <audio id="unlock-audio" preload="auto" style="display: none">
@@ -61,7 +71,7 @@
 			{% endif %}
         </header>
 
-        {% block player %} {% include 'partials/_player.html' %} {% endblock %}
+        {% block player %} {% include 'partials/_menu.html' %} {% endblock %}
         {% block volume %} {% include 'partials/_volumeControl.html' %} {% endblock %}
         <div class="hidden" id="audio-settings">
         {% block settings %} {% include 'partials/_settings.html' %} {% endblock %}

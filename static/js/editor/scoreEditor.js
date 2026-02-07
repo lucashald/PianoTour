@@ -506,12 +506,299 @@ function transposeSelectedNote(semitones) {
     renderNoteEditBox(false);
 }
 
+// ===================================================================
+// CONTEXT MENU
+// ===================================================================
+
+/**
+ * Builds the context menu DOM based on what was right-clicked.
+ * @param {object} detail - The scoreContextMenu event detail.
+ * @returns {HTMLElement} The context menu element.
+ */
+function buildContextMenu(detail) {
+    const menu = document.createElement('div');
+    menu.className = 'editor-context-menu';
+    menu.id = 'editorContextMenu';
+
+    if (detail.noteTarget && detail.noteTarget.noteId !== null) {
+        console.log('context-menu: Building note context menu');
+        buildNoteContextMenu(menu, detail);
+    } else if (detail.measureIndex !== -1) {
+        console.log('context-menu: Building measure context menu');
+        buildMeasureContextMenu(menu, detail);
+    }
+
+    return menu;
+}
+
+/**
+ * Populates the context menu with note-specific items.
+ */
+function buildNoteContextMenu(menu, detail) {
+    const { measureIndex, clef, noteId } = detail.noteTarget;
+    const measures = getMeasures();
+    const note = measures[measureIndex]?.find(n => n.id === noteId);
+    if (!note) return;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'editor-context-menu__header';
+    header.textContent = `Note: ${note.name} (${note.duration})`;
+    menu.appendChild(header);
+
+    addSeparator(menu);
+
+    // Basic actions
+    addMenuItem(menu, 'Remove Note', () => {
+        removeNoteFromMeasure(editorSelectedMeasureIndex, editorSelectedNoteId);
+        editorSelectedNoteId = null;
+        renderNoteEditBox(false);
+    });
+    addMenuItem(menu, 'Duplicate Note', () => handleDuplicateNote());
+    addMenuItem(menu, 'Split Note', () => {
+        if (editorSelectedNoteId) {
+            const result = splitNote(editorSelectedMeasureIndex, editorSelectedNoteId);
+            if (result) editorSelectedNoteId = result.firstNoteId;
+            renderNoteEditBox(false);
+        }
+    });
+    addMenuItem(menu, note.isRest ? 'Make Note' : 'Make Rest', () => {
+        const newIsRest = !note.isRest;
+        placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { isRest: newIsRest });
+        renderNoteEditBox(false);
+    });
+    addMenuItem(menu, 'Change Clef', () => {
+        placeNote(editorSelectedMeasureIndex, note.id, editorSelectedMeasureIndex, { clef: note.clef === 'treble' ? 'bass' : 'treble' });
+        renderNoteEditBox(false);
+    });
+
+    addSeparator(menu);
+
+    // Transpose submenu
+    addSubmenu(menu, 'Transpose', [
+        { label: 'Semitone Up', action: () => transposeSelectedNote(1) },
+        { label: 'Semitone Down', action: () => transposeSelectedNote(-1) },
+        { label: 'Octave Up', action: () => transposeSelectedNote(12) },
+        { label: 'Octave Down', action: () => transposeSelectedNote(-12) },
+    ]);
+
+    // Ties & Slurs submenu
+    addSubmenu(menu, 'Ties & Slurs', [
+        { label: 'Add Tie', action: () => handleAddTie() },
+        { label: 'Add Slur', action: () => handleAddSlur() },
+        { label: 'Remove Tie/Slur', action: () => handleRemoveTie() },
+    ]);
+
+    addSeparator(menu);
+
+    // Insert actions
+    addMenuItem(menu, 'Insert Note Before', () => {
+        const newNote = { name: "C4", clef: note.clef, duration: pianoState.quantize, isRest: false };
+        const result = addNoteToMeasure(editorSelectedMeasureIndex, newNote, noteId);
+        if (result) handleEditorNoteSelectClick(result.measureIndex, result.clef, result.noteId);
+    });
+    addMenuItem(menu, 'Insert Note After', () => {
+        // Find the note after the current one to use as insertBefore target
+        const currentMeasure = measures[measureIndex] || [];
+        const noteIndex = currentMeasure.findIndex(n => n.id === noteId);
+        const insertBeforeId = noteIndex < currentMeasure.length - 1 ? currentMeasure[noteIndex + 1].id : null;
+        const newNote = { name: "C4", clef: note.clef, duration: pianoState.quantize, isRest: false };
+        const result = addNoteToMeasure(editorSelectedMeasureIndex, newNote, insertBeforeId);
+        if (result) handleEditorNoteSelectClick(result.measureIndex, result.clef, result.noteId);
+    });
+
+    addSeparator(menu);
+
+    // Duration submenu (opens upward since it's at the bottom)
+    addSubmenu(menu, 'Duration', DURATIONS.map(d => ({
+        label: d.name + (d.key === note.duration ? ' ✓' : ''),
+        action: () => {
+            updateNoteInMeasure(editorSelectedMeasureIndex, note.id, { duration: d.key });
+            renderNoteEditBox(false);
+        }
+    })), { openUp: true });
+}
+
+/**
+ * Populates the context menu with measure-specific items.
+ */
+function buildMeasureContextMenu(menu, detail) {
+    const header = document.createElement('div');
+    header.className = 'editor-context-menu__header';
+    header.textContent = `Measure ${detail.measureIndex + 1}`;
+    menu.appendChild(header);
+
+    addSeparator(menu);
+
+    addMenuItem(menu, 'Add Measure After', () => handleAddMeasureAfter());
+    addMenuItem(menu, 'Duplicate Measure', () => handleDuplicateMeasure());
+    addMenuItem(menu, 'Move to End', () => handleMoveMeasureToEnd());
+    addMenuItem(menu, 'Delete Measure', () => handleDeleteMeasure());
+
+    addSeparator(menu);
+
+    // Transpose Score submenu
+    addSubmenu(menu, 'Transpose Score', [
+        { label: 'Semitone Up', action: () => { transposeScore(1); renderNoteEditBox(false); } },
+        { label: 'Semitone Down', action: () => { transposeScore(-1); renderNoteEditBox(false); } },
+        { label: 'Octave Up', action: () => { transposeScore(12); renderNoteEditBox(false); } },
+        { label: 'Octave Down', action: () => { transposeScore(-12); renderNoteEditBox(false); } },
+    ]);
+}
+
+/**
+ * Adds a clickable menu item to the context menu.
+ */
+function addMenuItem(menu, label, action) {
+    const item = document.createElement('div');
+    item.className = 'editor-context-menu__item';
+    item.textContent = label;
+    item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hideContextMenu();
+        action();
+    });
+    menu.appendChild(item);
+}
+
+/**
+ * Adds a separator line to the context menu.
+ */
+function addSeparator(menu) {
+    const sep = document.createElement('div');
+    sep.className = 'editor-context-menu__separator';
+    menu.appendChild(sep);
+}
+
+/**
+ * Adds a submenu (hover-to-expand) to the context menu.
+ * @param {HTMLElement} menu - Parent menu element.
+ * @param {string} label - Submenu trigger label.
+ * @param {Array<{label: string, action: Function}>} items - Submenu items.
+ */
+function addSubmenu(menu, label, items, options = {}) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'editor-context-menu__submenu-wrapper';
+
+    const trigger = document.createElement('div');
+    trigger.className = 'editor-context-menu__item editor-context-menu__item--has-submenu';
+    trigger.textContent = label;
+    wrapper.appendChild(trigger);
+
+    const submenu = document.createElement('div');
+    submenu.className = 'editor-context-menu__submenu';
+    if (options.openUp) submenu.classList.add('editor-context-menu__submenu--open-up');
+
+    items.forEach(({ label: itemLabel, action }) => {
+        const item = document.createElement('div');
+        item.className = 'editor-context-menu__item';
+        item.textContent = itemLabel;
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideContextMenu();
+            action();
+        });
+        submenu.appendChild(item);
+    });
+
+    wrapper.appendChild(submenu);
+    menu.appendChild(wrapper);
+}
+
+/**
+ * Shows the context menu at the given screen coordinates, adjusting for viewport overflow.
+ */
+function showContextMenu(clientX, clientY, menu) {
+    hideContextMenu();
+    document.body.appendChild(menu);
+
+    // Position initially to measure dimensions
+    menu.style.left = `${clientX}px`;
+    menu.style.top = `${clientY}px`;
+
+    // Adjust for viewport overflow
+    const rect = menu.getBoundingClientRect();
+    let x = clientX;
+    let y = clientY;
+    if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 8;
+    if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 8;
+    if (x < 0) x = 8;
+    if (y < 0) y = 8;
+
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+
+    // Check submenus for edge overflow and adjust positioning
+    const submenus = menu.querySelectorAll('.editor-context-menu__submenu');
+    submenus.forEach(sub => {
+        // Temporarily show to measure
+        sub.style.display = 'block';
+        const subRect = sub.getBoundingClientRect();
+        sub.style.display = '';
+        // Flip horizontally if it goes off the right edge
+        if (subRect.right > window.innerWidth) {
+            sub.classList.add('editor-context-menu__submenu--flip-left');
+        }
+        // Shift up if it goes below the viewport
+        if (subRect.bottom > window.innerHeight) {
+            const overflow = subRect.bottom - window.innerHeight + 8;
+            sub.style.top = `${-4 - overflow}px`;
+        }
+    });
+
+    console.log('context-menu: Menu shown at', x, y);
+}
+
+/**
+ * Removes any existing context menu from the DOM.
+ */
+function hideContextMenu() {
+    const existing = document.getElementById('editorContextMenu');
+    if (existing) {
+        existing.remove();
+        console.log('context-menu: Menu hidden');
+    }
+}
+
 function renderNoteEditBox(smoothScroll = true) {
     const measures = getMeasures();
     if (editorSelectedMeasureIndex >= measures.length) {
         editorSelectedMeasureIndex = Math.max(0, measures.length - 1);
     }
     const currentMeasure = measures[editorSelectedMeasureIndex] || [];
+    const selectedNote = editorSelectedNoteId !== null ? currentMeasure.find(note => note.id === editorSelectedNoteId) : null;
+
+    // Only update sidebar DOM if the editor sidebar exists
+    const hasSidebar = !!document.getElementById('editorContainer');
+    if (hasSidebar) {
+        renderSidebarNoteList(currentMeasure, selectedNote);
+        renderSidebarNoteEditor(currentMeasure, selectedNote);
+        updateSlurModeUI(slurMode);
+    }
+
+    // Highlighting and scroll — works on any route
+    highlightSelectedMeasure(editorSelectedMeasureIndex);
+    if (selectedNote) {
+        highlightSelectedNote(editorSelectedMeasureIndex, selectedNote.clef, selectedNote.id);
+        pianoState.currentSelectedNote = {
+            measureIndex: editorSelectedMeasureIndex,
+            clef: selectedNote.clef,
+            noteId: selectedNote.id
+        };
+    } else {
+        clearSelectedNoteHighlight();
+        pianoState.currentSelectedNote = null;
+        editorSelectedNoteId = null;
+    }
+    scrollToMeasure(editorSelectedMeasureIndex, smoothScroll);
+}
+
+/**
+ * Updates the sidebar note list buttons (treble/bass containers, measure nav).
+ * Only called when the sidebar DOM exists.
+ */
+function renderSidebarNoteList(currentMeasure, selectedNote) {
+    const measures = getMeasures();
 
     const measureNumberInput = document.getElementById('editorNumberInput');
     if (measureNumberInput) {
@@ -618,13 +905,17 @@ function renderNoteEditBox(smoothScroll = true) {
         noteWrapper.appendChild(createAddButton('bass', nextNoteId));
         bassNotesContainer.appendChild(noteWrapper);
     });
+}
 
-    // Rest of the existing renderNoteEditBox logic...
+/**
+ * Updates the expanded note editor panel (pitch, duration, velocity controls).
+ * Only called when the sidebar DOM exists.
+ */
+function renderSidebarNoteEditor(currentMeasure, selectedNote) {
     const editorExpandedEditor = document.getElementById('editorExpandedEditor');
     const singleNoteControls = document.getElementById('singleNoteControls');
     const chordNotesEditor = document.getElementById('chordNotesEditor');
     const chordNotesContainer = document.getElementById('chordNotesContainer');
-    const selectedNote = editorSelectedNoteId !== null ? currentMeasure.find(note => note.id === editorSelectedNoteId) : null;
 
     if (selectedNote) {
         editorExpandedEditor.classList.remove('hidden');
@@ -696,26 +987,7 @@ function renderNoteEditBox(smoothScroll = true) {
         }
     } else {
         editorExpandedEditor.classList.add('hidden');
-        editorSelectedNoteId = null;
     }
-
-    // Update slur mode UI
-    updateSlurModeUI(slurMode);
-
-    highlightSelectedMeasure(editorSelectedMeasureIndex);
-    if (selectedNote) {
-        highlightSelectedNote(editorSelectedMeasureIndex, selectedNote.clef, selectedNote.id);
-        // Update pianoState with currently selected note info
-        pianoState.currentSelectedNote = {
-            measureIndex: editorSelectedMeasureIndex,
-            clef: selectedNote.clef,
-            noteId: selectedNote.id
-        };
-    } else {
-        clearSelectedNoteHighlight();
-        pianoState.currentSelectedNote = null;
-    }
-    scrollToMeasure(editorSelectedMeasureIndex, smoothScroll);
 }
 
 // ===================================================================
@@ -873,20 +1145,238 @@ export function toggleSelectedClef() {
 }
 
 // ===================================================================
-// Initialization Function (Exported)
+// Initialization Functions (Exported)
 // ===================================================================
 
-export function initializeMusicEditor() {
-    renderNoteEditBox(false); // Initial render without smooth scroll
+/**
+ * Initializes score interaction: click/select callbacks, drag-and-drop handling,
+ * Delete key listener, and noteAddedToScore listener.
+ * This can be called by any route that has a rendered score.
+ */
+export function initializeScoreInteraction() {
+    console.log('context-menu: initializeScoreInteraction() called');
     enableScoreInteraction(
         (measureIndex, wasNoteClicked) => changeMeasure(measureIndex, !wasNoteClicked),
         handleEditorNoteSelectClick
     );
 
-    // FIX: Target the correct container for event delegation
+    // Handle notes dropped onto the score (drag-and-drop from palette or within score)
+    document.addEventListener('noteDropped', (event) => {
+        const {
+            fromMeasureIndex,
+            fromNoteId,
+            toMeasureIndex,
+            insertBeforeNoteId,
+            clefChanged,
+            pitchChanged,
+            newClef,
+            newPitch,
+            chordAnchor,
+            droppedData
+        } = event.detail;
+
+        // Handle chord drops
+        if (droppedData && droppedData.startsWith('application/chord:')) {
+            try {
+                const chordData = JSON.parse(droppedData.replace('application/chord:', ''));
+                const chordObj = chordData.chord;
+                const chordDisplayName = chordData.displayName;
+
+                // Determine which notes to use based on the target clef
+                const targetClef = newClef || 'treble'; // Default to treble if not specified
+                const notesToUse = getChordNotesForClef(chordObj, targetClef);
+
+                if (notesToUse.length === 0) {
+                    console.warn('No suitable notes found for chord in target clef');
+                    return;
+                }
+
+                // Create the chord note
+                const chordNote = {
+                    name: formatChordForScore(notesToUse, chordDisplayName),
+                    clef: targetClef,
+                    duration: pianoState.quantize,
+                    isRest: false,
+                    chordName: chordDisplayName // Store the original chord name
+                };
+
+                // Add the chord to the measure
+                const result = addNoteToMeasure(toMeasureIndex, chordNote, insertBeforeNoteId);
+                if (result) {
+                    // Dispatch event to automatically select and scroll to the new note
+                    const event = new CustomEvent('noteAddedToScore', {
+                        detail: result
+                    });
+                    document.dispatchEvent(event);
+                }
+
+                console.log(`Added ${chordDisplayName} chord to ${targetClef} clef:`, notesToUse);
+                return;
+
+            } catch (error) {
+                console.error('Failed to parse chord drop data:', error);
+                // Fall through to regular note handling
+            }
+        }
+
+        // Existing note drop handling code...
+        const measures = getMeasures();
+        const originalNote = measures[fromMeasureIndex]?.find(note => note.id === fromNoteId);
+        if (!originalNote) return;
+
+        if (fromMeasureIndex !== toMeasureIndex) {
+            // Moving between measures - maintain chord structure
+            const noteToMove = removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
+            if (noteToMove) {
+                if (clefChanged) noteToMove.clef = newClef;
+                if (pitchChanged && !originalNote.isRest) {
+                    // Handle chord transposition
+                    if (isChord(originalNote.name)) {
+                        const chordNotes = parseChord(originalNote.name);
+                        // Use top or bottom note as anchor based on where user grabbed
+                        const anchorNote = chordAnchor === 'top' ? chordNotes[chordNotes.length - 1] : chordNotes[0];
+                        const anchorNoteMidi = NOTES_BY_NAME[anchorNote];
+                        const newPitchMidi = NOTES_BY_NAME[newPitch];
+                        if (anchorNoteMidi !== undefined && newPitchMidi !== undefined) {
+                            const semitoneChange = newPitchMidi - anchorNoteMidi;
+                            noteToMove.name = transposeChord(originalNote.name, semitoneChange);
+                        }
+                    } else {
+                        noteToMove.name = newPitch;
+                    }
+                }
+                addNoteToMeasure(toMeasureIndex, noteToMove, insertBeforeNoteId);
+                editorSelectedMeasureIndex = toMeasureIndex;
+                editorSelectedNoteId = noteToMove.id;
+            }
+        } else if (insertBeforeNoteId || clefChanged || pitchChanged) {
+            // Same measure: repositioning OR property changes
+            const updatedNoteData = {};
+            if (clefChanged) updatedNoteData.clef = newClef;
+            if (pitchChanged && !originalNote.isRest) {
+                if (isChord(originalNote.name)) {
+                    const chordNotes = parseChord(originalNote.name);
+                    // Use top or bottom note as anchor based on where user grabbed
+                    const anchorNote = chordAnchor === 'top' ? chordNotes[chordNotes.length - 1] : chordNotes[0];
+                    const anchorNoteMidi = NOTES_BY_NAME[anchorNote];
+                    const newPitchMidi = NOTES_BY_NAME[newPitch];
+                    if (anchorNoteMidi !== undefined && newPitchMidi !== undefined) {
+                        const semitoneChange = newPitchMidi - anchorNoteMidi;
+                        updatedNoteData.name = transposeChord(originalNote.name, semitoneChange);
+                    }
+                } else {
+                    updatedNoteData.name = newPitch;
+                }
+            }
+
+            if (insertBeforeNoteId && insertBeforeNoteId !== fromNoteId) {
+                // Actually repositioning - use placeNote
+                placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, updatedNoteData, insertBeforeNoteId);
+            } else {
+                // Just updating properties in same position - use updateNoteInMeasure
+                updateNoteInMeasure(fromMeasureIndex, fromNoteId, updatedNoteData);
+            }
+            editorSelectedNoteId = fromNoteId;
+        }
+        renderNoteEditBox(false);
+    });
+
+    // Delete key listener to remove selected note
+    document.addEventListener('keydown', (event) => {
+        // Only handle Delete key with no modifiers
+        if (event.key !== 'Delete' || event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) {
+            return;
+        }
+
+        // Return early if no note is selected
+        if (editorSelectedNoteId === null) {
+            return;
+        }
+
+        // Don't interfere if user is typing in an input field
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT')) {
+            return;
+        }
+
+        event.preventDefault();
+        removeNoteFromMeasure(editorSelectedMeasureIndex, editorSelectedNoteId);
+        editorSelectedNoteId = null;
+        renderNoteEditBox(false);
+    });
+
+    // Listen for notes added from the palette and automatically select them
+    document.addEventListener('noteAddedToScore', (event) => {
+        const { noteId, measureIndex, clef } = event.detail;
+        if (noteId && measureIndex !== undefined && clef) {
+            // Automatically select the newly added note
+            handleEditorNoteSelectClick(measureIndex, clef, noteId);
+        }
+    });
+
+    // Listen for right-click context menu events from the score
+    document.addEventListener('scoreContextMenu', (event) => {
+        const { clientX, clientY, noteTarget, measureIndex } = event.detail;
+        console.log('context-menu: scoreContextMenu received', { noteTarget, measureIndex });
+
+        // If slur mode is active, show cancel option instead of normal menu
+        if (slurMode) {
+            const menu = document.createElement('div');
+            menu.className = 'editor-context-menu';
+            menu.id = 'editorContextMenu';
+            addMenuItem(menu, 'Cancel Slur', () => {
+                slurMode = false;
+                slurStartNoteId = null;
+                updateSlurModeUI(false);
+                console.log('context-menu: Slur mode cancelled via context menu');
+            });
+            showContextMenu(clientX, clientY, menu);
+            return;
+        }
+
+        // Select the right-clicked note or measure first (but don't toggle-off an already selected note)
+        if (noteTarget && noteTarget.noteId !== null) {
+            if (editorSelectedNoteId !== noteTarget.noteId) {
+                handleEditorNoteSelectClick(noteTarget.measureIndex, noteTarget.clef, noteTarget.noteId);
+            }
+        } else if (measureIndex !== -1) {
+            changeMeasure(measureIndex);
+        }
+
+        const menu = buildContextMenu(event.detail);
+        if (menu.children.length > 0) {
+            showContextMenu(clientX, clientY, menu);
+        }
+    });
+
+    // Close context menu on click outside
+    document.addEventListener('click', (event) => {
+        const menu = document.getElementById('editorContextMenu');
+        if (menu && !menu.contains(event.target)) {
+            hideContextMenu();
+        }
+    });
+
+    // Close context menu on Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') hideContextMenu();
+    });
+
+    console.log('context-menu: initializeScoreInteraction() complete');
+}
+
+/**
+ * Initializes the editor sidebar: renders the note edit box, wires up
+ * editorContainer event delegation (click, input, change), and populates
+ * duration/octave dropdowns. Only relevant on routes with a sidebar.
+ */
+export function initializeEditorSidebar() {
+    console.log('context-menu: initializeEditorSidebar() called');
+    renderNoteEditBox(false); // Initial render without smooth scroll
+
     const editorContainer = document.getElementById('editorContainer');
     if (!editorContainer) {
-        console.error("Editor container with ID 'editorContainer' not found. Cannot initialize editor.");
+        console.error("context-menu: Editor container with ID 'editorContainer' not found. Cannot initialize sidebar.");
         return;
     }
 
@@ -908,7 +1398,7 @@ export function initializeMusicEditor() {
                 handleEditorNoteSelectClick(addedNoteResult.measureIndex, addedNoteResult.clef, addedNoteResult.noteId);
             }
         }
-        
+
         if (target.classList.contains('editor-note-select')) {
             const noteId = target.dataset.noteId;
             const clef = target.dataset.clef;
@@ -1030,12 +1520,12 @@ if (target.id === 'editorToggleRest') {
     // Handle real-time slider value display updates (input fires while dragging)
     editorContainer.addEventListener('input', (event) => {
         const target = event.target;
-        
+
         if (target.id === 'editorPerformedDuration') {
             const valueDisplay = document.getElementById('editorPerformedDurationValue');
             if (valueDisplay) valueDisplay.textContent = `${target.value}%`;
         }
-        
+
         if (target.id === 'editorVelocity') {
             const valueDisplay = document.getElementById('editorVelocityValue');
             if (valueDisplay) valueDisplay.textContent = target.value;
@@ -1044,19 +1534,19 @@ if (target.id === 'editorToggleRest') {
 
     editorContainer.addEventListener('change', (event) => {
     const target = event.target;
-    
+
     // Handle time signature changes
     if (target.id === 'time-signature-numerator' || target.id === 'time-signature-denominator') {
         const numerator = parseInt(document.getElementById('time-signature-numerator').value, 10);
         const denominator = parseInt(document.getElementById('time-signature-denominator').value, 10);
-        
+
         if (!isNaN(numerator) && !isNaN(denominator) && numerator >= 1 && denominator >= 2) {
             setTimeSignature(numerator, denominator);
             console.log("Setting time signature", numerator, denominator)
         }
         return;
     }
-    
+
     // Handle measure navigation
     if (target.id === 'editorNumberInput') {
         const newMeasureNum = parseInt(target.value, 10);
@@ -1065,18 +1555,18 @@ if (target.id === 'editorToggleRest') {
         }
         return;
     }
-    
+
     // Handle chord note changes
     if (target.matches('.chord-note-letter, .chord-note-accidental, .chord-note-octave')) {
         updateChordFromUI();
         return;
     }
-    
+
     // Handle note editing - existing logic
     const measures = getMeasures();
     const currentMeasure = measures[editorSelectedMeasureIndex];
     if (!currentMeasure || editorSelectedNoteId === null) return;
-    
+
     const selectedNote = currentMeasure.find(note => note.id === editorSelectedNoteId);
     if (!selectedNote) return;
 
@@ -1110,127 +1600,7 @@ if (target.id === 'editorToggleRest') {
         const valueDisplay = document.getElementById('editorVelocityValue');
         if (valueDisplay) valueDisplay.textContent = target.value;
     }
-    
-    renderNoteEditBox(false);
-});
 
-document.addEventListener('noteDropped', (event) => {
-    const { 
-        fromMeasureIndex, 
-        fromNoteId, 
-        toMeasureIndex, 
-        insertBeforeNoteId, 
-        clefChanged, 
-        pitchChanged, 
-        newClef, 
-        newPitch,
-        chordAnchor,
-        droppedData
-    } = event.detail;
-
-    // Handle chord drops
-    if (droppedData && droppedData.startsWith('application/chord:')) {
-        try {
-            const chordData = JSON.parse(droppedData.replace('application/chord:', ''));
-            const chordObj = chordData.chord;
-            const chordDisplayName = chordData.displayName;
-            
-            // Determine which notes to use based on the target clef
-            const targetClef = newClef || 'treble'; // Default to treble if not specified
-            const notesToUse = getChordNotesForClef(chordObj, targetClef);
-            
-            if (notesToUse.length === 0) {
-                console.warn('No suitable notes found for chord in target clef');
-                return;
-            }
-            
-            // Create the chord note
-            const chordNote = {
-                name: formatChordForScore(notesToUse, chordDisplayName),
-                clef: targetClef,
-                duration: pianoState.quantize,
-                isRest: false,
-                chordName: chordDisplayName // Store the original chord name
-            };
-            
-            // Add the chord to the measure
-            const result = addNoteToMeasure(toMeasureIndex, chordNote, insertBeforeNoteId);
-            if (result) {
-                // Dispatch event to automatically select and scroll to the new note
-                const event = new CustomEvent('noteAddedToScore', {
-                    detail: result
-                });
-                document.dispatchEvent(event);
-            }
-
-            console.log(`Added ${chordDisplayName} chord to ${targetClef} clef:`, notesToUse);
-            return;
-            
-        } catch (error) {
-            console.error('Failed to parse chord drop data:', error);
-            // Fall through to regular note handling
-        }
-    }
-
-    // Existing note drop handling code...
-    const measures = getMeasures();
-    const originalNote = measures[fromMeasureIndex]?.find(note => note.id === fromNoteId);
-    if (!originalNote) return;
-
-    if (fromMeasureIndex !== toMeasureIndex) {
-        // Moving between measures - maintain chord structure
-        const noteToMove = removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
-        if (noteToMove) {
-            if (clefChanged) noteToMove.clef = newClef;
-            if (pitchChanged && !originalNote.isRest) {
-                // Handle chord transposition
-                if (isChord(originalNote.name)) {
-                    const chordNotes = parseChord(originalNote.name);
-                    // Use top or bottom note as anchor based on where user grabbed
-                    const anchorNote = chordAnchor === 'top' ? chordNotes[chordNotes.length - 1] : chordNotes[0];
-                    const anchorNoteMidi = NOTES_BY_NAME[anchorNote];
-                    const newPitchMidi = NOTES_BY_NAME[newPitch];
-                    if (anchorNoteMidi !== undefined && newPitchMidi !== undefined) {
-                        const semitoneChange = newPitchMidi - anchorNoteMidi;
-                        noteToMove.name = transposeChord(originalNote.name, semitoneChange);
-                    }
-                } else {
-                    noteToMove.name = newPitch;
-                }
-            }
-            addNoteToMeasure(toMeasureIndex, noteToMove, insertBeforeNoteId);
-            editorSelectedMeasureIndex = toMeasureIndex;
-            editorSelectedNoteId = noteToMove.id;
-        }
-    } else if (insertBeforeNoteId || clefChanged || pitchChanged) {
-        // Same measure: repositioning OR property changes
-        const updatedNoteData = {};
-        if (clefChanged) updatedNoteData.clef = newClef;
-        if (pitchChanged && !originalNote.isRest) {
-            if (isChord(originalNote.name)) {
-                const chordNotes = parseChord(originalNote.name);
-                // Use top or bottom note as anchor based on where user grabbed
-                const anchorNote = chordAnchor === 'top' ? chordNotes[chordNotes.length - 1] : chordNotes[0];
-                const anchorNoteMidi = NOTES_BY_NAME[anchorNote];
-                const newPitchMidi = NOTES_BY_NAME[newPitch];
-                if (anchorNoteMidi !== undefined && newPitchMidi !== undefined) {
-                    const semitoneChange = newPitchMidi - anchorNoteMidi;
-                    updatedNoteData.name = transposeChord(originalNote.name, semitoneChange);
-                }
-            } else {
-                updatedNoteData.name = newPitch;
-            }
-        }
-        
-        if (insertBeforeNoteId && insertBeforeNoteId !== fromNoteId) {
-            // Actually repositioning - use placeNote
-            placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, updatedNoteData, insertBeforeNoteId);
-        } else {
-            // Just updating properties in same position - use updateNoteInMeasure
-            updateNoteInMeasure(fromMeasureIndex, fromNoteId, updatedNoteData);
-        }
-        editorSelectedNoteId = fromNoteId;
-    }
     renderNoteEditBox(false);
 });
 
@@ -1256,39 +1626,17 @@ document.addEventListener('noteDropped', (event) => {
         }
     }
 
-    // Delete key listener to remove selected note
-    document.addEventListener('keydown', (event) => {
-        // Only handle Delete key with no modifiers
-        if (event.key !== 'Delete' || event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) {
-            return;
-        }
+    console.log('context-menu: initializeEditorSidebar() complete');
+}
 
-        // Return early if no note is selected
-        if (editorSelectedNoteId === null) {
-            return;
-        }
-
-        // Don't interfere if user is typing in an input field
-        const activeElement = document.activeElement;
-        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'SELECT')) {
-            return;
-        }
-
-        event.preventDefault();
-        removeNoteFromMeasure(editorSelectedMeasureIndex, editorSelectedNoteId);
-        editorSelectedNoteId = null;
-        renderNoteEditBox(false);
-    });
-
-    // Listen for notes added from the palette and automatically select them
-    document.addEventListener('noteAddedToScore', (event) => {
-        const { noteId, measureIndex, clef } = event.detail;
-        if (noteId && measureIndex !== undefined && clef) {
-            // Automatically select the newly added note
-            handleEditorNoteSelectClick(measureIndex, clef, noteId);
-        }
-    });
-
+/**
+ * Convenience wrapper that initializes both score interaction and the editor sidebar.
+ * Called by routes that have the full editor UI (e.g. /editor).
+ */
+export function initializeMusicEditor() {
+    console.log('context-menu: initializeMusicEditor() called — initializing both score interaction and sidebar');
+    initializeScoreInteraction();
+    initializeEditorSidebar();
 }
 
 // Add this to your note-data.js or scoreEditor.js

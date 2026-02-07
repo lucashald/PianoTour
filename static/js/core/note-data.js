@@ -3753,20 +3753,20 @@ keySignatures.forEach(({ accidentals, type, displayName, aliases }) => {
  * @param {string[]} notes - Array of note names exactly as they should appear
  * @returns {string|null} - Chord display name or null if no exact match
  */
-export function identifyChordStrict(notes) {
+export function identifyChordStrict(notes, useSymbol = false) {
   if (!notes || notes.length === 0) return null;
-  
+
   // Remove octaves but keep everything else as-is
   const pitchClasses = notes.map(note => note.replace(/\d+/g, ''));
-  
+
   // Search chord definitions for exact match
   for (const [symbol, chord] of Object.entries(CHORD_DEFINITIONS)) {
     // Compare arrays exactly - same order, same spelling
     if (arraysEqual(pitchClasses, chord.notes)) {
-      return chord.displayName;
+      return useSymbol ? symbol : chord.displayName;
     }
   }
-  
+
   return null;
 }
 

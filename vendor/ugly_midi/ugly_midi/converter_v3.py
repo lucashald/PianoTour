@@ -334,8 +334,10 @@ class MeasureAssembler:
         # Try preferred clef first
         if self._clef_can_accept(preferred_clef, event.duration_beats, limit):
             event.clef = preferred_clef
+            old_dur = self._existing_duration_at(preferred_clef, event.start_offset)
             stored = self._merge_or_append(preferred_clef, event)
-            self.usage_by_clef[preferred_clef] += event.duration_beats
+            # Only count the net increase in timeline usage
+            self.usage_by_clef[preferred_clef] += max(0, stored.duration_beats - old_dur) if old_dur is not None else event.duration_beats
             event.event_id = stored.event_id or event.event_id
             self._update_chunk_keys(stored, event)
             return stored, False
@@ -344,8 +346,9 @@ class MeasureAssembler:
         if self._clef_can_accept(other_clef, event.duration_beats, limit):
             event.moved_from = preferred_clef
             event.clef = other_clef
+            old_dur = self._existing_duration_at(other_clef, event.start_offset)
             stored = self._merge_or_append(other_clef, event)
-            self.usage_by_clef[other_clef] += event.duration_beats
+            self.usage_by_clef[other_clef] += max(0, stored.duration_beats - old_dur) if old_dur is not None else event.duration_beats
             event.event_id = stored.event_id or event.event_id
             self._update_chunk_keys(stored, event)
             return stored, False
@@ -375,6 +378,13 @@ class MeasureAssembler:
     def _clef_can_accept(self, clef: str, duration: float, limit: float) -> bool:
         return self.usage_by_clef[clef] + duration <= limit + BEAT_TOLERANCE
 
+    def _existing_duration_at(self, clef: str, offset: float) -> Optional[float]:
+        """Return duration of an existing event at *offset*, or None."""
+        for existing in self.events_by_clef[clef]:
+            if abs(existing.start_offset - offset) <= BEAT_TOLERANCE:
+                return existing.duration_beats
+        return None
+
     def _update_chunk_keys(self, stored: MeasureEvent, event: MeasureEvent) -> None:
         """Propagate chunk keys from event to stored if merged."""
         if event.chunk_keys and stored is not event:
@@ -383,15 +393,21 @@ class MeasureAssembler:
             stored.chunk_keys.extend(event.chunk_keys)
 
     def _merge_or_append(self, clef: str, event: MeasureEvent) -> MeasureEvent:
-        """Merge event into existing chord if same time/duration, else append."""
+        """Merge event into existing chord if same start time, else append.
+
+        Notes at the same offset are merged into a chord using the max
+        duration.  This handles MIDI round-trips where a chord's pitches
+        may span different durations after re-quantization.
+        """
         for existing in self.events_by_clef[clef]:
             if existing.is_rest != event.is_rest:
                 continue
-            if abs(existing.start_offset - event.start_offset) <= BEAT_TOLERANCE and abs(existing.duration_beats - event.duration_beats) <= BEAT_TOLERANCE:
+            if abs(existing.start_offset - event.start_offset) <= BEAT_TOLERANCE:
                 if not event.is_rest:
                     existing.pitches.extend(event.pitches)
                     existing.pitches = sorted(set(existing.pitches))
                     existing.velocity = max(existing.velocity, event.velocity)
+                    existing.duration_beats = max(existing.duration_beats, event.duration_beats)
                 return existing
         self.events_by_clef[clef].append(event)
         return event
@@ -405,11 +421,37 @@ class MeasureAssembler:
 
         Always pads the clef to the measure limit so that silent spans become
         explicit rests, ensuring downstream consumers see the missing beats.
+
+        When overlapping notes are detected (start_offset < cursor), they are
+        merged into the overlapping previous note as a chord rather than
+        serialized, which would exceed the measure's tick capacity.
         """
         timeline: List[MeasureEvent] = []
         cursor = 0.0
 
         for event in events:
+            # Overlap detection: if this event starts before the cursor,
+            # it temporally overlaps with a previously added event.
+            if timeline and event.start_offset < cursor - BEAT_TOLERANCE:
+                merged = False
+                for prev in reversed(timeline):
+                    if prev.is_rest:
+                        continue
+                    prev_end = prev.start_offset + prev.duration_beats
+                    if (prev.start_offset - BEAT_TOLERANCE <= event.start_offset
+                            and event.start_offset < prev_end + BEAT_TOLERANCE):
+                        if not event.is_rest:
+                            prev.pitches.extend(event.pitches)
+                            prev.pitches = sorted(set(prev.pitches))
+                            prev.velocity = max(prev.velocity, event.velocity)
+                            new_end = max(prev_end, event.start_offset + event.duration_beats)
+                            prev.duration_beats = new_end - prev.start_offset
+                            cursor = max(cursor, new_end)
+                        merged = True
+                        break
+                if merged:
+                    continue
+
             gap = event.start_offset - cursor
             if gap > BEAT_TOLERANCE:
                 rest = MeasureEvent(

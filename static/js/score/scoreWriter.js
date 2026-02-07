@@ -1011,24 +1011,41 @@ export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, noteData
 }
 
 /**
+ * Populates or corrects the chordName field on every note in the given measures.
+ * Uses identifyChordStrict to identify chords; falls back to the note's name.
+ * @param {Array} [measures] - Array of measures to process. Defaults to internal measuresData.
+ * @param {boolean} [useSymbol=false] - If true, uses short chord symbol (e.g. "Cmaj6") instead of displayName.
+ */
+export function populateChordNames(measures, useSymbol = false) {
+    const target = measures || measuresData;
+    target.forEach(measure => {
+        if (!Array.isArray(measure)) return;
+        measure.forEach((note, i) => {
+            const updated = applyChordNameGeneration(note, useSymbol);
+            measure[i] = updated;
+        });
+    });
+}
+
+/**
  * Applies chord name generation logic
  */
-function applyChordNameGeneration(noteData) {
+function applyChordNameGeneration(noteData, useSymbol = false) {
     const processedData = { ...noteData };
 
     // If we have a name, generate the appropriate chordName
     if (processedData.name) {
         let chordName = undefined;
-        
+
         // Parse the name - could be single note "C4" or chord "(C4 E4 G4)"
         if (processedData.name.startsWith('(') && processedData.name.endsWith(')')) {
             // It's a chord - extract the note names
             const noteNames = processedData.name
                 .slice(1, -1) // Remove parentheses
                 .split(' ');  // Split by spaces
-            
+
             // Try to identify the chord
-            chordName = identifyChordStrict(noteNames);
+            chordName = identifyChordStrict(noteNames, useSymbol);
             
             // If no chord identified, use the formatted note names as fallback
             if (!chordName) {
@@ -1041,7 +1058,7 @@ function applyChordNameGeneration(noteData) {
         
         // Special handling for rests
         if (processedData.isRest) {
-            chordName = "Rest";
+            chordName = useSymbol ? null : "Rest";
         }
         
         processedData.chordName = chordName;
@@ -1088,7 +1105,7 @@ export function resetScore() {
     // Save the initial empty state so the first note can be undone
     saveStateToHistory();
 
-    localStorage.removeItem(AUTOSAVE_KEY);
+    saveToLocalStorage();
     updateNowPlayingDisplay('');
     drawAll(measuresData);
 }
@@ -1102,6 +1119,9 @@ export function processAndSyncScore(loadedData) {
     try {
         measuresData = JSON.parse(JSON.stringify(loadedData));
         currentIndex = measuresData.length > 0 ? measuresData.length - 1 : 0;
+
+        // Populate or correct chordName on every note
+        populateChordNames();
 
         // Validate and restore ties from loaded data
         validateAndRestoreTies();
@@ -1122,6 +1142,8 @@ export function processAndSyncScore(loadedData) {
         history.length = 0;
         // Save the loaded state as the initial state for undo
         saveStateToHistory();
+
+        saveToLocalStorage();
 
         return true;
 

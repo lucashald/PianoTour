@@ -20,6 +20,29 @@
     console.log("Set instrument to:", templateInstrument);
 
     addBasicKeyboardListeners();
-    
+
+    // Wait for base init, then enable score interaction + context menu
+    function waitForBaseInit() {
+        return new Promise((resolve) => {
+            if (window.pianoTourInitState && window.pianoTourInitState.baseInitialized) {
+                resolve();
+            } else {
+                document.addEventListener('pianoTourBaseReady', () => resolve(), { once: true });
+            }
+        });
+    }
+
+    async function initializeScoreFeatures() {
+        try {
+            await waitForBaseInit();
+            const { initializeScoreInteraction } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
+            initializeScoreInteraction();
+            console.log('context-menu: Score interaction initialized on / route');
+        } catch (error) {
+            console.error('context-menu: Failed to initialize score interaction:', error);
+        }
+    }
+
+    initializeScoreFeatures();
 </script>
 {% endblock %}
