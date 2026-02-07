@@ -557,8 +557,19 @@ export function handleSettingsDisplayToggle(e) {
  * @param {Object} options - Optional configuration for additional UI updates
  * @param {boolean} options.updateKeySignature - Whether to update the key signature button (default: false)
  * @param {boolean} options.regenerateChords - Whether to regenerate chord buttons (default: false)
+ * @param {string} options.showToast - Optional toast message to display (default: none)
+ * @param {string} options.toastType - Type of toast: 'success', 'error', 'info', 'warning' (default: 'info')
+ * @param {number} options.toastDuration - Toast duration in ms (default: 3000)
  */
 export async function updateUI(message, options = {}) {
+    const {
+        updateKeySignature = false,
+        regenerateChords = false,
+        showToast: toastMessage = null,
+        toastType = 'info',
+        toastDuration = 3000
+    } = options;
+    
     // Always update the now playing display with the message
     updateNowPlayingDisplay(message);
 
@@ -569,7 +580,7 @@ export async function updateUI(message, options = {}) {
     }
 
     // Handle key signature button update if requested
-    if (options.updateKeySignature) {
+    if (updateKeySignature) {
         const keySignatureButton = document.getElementById('key-signature-btn');
         if (keySignatureButton) {
             keySignatureButton.textContent = `Key: ${getKeySignature()}`;
@@ -579,12 +590,17 @@ export async function updateUI(message, options = {}) {
     }
 
     // Regenerate chord buttons if requested
-    if (options.regenerateChords) {
+    if (regenerateChords) {
         const currentKey = getKeySignature();
         generateChordPreviewButtons();
         await createChordDiagrams('.chord-container', currentKey);
         // createChordPalette will use window.guitarInstance as default if not provided
         await createChordPalette(undefined, currentKey);
+    }
+    
+    // Show toast if message provided
+    if (toastMessage) {
+        showToast(toastMessage, { type: toastType, duration: toastDuration });
     }
 }
 
@@ -598,13 +614,13 @@ function applyKeyChange(keyName) {
         return false;
     }
     
-    updateUI(`Key: ${getKeySignature()}`, {
+    const currentKey = getKeySignature();
+    updateUI(`Key: ${currentKey}`, {
         updateKeySignature: true,
-        regenerateChords: true
+        regenerateChords: true,
+        showToast: `Key changed to ${currentKey}`,
+        toastType: 'success'
     });
-    
-    // Show success feedback
-    showToast(`Key changed to ${getKeySignature()}`, { type: 'success' });
     
     // Update menu states and close menus
     updateKeyMenuActiveState();
@@ -632,13 +648,13 @@ export function toggleIsMinorKey() {
     
     // Update key menu display names
     updateKeyMenuActiveState();
-    updateUI(`Key: ${getKeySignature()}`, {
+    const currentKey = getKeySignature();
+    updateUI(`Key: ${currentKey}`, {
         updateKeySignature: true,
-        regenerateChords: true
+        regenerateChords: true,
+        showToast: `Key changed to ${currentKey}`,
+        toastType: 'success'
     });
-    
-    // Show feedback for mode change
-    showToast(`Key changed to ${getKeySignature()}`, { type: 'success' });
 }
 
 export function openSidePanel() {
