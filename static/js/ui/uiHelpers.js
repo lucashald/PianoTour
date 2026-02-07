@@ -20,8 +20,13 @@ import { paintChordOnTheFly, clearChordHi } from '../instrument/instrumentHelper
 // UI Update Functions
 // ===================================================================
 
+// Track current active toast and its timeout to prevent stacking
+let currentToast = null;
+let currentToastTimeout = null;
+
 /**
  * Generic toast notification helper
+ * Only one toast is displayed at a time; new toasts replace the current one and reset the timer
  * @param {string} message - The message to display
  * @param {Object} options - Configuration options
  * @param {string} options.type - Type of toast: 'success', 'error', 'info', 'warning' (default: 'info')
@@ -50,41 +55,65 @@ export function showToast(message, options = {}) {
     const bgColor = backgroundColor || colors.bg;
     const txtColor = textColor || colors.text;
 
-    const notification = document.createElement('div');
-    notification.textContent = message;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${bgColor};
-        color: ${txtColor};
-        padding: 12px 16px;
-        border-radius: var(--border-radius);
-        font-size: var(--font-size-sm);
-        font-weight: 500;
-        z-index: 10001;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        transition: all 0.3s ease;
-        transform: translateY(-20px);
-        opacity: 0;
-    `;
+    // Clear any existing toast timeout
+    if (currentToastTimeout) {
+        clearTimeout(currentToastTimeout);
+    }
 
-    document.body.appendChild(notification);
+    // If a toast already exists, update it instead of creating a new one
+    if (currentToast && currentToast.parentNode) {
+        currentToast.textContent = message;
+        currentToast.style.background = bgColor;
+        currentToast.style.color = txtColor;
+        currentToast.style.opacity = '1';
+        currentToast.style.transform = 'translateY(0)';
+    } else {
+        // Create new toast element
+        currentToast = document.createElement('div');
+        currentToast.textContent = message;
+        currentToast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${bgColor};
+            color: ${txtColor};
+            padding: 12px 16px;
+            border-radius: var(--border-radius);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            z-index: 10001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            transform: translateY(-20px);
+            opacity: 0;
+        `;
 
-    // Animate in
-    setTimeout(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateY(0)';
-    }, 10);
+        document.body.appendChild(currentToast);
 
-    // Fade out and remove
-    setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateY(-20px)';
-        setTimeout(() => notification.remove(), 300);
+        // Animate in
+        setTimeout(() => {
+            if (currentToast) {
+                currentToast.style.opacity = '1';
+                currentToast.style.transform = 'translateY(0)';
+            }
+        }, 10);
+    }
+
+    // Fade out and remove after duration
+    currentToastTimeout = setTimeout(() => {
+        if (currentToast) {
+            currentToast.style.opacity = '0';
+            currentToast.style.transform = 'translateY(-20px)';
+            currentToastTimeout = setTimeout(() => {
+                if (currentToast && currentToast.parentNode) {
+                    currentToast.remove();
+                }
+                currentToast = null;
+            }, 300);
+        }
     }, duration);
 
-    return notification;
+    return currentToast;
 }
 
 /**
@@ -559,6 +588,34 @@ export async function updateUI(message, options = {}) {
     }
 }
 
+/**
+ * Apply key change with consistent UX feedback and menu updates
+ * @param {string} keyName - The key signature to change to
+ * @returns {boolean} - True if key change was successful
+ */
+function applyKeyChange(keyName) {
+    if (!setKeySignature(keyName)) {
+        return false;
+    }
+    
+    updateUI(`Key: ${getKeySignature()}`, {
+        updateKeySignature: true,
+        regenerateChords: true
+    });
+    
+    // Show success feedback
+    showToast(`Key changed to ${getKeySignature()}`, { type: 'success' });
+    
+    // Update menu states and close menus
+    updateKeyMenuActiveState();
+    const dropdown = document.getElementById('playback-menu-dropdown');
+    const submenu = document.getElementById('key-submenu');
+    if (dropdown) dropdown.classList.add('hidden');
+    if (submenu) submenu.classList.add('hidden');
+    
+    return true;
+}
+
 export function handleKeySignatureClick(e) {
     // Define the cycling order for display names (circle of fifths)
     const keyOrder = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Cb'];
@@ -567,23 +624,21 @@ export function handleKeySignatureClick(e) {
     const nextIndex = (currentIndex + 1) % keyOrder.length;
     const nextKey = keyOrder[nextIndex];
 
-    // Use the new setKeySignature function (but it won't update the button)
-    if (setKeySignature(nextKey)) {
-        updateUI(`Key: ${getKeySignature()}`, {
-            updateKeySignature: true,
-            regenerateChords: true
-        });
-    }
+    applyKeyChange(nextKey);
 }
 
 export function toggleIsMinorKey() {
     pianoState.isMinorKey = !pianoState.isMinorKey;
+    
     // Update key menu display names
     updateKeyMenuActiveState();
     updateUI(`Key: ${getKeySignature()}`, {
         updateKeySignature: true,
         regenerateChords: true
     });
+    
+    // Show feedback for mode change
+    showToast(`Key changed to ${getKeySignature()}`, { type: 'success' });
 }
 
 export function openSidePanel() {
@@ -743,23 +798,7 @@ export function handleKeySelect(e) {
     const keyName = button.dataset.key;
     if (!keyName) return;
     
-    // Use the setKeySignature function
-    if (setKeySignature(keyName)) {
-        updateUI(`Key: ${getKeySignature()}`, {
-            updateKeySignature: true,
-            regenerateChords: true
-        });
-        showToast(`Key changed to ${getKeySignature()}`, { type: 'success' });
-    }
-    
-    // Update active state and close menus
-    updateKeyMenuActiveState();
-    
-    // Close both menus
-    const dropdown = document.getElementById('playback-menu-dropdown');
-    const submenu = document.getElementById('key-submenu');
-    if (dropdown) dropdown.classList.add('hidden');
-    if (submenu) submenu.classList.add('hidden');
+    applyKeyChange(keyName);
 }
 
 function updateKeyMenuActiveState() {
