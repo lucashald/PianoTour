@@ -1,0 +1,80 @@
+{% extends "index.html" %}
+
+{% block title %}PianoTour - Play Along{% endblock %}
+
+{% block top %}
+<div class="playalong-panel">
+  <div class="playalong-controls">
+    <button id="playalong-start-btn" class="btn btn--primary playback-controls__button">
+      ▶ Start Practice
+    </button>
+    <button id="playalong-stop-btn" class="btn btn--danger playback-controls__button">
+      ⏹ Stop
+    </button>
+    <button id="playalong-midi-btn" class="btn btn--info playback-controls__button">
+      🎹 Connect MIDI
+    </button>
+    <select id="playalong-mode" class="playalong-select">
+      <option value="notes">Notes Only</option>
+      <option value="timing">Timing Only</option>
+      <option value="both" selected>Notes &amp; Timing</option>
+    </select>
+  </div>
+
+  <div id="playalong-status" class="playalong-status">
+    Load a score and press Start to begin practicing.
+  </div>
+
+  <div class="playalong-stats">
+    <div class="playalong-stat">
+      <span class="playalong-stat__label">Expected:</span>
+      <span id="playalong-expected" class="playalong-stat__value">—</span>
+    </div>
+    <div class="playalong-stat">
+      <span class="playalong-stat__label">Progress:</span>
+      <span id="playalong-progress" class="playalong-stat__value">0/0 (0%)</span>
+    </div>
+    <div class="playalong-stat playalong-stat--correct">
+      <span class="playalong-stat__label">Correct:</span>
+      <span id="playalong-correct" class="playalong-stat__value">0</span>
+    </div>
+    <div class="playalong-stat playalong-stat--incorrect">
+      <span class="playalong-stat__label">Incorrect:</span>
+      <span id="playalong-incorrect" class="playalong-stat__value">0</span>
+    </div>
+    <div class="playalong-stat">
+      <span class="playalong-stat__label">Accuracy:</span>
+      <span id="playalong-accuracy" class="playalong-stat__value">0%</span>
+    </div>
+    <div class="playalong-stat">
+      <span class="playalong-stat__label">Timing:</span>
+      <span id="playalong-timing" class="playalong-stat__value">0%</span>
+    </div>
+  </div>
+
+  <div id="playalong-midi-status" class="playalong-midi-status">
+    No MIDI device connected.
+  </div>
+</div>
+{% endblock %}
+
+{% block toggles %}
+    {% include 'partials/_toggles.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+    import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
+    import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
+    import { initializePlayalong } from '{{ url_for("static", filename="js/utils/playalong.js") }}';
+
+    pianoState.instrument = 'piano';
+    pianoState.playalongMode = true;
+
+    addBasicKeyboardListeners();
+
+    document.addEventListener('pianoTourBaseReady', () => {
+        initializePlayalong();
+    });
+</script>
+{% endblock %}

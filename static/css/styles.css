@@ -2380,3 +2380,115 @@ background: linear-gradient(to right,
 .palette-note:focus:not(:focus-visible) {
   outline: none;
 }
+/* ==========================================================================
+   Play Along Mode
+   ========================================================================== */
+
+.playalong-panel {
+  width: 100%;
+  max-width: var(--max-width-desktop);
+  margin: 0 auto var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+}
+
+.playalong-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.playalong-select {
+  padding: 0.5rem 1rem;
+  background-color: var(--color-blue-dark);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+}
+
+.playalong-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.playalong-status {
+  text-align: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.playalong-status--active {
+  color: var(--color-blue-lightest);
+}
+
+.playalong-status--correct {
+  color: var(--color-green-light);
+}
+
+.playalong-status--incorrect {
+  color: var(--color-peach-light);
+}
+
+.playalong-status--complete {
+  color: var(--color-gold-light);
+  background-color: rgba(255, 215, 0, 0.08);
+}
+
+.playalong-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.playalong-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.playalong-stat__label {
+  color: var(--color-text-secondary);
+}
+
+.playalong-stat__value {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.playalong-stat--correct .playalong-stat__value {
+  color: var(--color-green-light);
+}
+
+.playalong-stat--incorrect .playalong-stat__value {
+  color: var(--color-peach-light);
+}
+
+.playalong-midi-status {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+.playalong-midi-status--connected {
+  color: var(--color-green-light);
+}

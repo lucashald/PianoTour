@@ -104,6 +104,12 @@ def practice():
     return render_template('practice.html')
 
 
+@app.route('/playalong')
+def playalong():
+    """Play-along practice mode"""
+    return render_template('playalong.html')
+
+
 @app.route('/guitar')
 def guitar():
     """Guitar instrument route"""
