@@ -313,7 +313,7 @@ export function handleMidiNoteOff(midiNoteNumber, velocity, channel) {
         stopKey(keyEl);
 
         // Write to score after audio is stopped
-        if (noteInfo) {
+        if (noteInfo && !pianoState.playalongMode) {
             writeNote({ 
                 clef, 
                 duration, 

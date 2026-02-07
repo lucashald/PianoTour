@@ -190,13 +190,15 @@ export function handleKeyUp(e) {
 
       console.log(`Writing rest with duration: ${duration}, clef: ${restData.clef}`);
       const restPositionNote = restData.clef === "bass" ? "D3" : "B4";
-      writeNote({
-        clef: restData.clef,
-        duration,
-        notes: [restPositionNote],
-        chordName: "Rest",
-        isRest: true,
-      });
+      if (!pianoState.playalongMode) {
+        writeNote({
+          clef: restData.clef,
+          duration,
+          notes: [restPositionNote],
+          chordName: "Rest",
+          isRest: true,
+        });
+      }
       delete pianoState.activeRests[k];
     } else {
       console.warn(`No rest data found for key "${k}"`);
@@ -221,12 +223,14 @@ export function handleKeyUp(e) {
 
       console.log(`Writing note: ${noteNameForScore}, duration: ${duration}, clef: ${clef}`);
       stopKey(keyEl);
-      writeNote({
-        clef,
-        duration,
-        notes: [noteNameForScore],
-        chordName: noteNameForScore,
-      });
+      if (!pianoState.playalongMode) {
+        writeNote({
+          clef,
+          duration,
+          notes: [noteNameForScore],
+          chordName: noteNameForScore,
+        });
+      }
     } else {
       console.warn(`No valid key element found for MIDI ${actualMidi} or not currently playing`);
     }
@@ -408,7 +412,7 @@ export function stopScaleChord(key) {
   }
 
   // Handle score writing if enabled
-  if (chordData.writeToScore) {
+  if (chordData.writeToScore && !pianoState.playalongMode) {
     console.log("Writing chord to score:", chordData.displayName);
     const heldTime = performance.now() - chordData.startTime;
 

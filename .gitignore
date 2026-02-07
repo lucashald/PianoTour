@@ -4,6 +4,7 @@ test-logs/
 test-results/
 tests/
 node_modules/
+__pycache__/
 
 # Files to ignore
 settings.js
