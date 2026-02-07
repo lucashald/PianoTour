@@ -593,15 +593,17 @@ function setupEventListeners() {
   });
 
   // Settings toggle
-  settingsHeader?.addEventListener('click', () => {
-    if (settingsBody.style.display === 'none') {
-      settingsBody.style.display = 'block';
-      settingsHeader.classList.remove('collapsed');
-    } else {
-      settingsBody.style.display = 'none';
-      settingsHeader.classList.add('collapsed');
-    }
-  });
+  if (settingsHeader && settingsBody) {
+    settingsHeader.addEventListener('click', () => {
+      if (settingsBody.style.display === 'none') {
+        settingsBody.style.display = 'block';
+        settingsHeader.classList.remove('collapsed');
+      } else {
+        settingsBody.style.display = 'none';
+        settingsHeader.classList.add('collapsed');
+      }
+    });
+  }
 }
 
 // ===================================================================
