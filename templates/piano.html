@@ -38,6 +38,14 @@
             const { initializeScoreInteraction } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
             initializeScoreInteraction();
             console.log('context-menu: Score interaction initialized on / route');
+
+            // Initialize play-along mode
+            const { initializePlayAlong } = await import('{{ url_for("static", filename="js/score/playAlongController.js") }}');
+            initializePlayAlong();
+
+            const { initializePlayAlongUI } = await import('{{ url_for("static", filename="js/ui/playAlongUI.js") }}');
+            initializePlayAlongUI();
+            console.log('play-along: Initialized');
         } catch (error) {
             console.error('context-menu: Failed to initialize score interaction:', error);
         }

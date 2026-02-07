@@ -1,0 +1,131 @@
+<!-- Play-Along HUD Overlay (hidden by default) -->
+<div id="playalong-hud" class="playalong-hud hidden">
+  <div class="playalong-hud__header">
+    <div class="playalong-hud__title">Play Along</div>
+  </div>
+
+  <!-- Settings panel: shown before starting, hidden during active session -->
+  <div class="playalong-hud__settings" id="playalong-settings">
+    <div class="playalong-hud__setting-group">
+      <div class="playalong-hud__setting-label">Mode</div>
+      <div class="playalong-hud__toggle-group" id="playalong-mode-toggle">
+        <button class="playalong-hud__toggle-btn playalong-hud__toggle-btn--active" data-mode="wait">Wait</button>
+        <button class="playalong-hud__toggle-btn" data-mode="timed">Timed</button>
+      </div>
+    </div>
+    <div class="playalong-hud__setting-group">
+      <div class="playalong-hud__setting-label">Clef</div>
+      <div class="playalong-hud__toggle-group" id="playalong-clef-toggle">
+        <button class="playalong-hud__toggle-btn" data-clef="treble">Treble</button>
+        <button class="playalong-hud__toggle-btn playalong-hud__toggle-btn--active" data-clef="both">Both</button>
+        <button class="playalong-hud__toggle-btn" data-clef="bass">Bass</button>
+      </div>
+    </div>
+    <button id="playalong-start-btn" class="playalong-hud__start-btn">Start</button>
+  </div>
+
+  <!-- Count-in overlay -->
+  <div class="playalong-hud__countin" id="playalong-countin" style="display: none;">
+    <div class="playalong-hud__countin-number" id="playalong-countin-number">4</div>
+  </div>
+
+  <!-- Live stats: hidden until session starts -->
+  <div class="playalong-hud__live" id="playalong-live" style="display: none;">
+    <div class="playalong-hud__stats">
+      <div class="playalong-hud__stat">
+        <div class="playalong-hud__stat-value playalong-hud__stat-value--accuracy" id="playalong-accuracy">100%</div>
+        <div class="playalong-hud__stat-label">Accuracy</div>
+      </div>
+      <div class="playalong-hud__stat">
+        <div class="playalong-hud__stat-value playalong-hud__stat-value--streak" id="playalong-streak">0</div>
+        <div class="playalong-hud__stat-label">Streak</div>
+      </div>
+    </div>
+
+    <!-- Timing rating display (timed mode only) -->
+    <div class="playalong-hud__timing" id="playalong-timing" style="display: none;">
+      <div class="playalong-hud__timing-label" id="playalong-timing-label">--</div>
+    </div>
+
+    <div class="playalong-hud__progress-container">
+      <div class="playalong-hud__progress-bar">
+        <div class="playalong-hud__progress-fill" id="playalong-progress-fill"></div>
+      </div>
+      <div class="playalong-hud__progress-text" id="playalong-progress-text">0 / 0</div>
+    </div>
+
+    <div class="playalong-hud__expected" id="playalong-expected">
+      <div class="playalong-hud__expected-label">Play</div>
+      <div class="playalong-hud__expected-notes" id="playalong-expected-notes">--</div>
+    </div>
+
+    <div class="playalong-hud__paused" id="playalong-paused" style="display: none;">
+      Paused
+    </div>
+  </div>
+
+  <div class="playalong-hud__controls">
+    <button id="playalong-pause-btn" class="playalong-hud__btn">Pause</button>
+    <button id="playalong-stop-btn" class="playalong-hud__btn playalong-hud__btn--stop">Stop</button>
+    <button id="playalong-restart-btn" class="playalong-hud__btn playalong-hud__btn--restart">Restart</button>
+  </div>
+</div>
+
+<!-- Play-Along Completion Modal (hidden by default) -->
+<div id="playalong-completion" class="playalong-completion hidden">
+  <div class="playalong-completion__card">
+    <div class="playalong-completion__title">Complete!</div>
+    <div class="playalong-completion__accuracy playalong-completion__accuracy--high" id="playalong-completion-accuracy">100%</div>
+
+    <div class="playalong-completion__details" id="playalong-completion-details">
+      <div class="playalong-completion__detail">
+        <div class="playalong-completion__detail-value" style="color: var(--color-green-light);" id="playalong-completion-correct">0</div>
+        <div class="playalong-completion__detail-label">Correct</div>
+      </div>
+      <div class="playalong-completion__detail">
+        <div class="playalong-completion__detail-value" style="color: var(--color-peach-light);" id="playalong-completion-incorrect">0</div>
+        <div class="playalong-completion__detail-label">Incorrect</div>
+      </div>
+      <div class="playalong-completion__detail">
+        <div class="playalong-completion__detail-value" style="color: var(--color-gold-light);" id="playalong-completion-streak">0</div>
+        <div class="playalong-completion__detail-label">Best Streak</div>
+      </div>
+      <div class="playalong-completion__detail">
+        <div class="playalong-completion__detail-value" id="playalong-completion-time">0s</div>
+        <div class="playalong-completion__detail-label">Time</div>
+      </div>
+    </div>
+
+    <!-- Timing breakdown (timed mode only) -->
+    <div class="playalong-completion__timing hidden" id="playalong-completion-timing">
+      <div class="playalong-completion__timing-title">Timing Breakdown</div>
+      <div class="playalong-completion__timing-grid">
+        <div class="playalong-completion__timing-item">
+          <div class="playalong-completion__timing-value playalong-completion__timing-value--perfect" id="playalong-completion-perfect">0</div>
+          <div class="playalong-completion__timing-label">Perfect</div>
+        </div>
+        <div class="playalong-completion__timing-item">
+          <div class="playalong-completion__timing-value playalong-completion__timing-value--good" id="playalong-completion-good">0</div>
+          <div class="playalong-completion__timing-label">Good</div>
+        </div>
+        <div class="playalong-completion__timing-item">
+          <div class="playalong-completion__timing-value playalong-completion__timing-value--early" id="playalong-completion-early">0</div>
+          <div class="playalong-completion__timing-label">Early</div>
+        </div>
+        <div class="playalong-completion__timing-item">
+          <div class="playalong-completion__timing-value playalong-completion__timing-value--late" id="playalong-completion-late">0</div>
+          <div class="playalong-completion__timing-label">Late</div>
+        </div>
+        <div class="playalong-completion__timing-item">
+          <div class="playalong-completion__timing-value playalong-completion__timing-value--missed" id="playalong-completion-missed">0</div>
+          <div class="playalong-completion__timing-label">Missed</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="playalong-completion__actions">
+      <button id="playalong-tryagain-btn" class="playalong-completion__btn playalong-completion__btn--primary">Try Again</button>
+      <button id="playalong-done-btn" class="playalong-completion__btn">Done</button>
+    </div>
+  </div>
+</div>

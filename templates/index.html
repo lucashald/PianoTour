@@ -10,6 +10,10 @@
       href="{{ url_for('static', filename='css/styles.css') }}"
     />
     <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/playalong.css') }}"
+    />
+    <link
       rel="icon"
       href="{{ url_for('static', filename='images/favicon.ico') }}"
     />
@@ -95,6 +99,7 @@
           </section>
         </div>
         {% block after %}{% endblock %}
+        {% include 'partials/_playalong_hud.html' %}
         <nav class="main-controls">
           <div class="controls-button-row">
             <button id="clearScoreBtn" class="btn btn--danger">

@@ -1,3 +1,9 @@
+"""
+DEVELOPMENT SERVER
+This file is the development server and should be used for any testing or local development.
+Do not deploy this file as the production server.
+"""
+
 from flask import Flask, render_template, request, send_file, jsonify, send_from_directory, redirect
 import os
 import io

@@ -1,3 +1,9 @@
+"""
+PRODUCTION SERVER
+This file is the production server and MUST NOT be run locally.
+For local development and testing, use test.py instead.
+"""
+
 from flask import Flask, render_template, request, send_file, jsonify, send_from_directory, redirect
 import os
 import io
@@ -107,6 +113,10 @@ def print_page():
 @app.route('/practice')
 def practice():
     return render_template('practice.html')
+
+@app.route('/playalong')
+def playalong():
+    return render_template('piano.html', hide_spectrum=False)
 
 
 @app.route('/guitar')

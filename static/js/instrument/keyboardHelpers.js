@@ -20,6 +20,7 @@ import {
   trigger,
   triggerAttackRelease,
 } from "./playbackHelpers.js";
+import { handleNoteOn as playAlongNoteOn, handleNoteOff as playAlongNoteOff } from "../score/playAlongController.js";
 /**
  * Get a chord based on the current key signature and scale degree
  * @param {number} [degree=1] - Scale degree (1-7), defaults to 1 (tonic)
@@ -119,6 +120,19 @@ export function handleKeyDown(e) {
 
   e.preventDefault();
 
+  // Play-Along Mode: route piano key input to the play-along controller
+  if (pianoState.playAlong?.active && handledKey.type === 'piano') {
+    const baseMidi = pianoState.keyMap[k];
+    let targetMidi = baseMidi;
+    const nextNote = notesByMidiKeyAware(baseMidi + 1);
+    if (e.shiftKey && nextNote?.isBlack) {
+      targetMidi = baseMidi + 1;
+    }
+    pianoState.held.set(k, targetMidi);
+    playAlongNoteOn(targetMidi, 100);
+    return;
+  }
+
   // Handle based on key type
   if (handledKey.type === 'chord') {
     console.log(`Processing chord key: "${k}" (degree ${handledKey.degree}, ${handledKey.useBass ? 'bass' : 'treble'})`);
@@ -179,6 +193,17 @@ export function handleKeyUp(e) {
   }
 
   console.log(`Key "${k}" found in held keys, processing release...`);
+
+  // Play-Along Mode: route piano key release to the play-along controller
+  if (pianoState.playAlong?.active && handledKey.type === 'piano') {
+    const actualMidi = pianoState.held.get(k);
+    if (actualMidi !== undefined) {
+      playAlongNoteOff(actualMidi);
+    }
+    pianoState.held.delete(k);
+    pianoState.held.delete(e.key);
+    return;
+  }
 
   if (handledKey.type === 'chord') {
     console.log(`Chord key release detected: "${e.key}" (degree ${handledKey.degree})`);

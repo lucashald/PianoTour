@@ -318,6 +318,12 @@ export function undoLastWrite() {
 }
 
 export function writeNote(obj) {
+    // Don't write notes to the score during play-along mode
+    // Input will be handled by the play-along controller instead
+    if (pianoState.playAlong?.active) {
+        return;
+    }
+
     // Queue the write and process sequentially to prevent race conditions
     // Note: Due to the queue processing, we cannot directly return the result
     // The result will be available through the noteAddedToScore event

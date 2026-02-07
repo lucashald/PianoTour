@@ -390,6 +390,81 @@ export function clearAllHighlights() {
 // UTILITY & HELPER FUNCTIONS
 // ===================================================================
 
+// ===================================================================
+// PLAY-ALONG HIGHLIGHTING
+// ===================================================================
+
+const EXPECTED_NOTE_COLOR = '#4A90D9';  // Blue — "play this next"
+const CORRECT_NOTE_COLOR = '#76B595';   // Green — correct match
+
+// Track play-along highlighted notes for cleanup
+const playAlongHighlightedNotes = new Set();
+
+/**
+ * Highlights a note on the score as "expected" (blue) during play-along mode.
+ * @param {number} measureIndex
+ * @param {string} clef
+ * @param {string} noteId
+ */
+export function addExpectedHighlight(measureIndex, clef, noteId) {
+  const vexflowIndex = getVexflowIndexByNoteId()[noteId];
+  if (vexflowIndex === undefined) return;
+
+  const style = {
+    fillStyle: EXPECTED_NOTE_COLOR,
+    strokeStyle: EXPECTED_NOTE_COLOR,
+    shadowColor: EXPECTED_NOTE_COLOR,
+    shadowBlur: 10,
+  };
+
+  setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, style);
+  playAlongHighlightedNotes.add(`${measureIndex}-${clef}-${noteId}`);
+}
+
+/**
+ * Highlights a note on the score as "correct" (green) during play-along mode.
+ * @param {number} measureIndex
+ * @param {string} clef
+ * @param {string} noteId
+ */
+export function addCorrectHighlight(measureIndex, clef, noteId) {
+  const vexflowIndex = getVexflowIndexByNoteId()[noteId];
+  if (vexflowIndex === undefined) return;
+
+  const style = {
+    fillStyle: CORRECT_NOTE_COLOR,
+    strokeStyle: CORRECT_NOTE_COLOR,
+    shadowColor: CORRECT_NOTE_COLOR,
+    shadowBlur: 12,
+  };
+
+  setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, style);
+  // Keep in tracked set for eventual cleanup
+}
+
+/**
+ * Clears all play-along highlights (expected + correct) and restores notes to default.
+ */
+export function clearAllPlayAlongHighlights() {
+  for (const noteKey of playAlongHighlightedNotes) {
+    const [measureIndex, clef, noteId] = noteKey.split('-');
+    const vexflowIndex = getVexflowIndexByNoteId()[noteId];
+    if (vexflowIndex !== undefined) {
+      setVexFlowNoteStyle(parseInt(measureIndex), clef, vexflowIndex, {
+        fillStyle: '#000000',
+        strokeStyle: '#000000',
+        shadowColor: null,
+        shadowBlur: 0,
+      });
+    }
+  }
+  playAlongHighlightedNotes.clear();
+}
+
+// ===================================================================
+// GENERAL UTILITY
+// ===================================================================
+
 /**
  * Fully resets all highlights and selections to their default state.
  * This function is called when the score is reset or needs a clean slate.

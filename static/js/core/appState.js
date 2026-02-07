@@ -71,6 +71,37 @@ export const pianoState = {
     humanize: 10, // Default velocity variation for new notes
     enableBeaming: true, // Default beaming state
     enableTies: true, // Default ties state
+
+    // Play-Along Mode State
+    playAlong: {
+        active: false,             // Is play-along mode on?
+        paused: false,             // Is the session paused?
+        state: 'idle',             // 'idle' | 'countingIn' | 'waitingForInput' | 'advancing' | 'complete'
+        currentPosition: {
+            measureIndex: 0,
+            eventIndex: 0,
+        },
+        noteSequence: [],          // Flattened, chronological array of expected events
+        activeInputNotes: {},      // Currently held input notes: { midiNumber: { timestamp, wasUsed } }
+        stats: {
+            correct: 0,
+            incorrect: 0,
+            missed: 0,
+            streak: 0,
+            bestStreak: 0,
+            startTime: null,
+            totalNotes: 0,
+        },
+        settings: {
+            mode: 'wait',          // 'wait' (freeze until correct) | 'timed' (future)
+            requireBothClefs: true,
+            trebleOnly: false,
+            bassOnly: false,
+            showNoteNames: false,
+            playAccompaniment: true,
+            countIn: true,
+        },
+    },
 };
 
 export const drumsState = {
