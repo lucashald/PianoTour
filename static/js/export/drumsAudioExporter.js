@@ -4,6 +4,7 @@
 
 import { drumsState } from "../core/appState.js";
 import { Instrument } from "../core/audioManager.js";
+import { showToast } from "../ui/uiHelpers.js";
 
 // ===================================================================
 // Constants (COPIED FROM scorePlayback.js)
@@ -569,53 +570,9 @@ export function hideExportProgress() {
 }
 
 export function showExportSuccess(filename) {
-  const notification = document.createElement("div");
-  notification.textContent = `Exported: ${filename}`;
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #28a745;
-    color: white;
-    padding: 15px 20px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    z-index: 10001;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  `;
-
-  document.body.appendChild(notification);
-
-  setTimeout(() => {
-    notification.style.transition = "opacity 0.3s";
-    notification.style.opacity = "0";
-    setTimeout(() => notification.remove(), 300);
-  }, 3000);
+  showToast(`Exported: ${filename}`, { type: 'success', duration: 3000 });
 }
 
 export function showExportError(error) {
-  const notification = document.createElement("div");
-  notification.textContent = `❌ Export failed: ${error.message}`;
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #dc3545;
-    color: white;
-    padding: 15px 20px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    z-index: 10001;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  `;
-
-  document.body.appendChild(notification);
-
-  setTimeout(() => {
-    notification.style.transition = "opacity 0.3s";
-    notification.style.opacity = "0";
-    setTimeout(() => notification.remove(), 300);
-  }, 5000);
+  showToast(`❌ Export failed: ${error.message}`, { type: 'error', duration: 5000 });
 }

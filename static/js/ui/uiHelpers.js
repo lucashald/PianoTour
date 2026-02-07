@@ -21,6 +21,73 @@ import { paintChordOnTheFly, clearChordHi } from '../instrument/instrumentHelper
 // ===================================================================
 
 /**
+ * Generic toast notification helper
+ * @param {string} message - The message to display
+ * @param {Object} options - Configuration options
+ * @param {string} options.type - Type of toast: 'success', 'error', 'info', 'warning' (default: 'info')
+ * @param {number} options.duration - Duration in milliseconds before fade out (default: 3000)
+ * @param {string} options.backgroundColor - Custom background color (overrides type-based color)
+ * @param {string} options.textColor - Custom text color (default: white for success/error/info, #212529 for warning)
+ * @returns {HTMLElement} - The notification element
+ */
+export function showToast(message, options = {}) {
+    const {
+        type = 'info',
+        duration = 3000,
+        backgroundColor = null,
+        textColor = null
+    } = options;
+
+    // Default colors by type using CSS custom properties
+    const colorMap = {
+        'success': { bg: 'var(--color-green-medium)', text: 'var(--color-text-primary)' },
+        'error': { bg: 'var(--color-peach-medium)', text: 'var(--color-text-primary)' },
+        'info': { bg: 'var(--color-blue-medium)', text: 'var(--color-text-primary)' },
+        'warning': { bg: 'var(--color-gold-medium)', text: 'var(--color-text-primary)' }
+    };
+
+    const colors = colorMap[type] || colorMap.info;
+    const bgColor = backgroundColor || colors.bg;
+    const txtColor = textColor || colors.text;
+
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${bgColor};
+        color: ${txtColor};
+        padding: 12px 16px;
+        border-radius: var(--border-radius);
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        z-index: 10001;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+        transform: translateY(-20px);
+        opacity: 0;
+    `;
+
+    document.body.appendChild(notification);
+
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateY(0)';
+    }, 10);
+
+    // Fade out and remove
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateY(-20px)';
+        setTimeout(() => notification.remove(), 300);
+    }, duration);
+
+    return notification;
+}
+
+/**
  * Updates the text content of the "now playing" display.
  * @param {string} name - The text to display.
  */
@@ -682,6 +749,7 @@ export function handleKeySelect(e) {
             updateKeySignature: true,
             regenerateChords: true
         });
+        showToast(`Key changed to ${getKeySignature()}`, { type: 'success' });
     }
     
     // Update active state and close menus

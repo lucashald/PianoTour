@@ -2,6 +2,7 @@
 import { pianoState } from '../core/appState.js';
 import { Instrument } from '../core/audioManager.js';
 import { connectSpectrumToAudio } from './spectrum.js';
+import { showToast } from './uiHelpers.js';
 
 class AudioSettingsController {
     constructor() {
@@ -667,72 +668,11 @@ class AudioSettingsController {
     }
 
     showPresetApplied(presetName) {
-        // Create a temporary notification
-        const notification = document.createElement('div');
-        notification.textContent = `${presetName} preset applied`;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--color-success, #28a745);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: all 0.3s ease;
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Animate in
-        setTimeout(() => notification.style.transform = 'translateY(0)', 10);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateY(-20px)';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+        showToast(`${presetName} preset applied`, { type: 'success' });
     }
 
     showInstrumentChanged(instrumentName) {
-        // Create a temporary notification
-        const notification = document.createElement('div');
-        notification.textContent = `Switched to ${instrumentName}`;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--color-primary, #007bff);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: all 0.3s ease;
-            transform: translateY(-20px);
-            opacity: 0;
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Animate in
-        setTimeout(() => {
-            notification.style.opacity = '1';
-            notification.style.transform = 'translateY(0)';
-        }, 10);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateY(-20px)';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+        showToast(`Switched to ${instrumentName}`, { type: 'success' });
     }
 
     registerSlider(name, config) {
@@ -988,39 +928,7 @@ class AudioSettingsController {
 
     // Show reset feedback
     showResetApplied(instrumentName) {
-        const notification = document.createElement('div');
-        notification.textContent = `🔄 Reset to ${instrumentName} defaults`;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--color-warning, #ffc107);
-            color: #212529;
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: all 0.3s ease;
-            transform: translateY(-20px);
-            opacity: 0;
-        `;
-        
-        document.body.appendChild(notification);
-        
-        // Animate in
-        setTimeout(() => {
-            notification.style.opacity = '1';
-            notification.style.transform = 'translateY(0)';
-        }, 10);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateY(-20px)';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+        showToast(`🔄 Reset to ${instrumentName} defaults`, { type: 'warning' });
     }
 
     debugEffects() {
