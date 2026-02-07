@@ -1,6 +1,7 @@
 // VolumeControl.js
 // This class manages the volume control UI and functionality, including audio status handling.
 import { unlockAndExecute } from '../core/audioManager.js';
+import { showToast } from '../ui/uiHelpers.js';
 
 export class VolumeControl {
         constructor(container) {
@@ -9,7 +10,7 @@ export class VolumeControl {
             this.volumeValue = container.querySelector('#volumeValue');
             this.volumeIcon = container.querySelector('.volume-icon');
             this.previousVolume = 75;
-            this.audioStatus = 'uninitialized'; // Track audio status
+            this.audioStatus = null; // Track audio status (null allows initial toast to fire)
             
             this.init();
         }
@@ -139,6 +140,10 @@ handleClick(source) {
         
         // NEW: Set audio status and update UI accordingly
         setAudioStatus(status) {
+            if (status === this.audioStatus) {
+                return; // No change, skip everything
+            }
+            
             this.audioStatus = status;
             this.updateAudioStatusDisplay();
         }
@@ -153,6 +158,7 @@ updateAudioStatusDisplay() {
             // DON'T disable the slider - just mark it as non-functional
             this.slider.setAttribute('data-audio-status', 'uninitialized');
             this.volumeIcon.setAttribute('aria-label', 'Click to enable audio');
+            showToast('Audio Muted', { type: 'warning' });
             break;
             
         case 'loading':
@@ -160,6 +166,7 @@ updateAudioStatusDisplay() {
             this.slider.setAttribute('data-audio-status', 'loading');
             this.volumeIcon.setAttribute('aria-label', 'Audio loading...');
             this.updateVolumeIcon('loading');
+            showToast('Loading Audio...', { type: 'info' });
             break;
             
         case 'ready':
@@ -169,6 +176,7 @@ updateAudioStatusDisplay() {
             this.volumeIcon.setAttribute('aria-label', 'Toggle mute');
             this.loadSavedVolume();
             this.checkMuteState(); // This will set the correct icon
+            showToast('Audio Ready', { type: 'success' });
             break;
             
         case 'error':
@@ -176,6 +184,7 @@ updateAudioStatusDisplay() {
             this.slider.setAttribute('data-audio-status', 'error');
             this.volumeIcon.setAttribute('aria-label', 'Audio error - click to retry');
             this.updateVolumeIcon('error');
+            showToast('Error: Failed to load audio.', { type: 'error', duration: 5000 });
             break;
     }
 }
