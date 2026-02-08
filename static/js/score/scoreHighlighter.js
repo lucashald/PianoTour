@@ -13,9 +13,6 @@ import {
 import { getMeasures } from "./scoreWriter.js";
 
 export function highlightSelectedNote(measureIndex, clef, noteId) {
-  console.log(
-    `highlighter: highlightSelectedNote() called — note=M${measureIndex}, clef=${clef}, id=${noteId}`
-  );
   clearSelectedNoteHighlight();
 
   // NEW: Check if this note is in the currentPlaybackNotes Set
@@ -50,11 +47,8 @@ export function highlightSelectedNote(measureIndex, clef, noteId) {
 * It restores the note's style to black by default, or to the measure highlight color (green) if its containing measure is also selected.
 */
 export function clearSelectedNoteHighlight() {
- console.log("highlighter: clearSelectedNoteHighlight() called — clearing selected note highlight.");
  if (!pianoState.currentSelectedNote) {
-   console.log(
-     "clearSelectedNoteHighlight: No note currently selected to clear."
-   );
+    // No currently selected note to clear.
    return;
  }
 
@@ -72,18 +66,12 @@ export function clearSelectedNoteHighlight() {
        fillStyle: "#76B595", // Green (measure highlight color)
        strokeStyle: "#76B595",
      };
-    console.log(
-      `highlighter: clearSelectedNoteHighlight() — Restoring note to measure highlight color (#76B595).`
-    );
    } else {
      // Otherwise, restore the note to its default black color.
      styleToRestore = {
        fillStyle: "#000000", // Black (default note color)
        strokeStyle: "#000000",
      };
-    console.log(
-      `highlighter: clearSelectedNoteHighlight() — Restoring note to default black color (#000000).`
-    );
    }
 
    // Apply the determined style to the VexFlow note.
@@ -92,7 +80,6 @@ export function clearSelectedNoteHighlight() {
 }
 
 export function highlightSelectedMeasure(measureIndex) {
-  console.log(`highlighter: highlightSelectedMeasure() called — measure=${measureIndex}`);
   const vexflowNoteMap = getVexFlowNoteMap();
   if (measureIndex < 0 || measureIndex >= vexflowNoteMap.length) {
     console.warn(
@@ -134,9 +121,6 @@ export function highlightSelectedMeasure(measureIndex) {
     pianoState.currentSelectedNote &&
     pianoState.currentSelectedNote.measureIndex === measureIndex
   ) {
-    console.log(
-      `highlighter: highlightSelectedMeasure() — Re-applying selected note highlight inside measure ${measureIndex}.`
-    );
     highlightSelectedNote(
       pianoState.currentSelectedNote.measureIndex,
       pianoState.currentSelectedNote.clef,
@@ -146,20 +130,14 @@ export function highlightSelectedMeasure(measureIndex) {
 }
 
 export function clearMeasureHighlight() {
-  console.log("highlighter: clearMeasureHighlight() called — clearing measure highlight.");
   if (pianoState.currentSelectedMeasure === -1) {
-    console.log(
-      "clearMeasureHighlight: No measure currently selected to clear."
-    );
+    // No measure currently selected to clear.
     return;
   }
 
   const existingOverlay = document.querySelector('[id^="measure-highlight-"]');
   if (existingOverlay) {
     existingOverlay.remove();
-    console.log(
-      `highlighter: clearMeasureHighlight() — Removed DOM overlay for measure ${pianoState.currentSelectedMeasure}.`
-    );
   }
 
   const previouslySelectedMeasureNotes =
@@ -185,9 +163,6 @@ export function clearMeasureHighlight() {
     pianoState.currentSelectedNote.measureIndex ===
       pianoState.currentSelectedMeasure
   ) {
-    console.log(
-      `highlighter: clearMeasureHighlight() — Re-applying selected note highlight after clearing measure ${pianoState.currentSelectedMeasure}.`
-    );
     highlightSelectedNote(
       pianoState.currentSelectedNote.measureIndex,
       pianoState.currentSelectedNote.clef,
@@ -216,9 +191,6 @@ function addMeasureHighlightOverlay(measureIndex) {
   const existingOverlay = document.getElementById(overlayId);
   if (existingOverlay) {
     existingOverlay.remove();
-    console.log(
-      `highlighter: addMeasureHighlightOverlay() — Removed existing overlay with ID ${overlayId}.`
-    );
   }
 
   const measureXPositions = getMeasureXPositions();
@@ -239,9 +211,6 @@ box-sizing: border-box; /* Include padding and border in the element's total wid
   // Ensure the parent score element is positioned relatively for its absolute children (like this overlay) to render correctly.
   scoreElement.style.position = "relative";
   scoreElement.appendChild(overlay);
-  console.log(
-    `highlighter: addMeasureHighlightOverlay() — Added overlay for measure ${measureIndex}.`
-  );
 }
 
 // ===================================================================
@@ -258,9 +227,6 @@ box-sizing: border-box; /* Include padding and border in the element's total wid
 * @param {string} color - The color for the playback highlight (e.g., '#FFD700' for gold).
 */
 export function addPlaybackHighlight(measureIndex, clef, noteId, color) {
- console.log(
-   `highlighter: addPlaybackHighlight() called — note=M${measureIndex}, clef=${clef}, id=${noteId}, color=${color}`
- );
 
  // NEW: Add to the playback notes Set (don't clear existing ones)
  const noteKey = `${measureIndex}-${clef}-${noteId}`;
@@ -291,9 +257,6 @@ export function addPlaybackHighlight(measureIndex, clef, noteId, color) {
    pianoState.currentSelectedNote.clef === clef &&
    pianoState.currentSelectedNote.noteId === noteId
  ) {
-   console.log(
-     "highlighter: addPlaybackHighlight() — Playback note is also selected; re-applying selection highlight to override playback."
-   );
    highlightSelectedNote(measureIndex, clef, noteId);
  }
 }
@@ -303,7 +266,6 @@ export function addPlaybackHighlight(measureIndex, clef, noteId, color) {
  * It restores the note's style based on existing highlights: to orange if selected, green if its measure is selected, or black by default.
  */
 export function clearPlaybackHighlight() {
-  console.log("highlighter: clearPlaybackHighlight() called — clearing playback highlights.");
 
   // NEW: Clear all notes from the Set
   for (const noteKey of pianoState.currentPlaybackNotes) {
@@ -326,9 +288,6 @@ export function clearPlaybackHighlight() {
           fillStyle: "#295570", // Orange (selected note color)
           strokeStyle: "#295570",
         };
-        console.log(
-          `highlighter: clearPlaybackHighlight() — Restoring note to selected note color (#295570).`
-        );
       }
       // 2. Is its containing measure currently selected? (Green takes next precedence)
       else if (measureIdx === pianoState.currentSelectedMeasure) {
@@ -336,9 +295,6 @@ export function clearPlaybackHighlight() {
           fillStyle: "#76B595", // Green (measure highlight color)
           strokeStyle: "#76B595",
         };
-        console.log(
-          `highlighter: clearPlaybackHighlight() — Restoring note to measure highlight color (#76B595).`
-        );
       }
       // 3. Otherwise, restore to default black (lowest precedence).
       else {
@@ -346,9 +302,6 @@ export function clearPlaybackHighlight() {
           fillStyle: "#000000", // Black (default note color)
           strokeStyle: "#000000",
         };
-        console.log(
-          `highlighter: clearPlaybackHighlight() — Restoring note to default black color (#000000).`
-        );
       }
 
       setVexFlowNoteStyle(measureIdx, clef, vexflowIndex, styleToRestore);
@@ -376,7 +329,6 @@ const playAlongHighlightedNotes = new Set();
  * @param {string} noteId
  */
 export function addExpectedHighlight(measureIndex, clef, noteId) {
-  console.log(`highlighter: addExpectedHighlight() called — note=M${measureIndex}, clef=${clef}, id=${noteId}, color=${EXPECTED_NOTE_COLOR}`);
   const vexflowIndex = getVexflowIndexByNoteId()[noteId];
   if (vexflowIndex === undefined) return;
 
@@ -396,7 +348,6 @@ export function addExpectedHighlight(measureIndex, clef, noteId) {
  * @param {string} noteId
  */
 export function addCorrectHighlight(measureIndex, clef, noteId) {
-  console.log(`highlighter: addCorrectHighlight() called — note=M${measureIndex}, clef=${clef}, id=${noteId}, color=${CORRECT_NOTE_COLOR}`);
   const vexflowIndex = getVexflowIndexByNoteId()[noteId];
   if (vexflowIndex === undefined) return;
 
@@ -418,7 +369,6 @@ export function addCorrectHighlight(measureIndex, clef, noteId) {
  * This function is called when the score is reset or needs a clean slate.
  */
 export function resetAllNoteStyles() {
-  console.log("highlighter: resetAllNoteStyles() called — resetting all highlighting states.");
 
   const defaultStyle = {
     fillStyle: "#000000",
@@ -459,7 +409,7 @@ export function resetAllNoteStyles() {
   pianoState.currentPlaybackNote = null;
 
   console.log(
-    "highlighter: resetAllNoteStyles() — all note styles and highlights reset successfully."
+    "all note styles and highlights reset successfully."
   );
 }
 
@@ -472,11 +422,6 @@ export function resetAllNoteStyles() {
  * @param {object} style - The VexFlow style object { fillStyle, strokeStyle }.
  */
 export function setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, style) {
-  console.log(
-    `highlighter: setVexFlowNoteStyle() called — target=${measureIndex}-${clef}-${vexflowIndex}, style=${JSON.stringify(
-      style
-    )}`
-  );
   const vexflowNoteMap = getVexFlowNoteMap();
   const note = vexflowNoteMap[measureIndex]?.[clef]?.[vexflowIndex];
   if (!note) {
