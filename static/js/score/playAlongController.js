@@ -14,8 +14,8 @@ import { scrollToMeasure } from "./scoreRenderer.js";
 import {
   addExpectedHighlight,
   addCorrectHighlight,
-  clearAllPlayAlongHighlights,
   setVexFlowNoteStyle,
+  resetAllNoteStyles,
 } from "./scoreHighlighter.js";
 import {
   showPlayAlongHUD,
@@ -785,7 +785,7 @@ function completePlayAlong() {
   showCompletionModal(results);
 
   clearExpectedKeyHighlights();
-  clearAllPlayAlongHighlights();
+  resetAllNoteStyles();
 }
 
 // ===================================================================
@@ -936,8 +936,8 @@ export async function start() {
   showPlayAlongHUD(true);
   updateHUD();
 
-  clearAllPlayAlongHighlights();
   clearExpectedKeyHighlights();
+  resetAllNoteStyles();
 
   if (mode === "timed") {
     // ---- TIMED MODE ----
@@ -1057,8 +1057,7 @@ export function stop() {
   pa.activeInputNotes = {};
 
   clearExpectedKeyHighlights();
-  clearAllPlayAlongHighlights();
-
+  resetAllNoteStyles();
   hidePlayAlongHUD();
 
   console.log("Play-Along: Stopped.");

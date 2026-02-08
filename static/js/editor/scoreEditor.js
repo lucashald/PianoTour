@@ -8,9 +8,9 @@
 import { pianoState } from "../core/appState.js";
 import { ALL_NOTE_INFO, DURATIONS, NOTES_BY_NAME } from '../core/note-data.js';
 import {
-    clearSelectedNoteHighlight,
     highlightSelectedMeasure,
     highlightSelectedNote,
+    clearSelectedNoteHighlight,
 } from '../score/scoreHighlighter.js';
 import {
     enableScoreInteraction,

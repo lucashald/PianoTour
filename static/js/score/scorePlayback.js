@@ -12,7 +12,7 @@ import { stopSpectrumVisualization } from "../ui/spectrum.js";
 import { updateNowPlayingDisplay } from "../ui/uiHelpers.js";
 import {
   addPlaybackHighlight,
-  clearAllHighlights,
+  resetAllNoteStyles,
   setVexFlowNoteStyle,
 } from "./scoreHighlighter.js";
 import { getVexflowIndexByNoteId, safeRedraw, scrollToMeasure } from "./scoreRenderer.js";
@@ -289,37 +289,11 @@ function scheduleNoteEvents(
 
         const vexflowIndex = getVexflowIndexByNoteId()[noteId];
         if (vexflowIndex !== undefined) {
-          let styleToRestore;
-
-          if (
-            pianoState.currentSelectedNote &&
-            pianoState.currentSelectedNote.measureIndex === measureIndex &&
-            pianoState.currentSelectedNote.clef === note.clef &&
-            pianoState.currentSelectedNote.noteId === noteId
-          ) {
-            styleToRestore = {
-              fillStyle: "#D88368",
-              strokeStyle: "#D88368",
-              shadowColor: null,
-              shadowBlur: 0,
-            };
-          } else if (measureIndex === pianoState.currentSelectedMeasure) {
-            styleToRestore = {
-              fillStyle: "#76B595",
-              strokeStyle: "#76B595",
-              shadowColor: null,
-              shadowBlur: 0,
-            };
-          } else {
-            styleToRestore = {
-              fillStyle: "#000000",
-              strokeStyle: "#000000",
-              shadowColor: null,
-              shadowBlur: 0,
-            };
-          }
-
-          setVexFlowNoteStyle(measureIndex, note.clef, vexflowIndex, styleToRestore);
+          const defaultStyle = {
+            fillStyle: "#000000",
+            strokeStyle: "#000000",
+          };
+          setVexFlowNoteStyle(measureIndex, note.clef, vexflowIndex, defaultStyle);
         }
 
         currentPlayingVexFlowNotes.delete(noteKey);
@@ -359,7 +333,7 @@ export function playScore(measures, bpm = pianoState.tempo) {
     }
   });
 
-  clearAllHighlights();
+  resetAllNoteStyles();
   startSpectrumIfReady();
 
   // Build tie map (only for audio sustain, not articulation)
@@ -511,7 +485,7 @@ export function stopPlayback() {
   }
 
   console.log("Playback stopped.");
-  clearAllHighlights();
+  resetAllNoteStyles();
   safeRedraw();
 }
 

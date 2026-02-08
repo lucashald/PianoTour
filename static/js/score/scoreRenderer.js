@@ -19,7 +19,7 @@ import { saveToLocalStorage } from "../utils/ioHelpers.js";
 import { updateUI } from "../ui/uiHelpers.js";
 import {
   addPlaybackHighlight,
-  clearMeasureHighlight,
+  resetAllNoteStyles,
   highlightSelectedMeasure,
   highlightSelectedNote
 } from "./scoreHighlighter.js";
@@ -730,7 +730,7 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
       } else {
         // Too far from any valid position - clear preview
         clearDragPreview();
-        clearMeasureHighlight();
+        resetAllNoteStyles();
       }
     }
   });
@@ -747,7 +747,7 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     // Check if mouse is outside the score area
     if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
       clearDragPreview();
-      clearMeasureHighlight();
+      resetAllNoteStyles();
     }
   });
 

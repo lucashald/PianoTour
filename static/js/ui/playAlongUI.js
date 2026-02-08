@@ -418,6 +418,30 @@ export function initializePlayAlongUI() {
     stopPlayAlong();
   });
 
+  // --- Completion modal: Escape key to dismiss ---
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const comp = getCompletionElements();
+      if (comp.root && !comp.root.classList.contains("hidden")) {
+        e.preventDefault();
+        hideCompletionModal();
+        stopPlayAlong();
+      }
+    }
+  });
+
+  // --- Completion modal: click outside to dismiss ---
+  const compRoot = document.getElementById("playalong-completion");
+  if (compRoot) {
+    compRoot.addEventListener("click", (e) => {
+      // Only dismiss if the click is on the backdrop itself, not on modal content
+      if (e.target === compRoot) {
+        hideCompletionModal();
+        stopPlayAlong();
+      }
+    });
+  }
+
   // Sync settings UI to current state
   syncSettingsToUI();
 }
