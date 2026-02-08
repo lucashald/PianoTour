@@ -15,6 +15,7 @@ import json
 import ugly_midi
 import jsonschema
 from jsonschema import validate
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 # --- Basic Configuration ---
 logging.basicConfig(level=logging.INFO)
@@ -23,13 +24,19 @@ logger = logging.getLogger(__name__)
 # --- Flask App Initialization ---
 app = Flask(__name__)
 
+# --- MIDI conversion limits ---
+MIDI_MAX_FILE_SIZE = 5 * 1024 * 1024   # 5 MB
+MIDI_CONVERSION_TIMEOUT = 60           # seconds
+
+
+def _run_conversion(midi_file_path, kwargs):
+    """Run ugly_midi conversion in a worker thread (allows timeout)."""
+    return ugly_midi.midi_to_json(midi_file_path, **kwargs)
+
 
 def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=None):
     """
-    Simplified MIDI → JSON conversion using the new ugly_midi API.
-
-    We delegate conversion to the vendor package and return the JSON payload
-    returned by `ugly_midi.midi_to_json`.
+    MIDI → JSON conversion with timeout and memory-error protection.
     """
     try:
         logger.info(
@@ -38,11 +45,21 @@ def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=Non
             manual_tempo,
         )
 
-        # Use v3's default quantization (0.25 = 16th notes) for large file stability.
         kwargs = {'manual_tempo': manual_tempo}
         if quantize_resolution is not None:
             kwargs['quantize_resolution'] = quantize_resolution
-        json_data = ugly_midi.midi_to_json(midi_file_path, **kwargs)
+
+        # Run conversion with a timeout
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_run_conversion, midi_file_path, kwargs)
+            try:
+                json_data = future.result(timeout=MIDI_CONVERSION_TIMEOUT)
+            except FuturesTimeoutError:
+                logger.error("MIDI conversion timed out after %ds", MIDI_CONVERSION_TIMEOUT)
+                raise ValueError(
+                    f"MIDI conversion timed out after {MIDI_CONVERSION_TIMEOUT} seconds. "
+                    "The file may be too large or complex."
+                )
 
         if not isinstance(json_data, dict) or 'measures' not in json_data:
             raise ValueError("ugly_midi returned unexpected JSON payload")
@@ -54,6 +71,14 @@ def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=Non
         )
 
         return json_data
+    except MemoryError:
+        logger.error("MIDI conversion ran out of memory")
+        raise ValueError(
+            "The MIDI file is too large or complex — the server ran out of memory. "
+            "Try a simpler or shorter MIDI file."
+        )
+    except ValueError:
+        raise  # already formatted
     except Exception as e:
         logger.error("ugly_midi failed to parse MIDI file: %s", e, exc_info=True)
         raise ValueError(f"Failed to convert MIDI file: {e}")
@@ -453,6 +478,17 @@ def convert_to_json():
     file = request.files['midiFile']
     if file.filename == '':
         return jsonify({'error': 'No file selected.'}), 400
+
+    # --- File-size guard ---
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > MIDI_MAX_FILE_SIZE:
+        return jsonify({
+            'error': f'MIDI file is too large ({file_size / 1024 / 1024:.1f} MB). '
+                     f'Maximum allowed size is {MIDI_MAX_FILE_SIZE / 1024 / 1024:.0f} MB.'
+        }), 413
+
     temp_midi_path = None
     try:
         fd, temp_midi_path = tempfile.mkstemp(suffix='.mid')
@@ -460,6 +496,12 @@ def convert_to_json():
         file.save(temp_midi_path)
         json_data = midi_to_json_data(temp_midi_path)
         return jsonify(json_data)
+    except MemoryError:
+        logger.error("Out of memory during JSON conversion")
+        return jsonify({
+            'error': 'The server ran out of memory processing this MIDI file. '
+                     'Try a simpler or shorter file.'
+        }), 500
     except Exception as e:
         logger.error(f"Error during JSON conversion: {e}", exc_info=True)
         return jsonify({'error':
@@ -471,6 +513,90 @@ def convert_to_json():
             except Exception as cleanup_error:
                 logger.warning(
                     f"Failed to clean up temp file: {cleanup_error}")
+
+
+@app.route('/extract-midi', methods=['POST'])
+def extract_midi():
+    """Stage 1: Extract raw notes per-track + tempo/measure grid (no quantization)."""
+    if 'midiFile' not in request.files:
+        return jsonify({'error': 'No MIDI file provided.'}), 400
+    file = request.files['midiFile']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected.'}), 400
+
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > MIDI_MAX_FILE_SIZE:
+        return jsonify({
+            'error': f'MIDI file is too large ({file_size / 1024 / 1024:.1f} MB). '
+                     f'Maximum allowed size is {MIDI_MAX_FILE_SIZE / 1024 / 1024:.0f} MB.'
+        }), 413
+
+    temp_midi_path = None
+    try:
+        fd, temp_midi_path = tempfile.mkstemp(suffix='.mid')
+        os.close(fd)
+        file.save(temp_midi_path)
+
+        manual_tempo = request.form.get('manual_tempo', type=int, default=None)
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(ugly_midi.extract_raw_midi_data, temp_midi_path, manual_tempo)
+            try:
+                raw_data = future.result(timeout=MIDI_CONVERSION_TIMEOUT)
+            except FuturesTimeoutError:
+                logger.error("MIDI extraction timed out after %ds", MIDI_CONVERSION_TIMEOUT)
+                return jsonify({'error': f'MIDI extraction timed out after {MIDI_CONVERSION_TIMEOUT}s.'}), 500
+
+        return jsonify(raw_data)
+    except MemoryError:
+        logger.error("Out of memory during MIDI extraction")
+        return jsonify({'error': 'The server ran out of memory. Try a simpler file.'}), 500
+    except Exception as e:
+        logger.error(f"Error during MIDI extraction: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to extract MIDI data: {str(e)}'}), 500
+    finally:
+        if temp_midi_path and os.path.exists(temp_midi_path):
+            try:
+                os.unlink(temp_midi_path)
+            except Exception:
+                pass
+
+
+@app.route('/quantize-tracks', methods=['POST'])
+def quantize_tracks():
+    """Stage 2: Quantize selected tracks into VexFlow JSON."""
+    try:
+        payload = request.get_json()
+        if not payload:
+            return jsonify({'error': 'No JSON payload provided.'}), 400
+
+        raw_data = payload.get('rawData')
+        if not raw_data:
+            return jsonify({'error': 'Missing rawData field.'}), 400
+
+        track_indices = payload.get('trackIndices')  # None = all non-drum tracks
+        quantize_resolution = payload.get('quantizeResolution', 0.125)
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                ugly_midi.quantize_track_to_json,
+                raw_data, track_indices, quantize_resolution
+            )
+            try:
+                json_data = future.result(timeout=MIDI_CONVERSION_TIMEOUT)
+            except FuturesTimeoutError:
+                logger.error("Track quantization timed out after %ds", MIDI_CONVERSION_TIMEOUT)
+                return jsonify({'error': f'Quantization timed out after {MIDI_CONVERSION_TIMEOUT}s.'}), 500
+
+        return jsonify(json_data)
+    except MemoryError:
+        logger.error("Out of memory during track quantization")
+        return jsonify({'error': 'The server ran out of memory. Try fewer tracks.'}), 500
+    except Exception as e:
+        logger.error(f"Error during track quantization: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to quantize tracks: {str(e)}'}), 500
 
 
 @app.route('/health')

@@ -11,6 +11,15 @@ let progressModal = null;
 let progressBar = null;
 let progressText = null;
 let progressDetails = null;
+let activeMidiAbortController = null;
+
+// Two-stage MIDI: store raw extracted data for re-quantization
+let cachedRawMidiData = null;
+
+/** Get the cached raw MIDI data (for re-quantization or track switching). */
+export function getCachedRawMidiData() {
+    return cachedRawMidiData;
+}
 
 // Initialize file handlers with progress UI
 export function initializeFileHandlers() {
@@ -128,12 +137,17 @@ function createProgressModal() {
     progressDetails = document.getElementById('progress-details');
 }
 
-// Show progress modal
-function showProgressModal() {
+// Show progress modal (optionally with a cancel button for long operations)
+function showProgressModal({ showCancel = false } = {}) {
     if (progressModal) {
         progressModal.style.display = 'flex';
         updateProgress(0, 1, 'Starting...');
         hideValidationSummary();
+
+        const cancelBtn = document.getElementById('cancel-loading');
+        if (cancelBtn) {
+            cancelBtn.style.display = showCancel ? 'inline-block' : 'none';
+        }
     }
 }
 
@@ -142,6 +156,9 @@ function hideProgressModal() {
     if (progressModal) {
         progressModal.style.display = 'none';
         resetProgress();
+
+        const cancelBtn = document.getElementById('cancel-loading');
+        if (cancelBtn) cancelBtn.style.display = 'none';
     }
 }
 
@@ -347,60 +364,112 @@ async function applyProcessedScore(processedScore) {
     }
 }
 
-// Load MIDI file with scoreManager processing (simplified)
+// Load MIDI file with two-stage pipeline: extract raw data → pick tracks → quantize
 async function loadMidiFile(file) {
     const formData = new FormData();
     formData.append('midiFile', file);
-    
-    showProgressModal();
-    updateProgress(0, 1, 'Converting MIDI file...', 'Server processing');
-   
+
+    // Create an AbortController so the user can cancel the request
+    const abortController = new AbortController();
+    activeMidiAbortController = abortController;
+
+    showProgressModal({ showCancel: true });
+    updateProgress(0, 1, 'Extracting MIDI data...', 'Reading tracks & notes');
+
+    // Wire up cancel button
+    const cancelBtn = document.getElementById('cancel-loading');
+    const onCancel = () => {
+        abortController.abort();
+        updateProgress(0, 1, 'Cancelling...', '');
+    };
+    cancelBtn?.addEventListener('click', onCancel, { once: true });
+
     try {
-        const response = await fetch('/convert-to-json', {
+        // ─── Stage 1: Extract raw notes per-track (fast, no quantization) ───
+        const extractResponse = await fetch('/extract-midi', {
             method: 'POST',
-            body: formData
+            body: formData,
+            signal: abortController.signal
         });
-       
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            
-            if (response.status === 500) {
-                console.error('Server error during MIDI conversion:', errorData);
-                throw new Error('The MIDI file could not be processed. It may be too complex or corrupted.');
-            } else if (response.status === 413) {
-                throw new Error('The MIDI file is too large to process.');
-            } else if (response.status === 400) {
-                throw new Error(errorData.error || 'The MIDI file format is not supported.');
-            }
-            
-            throw new Error(errorData.error || `Server error (${response.status}). Please try again.`);
+
+        if (!extractResponse.ok) {
+            const errorData = await extractResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server error (${extractResponse.status}). Please try again.`);
         }
 
-        const vexflowJsonFromServer = await response.json();
-        
-        updateProgress(0.3, 1, 'Processing converted data...', 'Running validation');
+        const rawData = await extractResponse.json();
+        cachedRawMidiData = rawData;
 
-        // Server now returns proper VexFlow format - no transformation needed!
-        // Just validate it has the required structure
+        updateProgress(0.15, 1, 'MIDI data extracted', `${rawData.tracks.length} track(s) found`);
+
+        // Filter to non-drum tracks with notes
+        const playableTracks = rawData.tracks.filter(t => !t.isDrum && t.noteCount > 0);
+
+        if (playableTracks.length === 0) {
+            throw new Error('No playable (non-drum) tracks found in the MIDI file.');
+        }
+
+        // ─── Track Selection ───
+        let selectedTrackIndices = null; // null means "all non-drum tracks"
+
+        if (playableTracks.length > 1) {
+            // Show track picker and let user choose
+            hideProgressModal();
+            selectedTrackIndices = await showTrackPicker(playableTracks, rawData);
+
+            if (selectedTrackIndices === null) {
+                // User cancelled
+                console.log('Track selection cancelled by user');
+                return false;
+            }
+
+            // Re-show progress modal for quantization
+            showProgressModal({ showCancel: true });
+            cancelBtn?.addEventListener('click', onCancel, { once: true });
+        }
+
+        // ─── Stage 2: Quantize selected tracks ───
+        updateProgress(0.3, 1, 'Quantizing selected tracks...', 'Converting to notation');
+
+        const quantizeResponse = await fetch('/quantize-tracks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                rawData: rawData,
+                trackIndices: selectedTrackIndices,
+                quantizeResolution: 0.125
+            }),
+            signal: abortController.signal
+        });
+
+        if (!quantizeResponse.ok) {
+            const errorData = await quantizeResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || `Quantization failed (${quantizeResponse.status}).`);
+        }
+
+        const vexflowJsonFromServer = await quantizeResponse.json();
+
+        updateProgress(0.5, 1, 'Processing converted data...', 'Running validation');
+
         if (!vexflowJsonFromServer.measures || !Array.isArray(vexflowJsonFromServer.measures)) {
             throw new Error('Invalid server response - missing measures array');
         }
 
         // Process through scoreManager with splitting disabled for MIDI files
-const processedScore = await scoreManager.processScore(JSON.stringify(vexflowJsonFromServer), {
-    fileName: file.name.replace('.mid', '.json'),
-    disableSplitting: true,  // Disable measure splitting for MIDI files
-    onProgress: (current, total, message) => {
-        const adjustedCurrent = 0.3 + (current / total) * 0.6;
-        updateProgress(adjustedCurrent, 1, message, `Processing measure ${current} of ${total}`);
-    }
-});
+        const processedScore = await scoreManager.processScore(JSON.stringify(vexflowJsonFromServer), {
+            fileName: file.name.replace('.mid', '.json'),
+            disableSplitting: true,
+            onProgress: (current, total, message) => {
+                const adjustedCurrent = 0.5 + (current / total) * 0.4;
+                updateProgress(adjustedCurrent, 1, message, `Processing measure ${current} of ${total}`);
+            }
+        });
 
         updateProgress(0.9, 1, 'Applying to score...', 'Almost done');
 
         // Apply the processed score
         await applyProcessedScore(processedScore);
-        
+
         // Handle validation issues
         if (processedScore.validationErrors && processedScore.validationErrors.length > 0) {
             console.warn('MIDI validation warnings:', processedScore.validationErrors);
@@ -408,59 +477,244 @@ const processedScore = await scoreManager.processScore(JSON.stringify(vexflowJso
         } else {
             hideProgressModal();
         }
-        
+
     } catch (error) {
+        if (error.name === 'AbortError') {
+            console.log('MIDI import cancelled by user');
+            hideProgressModal();
+            return false;
+        }
+
         console.error('MIDI loading failed:', error);
         hideProgressModal();
-        
+
         const userMessage = getUserFriendlyMidiError(error, file);
         alert(userMessage);
-        
+
+        return false;
+    } finally {
+        activeMidiAbortController = null;
+        cancelBtn?.removeEventListener('click', onCancel);
+    }
+}
+
+/**
+ * Re-quantize cached raw MIDI data with different tracks or resolution.
+ * Can be called from UI to switch tracks without re-uploading.
+ */
+export async function requantizeTracks(trackIndices = null, quantizeResolution = 0.125) {
+    if (!cachedRawMidiData) {
+        alert('No MIDI file loaded. Please load a MIDI file first.');
         return false;
     }
+
+    showProgressModal({ showCancel: false });
+    updateProgress(0, 1, 'Re-quantizing tracks...', 'Converting to notation');
+
+    try {
+        const response = await fetch('/quantize-tracks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                rawData: cachedRawMidiData,
+                trackIndices: trackIndices,
+                quantizeResolution: quantizeResolution
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Quantization failed (${response.status}).`);
+        }
+
+        const vexflowJson = await response.json();
+        updateProgress(0.5, 1, 'Processing...', 'Validating');
+
+        const processedScore = await scoreManager.processScore(JSON.stringify(vexflowJson), {
+            fileName: 'requantized.json',
+            disableSplitting: true,
+            onProgress: (current, total, message) => {
+                updateProgress(0.5 + (current / total) * 0.4, 1, message, `Measure ${current}/${total}`);
+            }
+        });
+
+        updateProgress(0.9, 1, 'Applying...', 'Almost done');
+        await applyProcessedScore(processedScore);
+        hideProgressModal();
+        return true;
+    } catch (error) {
+        console.error('Re-quantization failed:', error);
+        hideProgressModal();
+        alert(`Re-quantization failed: ${error.message}`);
+        return false;
+    }
+}
+
+/**
+ * Show a track picker modal for multi-track MIDI files.
+ * Returns array of selected track indices, or null if cancelled.
+ */
+function showTrackPicker(playableTracks, rawData) {
+    return new Promise((resolve) => {
+        // Remove any existing picker
+        document.getElementById('track-picker-modal')?.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'track-picker-modal';
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center;
+            justify-content: center; z-index: 10001;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+
+        const totalDuration = rawData.duration;
+        const durationStr = totalDuration > 60
+            ? `${Math.floor(totalDuration / 60)}m ${Math.round(totalDuration % 60)}s`
+            : `${Math.round(totalDuration)}s`;
+
+        const trackListHtml = playableTracks.map(track => {
+            const pitchMin = track.pitchRange?.min ?? 0;
+            const pitchMax = track.pitchRange?.max ?? 127;
+            const rangeLabel = pitchMin < 60 && pitchMax >= 60 ? 'Full range'
+                : pitchMin >= 60 ? 'Treble' : 'Bass';
+            return `
+                <label style="display: flex; align-items: center; padding: 10px 12px;
+                    border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer;
+                    transition: background 0.15s; margin-bottom: 6px;"
+                    onmouseover="this.style.background='#f5f5f5'"
+                    onmouseout="this.style.background='white'">
+                    <input type="checkbox" value="${track.index}" checked
+                        style="margin-right: 12px; width: 18px; height: 18px; cursor: pointer;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: #333; font-size: 14px;">
+                            ${track.name}
+                        </div>
+                        <div style="font-size: 12px; color: #888; margin-top: 2px;">
+                            ${track.instrument} · ${track.noteCount} notes · ${rangeLabel}
+                        </div>
+                    </div>
+                </label>
+            `;
+        }).join('');
+
+        modal.innerHTML = `
+            <div style="background: white; border-radius: 12px; padding: 28px;
+                min-width: 420px; max-width: 540px; max-height: 80vh;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3); display: flex; flex-direction: column;">
+                <h3 style="margin: 0 0 4px 0; color: #333; font-size: 18px;">Select Tracks</h3>
+                <p style="margin: 0 0 16px 0; color: #888; font-size: 13px;">
+                    ${rawData.tracks.length} tracks · ${durationStr} · ${rawData.tempoMap[0]?.bpm ?? '?'} BPM
+                </p>
+
+                <div style="overflow-y: auto; max-height: 50vh; margin-bottom: 16px;">
+                    ${trackListHtml}
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="track-pick-cancel" style="
+                        background: #f5f5f5; color: #666; border: 1px solid #ddd;
+                        padding: 10px 20px; border-radius: 8px; cursor: pointer;
+                        font-size: 14px;">Cancel</button>
+                    <button id="track-pick-all" style="
+                        background: #2196F3; color: white; border: none;
+                        padding: 10px 20px; border-radius: 8px; cursor: pointer;
+                        font-size: 14px;">Load All Tracks</button>
+                    <button id="track-pick-selected" style="
+                        background: #4CAF50; color: white; border: none;
+                        padding: 10px 20px; border-radius: 8px; cursor: pointer;
+                        font-size: 14px; font-weight: 600;">Load Selected</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const cleanup = () => modal.remove();
+
+        document.getElementById('track-pick-cancel').addEventListener('click', () => {
+            cleanup();
+            resolve(null);
+        });
+
+        document.getElementById('track-pick-all').addEventListener('click', () => {
+            cleanup();
+            resolve(null); // null = all non-drum tracks
+        });
+
+        document.getElementById('track-pick-selected').addEventListener('click', () => {
+            const checkboxes = modal.querySelectorAll('input[type="checkbox"]:checked');
+            const indices = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            cleanup();
+            if (indices.length === 0) {
+                alert('Please select at least one track.');
+                resolve(null); // Fall back to all
+            } else {
+                resolve(indices);
+            }
+        });
+
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                cleanup();
+                resolve(null);
+            }
+        });
+    });
 }
 // Generate user-friendly error messages for MIDI
 function getUserFriendlyMidiError(error, file) {
     const fileName = file ? file.name : 'MIDI file';
     const fileSize = file ? `(${Math.round(file.size / 1024)}KB)` : '';
-    
+
     let message = `Failed to load ${fileName} ${fileSize}\n\n`;
-    
-    if (error.message.includes('too many ticks') || error.message.includes('Too many ticks')) {
+
+    if (error.message.includes('timed out')) {
+        message += 'The conversion took too long and was stopped.\n\n';
+        message += 'This usually happens with very large or complex MIDI files.\n';
+        message += 'Try a shorter or simpler MIDI file.';
+
+    } else if (error.message.includes('memory') || error.message.includes('Memory') || error.message.includes('allocate')) {
+        message += 'The server ran out of memory processing this file.\n\n';
+        message += 'The MIDI file is too large or complex.\n';
+        message += 'Try a shorter or simpler MIDI file (under 5 MB).';
+
+    } else if (error.message.includes('too many ticks') || error.message.includes('Too many ticks')) {
         message += 'This MIDI file has too many musical elements in individual measures.\n\n';
         message += 'This often happens with:\n';
         message += '• MIDI files with many simultaneous notes\n';
         message += '• Very complex orchestral arrangements\n';
         message += '• Files with extremely short note values\n\n';
         message += 'Try using a simpler MIDI file or one with fewer simultaneous parts.';
-        
+
     } else if (error.message.includes('validation') || error.message.includes('measures')) {
         message += 'The MIDI file structure is too complex for the current system.\n\n';
         message += 'Try:\n';
         message += '• Using a MIDI with simpler notation\n';
         message += '• Reducing the number of tracks before export\n';
         message += '• Using a shorter musical piece';
-        
+
     } else if (error.message.includes('too large')) {
         message += 'This MIDI file is too large to process.\n\n';
-        message += 'Try using a smaller MIDI file (under 5MB).';
-        
+        message += 'Try using a smaller MIDI file (under 5 MB).';
+
     } else if (error.message.includes('format') || error.message.includes('corrupted')) {
         message += 'The MIDI file appears to be corrupted or in an unsupported format.\n\n';
         message += 'Try:\n';
         message += '• Re-exporting the MIDI from your music software\n';
         message += '• Using Standard MIDI File format\n';
         message += '• Checking the file isn\'t corrupted';
-        
+
     } else if (error.message.includes('Server') || error.message.includes('server')) {
         message += 'There was a server error processing the MIDI file.\n\n';
         message += 'Please try again in a moment, or try a different MIDI file.';
-        
+
     } else {
         message += `Error: ${error.message}\n\n`;
         message += 'The MIDI file could not be loaded. Please try a different file.';
     }
-    
+
     return message;
 }
 

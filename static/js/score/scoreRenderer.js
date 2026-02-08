@@ -354,10 +354,46 @@ export function drawAll(measures, noScroll = false) {
     for (let i = 0; i < measureCount; i++) {
       measureXPositions.push(currentX);
       const measure = measures[i] || [];
-      const trebleNotesData = measure.filter((n) => n.clef === "treble");
-      const bassNotesData = measure.filter((n) => n.clef === "bass");
+      let trebleNotesData = measure.filter((n) => n.clef === "treble");
+      let bassNotesData = measure.filter((n) => n.clef === "bass");
 
       vexflowNoteMap[i] = { treble: [], bass: [] };
+
+      // --- Per-clef beat validation: truncate overflowing measures ---
+      const BEAT_VALUES = {
+        'w': 4, 'h.': 3, 'h': 2, 'q.': 1.5, 'q': 1,
+        '8.': 0.75, '8': 0.5, '16.': 0.375, '16': 0.25, '32': 0.125
+      };
+      const beatsPerMeasure = (pianoState.timeSignature.numerator * 4) / pianoState.timeSignature.denominator;
+
+      function getEffectiveBeatValue(note) {
+        let dur = note.duration;
+        // Dotted rests have their dot stripped later, so use non-dotted beat value for rests
+        if (note.isRest && dur.includes('.')) {
+          dur = dur.replace('.', '');
+        }
+        return BEAT_VALUES[dur] || 1;
+      }
+
+      function truncateClefNotes(notesData) {
+        let totalBeats = 0;
+        const result = [];
+        for (const note of notesData) {
+          const beats = getEffectiveBeatValue(note);
+          if (totalBeats + beats <= beatsPerMeasure + 0.001) {
+            result.push(note);
+            totalBeats += beats;
+          } else {
+            // Skip this note - it would overflow the measure
+            console.warn(`drawAll: Dropping note ${note.name}/${note.duration} in measure ${i} (${note.clef}) - would overflow: ${totalBeats + beats} > ${beatsPerMeasure}`);
+          }
+        }
+        // If we have notes but they don't fill the measure, that's OK - VexFlow handles underfill with setStrict(false)
+        return result;
+      }
+
+      trebleNotesData = truncateClefNotes(trebleNotesData);
+      bassNotesData = truncateClefNotes(bassNotesData);
 
       // Helper function to get VexFlow-compatible duration (removes dots from rests)
       const getVexFlowDuration = (note) => {
@@ -433,14 +469,24 @@ export function drawAll(measures, noScroll = false) {
         spaceBetweenStaves: 10,
       });
 
-      // ADD THIS: Store the voices so we can apply accidentals
+      // Create Voice objects manually with setStrict(false) BEFORE adding tickables.
+      // score.voice() creates a strict Voice internally and throws "Too many ticks"
+      // before setStrict(false) can be applied, so we must build voices ourselves.
       console.log(`beatcount: measure ${i} creating voices`, {
         measureIndex: i,
         trebleVexNotesLength: trebleVexNotes.length,
         bassVexNotesLength: bassVexNotes.length
       });
-      const trebleVoice = score.voice(trebleVexNotes).setStrict(false);
-      const bassVoice = score.voice(bassVexNotes).setStrict(false);
+      const trebleVoice = new Vex.Flow.Voice({
+        numBeats: pianoState.timeSignature.numerator,
+        beatValue: pianoState.timeSignature.denominator
+      }).setStrict(false);
+      trebleVoice.addTickables(trebleVexNotes);
+      const bassVoice = new Vex.Flow.Voice({
+        numBeats: pianoState.timeSignature.numerator,
+        beatValue: pianoState.timeSignature.denominator
+      }).setStrict(false);
+      bassVoice.addTickables(bassVexNotes);
       allVoices.push(trebleVoice, bassVoice);
 
       const staveTreble = system.addStave({ voices: [trebleVoice] });

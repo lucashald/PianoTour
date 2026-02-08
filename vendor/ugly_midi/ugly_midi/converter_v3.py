@@ -44,14 +44,46 @@ BEATS_TO_DURATION_SYMBOLS: List[Tuple[str, float]] = list(DURATION_TO_BEATS.item
 def beats_to_duration_symbol_simple(beats: float) -> str:
     """Return the duration symbol whose beat value is closest to ``beats``.
 
-    No "too many ticks" safety, just nearest neighbor.
+    Uses a floor strategy: never picks a symbol with more beats than requested.
+    This prevents VexFlow 'Too many ticks' errors from rest insertion rounding up.
     """
-    best_sym = "q"
-    best_diff = float("inf")
+    # First try exact match (with tolerance)
     for sym, val in BEATS_TO_DURATION_SYMBOLS:
-        diff = abs(val - beats)
-        if diff < best_diff:
-            best_diff = diff
+        if abs(val - beats) < 1e-4:
+            return sym
+
+    # Floor strategy: pick the largest duration that fits within the given beats
+    best_sym = "32"  # smallest duration as fallback
+    best_val = 0.0
+    for sym, val in BEATS_TO_DURATION_SYMBOLS:
+        if val <= beats + 1e-6 and val > best_val:
+            best_val = val
+            best_sym = sym
+
+    return best_sym
+
+
+# Non-dotted durations only, for rests (VexFlow does not support dotted rests)
+_NON_DOTTED_SYMBOLS: List[Tuple[str, float]] = [
+    (sym, val) for sym, val in BEATS_TO_DURATION_SYMBOLS if "." not in sym
+]
+
+
+def beats_to_duration_symbol_no_dots(beats: float) -> str:
+    """Like ``beats_to_duration_symbol_simple`` but never returns a dotted symbol.
+
+    Use this for rests, since VexFlow does not render dotted rests.
+    Uses floor strategy so the rest is never longer than the gap it fills.
+    """
+    for sym, val in _NON_DOTTED_SYMBOLS:
+        if abs(val - beats) < 1e-4:
+            return sym
+
+    best_sym = "32"
+    best_val = 0.0
+    for sym, val in _NON_DOTTED_SYMBOLS:
+        if val <= beats + 1e-6 and val > best_val:
+            best_val = val
             best_sym = sym
     return best_sym
 
@@ -221,9 +253,357 @@ def _beats_from_seconds(time_value: float, segments: List[TempoSegment]) -> floa
 
 
 def _quantize_beats(beats: float, resolution: float) -> float:
-    if resolution <= 0:
+    if not resolution or resolution <= 0:
         return beats
     return round(beats / resolution) * resolution
+
+
+def extract_raw_midi_data(midi_file_path: str, manual_tempo: Optional[int] = None) -> Dict:
+    """Stage 1: Extract raw notes per-track with original timestamps + tempo/measure grid.
+
+    This is the fast first pass — no quantization. Returns everything needed
+    for the client to display a track picker and piano-roll preview, and for
+    Stage 2 to quantize individual tracks on demand.
+
+    Returns dict with:
+        tracks: [{name, index, instrument, noteCount, notes: [{pitch, start, end, velocity}]}]
+        tempoMap: [{time, bpm}]
+        timeSignatures: [{time, numerator, denominator}]
+        measures: [{index, startSeconds, endSeconds, startBeats, endBeats, timeSignature}]
+        duration: float (seconds)
+        segments: (internal, for per-track quantization)
+    """
+    try:
+        pm = pretty_midi.PrettyMIDI(midi_file_path)
+    except Exception as exc:
+        raise ValueError(f"Could not load MIDI file: {exc}") from exc
+
+    tempo_events = _canonicalize_tempo_events(pm, manual_tempo)
+    ts_events = _canonicalize_time_signature_events(pm)
+    song_end = pm.get_end_time()
+    segments = _build_tempo_segments(tempo_events, ts_events, song_end)
+    measures = _build_measure_intervals(segments)
+
+    # Extract raw notes per instrument/track
+    tracks = []
+    for inst_idx, inst in enumerate(pm.instruments):
+        track_notes = []
+        for note in inst.notes:
+            track_notes.append({
+                "pitch": int(note.pitch),
+                "start": round(float(note.start), 6),
+                "end": round(float(note.end), 6),
+                "velocity": int(note.velocity),
+            })
+        # Sort by start time
+        track_notes.sort(key=lambda n: n["start"])
+
+        tracks.append({
+            "name": inst.name or f"Track {inst_idx + 1}",
+            "index": inst_idx,
+            "instrument": _get_instrument_label(inst),
+            "isDrum": bool(inst.is_drum),
+            "program": int(inst.program),
+            "noteCount": len(track_notes),
+            "notes": track_notes,
+            "pitchRange": {
+                "min": min((n["pitch"] for n in track_notes), default=0),
+                "max": max((n["pitch"] for n in track_notes), default=127),
+            },
+        })
+
+    # Bucket notes by second for quick preview (like MIDIano's notesBySeconds)
+    notes_by_second: Dict[int, int] = {}
+    for track in tracks:
+        if track["isDrum"]:
+            continue
+        for note in track["notes"]:
+            sec = int(note["start"])
+            notes_by_second[sec] = notes_by_second.get(sec, 0) + 1
+
+    measure_meta = [
+        {
+            "index": m.index,
+            "startBeats": round(m.start_beats, 6),
+            "endBeats": round(m.end_beats, 6),
+            "startSeconds": round(m.start_time, 6),
+            "endSeconds": round(m.end_time, 6),
+            "timeSignature": {
+                "numerator": m.time_signature.numerator,
+                "denominator": m.time_signature.denominator,
+            },
+        }
+        for m in measures
+    ]
+
+    return {
+        "tracks": tracks,
+        "tempoMap": [
+            {"time": round(t, 6), "bpm": round(bpm, 3)} for t, bpm in tempo_events
+        ],
+        "timeSignatures": [
+            {"time": round(t, 6), "numerator": ts.numerator, "denominator": ts.denominator}
+            for t, ts in ts_events
+        ],
+        "measures": measure_meta,
+        "duration": round(song_end, 6),
+        "notesBySecond": notes_by_second,
+        # Internal data for per-track quantization (serialized for API transport)
+        "_segments": [
+            {
+                "start_time": s.start_time, "end_time": s.end_time,
+                "tempo": s.tempo, "start_beats": s.start_beats,
+                "end_beats": s.end_beats,
+                "time_signature": {"numerator": s.time_signature.numerator, "denominator": s.time_signature.denominator},
+            }
+            for s in segments
+        ],
+    }
+
+
+def _get_instrument_label(inst) -> str:
+    """Friendly label for a MIDI instrument."""
+    if inst.is_drum:
+        return "Drums"
+    try:
+        return pretty_midi.program_to_instrument_name(inst.program)
+    except Exception:
+        return inst.name or "Unknown"
+
+
+def quantize_track_to_json(
+    raw_data: Dict,
+    track_indices: Optional[List[int]] = None,
+    quantize_resolution: float = 0.125,
+) -> Dict:
+    """Stage 2: Quantize specific track(s) into VexFlow-ready JSON.
+
+    Takes the raw data from extract_raw_midi_data() and quantizes only the
+    selected tracks. If track_indices is None, quantizes all non-drum tracks.
+
+    This is the expensive step, but now it only processes selected tracks
+    instead of the entire MIDI file.
+    """
+    if quantize_resolution is None or quantize_resolution <= 0:
+        quantize_resolution = 0.125
+
+    # Reconstruct segments from serialized data
+    segments = [
+        TempoSegment(
+            start_time=s["start_time"], end_time=s["end_time"],
+            tempo=s["tempo"],
+            time_signature=TimeSignature(
+                s["time_signature"]["numerator"], s["time_signature"]["denominator"]
+            ),
+            start_beats=s["start_beats"], end_beats=s["end_beats"],
+        )
+        for s in raw_data["_segments"]
+    ]
+
+    measures = _build_measure_intervals(segments)
+    if not measures:
+        raise ValueError("Unable to derive measures from raw data")
+    measure_start_beats = [m.start_beats for m in measures]
+
+    # Collect raw notes from selected tracks
+    all_tracks = raw_data["tracks"]
+    if track_indices is None:
+        selected = [t for t in all_tracks if not t["isDrum"]]
+    else:
+        selected = [t for t in all_tracks if t["index"] in track_indices and not t["isDrum"]]
+
+    if not selected:
+        raise ValueError("No non-drum tracks selected for quantization")
+
+    # Build quantized groups from the selected tracks' raw notes
+    groups: Dict[Tuple[float, float], List[Dict[str, int]]] = {}
+    for track in selected:
+        for note in track["notes"]:
+            start_beats = _beats_from_seconds(note["start"], segments)
+            end_beats = _beats_from_seconds(note["end"], segments)
+            start_q = _quantize_beats(start_beats, quantize_resolution)
+            end_q = _quantize_beats(end_beats, quantize_resolution)
+            if end_q <= start_q:
+                end_q = start_q + quantize_resolution
+            key = (round(start_q, 6), round(end_q, 6))
+            groups.setdefault(key, []).append({
+                "pitch": note["pitch"],
+                "velocity": note["velocity"],
+            })
+
+    quantized_groups: List[Dict[str, object]] = []
+    for idx, ((start, end), notes) in enumerate(sorted(groups.items(), key=lambda item: item[0])):
+        quantized_groups.append({
+            "group_id": f"grp{idx}",
+            "start_beats": start,
+            "end_beats": end,
+            "notes": notes,
+        })
+
+    if not quantized_groups:
+        raise ValueError("Selected tracks contain no pitched notes")
+
+    # Now run the same assembler pipeline as midi_to_json_v3
+    return _assemble_measures_from_groups(quantized_groups, measures, measure_start_beats,
+                                          raw_data["tempoMap"], selected)
+
+
+def _assemble_measures_from_groups(
+    quantized_groups: List[Dict[str, object]],
+    measures: List[MeasureInterval],
+    measure_start_beats: List[float],
+    tempo_map: List[Dict],
+    selected_tracks: List[Dict],
+) -> Dict:
+    """Shared assembler logic: groups → VexFlow JSON.
+
+    Extracted from midi_to_json_v3 so it can be reused by quantize_track_to_json.
+    """
+    assemblers = {m.index: MeasureAssembler(m) for m in measures}
+    tie_links: List[Tuple[Tuple[str, int, str], Tuple[str, int, str]]] = []
+    overflow_events: List[Tuple[int, MeasureEvent]] = []
+
+    for group in quantized_groups:
+        group_id = group["group_id"]
+        notes = group["notes"]
+        bass_notes = [n for n in notes if n["pitch"] < 60]
+        treble_notes = [n for n in notes if n["pitch"] >= 60]
+
+        chunks = _chunk_group_into_measures(group, measures, measure_start_beats)
+
+        for chunk in chunks:
+            measure_idx = chunk["measure_index"]
+            start_offset = chunk["start_offset"]
+            duration_beats = chunk["duration_beats"]
+            chunk_index = chunk["chunk_index"]
+            assembler = assemblers[measure_idx]
+
+            for clef, note_subset in (("bass", bass_notes), ("treble", treble_notes)):
+                if not note_subset:
+                    continue
+                event = MeasureEvent(
+                    measure_index=measure_idx,
+                    start_offset=start_offset,
+                    duration_beats=duration_beats,
+                    pitches=[n["pitch"] for n in note_subset],
+                    velocity=int(sum(n["velocity"] for n in note_subset) / len(note_subset)),
+                    clef=clef,
+                    is_rest=False,
+                    group_id=group_id,
+                    chunk_index=chunk_index,
+                    chunk_keys=[(group_id, chunk_index, clef)],
+                )
+                event.event_id = f"{group_id}-{chunk_index}-{clef}"
+
+                placed_event, was_tied = assembler.add_event(event, clef)
+
+                if chunk["continues"]:
+                    tie_links.append(
+                        ((group_id, chunk_index, clef), (group_id, chunk_index + 1, clef))
+                    )
+
+                if was_tied and measure_idx + 1 < len(measures):
+                    overflow_events.append((measure_idx, placed_event))
+
+    for from_measure_idx, overflow_event in overflow_events:
+        overflow_event.measure_index = from_measure_idx + 1
+        overflow_event.start_offset = 0.0
+        next_assembler = assemblers[from_measure_idx + 1]
+        placed_event, was_tied_again = next_assembler.add_event(overflow_event, overflow_event.clef)
+        tie_links.append(
+            ((overflow_event.group_id, overflow_event.chunk_index, overflow_event.clef),
+             (placed_event.group_id or overflow_event.group_id,
+              placed_event.chunk_index or overflow_event.chunk_index,
+              overflow_event.clef))
+        )
+
+    measure_payloads: List[List[Dict]] = [[] for _ in measures]
+    event_lookup: Dict[str, Dict] = {}
+    chunk_to_event: Dict[Tuple[str, int, str], str] = {}
+
+    for measure in measures:
+        timeline = assemblers[measure.index].finalize()
+        for idx, event in enumerate(timeline):
+            event_id = event.event_id or f"m{measure.index}-{event.clef}-{idx}"
+            event.event_id = event_id
+
+            if event.is_rest:
+                duration_symbol = beats_to_duration_symbol_no_dots(event.duration_beats)
+            else:
+                duration_symbol = beats_to_duration_symbol_simple(event.duration_beats)
+            entry = {
+                "id": event_id,
+                "clef": event.clef,
+                "duration": duration_symbol,
+                "measure": measure.index,
+                "isRest": event.is_rest,
+            }
+            if event.is_rest:
+                entry["name"] = "D3" if event.clef == "bass" else "B4"
+            else:
+                entry["name"] = midi_notes_to_name(event.pitches)
+                entry["velocity"] = event.velocity
+                entry["chordName"] = entry["name"]
+
+            event_lookup[event_id] = entry
+            if event.chunk_keys:
+                for chunk_key in event.chunk_keys:
+                    chunk_to_event[chunk_key] = event_id
+            measure_payloads[measure.index].append(entry)
+
+    for start_key, end_key in tie_links:
+        start_id = chunk_to_event.get(start_key)
+        end_id = chunk_to_event.get(end_key)
+        if not start_id or not end_id:
+            continue
+        tie_payload = {
+            "type": "tie",
+            "startNoteId": start_id,
+            "endNoteId": end_id,
+        }
+        event_lookup[start_id]["tie"] = tie_payload
+        event_lookup[end_id]["tie"] = tie_payload
+
+    # Build track info for the response
+    track_names = [t.get("name", f"Track {t['index']}") for t in selected_tracks]
+
+    measure_meta = [
+        {
+            "index": m.index,
+            "startBeats": round(m.start_beats, 6),
+            "endBeats": round(m.end_beats, 6),
+            "startSeconds": round(m.start_time, 6),
+            "endSeconds": round(m.end_time, 6),
+            "timeSignature": {
+                "numerator": m.time_signature.numerator,
+                "denominator": m.time_signature.denominator,
+            },
+        }
+        for m in measures
+    ]
+
+    json_data: Dict[str, object] = {
+        "keySignature": "C",
+        "tempo": int(tempo_map[0]["bpm"]),
+        "timeSignature": {
+            "numerator": measures[0].time_signature.numerator,
+            "denominator": measures[0].time_signature.denominator,
+        },
+        "instrument": "piano",
+        "midiChannel": "0",
+        "measures": measure_payloads,
+        "measureTimings": measure_meta,
+        "tempoMap": tempo_map,
+        "trackNames": track_names,
+    }
+
+    issues, _ = check_measure_capacity(json_data)
+    if issues:
+        print(f"[ugly_midi] {len(issues)} measure overflow(s) detected.")
+    else:
+        print("[ugly_midi] All measures within limit.")
+
+    return json_data
 
 
 def _extract_quantized_groups(
@@ -412,6 +792,57 @@ class MeasureAssembler:
         self.events_by_clef[clef].append(event)
         return event
 
+    @staticmethod
+    def _decompose_beats_to_rests(total_beats: float, measure_index: int, start_offset: float, clef: str) -> List[MeasureEvent]:
+        """Decompose a beat duration into a sequence of valid rest events.
+
+        E.g. 3.5 beats -> [h (2.0), q (1.0), 8 (0.5)] = 3.5 exactly.
+        This prevents rounding a gap to a single duration symbol that
+        overshoots and causes VexFlow 'too many ticks' errors.
+        """
+        # NON-DOTTED durations only (largest first).
+        # VexFlow does not support dotted rests, so we decompose into
+        # combinations of non-dotted values (e.g. 3 beats = h + q = 2+1).
+        STANDARD_DURATIONS = [
+            4.0, 2.0, 1.0, 0.5, 0.25, 0.125
+        ]
+        rests: List[MeasureEvent] = []
+        remaining = total_beats
+        cursor = start_offset
+
+        while remaining > BEAT_TOLERANCE:
+            # Find the largest standard duration that fits
+            placed = False
+            for dur in STANDARD_DURATIONS:
+                if dur <= remaining + 1e-6:
+                    rests.append(MeasureEvent(
+                        measure_index=measure_index,
+                        start_offset=cursor,
+                        duration_beats=dur,
+                        pitches=[],
+                        velocity=0,
+                        clef=clef,
+                        is_rest=True,
+                    ))
+                    cursor += dur
+                    remaining -= dur
+                    placed = True
+                    break
+            if not placed:
+                # Remaining is smaller than smallest standard duration; emit one last rest
+                rests.append(MeasureEvent(
+                    measure_index=measure_index,
+                    start_offset=cursor,
+                    duration_beats=remaining,
+                    pitches=[],
+                    velocity=0,
+                    clef=clef,
+                    is_rest=True,
+                ))
+                break
+
+        return rests
+
     def _timeline_with_rests(
         self,
         clef: str,
@@ -425,6 +856,9 @@ class MeasureAssembler:
         When overlapping notes are detected (start_offset < cursor), they are
         merged into the overlapping previous note as a chord rather than
         serialized, which would exceed the measure's tick capacity.
+
+        Rests are decomposed into valid duration sequences to prevent
+        VexFlow 'too many ticks' errors from single-symbol rounding.
         """
         timeline: List[MeasureEvent] = []
         cursor = 0.0
@@ -454,16 +888,11 @@ class MeasureAssembler:
 
             gap = event.start_offset - cursor
             if gap > BEAT_TOLERANCE:
-                rest = MeasureEvent(
-                    measure_index=self.interval.index,
-                    start_offset=cursor,
-                    duration_beats=gap,
-                    pitches=[],
-                    velocity=0,
-                    clef=clef,
-                    is_rest=True,
+                # Decompose gap into valid rest durations instead of one big rest
+                gap_rests = self._decompose_beats_to_rests(
+                    gap, self.interval.index, cursor, clef
                 )
-                timeline.append(rest)
+                timeline.extend(gap_rests)
                 cursor = event.start_offset
             cursor = max(cursor, event.start_offset)
             timeline.append(event)
@@ -472,16 +901,11 @@ class MeasureAssembler:
         limit = self.interval.beats_per_measure
         remaining = limit - cursor
         if remaining > BEAT_TOLERANCE:
-            rest = MeasureEvent(
-                measure_index=self.interval.index,
-                start_offset=cursor,
-                duration_beats=remaining,
-                pitches=[],
-                velocity=0,
-                clef=clef,
-                is_rest=True,
+            # Decompose trailing rest into valid durations
+            trailing_rests = self._decompose_beats_to_rests(
+                remaining, self.interval.index, cursor, clef
             )
-            timeline.append(rest)
+            timeline.extend(trailing_rests)
 
         return timeline
 
@@ -772,6 +1196,10 @@ def midi_to_json_v2(
     - Clefs are assigned by a simple pitch split.
     - No measure splitting or clef load balancing.
     """
+    # Guard against None values passed explicitly
+    if quantize_resolution is None or quantize_resolution <= 0:
+        quantize_resolution = 0.25
+
     try:
         pm = pretty_midi.PrettyMIDI(midi_file_path)
     except Exception as exc:  # pragma: no cover - defensive
@@ -879,7 +1307,11 @@ def midi_to_json_v2(
             })
 
         for event in sorted(timeline_entries, key=lambda e: (round(float(e["offset"]), 6), e["clef"], 1 if e["isRest"] else 0)):
-            duration_symbol = beats_to_duration_symbol_simple(event["duration_beats"])
+            # VexFlow does not support dotted rests
+            if event["isRest"]:
+                duration_symbol = beats_to_duration_symbol_no_dots(event["duration_beats"])
+            else:
+                duration_symbol = beats_to_duration_symbol_simple(event["duration_beats"])
             entry_id = event.get("id")
             if not entry_id:
                 entry_id = f"m{measure_idx}-{event['clef']}-{int(event['offset'] * 1000)}"
@@ -930,6 +1362,10 @@ def midi_to_json_v3(
     quantize_resolution: float = 0.125,
 ) -> Dict:
     """Convert MIDI to JSON with explicit measure timing and clef-aware balancing."""
+
+    # Guard against None values passed explicitly
+    if quantize_resolution is None or quantize_resolution <= 0:
+        quantize_resolution = 0.125
 
     try:
         pm = pretty_midi.PrettyMIDI(midi_file_path)
@@ -1028,7 +1464,11 @@ def midi_to_json_v3(
             event_id = event.event_id or f"m{measure.index}-{event.clef}-{idx}"
             event.event_id = event_id
 
-            duration_symbol = beats_to_duration_symbol_simple(event.duration_beats)
+            # VexFlow does not support dotted rests, so use non-dotted symbols for rests
+            if event.is_rest:
+                duration_symbol = beats_to_duration_symbol_no_dots(event.duration_beats)
+            else:
+                duration_symbol = beats_to_duration_symbol_simple(event.duration_beats)
             entry = {
                 "id": event_id,
                 "clef": event.clef,

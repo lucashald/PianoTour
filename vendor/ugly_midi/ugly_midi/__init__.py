@@ -50,6 +50,8 @@ from .converter import (
 # v3: measure-aware, clef-balanced converter (default)
 from .converter_v3 import (  # type: ignore[F401]
     midi_to_json_v3,
+    extract_raw_midi_data,
+    quantize_track_to_json,
 )
 
 # v2: simplified, beat-based converter (opt-in)
@@ -97,6 +99,9 @@ def midi_to_json(midi_file_path, quantize_resolution=0.25, manual_tempo=142):
         >>> json_data = ugly_midi.midi_to_json('input.mid', manual_tempo=142)
         >>> print(json_data['tempo'])
     """
+    # Guard against None values that could cause division errors
+    if quantize_resolution is None or quantize_resolution <= 0:
+        quantize_resolution = 0.25
     # Use the v3 converter by default; keep the old parameter order and defaults
     return midi_to_json_v3(midi_file_path, manual_tempo=manual_tempo, quantize_resolution=quantize_resolution)
 
