@@ -27,6 +27,8 @@ import {
   triggerAttackRelease
 } from "./playbackHelpers.js";
 
+import { handleNoteOn as playAlongNoteOn, handleNoteOff as playAlongNoteOff } from "../score/playAlongController.js";
+
 // NEW: Import audioManager for its core unlock functionality
 import audioManager from "../core/audioManager.js";
 
@@ -557,6 +559,8 @@ export function handlePointerMove(e) {
       currentlyTouchedKeys.add(foundKey.midi);
     }
 
+    const isPlayAlong = pianoState.playAlong?.active;
+
     currentlyTouchedKeys.forEach(midi => {
       if (!pianoState.currentlyPlayingKeys.has(midi)) {
         const keyEl = pianoState.noteEls[midi];
@@ -568,6 +572,7 @@ export function handlePointerMove(e) {
           if (noteInfo) {
             trigger([noteInfo.name], true, pianoState.velocity, false);
           }
+          if (isPlayAlong) playAlongNoteOn(midi, 100);
         }
       }
     });
@@ -581,6 +586,7 @@ export function handlePointerMove(e) {
           if (noteInfo && keyEl.dataset.playing === "drag") {
             trigger([noteInfo.name], false, pianoState.velocity, false);
           }
+          if (isPlayAlong) playAlongNoteOff(midi);
           keyEl.dataset.playing = "";
         }
       }
@@ -808,7 +814,10 @@ export function handleKeyPointerDown(e) {
     });
   } else {
     // Single note mode
+    const isPlayAlong = pianoState.playAlong?.active;
+
     startKey(finalKeyEl);
+    if (isPlayAlong) playAlongNoteOn(targetMidi, 100);
     finalKeyEl.setPointerCapture(e.pointerId);
     const startTime = performance.now();
 
@@ -817,9 +826,14 @@ export function handleKeyPointerDown(e) {
       stopAllDragNotes();
 
       stopKey(finalKeyEl);
+      if (isPlayAlong) playAlongNoteOff(targetMidi);
       if (finalKeyEl.hasPointerCapture(e.pointerId)) { // Check if still has capture
         finalKeyEl.releasePointerCapture(e.pointerId);
       }
+
+      // Skip score writing during play-along
+      if (isPlayAlong) return;
+
       const heldTime = performance.now() - startTime;
       const thresholds = getDurationThresholds(pianoState.tempo);
       let duration = "8";
