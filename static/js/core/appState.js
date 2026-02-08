@@ -97,7 +97,7 @@ export const pianoState = {
             requireBothClefs: true,
             trebleOnly: false,
             bassOnly: false,
-            showNoteNames: false,
+            showNoteNames: true,
             playAccompaniment: true,
             countIn: true,
         },

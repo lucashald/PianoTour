@@ -1067,7 +1067,7 @@ export function stop() {
 
   clearExpectedKeyHighlights();
   resetAllNoteStyles();
-  hidePlayAlongHUD();
+  // NOTE: UI visibility is handled by the caller (stop btn → settings, close btn → hide panel)
 
   // Ensure all play-along tracked notes are cleaned up from tracking sets
   if (pa.noteSequence && pa.noteSequence.length > 0) {
@@ -1138,12 +1138,13 @@ export function restart() {
  */
 export function toggleHUD() {
   const pa = pianoState.playAlong;
-  const hud = document.getElementById("playalong-hud");
+  const hud = document.getElementById("playalong-panel");
   if (!hud) return;
 
   if (pa.active) {
-    // If active, stop
+    // If active, stop and return to settings
     stop();
+    showPlayAlongHUD(false);
   } else if (hud.classList.contains("hidden")) {
     // Show settings
     showPlayAlongHUD(false);
@@ -1165,8 +1166,9 @@ export function initializePlayAlong() {
     const pa = pianoState.playAlong;
     if (pa.active) {
       stop();
+      showPlayAlongHUD(false); // Return to settings
     } else {
-      const hud = document.getElementById("playalong-hud");
+      const hud = document.getElementById("playalong-panel");
       if (hud && !hud.classList.contains("hidden")) {
         hidePlayAlongHUD(); // Toggle off
       } else {

@@ -92,6 +92,7 @@
           <section class="instrument-panel">
             {% block spectrum %} {% if not hide_spectrum %} {% include
             'partials/_spectrum.html' %} {% endif %} {% endblock %}
+            {% include 'partials/_playalong_hud.html' %}
             {% block instrument %} {% if not hide_instrument %} {% include
             'partials/_instrument.html' %} {% endif %} {% endblock %}
 
@@ -99,7 +100,6 @@
           </section>
         </div>
         {% block after %}{% endblock %}
-        {% include 'partials/_playalong_hud.html' %}
         <nav class="main-controls">
           <div class="controls-button-row">
             <button id="clearScoreBtn" class="btn btn--danger">

@@ -1,131 +1,167 @@
-<!-- Play-Along HUD Overlay (hidden by default) -->
-<div id="playalong-hud" class="playalong-hud hidden">
-  <div class="playalong-hud__header">
-    <div class="playalong-hud__title">Play Along</div>
-  </div>
+<!-- Play-Along Inline Panel (replaces spectrum when active, hidden by default) -->
+<div id="playalong-panel" class="playalong-panel hidden">
 
-  <!-- Settings panel: shown before starting, hidden during active session -->
-  <div class="playalong-hud__settings" id="playalong-settings">
-    <div class="playalong-hud__setting-group">
-      <div class="playalong-hud__setting-label">Mode</div>
-      <div class="playalong-hud__toggle-group" id="playalong-mode-toggle">
-        <button class="playalong-hud__toggle-btn playalong-hud__toggle-btn--active" data-mode="wait">Wait</button>
-        <button class="playalong-hud__toggle-btn" data-mode="timed">Timed</button>
-      </div>
-    </div>
-    <div class="playalong-hud__setting-group">
-      <div class="playalong-hud__setting-label">Clef</div>
-      <div class="playalong-hud__toggle-group" id="playalong-clef-toggle">
-        <button class="playalong-hud__toggle-btn" data-clef="treble">Treble</button>
-        <button class="playalong-hud__toggle-btn playalong-hud__toggle-btn--active" data-clef="both">Both</button>
-        <button class="playalong-hud__toggle-btn" data-clef="bass">Bass</button>
-      </div>
-    </div>
-    <button id="playalong-start-btn" class="playalong-hud__start-btn">Start</button>
-  </div>
+  <!-- ===== Settings View (shown before starting) ===== -->
+  <div class="playalong-panel__settings" id="playalong-settings">
+    <div class="playalong-panel__settings-row">
+      <div class="playalong-panel__brand">Play Along</div>
 
-  <!-- Count-in overlay -->
-  <div class="playalong-hud__countin" id="playalong-countin" style="display: none;">
-    <div class="playalong-hud__countin-number" id="playalong-countin-number">4</div>
-  </div>
-
-  <!-- Live stats: hidden until session starts -->
-  <div class="playalong-hud__live" id="playalong-live" style="display: none;">
-    <div class="playalong-hud__stats">
-      <div class="playalong-hud__stat">
-        <div class="playalong-hud__stat-value playalong-hud__stat-value--accuracy" id="playalong-accuracy">100%</div>
-        <div class="playalong-hud__stat-label">Accuracy</div>
-      </div>
-      <div class="playalong-hud__stat">
-        <div class="playalong-hud__stat-value playalong-hud__stat-value--streak" id="playalong-streak">0</div>
-        <div class="playalong-hud__stat-label">Streak</div>
-      </div>
-    </div>
-
-    <!-- Timing rating display (timed mode only) -->
-    <div class="playalong-hud__timing" id="playalong-timing" style="display: none;">
-      <div class="playalong-hud__timing-label" id="playalong-timing-label">--</div>
-    </div>
-
-    <div class="playalong-hud__progress-container">
-      <div class="playalong-hud__progress-bar">
-        <div class="playalong-hud__progress-fill" id="playalong-progress-fill"></div>
-      </div>
-      <div class="playalong-hud__progress-text" id="playalong-progress-text">0 / 0</div>
-    </div>
-
-    <div class="playalong-hud__expected" id="playalong-expected">
-      <div class="playalong-hud__expected-label">Play</div>
-      <div class="playalong-hud__expected-notes" id="playalong-expected-notes">--</div>
-    </div>
-
-    <div class="playalong-hud__paused" id="playalong-paused" style="display: none;">
-      Paused
-    </div>
-  </div>
-
-  <div class="playalong-hud__controls">
-    <button id="playalong-pause-btn" class="playalong-hud__btn">Pause</button>
-    <button id="playalong-stop-btn" class="playalong-hud__btn playalong-hud__btn--stop">Close</button>
-    <button id="playalong-restart-btn" class="playalong-hud__btn playalong-hud__btn--restart">Restart</button>
-  </div>
-</div>
-
-<!-- Play-Along Completion Modal (hidden by default) -->
-<div id="playalong-completion" class="playalong-completion hidden">
-  <div class="playalong-completion__card">
-    <div class="playalong-completion__title">Complete!</div>
-    <div class="playalong-completion__accuracy playalong-completion__accuracy--high" id="playalong-completion-accuracy">100%</div>
-
-    <div class="playalong-completion__details" id="playalong-completion-details">
-      <div class="playalong-completion__detail">
-        <div class="playalong-completion__detail-value" style="color: var(--color-green-light);" id="playalong-completion-correct">0</div>
-        <div class="playalong-completion__detail-label">Correct</div>
-      </div>
-      <div class="playalong-completion__detail">
-        <div class="playalong-completion__detail-value" style="color: var(--color-peach-light);" id="playalong-completion-incorrect">0</div>
-        <div class="playalong-completion__detail-label">Incorrect</div>
-      </div>
-      <div class="playalong-completion__detail">
-        <div class="playalong-completion__detail-value" style="color: var(--color-gold-light);" id="playalong-completion-streak">0</div>
-        <div class="playalong-completion__detail-label">Best Streak</div>
-      </div>
-      <div class="playalong-completion__detail">
-        <div class="playalong-completion__detail-value" id="playalong-completion-time">0s</div>
-        <div class="playalong-completion__detail-label">Time</div>
-      </div>
-    </div>
-
-    <!-- Timing breakdown (timed mode only) -->
-    <div class="playalong-completion__timing hidden" id="playalong-completion-timing">
-      <div class="playalong-completion__timing-title">Timing Breakdown</div>
-      <div class="playalong-completion__timing-grid">
-        <div class="playalong-completion__timing-item">
-          <div class="playalong-completion__timing-value playalong-completion__timing-value--perfect" id="playalong-completion-perfect">0</div>
-          <div class="playalong-completion__timing-label">Perfect</div>
-        </div>
-        <div class="playalong-completion__timing-item">
-          <div class="playalong-completion__timing-value playalong-completion__timing-value--good" id="playalong-completion-good">0</div>
-          <div class="playalong-completion__timing-label">Good</div>
-        </div>
-        <div class="playalong-completion__timing-item">
-          <div class="playalong-completion__timing-value playalong-completion__timing-value--early" id="playalong-completion-early">0</div>
-          <div class="playalong-completion__timing-label">Early</div>
-        </div>
-        <div class="playalong-completion__timing-item">
-          <div class="playalong-completion__timing-value playalong-completion__timing-value--late" id="playalong-completion-late">0</div>
-          <div class="playalong-completion__timing-label">Late</div>
-        </div>
-        <div class="playalong-completion__timing-item">
-          <div class="playalong-completion__timing-value playalong-completion__timing-value--missed" id="playalong-completion-missed">0</div>
-          <div class="playalong-completion__timing-label">Missed</div>
+      <div class="playalong-panel__setting-group">
+        <span class="playalong-panel__setting-label">Mode</span>
+        <div class="playalong-panel__toggle-group" id="playalong-mode-toggle">
+          <button class="playalong-panel__toggle-btn playalong-panel__toggle-btn--active" data-mode="wait">Wait</button>
+          <button class="playalong-panel__toggle-btn" data-mode="timed">Timed</button>
         </div>
       </div>
-    </div>
 
-    <div class="playalong-completion__actions">
-      <button id="playalong-tryagain-btn" class="playalong-completion__btn playalong-completion__btn--primary">Try Again</button>
-      <button id="playalong-done-btn" class="playalong-completion__btn">Done</button>
+      <div class="playalong-panel__setting-group">
+        <span class="playalong-panel__setting-label">Clef</span>
+        <div class="playalong-panel__toggle-group" id="playalong-clef-toggle">
+          <button class="playalong-panel__toggle-btn" data-clef="treble">Treble</button>
+          <button class="playalong-panel__toggle-btn playalong-panel__toggle-btn--active" data-clef="both">Both</button>
+          <button class="playalong-panel__toggle-btn" data-clef="bass">Bass</button>
+        </div>
+      </div>
+
+      <div class="playalong-panel__setting-group">
+        <span class="playalong-panel__setting-label">Tempo</span>
+        <div class="playalong-panel__tempo-control">
+          <button class="playalong-panel__tempo-btn" id="playalong-tempo-down" title="Slower">−</button>
+          <span class="playalong-panel__tempo-value" id="playalong-tempo-value">120</span>
+          <button class="playalong-panel__tempo-btn" id="playalong-tempo-up" title="Faster">+</button>
+        </div>
+      </div>
+
+      <button id="playalong-start-btn" class="playalong-panel__start-btn">▶ Start</button>
+      <button id="playalong-close-settings-btn" class="playalong-panel__close-btn" title="Close">✕</button>
     </div>
   </div>
+
+  <!-- ===== Count-in Overlay ===== -->
+  <div class="playalong-panel__countin" id="playalong-countin" style="display: none;">
+    <div class="playalong-panel__countin-number" id="playalong-countin-number">4</div>
+  </div>
+
+  <!-- ===== Live View (shown during active session) ===== -->
+  <div class="playalong-panel__live" id="playalong-live" style="display: none;">
+    <div class="playalong-panel__live-row">
+
+      <!-- Accuracy -->
+      <div class="playalong-panel__stat">
+        <div class="playalong-panel__stat-value playalong-panel__stat-value--accuracy" id="playalong-accuracy">100%</div>
+        <div class="playalong-panel__stat-label">Accuracy</div>
+      </div>
+
+      <!-- Streak -->
+      <div class="playalong-panel__stat">
+        <div class="playalong-panel__stat-value playalong-panel__stat-value--streak" id="playalong-streak">0</div>
+        <div class="playalong-panel__stat-label">Streak</div>
+      </div>
+
+      <!-- Timing rating (timed mode only) -->
+      <div class="playalong-panel__timing" id="playalong-timing" style="display: none;">
+        <div class="playalong-panel__timing-label" id="playalong-timing-label">--</div>
+      </div>
+
+      <!-- Expected notes -->
+      <div class="playalong-panel__expected" id="playalong-expected">
+        <div class="playalong-panel__expected-label">Play</div>
+        <div class="playalong-panel__expected-notes" id="playalong-expected-notes">--</div>
+      </div>
+
+      <!-- Progress -->
+      <div class="playalong-panel__progress">
+        <div class="playalong-panel__progress-bar">
+          <div class="playalong-panel__progress-fill" id="playalong-progress-fill"></div>
+        </div>
+        <div class="playalong-panel__progress-text" id="playalong-progress-text">0 / 0</div>
+      </div>
+
+      <!-- Paused indicator -->
+      <div class="playalong-panel__paused" id="playalong-paused" style="display: none;">
+        Paused
+      </div>
+
+      <!-- Tempo (live) -->
+      <div class="playalong-panel__tempo-control playalong-panel__tempo-control--live">
+        <button class="playalong-panel__tempo-btn" id="playalong-live-tempo-down" title="Slower">−</button>
+        <span class="playalong-panel__tempo-value" id="playalong-live-tempo-value">120</span>
+        <button class="playalong-panel__tempo-btn" id="playalong-live-tempo-up" title="Faster">+</button>
+      </div>
+
+      <!-- Controls -->
+      <div class="playalong-panel__controls">
+        <button id="playalong-pause-btn" class="playalong-panel__btn" title="Pause">Pause</button>
+        <button id="playalong-restart-btn" class="playalong-panel__btn playalong-panel__btn--restart" title="Restart">Restart</button>
+        <button id="playalong-stop-btn" class="playalong-panel__btn playalong-panel__btn--stop" title="Stop &amp; return to settings">Stop</button>
+        <button id="playalong-close-btn" class="playalong-panel__close-btn" title="Close play-along">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Completion View (shown after finishing) ===== -->
+  <div class="playalong-panel__complete" id="playalong-completion" style="display: none;">
+    <div class="playalong-panel__complete-row">
+      <div class="playalong-panel__complete-title">Complete!</div>
+
+      <div class="playalong-panel__complete-accuracy" id="playalong-completion-accuracy">100%</div>
+
+      <div class="playalong-panel__complete-stats">
+        <div class="playalong-panel__complete-stat">
+          <span class="playalong-panel__complete-stat-value" style="color: var(--color-green-light);" id="playalong-completion-correct">0</span>
+          <span class="playalong-panel__complete-stat-label">Correct</span>
+        </div>
+        <div class="playalong-panel__complete-stat">
+          <span class="playalong-panel__complete-stat-value" style="color: var(--color-peach-light);" id="playalong-completion-incorrect">0</span>
+          <span class="playalong-panel__complete-stat-label">Wrong</span>
+        </div>
+        <div class="playalong-panel__complete-stat">
+          <span class="playalong-panel__complete-stat-value" style="color: var(--color-gold-light);" id="playalong-completion-streak">0</span>
+          <span class="playalong-panel__complete-stat-label">Best Streak</span>
+        </div>
+        <div class="playalong-panel__complete-stat">
+          <span class="playalong-panel__complete-stat-value" id="playalong-completion-time">0s</span>
+          <span class="playalong-panel__complete-stat-label">Time</span>
+        </div>
+      </div>
+
+      <!-- Timing breakdown (timed mode only) -->
+      <div class="playalong-panel__complete-timing hidden" id="playalong-completion-timing">
+        <div class="playalong-panel__complete-timing-items">
+          <span class="playalong-panel__complete-timing-item">
+            <span class="playalong-panel__complete-timing-value playalong-panel__complete-timing-value--perfect" id="playalong-completion-perfect">0</span>
+            <span class="playalong-panel__complete-timing-label">Perfect</span>
+          </span>
+          <span class="playalong-panel__complete-timing-item">
+            <span class="playalong-panel__complete-timing-value playalong-panel__complete-timing-value--good" id="playalong-completion-good">0</span>
+            <span class="playalong-panel__complete-timing-label">Good</span>
+          </span>
+          <span class="playalong-panel__complete-timing-item">
+            <span class="playalong-panel__complete-timing-value playalong-panel__complete-timing-value--early" id="playalong-completion-early">0</span>
+            <span class="playalong-panel__complete-timing-label">Early</span>
+          </span>
+          <span class="playalong-panel__complete-timing-item">
+            <span class="playalong-panel__complete-timing-value playalong-panel__complete-timing-value--late" id="playalong-completion-late">0</span>
+            <span class="playalong-panel__complete-timing-label">Late</span>
+          </span>
+          <span class="playalong-panel__complete-timing-item">
+            <span class="playalong-panel__complete-timing-value playalong-panel__complete-timing-value--missed" id="playalong-completion-missed">0</span>
+            <span class="playalong-panel__complete-timing-label">Missed</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="playalong-panel__controls">
+        <div class="playalong-panel__tempo-control playalong-panel__tempo-control--live">
+          <button class="playalong-panel__tempo-btn" id="playalong-complete-tempo-down" title="Slower">−</button>
+          <span class="playalong-panel__tempo-value" id="playalong-complete-tempo-value">120</span>
+          <button class="playalong-panel__tempo-btn" id="playalong-complete-tempo-up" title="Faster">+</button>
+        </div>
+        <button id="playalong-complete-restart-btn" class="playalong-panel__btn playalong-panel__btn--restart" title="Restart">Restart</button>
+        <button id="playalong-complete-stop-btn" class="playalong-panel__btn playalong-panel__btn--stop" title="Stop &amp; return to settings">Stop</button>
+        <button id="playalong-complete-close-btn" class="playalong-panel__close-btn" title="Close play-along">✕</button>
+      </div>
+    </div>
+  </div>
+
 </div>

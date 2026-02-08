@@ -1,5 +1,5 @@
 // playAlongUI.js
-// HUD overlay rendering for play-along mode: score, streak, progress, controls
+// Inline panel rendering for play-along mode: replaces spectrum with controls
 
 import { pianoState } from "../core/appState.js";
 import {
@@ -8,18 +8,20 @@ import {
   resume as resumePlayAlong,
   restart as restartPlayAlong,
 } from "../score/playAlongController.js";
+import { setTempo } from "../score/scoreWriter.js";
 
 // ===================================================================
 // DOM Element References
 // ===================================================================
 
-let hudEl = null;
+let panelEl = null;
 let completionEl = null;
 
-function getHudElements() {
-  if (hudEl) return hudEl;
-  hudEl = {
-    root: document.getElementById("playalong-hud"),
+function getPanelElements() {
+  if (panelEl) return panelEl;
+  panelEl = {
+    root: document.getElementById("playalong-panel"),
+    spectrum: document.getElementById("spectrum-container"),
     settings: document.getElementById("playalong-settings"),
     live: document.getElementById("playalong-live"),
     accuracy: document.getElementById("playalong-accuracy"),
@@ -34,8 +36,12 @@ function getHudElements() {
     timingSection: document.getElementById("playalong-timing"),
     countIn: document.getElementById("playalong-countin"),
     countInNumber: document.getElementById("playalong-countin-number"),
+    completion: document.getElementById("playalong-completion"),
+    tempoValue: document.getElementById("playalong-tempo-value"),
+    liveTempoValue: document.getElementById("playalong-live-tempo-value"),
+    completeTempoValue: document.getElementById("playalong-complete-tempo-value"),
   };
-  return hudEl;
+  return panelEl;
 }
 
 function getCompletionElements() {
@@ -58,85 +64,162 @@ function getCompletionElements() {
 }
 
 // ===================================================================
-// HUD Show / Hide
+// Spectrum / Panel Toggle
 // ===================================================================
 
 /**
- * Show the play-along HUD overlay.
+ * Hide spectrum and show the play-along panel.
+ */
+function showPanel() {
+  const els = getPanelElements();
+  if (els.spectrum) els.spectrum.classList.add("hidden");
+  if (els.root) els.root.classList.remove("hidden");
+}
+
+/**
+ * Hide the play-along panel and restore the spectrum.
+ */
+function hidePanel() {
+  const els = getPanelElements();
+  if (els.root) els.root.classList.add("hidden");
+  if (els.spectrum) els.spectrum.classList.remove("hidden");
+}
+
+// ===================================================================
+// Panel View Management
+// ===================================================================
+
+/**
+ * Show only the specified sub-view inside the panel.
+ * @param {'settings'|'live'|'countin'|'completion'} view
+ */
+function showPanelView(view) {
+  const els = getPanelElements();
+  // Hide all sub-views
+  if (els.settings) els.settings.style.display = "none";
+  if (els.live) els.live.style.display = "none";
+  if (els.countIn) els.countIn.style.display = "none";
+  if (els.completion) els.completion.style.display = "none";
+
+  // Show the requested view
+  switch (view) {
+    case "settings":
+      if (els.settings) els.settings.style.display = "block";
+      break;
+    case "live":
+      if (els.live) els.live.style.display = "block";
+      break;
+    case "countin":
+      if (els.countIn) els.countIn.style.display = "flex";
+      break;
+    case "completion":
+      if (els.completion) els.completion.style.display = "block";
+      break;
+  }
+}
+
+// ===================================================================
+// Tempo Helpers
+// ===================================================================
+
+const TEMPO_STEP = 5;
+const TEMPO_MIN = 30;
+const TEMPO_MAX = 300;
+
+/**
+ * Adjust tempo by a delta and sync all displays.
+ * Works both before and during a play-along session.
+ * @param {number} delta - Amount to change (e.g. +5 or -5)
+ */
+function adjustTempo(delta) {
+  const current = pianoState.tempo || 120;
+  const next = Math.min(TEMPO_MAX, Math.max(TEMPO_MIN, current + delta));
+  if (next === current) return;
+
+  // setTempo updates pianoState.tempo, redraws score, and saves
+  setTempo(next);
+
+  // If Tone.Transport is running (active timed session), update live BPM
+  if (typeof Tone !== "undefined" && Tone.Transport.state === "started") {
+    Tone.Transport.bpm.value = next;
+  }
+
+  syncTempoDisplays(next);
+}
+
+/**
+ * Sync all tempo display elements to the given value.
+ */
+function syncTempoDisplays(bpm) {
+  const els = getPanelElements();
+  if (els.tempoValue) els.tempoValue.textContent = bpm;
+  if (els.liveTempoValue) els.liveTempoValue.textContent = bpm;
+  if (els.completeTempoValue) els.completeTempoValue.textContent = bpm;
+}
+
+// ===================================================================
+// Public API: Show / Hide
+// ===================================================================
+
+/**
+ * Show the play-along panel (replaces spectrum).
  * @param {boolean} showLive - If true, shows live stats (session active). If false, shows settings panel.
  */
 export function showPlayAlongHUD(showLive = false) {
-  const els = getHudElements();
-  if (els.root) {
-    els.root.classList.remove("hidden");
-  }
+  showPanel();
+  syncTempoDisplays(pianoState.tempo || 120);
 
-  // Toggle between settings panel and live stats
-  if (els.settings) {
-    els.settings.style.display = showLive ? "none" : "block";
-  }
-  if (els.live) {
-    els.live.style.display = showLive ? "block" : "none";
-  }
+  if (showLive) {
+    showPanelView("live");
 
-  // Show/hide timing display based on mode
-  if (els.timingSection) {
-    els.timingSection.style.display =
-      showLive && pianoState.playAlong.settings.mode === "timed" ? "block" : "none";
-  }
-
-  // Hide completion modal if visible
-  const comp = getCompletionElements();
-  if (comp.root) {
-    comp.root.classList.add("hidden");
-  }
-
-  // Hide count-in when switching panels
-  if (els.countIn) {
-    els.countIn.style.display = "none";
+    // Show/hide timing display based on mode
+    const els = getPanelElements();
+    if (els.timingSection) {
+      els.timingSection.style.display =
+        pianoState.playAlong.settings.mode === "timed" ? "block" : "none";
+    }
+  } else {
+    showPanelView("settings");
   }
 }
 
 /**
- * Hide the play-along HUD overlay.
+ * Hide the play-along panel and restore spectrum.
  */
 export function hidePlayAlongHUD() {
-  const els = getHudElements();
-  if (els.root) {
-    els.root.classList.add("hidden");
-  }
+  hidePanel();
 }
 
 /**
- * Show the count-in number overlay.
+ * Show the count-in number.
  * @param {number} beat - The beat number to display (4, 3, 2, 1).
  */
 export function showCountIn(beat) {
-  const els = getHudElements();
+  showPanel();
+  showPanelView("countin");
 
-  // Hide settings and live panels during count-in
-  if (els.settings) els.settings.style.display = "none";
-  if (els.live) els.live.style.display = "none";
-
-  if (els.countIn) {
-    els.countIn.style.display = "flex";
-  }
+  const els = getPanelElements();
   if (els.countInNumber) {
     els.countInNumber.textContent = beat;
     // Re-trigger animation
-    els.countInNumber.classList.remove("playalong-hud__countin-pop");
+    els.countInNumber.classList.remove("playalong-panel__countin-pop");
     void els.countInNumber.offsetWidth;
-    els.countInNumber.classList.add("playalong-hud__countin-pop");
+    els.countInNumber.classList.add("playalong-panel__countin-pop");
   }
 }
 
 /**
- * Hide the count-in overlay.
+ * Hide the count-in and switch to live view.
  */
 export function hideCountIn() {
-  const els = getHudElements();
-  if (els.countIn) {
-    els.countIn.style.display = "none";
+  // Switch to the live sub-view (count-in hid all other views)
+  showPanelView("live");
+
+  // Show/hide timing display based on mode
+  const els = getPanelElements();
+  if (els.timingSection) {
+    els.timingSection.style.display =
+      pianoState.playAlong.settings.mode === "timed" ? "block" : "none";
   }
 }
 
@@ -144,9 +227,6 @@ export function hideCountIn() {
 // HUD Update
 // ===================================================================
 
-/**
- * Get a streak display string.
- */
 function formatStreak(streak) {
   if (streak >= 50) return `${streak} <span class="streak-fire streak-fire--max">MAX</span>`;
   if (streak >= 25) return `${streak} <span class="streak-fire">HOT</span>`;
@@ -154,9 +234,6 @@ function formatStreak(streak) {
   return `${streak}`;
 }
 
-/**
- * Get the display names for the current expected notes.
- */
 function getCurrentExpectedDisplay() {
   const pa = pianoState.playAlong;
   if (pa.currentPosition.eventIndex >= pa.noteSequence.length) return "--";
@@ -164,14 +241,30 @@ function getCurrentExpectedDisplay() {
   const event = pa.noteSequence[pa.currentPosition.eventIndex];
   if (!event || event.isRest || event.requiredMidiNumbers.size === 0) return "--";
 
-  return event.displayNames.join(", ") || "--";
+  // Filter notes by selected clef to match what the user is expected to play
+  const settings = pa.settings;
+  let relevantNotes;
+  if (settings.trebleOnly) {
+    relevantNotes = event.trebleNotes;
+  } else if (settings.bassOnly) {
+    relevantNotes = event.bassNotes;
+  } else {
+    relevantNotes = [...event.trebleNotes, ...event.bassNotes];
+  }
+
+  const names = relevantNotes
+    .filter((n) => !n.isRest && !n.isTiedEnd)
+    .map((n) => n.chordName || n.noteName)
+    .filter(Boolean);
+
+  return names.length > 0 ? names.join(", ") : "--";
 }
 
 /**
- * Update all HUD elements with current play-along state.
+ * Update all panel elements with current play-along state.
  */
 export function updateHUD() {
-  const els = getHudElements();
+  const els = getPanelElements();
   if (!els.root) return;
 
   const pa = pianoState.playAlong;
@@ -201,17 +294,21 @@ export function updateHUD() {
     els.progressText.textContent = `${completedEvents} / ${stats.totalNotes}`;
   }
 
-  // Expected notes
-  if (els.expectedNotes) {
-    els.expectedNotes.textContent = getCurrentExpectedDisplay();
+  // Expected notes (gated by showNoteNames setting for future toggle)
+  if (els.expectedSection) {
+    if (pianoState.playAlong.settings.showNoteNames) {
+      els.expectedSection.style.display = pa.paused ? "none" : "block";
+      if (els.expectedNotes) {
+        els.expectedNotes.textContent = getCurrentExpectedDisplay();
+      }
+    } else {
+      els.expectedSection.style.display = "none";
+    }
   }
 
   // Paused state
   if (els.pausedIndicator) {
     els.pausedIndicator.style.display = pa.paused ? "block" : "none";
-  }
-  if (els.expectedSection) {
-    els.expectedSection.style.display = pa.paused ? "none" : "block";
   }
 
   // Pause button text
@@ -221,11 +318,11 @@ export function updateHUD() {
 }
 
 /**
- * Show a timing rating flash in the HUD (timed mode).
+ * Show a timing rating flash in the panel (timed mode).
  * @param {'perfect'|'good'|'early'|'late'|'missed'} rating
  */
 export function showTimingRating(rating) {
-  const els = getHudElements();
+  const els = getPanelElements();
   if (!els.timingLabel) return;
 
   const labels = {
@@ -237,45 +334,36 @@ export function showTimingRating(rating) {
   };
 
   els.timingLabel.textContent = labels[rating] || "--";
-  els.timingLabel.className = "playalong-hud__timing-label";
-  els.timingLabel.classList.add(`playalong-hud__timing-label--${rating}`);
+  els.timingLabel.className = "playalong-panel__timing-label";
+  els.timingLabel.classList.add(`playalong-panel__timing-label--${rating}`);
 
   // Animate
-  els.timingLabel.classList.remove("playalong-hud__timing-pop");
-  void els.timingLabel.offsetWidth; // Force reflow
-  els.timingLabel.classList.add("playalong-hud__timing-pop");
+  els.timingLabel.classList.remove("playalong-panel__timing-pop");
+  void els.timingLabel.offsetWidth;
+  els.timingLabel.classList.add("playalong-panel__timing-pop");
 }
 
 // ===================================================================
 // Settings Toggles
 // ===================================================================
 
-/**
- * Apply the active visual state to the correct toggle button.
- */
 function setActiveToggle(groupId, activeValue, dataAttr) {
   const group = document.getElementById(groupId);
   if (!group) return;
 
-  group.querySelectorAll(".playalong-hud__toggle-btn").forEach((btn) => {
+  group.querySelectorAll(".playalong-panel__toggle-btn").forEach((btn) => {
     if (btn.dataset[dataAttr] === activeValue) {
-      btn.classList.add("playalong-hud__toggle-btn--active");
+      btn.classList.add("playalong-panel__toggle-btn--active");
     } else {
-      btn.classList.remove("playalong-hud__toggle-btn--active");
+      btn.classList.remove("playalong-panel__toggle-btn--active");
     }
   });
 }
 
-/**
- * Initialize the settings toggles to reflect current pianoState.
- */
 function syncSettingsToUI() {
   const settings = pianoState.playAlong.settings;
-
-  // Mode toggle
   setActiveToggle("playalong-mode-toggle", settings.mode, "mode");
 
-  // Clef toggle
   let clefValue = "both";
   if (settings.trebleOnly) clefValue = "treble";
   else if (settings.bassOnly) clefValue = "bass";
@@ -283,34 +371,32 @@ function syncSettingsToUI() {
 }
 
 // ===================================================================
-// Completion Modal
+// Completion (inline view)
 // ===================================================================
 
 /**
- * Show the completion modal with final results.
+ * Show the completion view inline in the panel.
  * @param {Object} results - { accuracy, correct, incorrect, bestStreak, elapsed, totalNotes, timing? }
  */
 export function showCompletionModal(results) {
-  // Hide HUD
-  hidePlayAlongHUD();
+  // Stay in the panel, switch to completion view
+  showPanel();
+  showPanelView("completion");
 
   const comp = getCompletionElements();
   if (!comp.root) return;
 
-  // Set accuracy with color class
+  // Set accuracy with color
   if (comp.accuracy) {
     comp.accuracy.textContent = `${results.accuracy}%`;
-    comp.accuracy.className = "playalong-completion__accuracy";
-    if (results.accuracy >= 80) {
-      comp.accuracy.classList.add("playalong-completion__accuracy--high");
-    } else if (results.accuracy >= 50) {
-      comp.accuracy.classList.add("playalong-completion__accuracy--mid");
-    } else {
-      comp.accuracy.classList.add("playalong-completion__accuracy--low");
-    }
+    comp.accuracy.style.color =
+      results.accuracy >= 80
+        ? "var(--color-green-light, #499770)"
+        : results.accuracy >= 50
+        ? "var(--color-gold-light, #D8A668)"
+        : "var(--color-peach-light, #D88368)";
   }
 
-  // Set detail values
   if (comp.correct) comp.correct.textContent = results.correct;
   if (comp.incorrect) comp.incorrect.textContent = results.incorrect;
   if (comp.bestStreak) comp.bestStreak.textContent = results.bestStreak;
@@ -333,33 +419,27 @@ export function showCompletionModal(results) {
       comp.timingSection.classList.add("hidden");
     }
   }
-
-  comp.root.classList.remove("hidden");
 }
 
 /**
- * Hide the completion modal.
+ * Hide the completion view and restore spectrum.
  */
-function hideCompletionModal() {
-  const comp = getCompletionElements();
-  if (comp.root) {
-    comp.root.classList.add("hidden");
-  }
+function hideCompletionView() {
+  hidePanel();
 }
 
 // ===================================================================
-// Event Listeners (attached once from initializePlayAlongUI)
+// Event Listeners
 // ===================================================================
 
 /**
  * Initialize play-along UI event listeners.
- * Called once during app setup.
  */
 export function initializePlayAlongUI() {
   // --- Mode toggle ---
   document.getElementById("playalong-mode-toggle")?.addEventListener("click", (e) => {
-    const btn = e.target.closest(".playalong-hud__toggle-btn");
-    if (!btn || pianoState.playAlong.active) return; // Don't allow changes during active session
+    const btn = e.target.closest(".playalong-panel__toggle-btn");
+    if (!btn || pianoState.playAlong.active) return;
 
     const mode = btn.dataset.mode;
     if (mode) {
@@ -370,7 +450,7 @@ export function initializePlayAlongUI() {
 
   // --- Clef toggle ---
   document.getElementById("playalong-clef-toggle")?.addEventListener("click", (e) => {
-    const btn = e.target.closest(".playalong-hud__toggle-btn");
+    const btn = e.target.closest(".playalong-panel__toggle-btn");
     if (!btn || pianoState.playAlong.active) return;
 
     const clef = btn.dataset.clef;
@@ -398,6 +478,7 @@ export function initializePlayAlongUI() {
   document.getElementById("playalong-stop-btn")?.addEventListener("click", (e) => {
     e.preventDefault();
     stopPlayAlong();
+    showPlayAlongHUD(false); // Return to settings
   });
 
   document.getElementById("playalong-restart-btn")?.addEventListener("click", (e) => {
@@ -405,43 +486,83 @@ export function initializePlayAlongUI() {
     restartPlayAlong();
   });
 
-  // --- Completion modal controls ---
-  document.getElementById("playalong-tryagain-btn")?.addEventListener("click", (e) => {
+  // --- Close buttons (settings + live) ---
+  document.getElementById("playalong-close-settings-btn")?.addEventListener("click", (e) => {
     e.preventDefault();
-    hideCompletionModal();
+    hidePanel();
+  });
+
+  document.getElementById("playalong-close-btn")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    stopPlayAlong();
+    hidePanel();
+  });
+
+  // --- Tempo controls (settings panel) ---
+  document.getElementById("playalong-tempo-down")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    adjustTempo(-TEMPO_STEP);
+  });
+  document.getElementById("playalong-tempo-up")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    adjustTempo(TEMPO_STEP);
+  });
+
+  // --- Tempo controls (live panel) ---
+  document.getElementById("playalong-live-tempo-down")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    adjustTempo(-TEMPO_STEP);
+  });
+  document.getElementById("playalong-live-tempo-up")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    adjustTempo(TEMPO_STEP);
+  });
+
+  // --- Completion controls ---
+  document.getElementById("playalong-complete-restart-btn")?.addEventListener("click", (e) => {
+    e.preventDefault();
     restartPlayAlong();
   });
 
-  document.getElementById("playalong-done-btn")?.addEventListener("click", (e) => {
+  document.getElementById("playalong-complete-stop-btn")?.addEventListener("click", (e) => {
     e.preventDefault();
-    hideCompletionModal();
     stopPlayAlong();
+    showPlayAlongHUD(false); // Return to settings
   });
 
-  // --- Completion modal: Escape key to dismiss ---
+  document.getElementById("playalong-complete-close-btn")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    stopPlayAlong();
+    hidePanel();
+  });
+
+  // --- Tempo controls (completion panel) ---
+  document.getElementById("playalong-complete-tempo-down")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    adjustTempo(-TEMPO_STEP);
+  });
+  document.getElementById("playalong-complete-tempo-up")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    adjustTempo(TEMPO_STEP);
+  });
+
+  // --- Escape key: stop session if active, or close panel if on settings ---
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      const comp = getCompletionElements();
-      if (comp.root && !comp.root.classList.contains("hidden")) {
+      const els = getPanelElements();
+      if (els.root && !els.root.classList.contains("hidden")) {
         e.preventDefault();
-        hideCompletionModal();
-        stopPlayAlong();
+        if (pianoState.playAlong.active) {
+          stopPlayAlong();
+          showPlayAlongHUD(false); // Return to settings
+        } else {
+          hidePanel(); // Close panel entirely
+        }
       }
     }
   });
 
-  // --- Completion modal: click outside to dismiss ---
-  const compRoot = document.getElementById("playalong-completion");
-  if (compRoot) {
-    compRoot.addEventListener("click", (e) => {
-      // Only dismiss if the click is on the backdrop itself, not on modal content
-      if (e.target === compRoot) {
-        hideCompletionModal();
-        stopPlayAlong();
-      }
-    });
-  }
-
   // Sync settings UI to current state
   syncSettingsToUI();
+  syncTempoDisplays(pianoState.tempo || 120);
 }
