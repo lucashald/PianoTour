@@ -414,6 +414,50 @@ export function resetAllNoteStyles() {
 }
 
 /**
+ * Resets a single note to black and clears it from play-along highlight tracking.
+ * Scans measures to find the note by ID, then resets its style and removes from tracking sets.
+ * @param {string} noteId - The unique ID of the note to reset.
+ */
+export function resetNoteStyle(noteId) {
+  const measures = getMeasures();
+  let found = false;
+
+  // Scan measures to find the note by ID and get its position
+  for (let measureIndex = 0; measureIndex < measures.length; measureIndex++) {
+    const measure = measures[measureIndex];
+    if (!measure) continue;
+
+    for (const noteData of measure) {
+      if (noteData.id === noteId) {
+        const clef = noteData.clef;
+        const vexflowIndex = getVexflowIndexByNoteId()[noteId];
+
+        if (vexflowIndex !== undefined) {
+          const defaultStyle = {
+            fillStyle: "#000000",
+            strokeStyle: "#000000",
+          };
+          setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, defaultStyle);
+          found = true;
+        }
+
+        // Remove from play-along tracking sets
+        const noteKey = `${measureIndex}-${clef}-${noteId}`;
+        playAlongHighlightedNotes.delete(noteKey);
+        pianoState.currentPlaybackNotes.delete(noteKey);
+
+        break;
+      }
+    }
+    if (found) break;
+  }
+
+  if (!found) {
+    console.warn(`resetNoteStyle: Note with ID ${noteId} not found in measures.`);
+  }
+}
+
+/**
  * Consolidated function for applying styles to a VexFlow note non-destructively.
  * This function interacts directly with the VexFlow note object and its rendering context.
  * @param {number} measureIndex

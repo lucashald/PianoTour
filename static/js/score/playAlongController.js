@@ -16,6 +16,7 @@ import {
   addCorrectHighlight,
   setVexFlowNoteStyle,
   resetAllNoteStyles,
+  resetNoteStyle,
 } from "./scoreHighlighter.js";
 import {
   showPlayAlongHUD,
@@ -611,6 +612,14 @@ function checkTimedMiss(schedEntry) {
     if (keyEl) keyEl.classList.remove("expected");
   });
 
+  // Clear expected highlights on the score for all notes in this event
+  const allNotes = [...schedEntry.event.trebleNotes, ...schedEntry.event.bassNotes];
+  allNotes.forEach((note) => {
+    if (!note.isRest && !note.isTiedEnd) {
+      resetNoteStyle(note.noteId);
+    }
+  });
+
   showTimingRating("missed");
   updateHUD();
 }
@@ -1059,6 +1068,16 @@ export function stop() {
   clearExpectedKeyHighlights();
   resetAllNoteStyles();
   hidePlayAlongHUD();
+
+  // Ensure all play-along tracked notes are cleaned up from tracking sets
+  if (pa.noteSequence && pa.noteSequence.length > 0) {
+    pa.noteSequence.forEach((event) => {
+      const allNotes = [...event.trebleNotes, ...event.bassNotes];
+      allNotes.forEach((note) => {
+        resetNoteStyle(note.noteId);
+      });
+    });
+  }
 
   console.log("Play-Along: Stopped.");
 }
