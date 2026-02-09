@@ -42,6 +42,11 @@ export function highlightSelectedNote(measureIndex, clef, noteId) {
   setVexFlowNoteStyle(measureIndex, clef, vexflowIndex, selectionStyle);
 }
 
+export function clearAllHighlights() {
+  console.log("clearAllHighlights: Request to clear all playback highlights.");
+  clearPlaybackHighlight();
+}
+
 /**
 * Clears the currently selected individual note highlight.
 * It restores the note's style to black by default, or to the measure highlight color (green) if its containing measure is also selected.

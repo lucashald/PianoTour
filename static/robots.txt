@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /*.json$
+
+Crawl-delay: 1
+
+Sitemap: https://www.pianotour.com/sitemap.xml

@@ -98,10 +98,12 @@ def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=Non
 
 # --- Flask Routes ---
 
-
 @app.route('/')
 def index():
-    return render_template('piano.html', hide_spectrum=False)
+    return render_template('piano.html',
+        hide_spectrum=False,
+        meta_title='PianoTour - Interactive Piano Studio',
+        meta_description='Play interactive piano, guitar, and drums online. Create and print musical scores.')
 
 @app.route('/fret')
 def fret():
@@ -615,3 +617,11 @@ def health_check():
 @app.route('/settings')
 def settings():
     return render_template('settings.html', show_side_panel=True)
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml')
+
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory('static', 'robots.txt')

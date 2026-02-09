@@ -88,7 +88,10 @@ def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=Non
 
 @app.route('/')
 def index():
-    return render_template('piano.html', hide_spectrum=False)
+    return render_template('piano.html',
+        hide_spectrum=False,
+        meta_title='PianoTour - Interactive Piano Studio',
+        meta_description='Play interactive piano, guitar, and drums online. Create and print musical scores.')
 
 @app.route('/fret')
 def fret():
@@ -608,6 +611,10 @@ def health_check():
 def settings():
     return render_template('settings.html', show_side_panel=True)
 
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml')
+
 @app.route('/chordPreview')
 def chord_preview():
     return render_template('chordPreview.html')
@@ -688,6 +695,10 @@ def llm_edit_score():
     except Exception as e:
         logger.error(f"Error during LLM edit: {e}", exc_info=True)
         return jsonify({'error': f'Failed to process LLM request: {str(e)}'}), 500
+
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory('static', 'robots.txt')
 
 # --- Main Execution ---
 if __name__ == '__main__':
