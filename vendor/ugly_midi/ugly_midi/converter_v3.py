@@ -298,6 +298,16 @@ def extract_raw_midi_data(midi_file_path: str, manual_tempo: Optional[int] = Non
         # Sort by start time
         track_notes.sort(key=lambda n: n["start"])
 
+        # Determine which measure the first note falls in (1-based for display)
+        first_note_time = track_notes[0]["start"] if track_notes else 0.0
+        start_measure = 1
+        for m in measures:
+            if first_note_time < m.end_time:
+                start_measure = m.index + 1  # 1-based
+                break
+        else:
+            start_measure = len(measures)  # past the last measure
+
         tracks.append({
             "name": inst.name or f"Track {inst_idx + 1}",
             "index": inst_idx,
@@ -305,6 +315,7 @@ def extract_raw_midi_data(midi_file_path: str, manual_tempo: Optional[int] = Non
             "isDrum": bool(inst.is_drum),
             "program": int(inst.program),
             "noteCount": len(track_notes),
+            "startMeasure": start_measure,
             "notes": track_notes,
             "pitchRange": {
                 "min": min((n["pitch"] for n in track_notes), default=0),
@@ -581,6 +592,27 @@ def _assemble_measures_from_groups(
         }
         for m in measures
     ]
+
+    # ─── Trim leading empty measures ───
+    # A measure is "empty" if it contains only rests (no actual notes).
+    # Only trim from the front; stop at the first measure with real notes.
+    leading_empty = 0
+    for payload in measure_payloads:
+        if all(entry.get("isRest", False) for entry in payload):
+            leading_empty += 1
+        else:
+            break
+
+    if leading_empty > 0:
+        measure_payloads = measure_payloads[leading_empty:]
+        measure_meta = measure_meta[leading_empty:]
+        # Re-index so they start from 0
+        for new_idx, payload in enumerate(measure_payloads):
+            for entry in payload:
+                entry["measure"] = new_idx
+        for new_idx, meta in enumerate(measure_meta):
+            meta["index"] = new_idx
+        print(f"[ugly_midi] Trimmed {leading_empty} leading empty measure(s).")
 
     json_data: Dict[str, object] = {
         "keySignature": "C",
@@ -1519,6 +1551,24 @@ def midi_to_json_v3(
         }
         for m in measures
     ]
+
+    # ─── Trim leading empty measures ───
+    leading_empty = 0
+    for payload in measure_payloads:
+        if all(entry.get("isRest", False) for entry in payload):
+            leading_empty += 1
+        else:
+            break
+
+    if leading_empty > 0:
+        measure_payloads = measure_payloads[leading_empty:]
+        measure_meta = measure_meta[leading_empty:]
+        for new_idx, payload in enumerate(measure_payloads):
+            for entry in payload:
+                entry["measure"] = new_idx
+        for new_idx, meta in enumerate(measure_meta):
+            meta["index"] = new_idx
+        print(f"[ugly_midi] Trimmed {leading_empty} leading empty measure(s).")
 
     json_data: Dict[str, object] = {
         "keySignature": "C",

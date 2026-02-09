@@ -555,9 +555,22 @@ export async function requantizeTracks(trackIndices = null, quantizeResolution =
  * Returns array of selected track indices, or null if cancelled.
  */
 function showTrackPicker(playableTracks, rawData) {
+    const MAX_TRACKS = 2;
+
     return new Promise((resolve) => {
         // Remove any existing picker
         document.getElementById('track-picker-modal')?.remove();
+
+        // Sort by startMeasure (earliest first), then by noteCount descending as tiebreak
+        const sorted = [...playableTracks].sort((a, b) => {
+            const mA = a.startMeasure ?? Infinity;
+            const mB = b.startMeasure ?? Infinity;
+            if (mA !== mB) return mA - mB;
+            return (b.noteCount || 0) - (a.noteCount || 0);
+        });
+
+        // Pre-select the first MAX_TRACKS tracks
+        const preSelected = new Set(sorted.slice(0, MAX_TRACKS).map(t => t.index));
 
         const modal = document.createElement('div');
         modal.id = 'track-picker-modal';
@@ -573,25 +586,29 @@ function showTrackPicker(playableTracks, rawData) {
             ? `${Math.floor(totalDuration / 60)}m ${Math.round(totalDuration % 60)}s`
             : `${Math.round(totalDuration)}s`;
 
-        const trackListHtml = playableTracks.map(track => {
+        const trackListHtml = sorted.map(track => {
             const pitchMin = track.pitchRange?.min ?? 0;
             const pitchMax = track.pitchRange?.max ?? 127;
             const rangeLabel = pitchMin < 60 && pitchMax >= 60 ? 'Full range'
                 : pitchMin >= 60 ? 'Treble' : 'Bass';
+            const measureLabel = track.startMeasure != null
+                ? `Starts m. ${track.startMeasure}`
+                : '';
+            const checked = preSelected.has(track.index) ? 'checked' : '';
             return `
                 <label style="display: flex; align-items: center; padding: 10px 12px;
                     border: 1px solid #e0e0e0; border-radius: 8px; cursor: pointer;
                     transition: background 0.15s; margin-bottom: 6px;"
                     onmouseover="this.style.background='#f5f5f5'"
                     onmouseout="this.style.background='white'">
-                    <input type="checkbox" value="${track.index}" checked
+                    <input type="checkbox" value="${track.index}" ${checked}
                         style="margin-right: 12px; width: 18px; height: 18px; cursor: pointer;">
                     <div style="flex: 1;">
                         <div style="font-weight: 600; color: #333; font-size: 14px;">
                             ${track.name}
                         </div>
                         <div style="font-size: 12px; color: #888; margin-top: 2px;">
-                            ${track.instrument} · ${track.noteCount} notes · ${rangeLabel}
+                            ${track.instrument} · ${track.noteCount} notes · ${rangeLabel}${measureLabel ? ' · ' + measureLabel : ''}
                         </div>
                     </div>
                 </label>
@@ -603,8 +620,10 @@ function showTrackPicker(playableTracks, rawData) {
                 min-width: 420px; max-width: 540px; max-height: 80vh;
                 box-shadow: 0 20px 60px rgba(0,0,0,0.3); display: flex; flex-direction: column;">
                 <h3 style="margin: 0 0 4px 0; color: #333; font-size: 18px;">Select Tracks</h3>
-                <p style="margin: 0 0 16px 0; color: #888; font-size: 13px;">
+                <p style="margin: 0 0 6px 0; color: #888; font-size: 13px;">
                     ${rawData.tracks.length} tracks · ${durationStr} · ${rawData.tempoMap[0]?.bpm ?? '?'} BPM
+                </p>
+                <p id="track-pick-status" style="margin: 0 0 12px 0; color: #555; font-size: 13px; font-weight: 500;">
                 </p>
 
                 <div style="overflow-y: auto; max-height: 50vh; margin-bottom: 16px;">
@@ -616,10 +635,6 @@ function showTrackPicker(playableTracks, rawData) {
                         background: #f5f5f5; color: #666; border: 1px solid #ddd;
                         padding: 10px 20px; border-radius: 8px; cursor: pointer;
                         font-size: 14px;">Cancel</button>
-                    <button id="track-pick-all" style="
-                        background: #2196F3; color: white; border: none;
-                        padding: 10px 20px; border-radius: 8px; cursor: pointer;
-                        font-size: 14px;">Load All Tracks</button>
                     <button id="track-pick-selected" style="
                         background: #4CAF50; color: white; border: none;
                         padding: 10px 20px; border-radius: 8px; cursor: pointer;
@@ -630,6 +645,53 @@ function showTrackPicker(playableTracks, rawData) {
 
         document.body.appendChild(modal);
 
+        const checkboxes = () => modal.querySelectorAll('input[type="checkbox"]');
+        const checkedCount = () => modal.querySelectorAll('input[type="checkbox"]:checked').length;
+        const statusEl = () => document.getElementById('track-pick-status');
+        const loadBtn = () => document.getElementById('track-pick-selected');
+
+        // Update status text and disable unchecked boxes when at limit
+        function updateSelectionState() {
+            const count = checkedCount();
+            const status = statusEl();
+            const btn = loadBtn();
+            if (status) {
+                if (count === 0) {
+                    status.textContent = 'Select at least 1 track';
+                    status.style.color = '#e53935';
+                } else if (count >= MAX_TRACKS) {
+                    status.textContent = `${count} of ${MAX_TRACKS} tracks selected (max)`;
+                    status.style.color = '#e65100';
+                } else {
+                    status.textContent = `${count} of ${MAX_TRACKS} tracks selected`;
+                    status.style.color = '#555';
+                }
+            }
+            // Disable unchecked checkboxes when at max
+            checkboxes().forEach(cb => {
+                if (!cb.checked && count >= MAX_TRACKS) {
+                    cb.disabled = true;
+                    cb.parentElement.style.opacity = '0.45';
+                    cb.parentElement.style.cursor = 'not-allowed';
+                } else {
+                    cb.disabled = false;
+                    cb.parentElement.style.opacity = '1';
+                    cb.parentElement.style.cursor = 'pointer';
+                }
+            });
+            // Disable load button when nothing selected
+            if (btn) {
+                btn.disabled = count === 0;
+                btn.style.opacity = count === 0 ? '0.5' : '1';
+                btn.style.cursor = count === 0 ? 'not-allowed' : 'pointer';
+            }
+        }
+
+        // Listen for checkbox changes
+        checkboxes().forEach(cb => cb.addEventListener('change', updateSelectionState));
+        // Initial state
+        updateSelectionState();
+
         const cleanup = () => modal.remove();
 
         document.getElementById('track-pick-cancel').addEventListener('click', () => {
@@ -637,21 +699,12 @@ function showTrackPicker(playableTracks, rawData) {
             resolve(null);
         });
 
-        document.getElementById('track-pick-all').addEventListener('click', () => {
-            cleanup();
-            resolve(null); // null = all non-drum tracks
-        });
-
         document.getElementById('track-pick-selected').addEventListener('click', () => {
-            const checkboxes = modal.querySelectorAll('input[type="checkbox"]:checked');
-            const indices = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const selected = modal.querySelectorAll('input[type="checkbox"]:checked');
+            const indices = Array.from(selected).map(cb => parseInt(cb.value));
+            if (indices.length === 0) return; // shouldn't happen, button is disabled
             cleanup();
-            if (indices.length === 0) {
-                alert('Please select at least one track.');
-                resolve(null); // Fall back to all
-            } else {
-                resolve(indices);
-            }
+            resolve(indices);
         });
 
         // Close on backdrop click
