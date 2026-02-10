@@ -200,6 +200,11 @@ export function addButtonListeners() {
     .getElementById("quantize-select")
     ?.addEventListener("change", handleQuantizeChange);
   
+  // Wire up the quantize button
+  document
+    .getElementById("quantize-btn")
+    ?.addEventListener("click", handleQuantizeChange);
+  
   // Rest button listeners
   const bassRestBtn = document.getElementById("bass-rest-btn");
   const trebleRestBtn = document.getElementById("treble-rest-btn");
@@ -363,6 +368,16 @@ function handleFixedDurationToggle(event) {
   const useFixedDuration = event.target.checked;
   pianoState.toggleFixedDuration = useFixedDuration;
   console.log(`Fixed duration mode: ${useFixedDuration ? 'ON (using quantize)' : 'OFF (using held time)'}`);
+  
+  // Show/hide quantize button based on fixed duration mode
+  const quantizeBtn = document.getElementById('quantize-btn');
+  if (quantizeBtn) {
+    if (useFixedDuration) {
+      quantizeBtn.classList.remove('hidden');
+    } else {
+      quantizeBtn.classList.add('hidden');
+    }
+  }
 }
 
 /**

@@ -745,9 +745,9 @@ async function initializeAudio() {
         processDeferredAction();
 
         const instrument = document.getElementById("instrument");
-        if (instrument) {
-            instrument.focus();
-        }
+        // if (instrument) {
+        //     instrument.focus();
+        // }
         window.dispatchEvent(new Event('audioReady'));
         return true;
 

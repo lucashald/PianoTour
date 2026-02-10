@@ -555,11 +555,6 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
             handler: handlePlaybackMenuToggle,
           },
           {
-            id: "quantize-btn",
-            event: "click",
-            handler: handleQuantizeChange,
-          },
-          {
             id: "instrument-menu-btn",
             event: "click",
             handler: handleInstrumentMenuToggle,
@@ -580,7 +575,7 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
               handler(e);
               // Remove focus from button so Space doesn't re-trigger it
               e.target.blur();
-              document.getElementById("instrument")?.focus();
+              // document.getElementById("instrument")?.focus();
             });
           }
         });
