@@ -1956,6 +1956,11 @@ background: linear-gradient(to right,
   outline: none;
 }
 
+/* Instrument div receives programmatic focus only — never show outline */
+#instrument:focus {
+  outline: none;
+}
+
 /* ==========================================================================
    24. Velocity Control Toggle Switch
    ========================================================================== */

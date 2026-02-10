@@ -13,6 +13,7 @@ import {
   CHORD_DEFINITIONS,
   DIATONIC_CHORD_QUALITIES,
   DURATION_THRESHOLDS,
+  getDurationThresholds,
   getChordByDegree,
   getInterval,
   getOctave,
@@ -515,6 +516,8 @@ export function playScaleChord(degree, key, writeToScore = true, useBass = false
     startTime: performance.now(),
     writeToScore: writeToScore,
   };
+
+  console.log(`Playing diatonic chord degree ${degree}: ${chord.displayName} (${useBass ? 'bass' : 'treble'})`);
 }
 
 /**
@@ -534,12 +537,7 @@ export function stopScaleChord(key) {
   if (chordData.writeToScore) {
     console.log("Writing chord to score:", chordData.displayName);
     const heldTime = performance.now() - chordData.startTime;
-
-    let duration = pianoState.quantize; // Default to quarter note
-    if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
-    else if (heldTime >= DURATION_THRESHOLDS["h."]) duration = "h.";
-    else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
-    else if (heldTime >= DURATION_THRESHOLDS["q."]) duration = "q.";
+    const duration = calculateDuration(heldTime);
 
     writeNote({
       clef: chordData.clef,
@@ -558,4 +556,160 @@ export function stopScaleChord(key) {
   }
 
   delete pianoState.activeDiatonicChords[key];
+}
+
+// ===================================================================
+// Chord Batching System
+// ===================================================================
+// Collects near-simultaneous note events and groups them as chords.
+// Used by MIDI input (where hardware sends chord notes sequentially)
+// and available for any other input path that needs it.
+
+const CHORD_WINDOW_MS = 50;
+let noteOnBatchTimer = null;
+let noteOffBatchTimer = null;
+const pendingNoteOns = new Map();   // midi → { keyEl, velocity }
+const pendingNoteOffs = new Map();  // midi → { keyEl, activeNote }
+
+// Track chord groups so we can write one score entry when all notes release
+// groupId → { midiNotes: Set, startTime, releasedNotes: Map<midi, noteInfo> }
+const activeChordGroups = new Map();
+let nextGroupId = 0;
+// Reverse lookup: midi → groupId
+const midiToGroup = new Map();
+
+/**
+ * Calculate duration from held time, respecting tempo and fixed-duration mode.
+ * Shared helper so every input path uses the same logic.
+ * @param {number} heldTimeMs - How long the note/chord was held in milliseconds.
+ * @returns {string} VexFlow duration string (e.g. "q", "h.", "w").
+ */
+export function calculateDuration(heldTimeMs) {
+  if (pianoState.toggleFixedDuration) {
+    return pianoState.quantize;
+  }
+  const thresholds = getDurationThresholds(pianoState.tempo);
+  if (heldTimeMs >= thresholds.w)        return "w";
+  if (heldTimeMs >= thresholds["h."])    return "h.";
+  if (heldTimeMs >= thresholds.h)        return "h";
+  if (heldTimeMs >= thresholds["q."])    return "q.";
+  if (heldTimeMs >= thresholds.q)        return "q";
+  if (heldTimeMs >= thresholds["8."])    return "8.";
+  return "8";
+}
+
+/**
+ * Queue a Note On into the chord batch. After CHORD_WINDOW_MS of silence
+ * the batch is flushed: all collected notes are started together and
+ * registered as a chord group.
+ * @param {HTMLElement} keyEl - The piano key DOM element.
+ * @param {number} velocity - MIDI velocity (1-127).
+ */
+export function batchNoteOn(keyEl, velocity) {
+  const midi = parseInt(keyEl.dataset.midi, 10);
+  pendingNoteOns.set(midi, { keyEl, velocity });
+
+  if (noteOnBatchTimer !== null) clearTimeout(noteOnBatchTimer);
+  noteOnBatchTimer = setTimeout(flushNoteOnBatch, CHORD_WINDOW_MS);
+}
+
+function flushNoteOnBatch() {
+  noteOnBatchTimer = null;
+  if (pendingNoteOns.size === 0) return;
+
+  const groupId = nextGroupId++;
+  const midiNotes = new Set();
+
+  for (const [midi, { keyEl, velocity }] of pendingNoteOns) {
+    startKey(keyEl, velocity);
+    midiNotes.add(midi);
+    midiToGroup.set(midi, groupId);
+  }
+
+  activeChordGroups.set(groupId, {
+    midiNotes,
+    startTime: performance.now(),
+    releasedNotes: new Map(), // midi → { noteName, clef }
+  });
+
+  pendingNoteOns.clear();
+  console.log(`Chord group ${groupId} started with MIDI notes: [${[...midiNotes].join(", ")}]`);
+}
+
+/**
+ * Queue a Note Off into the chord batch. After CHORD_WINDOW_MS the batch
+ * is flushed: notes are stopped and, once every note in the chord group
+ * has been released, a single writeNote() call is made.
+ * @param {HTMLElement} keyEl - The piano key DOM element.
+ */
+export function batchNoteOff(keyEl) {
+  const midi = parseInt(keyEl.dataset.midi, 10);
+  const activeNote = pianoState.activeNotes[midi];
+  if (!activeNote) {
+    console.log(`batchNoteOff: no active note for MIDI ${midi}`);
+    return;
+  }
+  pendingNoteOffs.set(midi, { keyEl, activeNote });
+
+  if (noteOffBatchTimer !== null) clearTimeout(noteOffBatchTimer);
+  noteOffBatchTimer = setTimeout(flushNoteOffBatch, CHORD_WINDOW_MS);
+}
+
+function flushNoteOffBatch() {
+  noteOffBatchTimer = null;
+  if (pendingNoteOffs.size === 0) return;
+
+  for (const [midi, { keyEl }] of pendingNoteOffs) {
+    const noteInfo = notesByMidiKeyAware(midi);
+    const noteName = noteInfo ? noteInfo.name : null;
+    const clef = midi < 60 ? "bass" : "treble";
+
+    // Stop audio + clear element/activeNotes state
+    stopKey(keyEl);
+
+    // Record this release in the chord group
+    const groupId = midiToGroup.get(midi);
+    if (groupId !== undefined) {
+      const group = activeChordGroups.get(groupId);
+      if (group && noteName) {
+        group.releasedNotes.set(midi, { noteName, clef });
+
+        // Check if every note in the group has been released
+        if (group.releasedNotes.size >= group.midiNotes.size) {
+          finalizeChordGroup(groupId, group);
+        }
+      }
+    } else if (noteName) {
+      // Ungrouped single note (started before batching was active)
+      const heldTime = performance.now() - (parseFloat(keyEl.dataset.startTime) || performance.now());
+      const duration = calculateDuration(heldTime);
+      writeNote({ clef, duration, notes: [noteName], chordName: noteName });
+      console.log(`Ungrouped note released: ${noteName} (${duration}) in ${clef} clef`);
+    }
+  }
+
+  pendingNoteOffs.clear();
+}
+
+function finalizeChordGroup(groupId, group) {
+  const heldTime = performance.now() - group.startTime;
+  const duration = calculateDuration(heldTime);
+
+  // Sort notes by MIDI number for consistent ordering
+  const sortedEntries = [...group.releasedNotes.entries()].sort((a, b) => a[0] - b[0]);
+  const noteNames = sortedEntries.map(([, info]) => info.noteName);
+  // Clef based on lowest note
+  const lowestMidi = sortedEntries[0][0];
+  const clef = lowestMidi < 60 ? "bass" : "treble";
+
+  const chordName = noteNames.length === 1 ? noteNames[0] : noteNames.join("/");
+
+  writeNote({ clef, duration, notes: noteNames, chordName });
+  console.log(`Chord group ${groupId} finalized: [${noteNames.join(", ")}] (${duration}) in ${clef} clef`);
+
+  // Clean up
+  for (const midi of group.midiNotes) {
+    midiToGroup.delete(midi);
+  }
+  activeChordGroups.delete(groupId);
 }

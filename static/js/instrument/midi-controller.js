@@ -4,19 +4,11 @@
 // Imports
 import { pianoState } from "../core/appState.js";
 import {
-  playDiatonicChord,
-  startKey,
-  stopDiatonicChord,
-  stopKey,
+  batchNoteOn,
+  batchNoteOff,
+  playScaleChord,
+  stopScaleChord,
 } from "./playbackHelpers.js";
-import {
-  DURATION_THRESHOLDS,
-  NOTES_BY_MIDI,
-  notesByMidiKeyAware,
-} from "../core/note-data.js";
-import { writeNote } from "../score/scoreWriter.js";
-import { clearHi, clearChordHi } from "./instrumentHelpers.js";
-import { playScaleChord, stopScaleChord } from "./keyboardHelpers.js";
 
 // Global MIDI state
 let midiAccess = null;
@@ -225,6 +217,7 @@ export function listMidiDevices() {
 
 /**
  * MIDI Note On handler - delegates to playbackHelpers.js
+ * Uses chord batching so simultaneous MIDI notes are grouped as a chord.
  */
 export function handleMidiNoteOn(midiNoteNumber, velocity, channel) {
     console.log(`MIDI Note On: Channel ${channel}, Note ${midiNoteNumber}, Velocity ${velocity}`);
@@ -247,24 +240,23 @@ export function handleMidiNoteOn(midiNoteNumber, velocity, channel) {
         return;
     }
 
-    // Handle individual notes
+    // Queue into chord batch — simultaneous notes will be grouped
     const keyEl = pianoState.noteEls[midiNoteNumber];
     if (keyEl) {
-        // Check for duplicate note on
-        if (keyEl.dataset.playing === 'true') {
+        if (keyEl.dataset.playing) {
             console.log(`Note ${midiNoteNumber} already playing, ignoring duplicate MIDI Note On`);
             return;
         }
-        
-        // Delegate to playbackHelpers.js - it handles the envelope properly
-        startKey(keyEl, velocity);
+        batchNoteOn(keyEl, velocity);
     } else {
         console.warn(`No key element found for MIDI note ${midiNoteNumber}`);
     }
 }
 
 /**
- * MIDI Note Off handler - delegates to playbackHelpers.js with score writing
+ * MIDI Note Off handler - delegates to playbackHelpers.js chord batching.
+ * Duration calculation and score writing are handled by the batch system
+ * so simultaneous releases produce a single chord in the score.
  */
 export function handleMidiNoteOff(midiNoteNumber, velocity, channel) {
     console.log(`MIDI Note Off: Channel ${channel}, Note ${midiNoteNumber}, Velocity ${velocity}`);
@@ -275,62 +267,23 @@ export function handleMidiNoteOff(midiNoteNumber, velocity, channel) {
         return;
     }
 
-    // Clear highlights (like keyboard does)
-    clearChordHi();
-    clearHi();
-
     // Handle diatonic chords (Channel 9)
     if (channel === 9) {
         const chordKey = `midi_${midiNoteNumber}`;
-        const activeChord = pianoState.activeDiatonicChords[chordKey];
-        if (activeChord) {
+        if (pianoState.activeDiatonicChords[chordKey]) {
             console.log(`Stopping diatonic chord: degree ${midiNoteNumber - 35}`);
             stopScaleChord(chordKey);
         }
         return;
     }
 
-    // Handle individual notes
-    const activeNote = pianoState.activeNotes[midiNoteNumber];
+    // Queue into chord batch — simultaneous releases are grouped
     const keyEl = pianoState.noteEls[midiNoteNumber];
-
-    if (keyEl && activeNote) {
-        // Calculate duration before stopping (since stopKey will clear activeNote)
-        const heldTime = performance.now() - activeNote.startTime;
-        let duration = 'q'; // Default quarter note
-        if (heldTime >= DURATION_THRESHOLDS.w) duration = 'w';
-        else if (heldTime >= DURATION_THRESHOLDS['h.']) duration = 'h.';
-        else if (heldTime >= DURATION_THRESHOLDS.h) duration = 'h';
-        else if (heldTime >= DURATION_THRESHOLDS['q.']) duration = 'q.';
-
-        // Get note info for score writing
-        const noteInfo = NOTES_BY_MIDI[midiNoteNumber];
-        const noteInfoKeyAware = notesByMidiKeyAware(midiNoteNumber);
-        const noteNameForScore = noteInfoKeyAware ? noteInfoKeyAware.name : noteInfo.name;
-        const clef = noteInfo.midi < 60 ? 'bass' : 'treble';
-
-        // Delegate audio stopping to playbackHelpers.js - it handles envelope properly
-        stopKey(keyEl);
-
-        // Write to score after audio is stopped
-        if (noteInfo) {
-            writeNote({ 
-                clef, 
-                duration, 
-                notes: [noteNameForScore], 
-                chordName: noteNameForScore 
-            });
-            console.log(`MIDI Note Off processed: ${noteNameForScore} (${duration}) in ${clef} clef`);
-        }
+    if (keyEl) {
+        batchNoteOff(keyEl);
     } else {
-        if (!keyEl) {
-            console.warn(`No key element found for MIDI note ${midiNoteNumber}`);
-        }
-        if (!activeNote) {
-            console.log(`No active note found for MIDI note ${midiNoteNumber} - may have already been released`);
-        }
+        console.warn(`No key element found for MIDI note ${midiNoteNumber}`);
     }
-
 }
 
 // ===================================================================

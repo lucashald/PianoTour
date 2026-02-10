@@ -576,8 +576,10 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
           if (element) {
             element.addEventListener(event, (e) => {
               e.preventDefault();
+              e.stopPropagation();
               handler(e);
-              // Refocus instrument after any action
+              // Remove focus from button so Space doesn't re-trigger it
+              e.target.blur();
               document.getElementById("instrument")?.focus();
             });
           }

@@ -9,15 +9,10 @@ import {
 import { writeNote } from "../score/scoreWriter.js";
 import { addAdvancedKeyboardListeners, addInstrumentDraggingListeners } from "../ui/listenerManager.js";
 import {
-  clearChordHi,
-  clearHi,
-  paintChord,
-  paintChordOnTheFly,
-} from "./instrumentHelpers.js";
-import {
-  startKey,
-  stopKey,
-  trigger,
+  batchNoteOn,
+  batchNoteOff,
+  playScaleChord,
+  stopScaleChord,
   triggerAttackRelease,
 } from "./playbackHelpers.js";
 import { handleNoteOn as playAlongNoteOn, handleNoteOff as playAlongNoteOff } from "../score/playAlongController.js";
@@ -118,6 +113,7 @@ export function handleKeyDown(e) {
     return;
   }
 
+  e.stopPropagation();
   e.preventDefault();
 
   // Play-Along Mode: route piano key input to the play-along controller
@@ -159,8 +155,7 @@ export function handleKeyDown(e) {
     const keyEl = pianoState.noteEls[targetMidi];
     if (keyEl) {
       pianoState.held.set(k, targetMidi);
-      keyEl.dataset.startTime = performance.now();
-      startKey(keyEl);
+      batchNoteOn(keyEl, pianoState.velocity);
     }
   }
 }
@@ -240,38 +235,11 @@ export function handleKeyUp(e) {
   } else if (handledKey.type === 'piano') {
     console.log(`Piano key release detected: "${k}"`);
     const actualMidi = pianoState.held.get(k);
-    console.log(`Actual MIDI for key "${k}": ${actualMidi}`);
-    
     const keyEl = pianoState.noteEls[actualMidi];
-    if (keyEl && keyEl.dataset.playing === "note") {
-      const heldTime = performance.now() - parseFloat(keyEl.dataset.startTime);
-      console.log(`Piano key held for ${heldTime}ms`);
-      
-      const thresholds = getDurationThresholds(pianoState.tempo);
-      let duration = "8";
-      if (pianoState.toggleFixedDuration) {
-        duration = pianoState.quantize;
-      } else if (heldTime >= thresholds.w) duration = "w";
-      else if (heldTime >= thresholds["h."]) duration = "h.";
-      else if (heldTime >= thresholds.h) duration = "h";
-      else if (heldTime >= thresholds["q."]) duration = "q.";
-      else if (heldTime >= thresholds.q) duration = "q";
-      else if (heldTime >= thresholds["8."]) duration = "8.";
-
-      const noteInfo = notesByMidiKeyAware(actualMidi);
-      const noteNameForScore = noteInfo.name;
-      const clef = noteInfo.midi < 60 ? "bass" : "treble";
-
-      console.log(`Writing note: ${noteNameForScore}, duration: ${duration}, clef: ${clef}`);
-      stopKey(keyEl);
-      writeNote({
-        clef,
-        duration,
-        notes: [noteNameForScore],
-        chordName: noteNameForScore,
-      });
+    if (keyEl) {
+      batchNoteOff(keyEl);
     } else {
-      console.warn(`No valid key element found for MIDI ${actualMidi} or not currently playing`);
+      console.warn(`No key element found for MIDI ${actualMidi}`);
     }
   }
   
@@ -395,94 +363,6 @@ export function handleInitialKeyboard(e) {
 
     // You might want to add rest handling here if needed
   }
-}
-/**
- * Play a diatonic chord using the new getChordByDegree function
- * @param {number} degree - Scale degree (1-7)
- * @param {string} key - Key identifier for tracking
- * @param {boolean} writeToScore - Whether to write to score when released
- * @param {boolean} useBass - Whether to use bass voicing (shift key pressed)
- */
-export function playScaleChord(degree, key, writeToScore = true, useBass = false) {
-  // Get chord directly from our new function
-  const chord = getChordByDegree(degree);
-  if (!chord) {
-    console.warn(`No chord found for scale degree ${degree}`);
-    return;
-  }
-
-  // Choose voicing based on useBass parameter
-  const notesForPlayback = useBass ? chord.bass : chord.treble;
-  const clefForPlayback = useBass ? "bass" : "treble";
-
-  if (!notesForPlayback || notesForPlayback.length === 0) {
-    console.warn(`No ${useBass ? 'bass' : 'treble'} notes found for chord ${chord.displayName}`);
-    return;
-  }
-
-  // Play the chord
-  trigger(notesForPlayback, true);
-  // paintChordOnTheFly({ notes: notesForPlayback }); // Handled by trigger
-
-  // Store chord data for release handling
-  pianoState.activeDiatonicChords[key] = {
-    chord: chord,
-    clef: clefForPlayback,
-    displayName: chord.displayName,
-    notes: notesForPlayback,
-    startTime: performance.now(),
-    writeToScore: writeToScore,
-  };
-
-  console.log(`Playing diatonic chord degree ${degree}: ${chord.displayName} (${useBass ? 'bass' : 'treble'})`);
-}
-
-/**
- * Unified function to stop a diatonic chord and handle score writing.
- * @param {string|number} key - The unique identifier used when the chord was played.
- */
-export function stopScaleChord(key) {
-  const chordData = pianoState.activeDiatonicChords[key];
-  if (!chordData) return;
-
-  // Stop the audio
-  if (chordData.notes?.length) {
-    trigger(chordData.notes, false);
-  }
-
-  // Handle score writing if enabled
-  if (chordData.writeToScore) {
-    console.log("Writing chord to score:", chordData.displayName);
-    const heldTime = performance.now() - chordData.startTime;
-
-    const thresholds = getDurationThresholds(pianoState.tempo);
-    let duration = "8"; // Default to eighth note
-    if (pianoState.toggleFixedDuration) {
-      duration = pianoState.quantize;
-    } else if (heldTime >= thresholds.w) duration = "w";
-    else if (heldTime >= thresholds["h."]) duration = "h.";
-    else if (heldTime >= thresholds.h) duration = "h";
-    else if (heldTime >= thresholds["q."]) duration = "q.";
-    else if (heldTime >= thresholds.q) duration = "q";
-    else if (heldTime >= thresholds["8."]) duration = "8.";
-
-    writeNote({
-      clef: chordData.clef,
-      duration: duration,
-      notes: chordData.notes,
-      chordName: chordData.displayName,
-    });
-  }
-
-  // Handle visual repainting
-  if (
-    Object.keys(pianoState.activeDiatonicChords).length <= 1 &&
-    (pianoState.isMajorChordMode || pianoState.isMinorChordMode)
-  ) {
-    paintChord();
-  }
-
-  delete pianoState.activeDiatonicChords[key];
 }
 
 /**

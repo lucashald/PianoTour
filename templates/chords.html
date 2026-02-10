@@ -722,7 +722,12 @@
             // Score controls
             document.getElementById('renderBtn').addEventListener('click', renderScore);
             document.getElementById('addSampleBtn').addEventListener('click', addSampleNotes);
-            document.getElementById('clearBtn').addEventListener('click', clearScore);
+            document.getElementById('clearBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                clearScore();
+                e.target.blur();
+            });
             document.getElementById('addChordToScoreBtn').addEventListener('click', addCurrentChordToScore);
             
             // Settings change listeners
