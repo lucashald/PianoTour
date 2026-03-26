@@ -576,3 +576,60 @@ export function showExportSuccess(filename) {
 export function showExportError(error) {
   showToast(`❌ Export failed: ${error.message}`, { type: 'error', duration: 5000 });
 }
+
+// ===================================================================
+// Share Audio
+// ===================================================================
+
+const SHARE_API = "https://7vw7rxom9h.execute-api.us-east-1.amazonaws.com/default/pianotour-share";
+
+/**
+ * Renders the current score as WAV and uploads it to the cloud.
+ * Returns the share code on success.
+ */
+export async function shareScoreAsAudio(measures, bpm = 120) {
+  if (!measures || measures.length === 0) {
+    throw new Error("No measures to share");
+  }
+
+  // --- Render audio (reuses existing pipeline) ---
+  const secondsPerBeat = 60 / bpm;
+  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const totalBeats = measures.length * beatsPerMeasure;
+  const scoreDuration = totalBeats * secondsPerBeat;
+  const duration = scoreDuration + 1.0;
+
+  const offlineContext = new Tone.OfflineContext(2, duration, SAMPLE_RATE);
+  const { sampler, envelope, effects } = await setupOfflineAudioChain(offlineContext, measures, bpm);
+  const buffer = await offlineContext.render();
+  const wavBlob = bufferToWave(buffer, buffer.length);
+
+  // --- Get presigned upload URL ---
+  const filename = generateFilename();
+  const params = new URLSearchParams({
+    action: "get_upload_url",
+    name: filename,
+    content_type: "audio/wav",
+    file_size: String(wavBlob.size),
+    duration: String(Math.round(duration)),
+  });
+
+  const apiRes = await fetch(`${SHARE_API}?${params}`);
+  if (!apiRes.ok) {
+    const body = await apiRes.json().catch(() => ({}));
+    throw new Error(body.error || "Failed to get upload URL");
+  }
+  const { share_code, upload_url } = await apiRes.json();
+
+  // --- Upload WAV to S3 ---
+  const uploadRes = await fetch(upload_url, {
+    method: "PUT",
+    headers: { "Content-Type": "audio/wav" },
+    body: wavBlob,
+  });
+  if (!uploadRes.ok) {
+    throw new Error("Upload failed (" + uploadRes.status + ")");
+  }
+
+  return share_code;
+}

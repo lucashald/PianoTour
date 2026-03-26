@@ -199,6 +199,7 @@
         toggleIsMinorKey,
         updateUI,
         initSidebarToggle,
+        showToast,
       } from '{{ url_for("static", filename="js/ui/uiHelpers.js") }}';
       import { pianoState } from '{{ url_for("static", filename="js/core/appState.js") }}';
       import { initializePlayer } from '{{ url_for("static", filename="js/score/scorePlayback.js") }}';
@@ -219,6 +220,7 @@
       
     import { 
   exportScoreAsAudio, 
+  shareScoreAsAudio,
   showExportProgress, 
   hideExportProgress, 
   showExportSuccess, 
@@ -246,6 +248,23 @@ document.getElementById('export-audio-btn')?.addEventListener('click', async () 
 document.getElementById('export-midi-btn')?.addEventListener('click', (e) => {
   e.preventDefault();
   exportMidi();
+});
+
+// Share Audio button handler
+document.getElementById('share-audio-btn')?.addEventListener('click', async () => {
+  const measures = getMeasures();
+  const bpm = pianoState.tempo || 120;
+
+  const progress = showExportProgress('Rendering & uploading...');
+
+  try {
+    const shareCode = await shareScoreAsAudio(measures, bpm);
+    hideExportProgress();
+    showToast(`Share code: ${shareCode}`, { type: 'success', duration: 8000 });
+  } catch (error) {
+    hideExportProgress();
+    showExportError(error);
+  }
 });
 
 // Export menu toggle handler
