@@ -36,91 +36,98 @@ const SAMPLE_RATE = 44100; // CD quality
  */
 function buildTieMap(measures) {
   const tieMap = new Map();
-  
+
   // Build note details map first
   const noteDetails = new Map();
   let currentTime = 0;
-  
+
   measures.forEach((measure, measureIndex) => {
     let trebleTime = currentTime;
     let bassTime = currentTime;
-    
-    measure.forEach(note => {
-      const noteTime = note.clef === 'treble' ? trebleTime : bassTime;
+
+    measure.forEach((note) => {
+      const noteTime = note.clef === "treble" ? trebleTime : bassTime;
       const noteDuration = DURATION_TO_BEATS[note.duration] || 1;
-      
+
       noteDetails.set(note.id, {
         time: noteTime,
         duration: noteDuration,
         measure: measureIndex,
         clef: note.clef,
-        name: note.name
+        name: note.name,
       });
-      
-      if (note.clef === 'treble') {
+
+      if (note.clef === "treble") {
         trebleTime += noteDuration;
       } else {
         bassTime += noteDuration;
       }
     });
-    
+
     const beatsPerMeasure = pianoState.timeSignature.numerator;
     currentTime += beatsPerMeasure;
   });
-  
+
   // Process ties
-  measures.forEach(measure => {
-    measure.forEach(note => {
-      if (note.tie?.type === 'start' && note.tie?.endNoteId) {
+  measures.forEach((measure) => {
+    measure.forEach((note) => {
+      if (note.tie?.type === "start" && note.tie?.endNoteId) {
         const startDetails = noteDetails.get(note.id);
         const endDetails = noteDetails.get(note.tie.endNoteId);
-        
+
         if (startDetails && endDetails) {
           let totalDuration = startDetails.duration + endDetails.duration;
           let currentEndId = note.tie.endNoteId;
           let currentEndNote = measures
             .flat()
-            .find(n => n.id === currentEndId);
-          
+            .find((n) => n.id === currentEndId);
+
           // Follow tie chain
-          while (currentEndNote?.tie?.type === 'continue' && currentEndNote?.tie?.endNoteId) {
-            const nextEndDetails = noteDetails.get(currentEndNote.tie.endNoteId);
+          while (
+            currentEndNote?.tie?.type === "continue" &&
+            currentEndNote?.tie?.endNoteId
+          ) {
+            const nextEndDetails = noteDetails.get(
+              currentEndNote.tie.endNoteId,
+            );
             if (nextEndDetails) {
               totalDuration += nextEndDetails.duration;
               currentEndId = currentEndNote.tie.endNoteId;
-              currentEndNote = measures.flat().find(n => n.id === currentEndId);
+              currentEndNote = measures
+                .flat()
+                .find((n) => n.id === currentEndId);
             } else {
               break;
             }
           }
-          
+
           tieMap.set(note.id, {
             isStart: true,
             totalDuration: totalDuration,
-            endNoteId: currentEndId
+            endNoteId: currentEndId,
           });
-          
+
           // Mark intermediate and end notes
           let markId = note.tie.endNoteId;
-          let markNote = measures.flat().find(n => n.id === markId);
-          
+          let markNote = measures.flat().find((n) => n.id === markId);
+
           while (markNote) {
             const isEnd = markNote.id === currentEndId;
             tieMap.set(markNote.id, {
               isEnd: true,
               isChainStart: false,
-              startNoteId: note.id
+              startNoteId: note.id,
             });
-            
+
             if (isEnd || !markNote.tie?.endNoteId) break;
             markId = markNote.tie.endNoteId;
-            markNote = measures.flat().find(n => n.id === markId);
+            markNote = measures.flat().find((n) => n.id === markId);
           }
         }
       }
     });
   });
-  
+
   return tieMap;
 }
 
@@ -144,10 +151,10 @@ export async function exportScoreAsAudio(measures, bpm = 120, filename = null) {
   const beatsPerMeasure = pianoState.timeSignature.numerator;
   const totalBeats = measures.length * beatsPerMeasure;
   const scoreDuration = totalBeats * secondsPerBeat;
-  
+
   // Add small padding to ensure last notes are fully rendered
   const duration = scoreDuration + 1.0; // 1 second padding for safety
-  
+
   console.log(`Total duration: ${duration.toFixed(2)}s`);
 
   try {
@@ -155,11 +162,15 @@ export async function exportScoreAsAudio(measures, bpm = 120, filename = null) {
     const offlineContext = new Tone.OfflineContext(
       2, // stereo
       duration,
-      SAMPLE_RATE
+      SAMPLE_RATE,
     );
 
     // Set up audio chain in offline context
-    const { sampler, envelope, effects } = await setupOfflineAudioChain(offlineContext, measures, bpm);
+    const { sampler, envelope, effects } = await setupOfflineAudioChain(
+      offlineContext,
+      measures,
+      bpm,
+    );
 
     // Render audio
     console.log("Rendering audio...");
@@ -196,7 +207,10 @@ async function setupOfflineAudioChain(offlineContext, measures, bpm) {
   const envelope = createOfflineEnvelope(offlineContext, envelopeSettings);
 
   // Create effects
-  const effects = await createOfflineEffects(offlineContext, envelopeSettings.effects);
+  const effects = await createOfflineEffects(
+    offlineContext,
+    envelopeSettings.effects,
+  );
 
   // Connect: sampler -> envelope -> effects -> destination
   sampler.connect(envelope);
@@ -297,10 +311,16 @@ async function createOfflineEffects(offlineContext, effectsConfig) {
  * This is the EXACT scheduling logic from scorePlayback.js
  * Modified for offline context (no Transport wrapper needed)
  */
-function scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelope) {
+function scheduleNotesForOffline(
+  offlineContext,
+  measures,
+  bpm,
+  sampler,
+  envelope,
+) {
   const secondsPerBeat = 60 / bpm;
   const beatsPerMeasure = pianoState.timeSignature.numerator;
-  
+
   // Build tie map (EXACT same as scorePlayback.js)
   const tieMap = buildTieMap(measures);
 
@@ -327,7 +347,7 @@ function scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelop
         secondsPerBeat,
         sampler,
         envelope,
-        tieInfo
+        tieInfo,
       );
     });
 
@@ -343,13 +363,14 @@ function scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelop
         secondsPerBeat,
         sampler,
         envelope,
-        tieInfo
+        tieInfo,
       );
     });
 
     // Calculate max end time
     const measureEndTime =
-      currentTransportTime + Math.max(trebleMeasureOffset, bassMeasureOffset) * secondsPerBeat;
+      currentTransportTime +
+      Math.max(trebleMeasureOffset, bassMeasureOffset) * secondsPerBeat;
     if (measureEndTime > maxEndTime) {
       maxEndTime = measureEndTime;
     }
@@ -357,7 +378,9 @@ function scheduleNotesForOffline(offlineContext, measures, bpm, sampler, envelop
     currentTransportTime += beatsPerMeasure * secondsPerBeat;
   });
 
-  console.log(`Scheduled ${measures.flat().filter(n => !n.isRest).length} notes`);
+  console.log(
+    `Scheduled ${measures.flat().filter((n) => !n.isRest).length} notes`,
+  );
 }
 
 /**
@@ -373,7 +396,7 @@ function scheduleNoteForOffline(
   secondsPerBeat,
   sampler,
   envelope,
-  tieInfo
+  tieInfo,
 ) {
   const beatDuration = DURATION_TO_BEATS[note.duration];
   if (!beatDuration) {
@@ -382,7 +405,7 @@ function scheduleNoteForOffline(
   }
 
   const noteDurationInSeconds = beatDuration * secondsPerBeat;
-  const noteStartTime = currentTransportTime + (clefOffset * secondsPerBeat);
+  const noteStartTime = currentTransportTime + clefOffset * secondsPerBeat;
 
   if (!note.isRest) {
     const notesToPlay = note.name
@@ -391,18 +414,20 @@ function scheduleNoteForOffline(
       .filter(Boolean);
 
     // Get the performed duration from the note (defaults to 0.85 if not set)
-    const performedDuration = note.performedDuration || pianoState.staccatoTime || 0.85;
-    
+    const performedDuration =
+      note.performedDuration || pianoState.staccatoTime || 0.85;
+
     // Get the velocity from the note (defaults to 100 if not set)
     const velocity = note.velocity || pianoState.velocity || 100;
 
     // For ties: only trigger audio on the first note, sustain for full tied duration
-    const shouldTriggerAudio = !tieInfo || !tieInfo.isEnd || tieInfo.isChainStart;
-    
+    const shouldTriggerAudio =
+      !tieInfo || !tieInfo.isEnd || tieInfo.isChainStart;
+
     if (shouldTriggerAudio) {
       // Calculate audio duration based on performed duration
       let audioDurationInSeconds;
-      
+
       if (tieInfo && tieInfo.totalDuration) {
         // For tied notes, sustain for the full tied duration
         audioDurationInSeconds = tieInfo.totalDuration * secondsPerBeat;
@@ -413,7 +438,12 @@ function scheduleNoteForOffline(
 
       // Direct scheduling for offline context
       notesToPlay.forEach((noteName) => {
-        sampler.triggerAttackRelease(noteName, audioDurationInSeconds, noteStartTime, velocity / 127);
+        sampler.triggerAttackRelease(
+          noteName,
+          audioDurationInSeconds,
+          noteStartTime,
+          velocity / 127,
+        );
       });
 
       envelope.triggerAttack(noteStartTime);
@@ -438,7 +468,7 @@ function bufferToWave(audioBuffer, length) {
   const blockAlign = numberOfChannels * bytesPerSample;
 
   const data = new DataView(
-    new ArrayBuffer(44 + length * numberOfChannels * bytesPerSample)
+    new ArrayBuffer(44 + length * numberOfChannels * bytesPerSample),
   );
 
   // Write WAV header
@@ -460,8 +490,15 @@ function bufferToWave(audioBuffer, length) {
   let offset = 44;
   for (let i = 0; i < length; i++) {
     for (let channel = 0; channel < numberOfChannels; channel++) {
-      const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]));
-      data.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      const sample = Math.max(
+        -1,
+        Math.min(1, audioBuffer.getChannelData(channel)[i]),
+      );
+      data.setInt16(
+        offset,
+        sample < 0 ? sample * 0x8000 : sample * 0x7fff,
+        true,
+      );
       offset += 2;
     }
   }
@@ -570,18 +607,22 @@ export function hideExportProgress() {
 }
 
 export function showExportSuccess(filename) {
-  showToast(`Exported: ${filename}`, { type: 'success', duration: 3000 });
+  showToast(`Exported: ${filename}`, { type: "success", duration: 3000 });
 }
 
 export function showExportError(error) {
-  showToast(`❌ Export failed: ${error.message}`, { type: 'error', duration: 5000 });
+  showToast(`❌ Export failed: ${error.message}`, {
+    type: "error",
+    duration: 5000,
+  });
 }
 
 // ===================================================================
 // Share Audio
 // ===================================================================
 
-const SHARE_API = "https://7vw7rxom9h.execute-api.us-east-1.amazonaws.com/default/pianotour-share";
+const SHARE_API =
+  "https://7vw7rxom9h.execute-api.us-east-1.amazonaws.com/default/pianotour-share";
 
 /**
  * Renders the current score as WAV and uploads it to the cloud.
@@ -600,7 +641,11 @@ export async function shareScoreAsAudio(measures, bpm = 120) {
   const duration = scoreDuration + 1.0;
 
   const offlineContext = new Tone.OfflineContext(2, duration, SAMPLE_RATE);
-  const { sampler, envelope, effects } = await setupOfflineAudioChain(offlineContext, measures, bpm);
+  const { sampler, envelope, effects } = await setupOfflineAudioChain(
+    offlineContext,
+    measures,
+    bpm,
+  );
   const buffer = await offlineContext.render();
   const wavBlob = bufferToWave(buffer, buffer.length);
 

@@ -9,109 +9,480 @@
   <button id="stop-score-btn" class="btn btn--danger playback-controls__button">
     ⏹ Stop
   </button>
-  
-{% if request.path == '/' %}
-  <button id="playalong-btn" class="btn btn--primary playback-controls__button" title="Play Along Mode">
+
+  {% if request.path == '/' %}
+  <button
+    id="playalong-btn"
+    class="btn btn--primary playback-controls__button"
+    title="Play Along Mode"
+  >
     Play Along
   </button>
-{% endif %}
+  {% endif %}
 
   <div class="dropdown-menu-container">
-    <button id="playback-menu-btn" class="btn btn--info playback-controls__button">
+    <button
+      id="playback-menu-btn"
+      class="btn btn--info playback-controls__button"
+    >
       ☰ Menu
     </button>
     <div id="playback-menu-dropdown" class="dropdown-content hidden">
       <div class="dropdown-submenu">
         <button id="key-menu-btn" class="dropdown-item has-submenu">
-          <img src="/static/images/svg/1note.svg" class="menu-icon" alt="Key Signature"> Key Signature ▸
+          <img
+            src="/static/images/svg/1note.svg"
+            class="menu-icon"
+            alt="Key Signature"
+          />
+          Key Signature ▸
         </button>
         <div id="key-submenu" class="submenu-content hidden">
-          <div id="key-mode-toggle-btn" class="dropdown-item" style="justify-content: center; border-bottom: 1px solid var(--color-border);"><span id="key-mode-toggle-text">Major</span></div>
+          <div
+            id="key-mode-toggle-btn"
+            class="dropdown-item"
+            style="
+              justify-content: center;
+              border-bottom: 1px solid var(--color-border);
+            "
+          >
+            <span id="key-mode-toggle-text">Major</span>
+          </div>
           <div class="submenu-section">
             <div class="submenu-label">Sharp Keys</div>
-            <button class="dropdown-item key-option" data-key="C" data-major="C Major" data-minor="A Minor"><img src="/static/images/generatedsvg/key-C.svg" class="menu-icon key-sig-icon" alt="C"> <span class="key-name">C Major</span></button>
-            <button class="dropdown-item key-option" data-key="G" data-major="G Major" data-minor="E Minor"><img src="/static/images/generatedsvg/key-G.svg" class="menu-icon key-sig-icon" alt="G"> <span class="key-name">G Major</span></button>
-            <button class="dropdown-item key-option" data-key="D" data-major="D Major" data-minor="B Minor"><img src="/static/images/generatedsvg/key-D.svg" class="menu-icon key-sig-icon" alt="D"> <span class="key-name">D Major</span></button>
-            <button class="dropdown-item key-option" data-key="A" data-major="A Major" data-minor="F# Minor"><img src="/static/images/generatedsvg/key-A.svg" class="menu-icon key-sig-icon" alt="A"> <span class="key-name">A Major</span></button>
-            <button class="dropdown-item key-option" data-key="E" data-major="E Major" data-minor="C# Minor"><img src="/static/images/generatedsvg/key-E.svg" class="menu-icon key-sig-icon" alt="E"> <span class="key-name">E Major</span></button>
-            <button class="dropdown-item key-option" data-key="B" data-major="B Major" data-minor="G# Minor"><img src="/static/images/generatedsvg/key-B.svg" class="menu-icon key-sig-icon" alt="B"> <span class="key-name">B Major</span></button>
-            <button class="dropdown-item key-option" data-key="F#" data-major="F# Major" data-minor="D# Minor"><img src="/static/images/generatedsvg/key-Fsharp.svg" class="menu-icon key-sig-icon" alt="F#"> <span class="key-name">F# Major</span></button>
-            <button class="dropdown-item key-option" data-key="C#" data-major="C# Major" data-minor="A# Minor"><img src="/static/images/generatedsvg/key-Csharp.svg" class="menu-icon key-sig-icon" alt="C#"> <span class="key-name">C# Major</span></button>
+            <button
+              class="dropdown-item key-option"
+              data-key="C"
+              data-major="C Major"
+              data-minor="A Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-C.svg"
+                class="menu-icon key-sig-icon"
+                alt="C"
+              />
+              <span class="key-name">C Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="G"
+              data-major="G Major"
+              data-minor="E Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-G.svg"
+                class="menu-icon key-sig-icon"
+                alt="G"
+              />
+              <span class="key-name">G Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="D"
+              data-major="D Major"
+              data-minor="B Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-D.svg"
+                class="menu-icon key-sig-icon"
+                alt="D"
+              />
+              <span class="key-name">D Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="A"
+              data-major="A Major"
+              data-minor="F# Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-A.svg"
+                class="menu-icon key-sig-icon"
+                alt="A"
+              />
+              <span class="key-name">A Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="E"
+              data-major="E Major"
+              data-minor="C# Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-E.svg"
+                class="menu-icon key-sig-icon"
+                alt="E"
+              />
+              <span class="key-name">E Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="B"
+              data-major="B Major"
+              data-minor="G# Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-B.svg"
+                class="menu-icon key-sig-icon"
+                alt="B"
+              />
+              <span class="key-name">B Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="F#"
+              data-major="F# Major"
+              data-minor="D# Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-Fsharp.svg"
+                class="menu-icon key-sig-icon"
+                alt="F#"
+              />
+              <span class="key-name">F# Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="C#"
+              data-major="C# Major"
+              data-minor="A# Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-Csharp.svg"
+                class="menu-icon key-sig-icon"
+                alt="C#"
+              />
+              <span class="key-name">C# Major</span>
+            </button>
           </div>
           <div class="submenu-section">
             <div class="submenu-label">Flat Keys</div>
-            <button class="dropdown-item key-option" data-key="F" data-major="F Major" data-minor="D Minor"><img src="/static/images/generatedsvg/key-F.svg" class="menu-icon key-sig-icon" alt="F"> <span class="key-name">F Major</span></button>
-            <button class="dropdown-item key-option" data-key="Bb" data-major="B♭ Major" data-minor="G Minor"><img src="/static/images/generatedsvg/key-Bflat.svg" class="menu-icon key-sig-icon" alt="Bb"> <span class="key-name">B♭ Major</span></button>
-            <button class="dropdown-item key-option" data-key="Eb" data-major="E♭ Major" data-minor="C Minor"><img src="/static/images/generatedsvg/key-Eflat.svg" class="menu-icon key-sig-icon" alt="Eb"> <span class="key-name">E♭ Major</span></button>
-            <button class="dropdown-item key-option" data-key="Ab" data-major="A♭ Major" data-minor="F Minor"><img src="/static/images/generatedsvg/key-Aflat.svg" class="menu-icon key-sig-icon" alt="Ab"> <span class="key-name">A♭ Major</span></button>
-            <button class="dropdown-item key-option" data-key="Db" data-major="D♭ Major" data-minor="B♭ Minor"><img src="/static/images/generatedsvg/key-Dflat.svg" class="menu-icon key-sig-icon" alt="Db"> <span class="key-name">D♭ Major</span></button>
-            <button class="dropdown-item key-option" data-key="Gb" data-major="G♭ Major" data-minor="E♭ Minor"><img src="/static/images/generatedsvg/key-Gflat.svg" class="menu-icon key-sig-icon" alt="Gb"> <span class="key-name">G♭ Major</span></button>
-            <button class="dropdown-item key-option" data-key="Cb" data-major="C♭ Major" data-minor="A♭ Minor"><img src="/static/images/generatedsvg/key-Cflat.svg" class="menu-icon key-sig-icon" alt="Cb"> <span class="key-name">C♭ Major</span></button>
+            <button
+              class="dropdown-item key-option"
+              data-key="F"
+              data-major="F Major"
+              data-minor="D Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-F.svg"
+                class="menu-icon key-sig-icon"
+                alt="F"
+              />
+              <span class="key-name">F Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="Bb"
+              data-major="B♭ Major"
+              data-minor="G Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-Bflat.svg"
+                class="menu-icon key-sig-icon"
+                alt="Bb"
+              />
+              <span class="key-name">B♭ Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="Eb"
+              data-major="E♭ Major"
+              data-minor="C Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-Eflat.svg"
+                class="menu-icon key-sig-icon"
+                alt="Eb"
+              />
+              <span class="key-name">E♭ Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="Ab"
+              data-major="A♭ Major"
+              data-minor="F Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-Aflat.svg"
+                class="menu-icon key-sig-icon"
+                alt="Ab"
+              />
+              <span class="key-name">A♭ Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="Db"
+              data-major="D♭ Major"
+              data-minor="B♭ Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-Dflat.svg"
+                class="menu-icon key-sig-icon"
+                alt="Db"
+              />
+              <span class="key-name">D♭ Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="Gb"
+              data-major="G♭ Major"
+              data-minor="E♭ Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-Gflat.svg"
+                class="menu-icon key-sig-icon"
+                alt="Gb"
+              />
+              <span class="key-name">G♭ Major</span>
+            </button>
+            <button
+              class="dropdown-item key-option"
+              data-key="Cb"
+              data-major="C♭ Major"
+              data-minor="A♭ Minor"
+            >
+              <img
+                src="/static/images/generatedsvg/key-Cflat.svg"
+                class="menu-icon key-sig-icon"
+                alt="Cb"
+              />
+              <span class="key-name">C♭ Major</span>
+            </button>
           </div>
         </div>
       </div>
       <div class="dropdown-submenu">
         <button id="instrument-menu-btn" class="dropdown-item has-submenu">
-          <img src="/static/images/svg/1djembe.svg" class="menu-icon" alt="Instrument"> Instrument ▸
+          <img
+            src="/static/images/svg/1djembe.svg"
+            class="menu-icon"
+            alt="Instrument"
+          />
+          Instrument ▸
         </button>
         <div id="instrument-submenu" class="submenu-content hidden">
-          <button class="dropdown-item instrument-option" data-instrument="piano"><img src="/static/images/svg/1piano.svg" class="menu-icon" alt="Piano"> Piano</button>
-          <button class="dropdown-item instrument-option" data-instrument="guitar"><img src="/static/images/svg/3acousticguitar.svg" class="menu-icon" alt="Guitar"> Guitar</button>
-          <button class="dropdown-item instrument-option" data-instrument="electric_guitar"><img src="/static/images/svg/2electricguitar.svg" class="menu-icon" alt="Electric Guitar"> Electric Guitar</button>
-          <button class="dropdown-item instrument-option" data-instrument="bass"><img src="/static/images/svg/2bass.svg" class="menu-icon" alt="Bass"> Bass</button>
-          <button class="dropdown-item instrument-option" data-instrument="cello"><img src="/static/images/svg/1cello.svg" class="menu-icon" alt="Cello"> Cello</button>
-          <button class="dropdown-item instrument-option" data-instrument="violin"><img src="/static/images/svg/1violin.svg" class="menu-icon" alt="Violin"> Violin</button>
-          <button class="dropdown-item instrument-option" data-instrument="harp"><img src="/static/images/svg/1harp.svg" class="menu-icon" alt="Harp"> Harp</button>
-          <button class="dropdown-item instrument-option" data-instrument="sax"><img src="/static/images/svg/1sax.svg" class="menu-icon" alt="Saxophone"> Saxophone</button>
-          <button class="dropdown-item instrument-option" data-instrument="clarinet"><img src="/static/images/svg/1clarinet.svg" class="menu-icon" alt="Clarinet"> Clarinet</button>
-          <button class="dropdown-item instrument-option" data-instrument="french_horn"><img src="/static/images/svg/1frenchhorn.svg" class="menu-icon" alt="French Horn"> French Horn</button>
+          <button
+            class="dropdown-item instrument-option"
+            data-instrument="piano"
+          >
+            <img
+              src="/static/images/svg/1piano.svg"
+              class="menu-icon"
+              alt="Piano"
+            />
+            Piano
+          </button>
+          <button
+            class="dropdown-item instrument-option"
+            data-instrument="guitar"
+          >
+            <img
+              src="/static/images/svg/3acousticguitar.svg"
+              class="menu-icon"
+              alt="Guitar"
+            />
+            Guitar
+          </button>
+          <button
+            class="dropdown-item instrument-option"
+            data-instrument="electric_guitar"
+          >
+            <img
+              src="/static/images/svg/2electricguitar.svg"
+              class="menu-icon"
+              alt="Electric Guitar"
+            />
+            Electric Guitar
+          </button>
+          <button
+            class="dropdown-item instrument-option"
+            data-instrument="bass"
+          >
+            <img
+              src="/static/images/svg/2bass.svg"
+              class="menu-icon"
+              alt="Bass"
+            />
+            Bass
+          </button>
+          <button
+            class="dropdown-item instrument-option"
+            data-instrument="cello"
+          >
+            <img
+              src="/static/images/svg/1cello.svg"
+              class="menu-icon"
+              alt="Cello"
+            />
+            Cello
+          </button>
+          <button
+            class="dropdown-item instrument-option"
+            data-instrument="violin"
+          >
+            <img
+              src="/static/images/svg/1violin.svg"
+              class="menu-icon"
+              alt="Violin"
+            />
+            Violin
+          </button>
+          <button
+            class="dropdown-item instrument-option"
+            data-instrument="harp"
+          >
+            <img
+              src="/static/images/svg/1harp.svg"
+              class="menu-icon"
+              alt="Harp"
+            />
+            Harp
+          </button>
+          <button class="dropdown-item instrument-option" data-instrument="sax">
+            <img
+              src="/static/images/svg/1sax.svg"
+              class="menu-icon"
+              alt="Saxophone"
+            />
+            Saxophone
+          </button>
+          <button
+            class="dropdown-item instrument-option"
+            data-instrument="clarinet"
+          >
+            <img
+              src="/static/images/svg/1clarinet.svg"
+              class="menu-icon"
+              alt="Clarinet"
+            />
+            Clarinet
+          </button>
+          <button
+            class="dropdown-item instrument-option"
+            data-instrument="french_horn"
+          >
+            <img
+              src="/static/images/svg/1frenchhorn.svg"
+              class="menu-icon"
+              alt="French Horn"
+            />
+            French Horn
+          </button>
           <div class="dropdown-submenu">
             <button id="synth-menu-btn" class="dropdown-item has-submenu">
-              <img src="/static/images/svg/1synth.svg" class="menu-icon" alt="Synth"> Synth ▸
+              <img
+                src="/static/images/svg/1synth.svg"
+                class="menu-icon"
+                alt="Synth"
+              />
+              Synth ▸
             </button>
             <div id="synth-submenu" class="submenu-content hidden">
-              <button class="dropdown-item instrument-option" data-instrument="ambientSynth">Ambient Synth</button>
-              <button class="dropdown-item instrument-option" data-instrument="celloSynth">Cello Synth</button>
-              <button class="dropdown-item instrument-option" data-instrument="warmSynth">Warm Synth</button>
+              <button
+                class="dropdown-item instrument-option"
+                data-instrument="ambientSynth"
+              >
+                Ambient Synth
+              </button>
+              <button
+                class="dropdown-item instrument-option"
+                data-instrument="celloSynth"
+              >
+                Cello Synth
+              </button>
+              <button
+                class="dropdown-item instrument-option"
+                data-instrument="warmSynth"
+              >
+                Warm Synth
+              </button>
             </div>
           </div>
         </div>
       </div>
       <button id="connect-midi-btn" class="dropdown-item">
-        <img src="/static/images/svg/1connect.svg" class="menu-icon" alt="Connect MIDI"> Connect MIDI
+        <img
+          src="/static/images/svg/1connect.svg"
+          class="menu-icon"
+          alt="Connect MIDI"
+        />
+        Connect MIDI
       </button>
       <div class="dropdown-submenu">
         <button id="export-menu-btn" class="dropdown-item has-submenu">
-          <img src="/static/images/svg/1speaker.svg" class="menu-icon" alt="Export"> Export ▸
+          <img
+            src="/static/images/svg/1speaker.svg"
+            class="menu-icon"
+            alt="Export"
+          />
+          Export ▸
         </button>
         <div id="export-submenu" class="submenu-content hidden">
-          <button id="export-audio-btn" class="dropdown-item"><img src="/static/images/svg/1sound.svg" class="menu-icon" alt="Export Audio"> Export Audio</button>
-          <button id="export-midi-btn" class="dropdown-item"><img src="/static/images/svg/1mixer.svg" class="menu-icon" alt="Export MIDI"> Export MIDI</button>
-          <button id="share-audio-btn" class="dropdown-item"><img src="/static/images/svg/1connect.svg" class="menu-icon" alt="Share Audio"> Share Audio</button>
+          <button id="export-audio-btn" class="dropdown-item">
+            <img
+              src="/static/images/svg/1sound.svg"
+              class="menu-icon"
+              alt="Export Audio"
+            />
+            Export Audio
+          </button>
+          <button id="export-midi-btn" class="dropdown-item">
+            <img
+              src="/static/images/svg/1mixer.svg"
+              class="menu-icon"
+              alt="Export MIDI"
+            />
+            Export MIDI
+          </button>
+          <button id="share-audio-btn" class="dropdown-item">
+            <img
+              src="/static/images/svg/1connect.svg"
+              class="menu-icon"
+              alt="Share Audio"
+            />
+            Share Audio
+          </button>
         </div>
       </div>
       <a href="/print" target="_blank" class="dropdown-item">
-        <img src="/static/images/svg/1print.svg" class="menu-icon" alt="Print"> Print
+        <img
+          src="/static/images/svg/1print.svg"
+          class="menu-icon"
+          alt="Print"
+        />
+        Print
       </a>
       <button id="load-score-btn" class="dropdown-item">
-        <img src="/static/images/svg/2folder.svg" class="menu-icon" alt="Load"> Load
+        <img
+          src="/static/images/svg/2folder.svg"
+          class="menu-icon"
+          alt="Load"
+        />
+        Load
       </button>
       <button id="save-score-btn" class="dropdown-item">
-        <img src="/static/images/svg/1save.svg" class="menu-icon" alt="Save"> Save
+        <img src="/static/images/svg/1save.svg" class="menu-icon" alt="Save" />
+        Save
       </button>
       <button id="settings-btn-menu" class="dropdown-item">
-        <svg class="menu-icon" viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" fill="currentColor"/></svg> Settings
+        <svg class="menu-icon" viewBox="0 0 24 24">
+          <path
+            d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"
+            fill="currentColor"
+          />
+        </svg>
+        Settings
       </button>
     </div>
   </div>
-  
+
   <input
     type="file"
     id="load-file"
     style="display: none"
     accept=".json, .mid, .midi"
   />
-<!--
+  <!--
 <button id="show-side-panel-btn" class="btn btn--info playback-controls__button">
     Show Side Panel
 </button>-->

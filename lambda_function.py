@@ -13,6 +13,7 @@ import os
 import secrets
 import string
 from datetime import datetime
+from decimal import Decimal
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -81,7 +82,7 @@ def lambda_handler(event, context):
         if file_size and file_size != "0":
             item["file_size"] = int(file_size)
         if duration and duration != "0":
-            item["duration_seconds"] = round(float(duration), 2)
+            item["duration_seconds"] = Decimal(str(round(float(duration), 2)))
 
         table.put_item(Item=item)
 

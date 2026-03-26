@@ -1,11 +1,10 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="{{ meta_description }}">
-    <meta name="title" content="{{ meta_title }}">
+    <meta name="description" content="{{ meta_description }}" />
+    <meta name="title" content="{{ meta_title }}" />
     <title>{% block title %}Interactive Piano Studio{% endblock %}</title>
     <link
       rel="stylesheet"
@@ -23,16 +22,19 @@
     <script src="https://cdn.jsdelivr.net/npm/tone@14.8.39/build/Tone.js"></script>
     {% block head %}{% endblock %}
     <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-1035610756">
-</script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=AW-1035610756"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
 
-  gtag('config', 'AW-1035610756');
-</script>
-
+      gtag("config", "AW-1035610756");
+    </script>
   </head>
   <body id="page-instrument">
     <audio id="unlock-audio" preload="auto" style="display: none">
@@ -46,60 +48,81 @@
       {% if show_side_panel %}
       <!-- Sidebar backdrop overlay -->
       <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-      
+
       <!-- Sidebar drawer -->
       <aside class="piano-app__side-panel" id="sidePanel">
-        <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close sidebar">×</button>
+        <button
+          class="sidebar-close-btn"
+          id="sidebarCloseBtn"
+          aria-label="Close sidebar"
+        >
+          ×
+        </button>
         {% block editor %}{% endblock %} {% block side %}{% endblock %}
       </aside>
       {% endif %}
 
       <main class="piano-app__content-area">
-
         <header class="piano-app__header">
           {% if show_side_panel %}
-          <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Open editor panel">
-            <svg class="sidebar-toggle-icon" viewBox="0 0 25.904 25.904" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13.022,22H3.012c-0.551,0-1-0.449-1-1V4h20v8.435c0.414-0.203,0.867-0.322,1.343-0.322 c0.224,0,0.443,0.028,0.657,0.075V3c0-1.657-1.344-3-3-3h-18c-1.656,0-3,1.343-3,3v18c0,1.656,1.344,3,3,3h9.425L13.022,22z"></path>
+          <button
+            class="sidebar-toggle-btn"
+            id="sidebarToggleBtn"
+            aria-label="Open editor panel"
+          >
+            <svg
+              class="sidebar-toggle-icon"
+              viewBox="0 0 25.904 25.904"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M13.022,22H3.012c-0.551,0-1-0.449-1-1V4h20v8.435c0.414-0.203,0.867-0.322,1.343-0.322 c0.224,0,0.443,0.028,0.657,0.075V3c0-1.657-1.344-3-3-3h-18c-1.656,0-3,1.343-3,3v18c0,1.656,1.344,3,3,3h9.425L13.022,22z"
+              ></path>
               <!-- Quarter note -->
-              <ellipse cx="8" cy="16" rx="3" ry="2.2" transform="rotate(-20 8 16)"></ellipse>
+              <ellipse
+                cx="8"
+                cy="16"
+                rx="3"
+                ry="2.2"
+                transform="rotate(-20 8 16)"
+              ></ellipse>
               <rect x="10.2" y="6" width="1.2" height="9.5"></rect>
-              <path d="M25.576,15.934l-1.517-1.52c-0.418-0.421-1.094-0.424-1.507-0.009l-1.22,1.228l3.03,3.043 l1.221-1.229C25.998,17.032,25.995,16.354,25.576,15.934z"></path>
-              <path d="M15.357,21.502c-0.067,0.055-0.124,0.123-0.15,0.213L14.15,25.33 c-0.047,0.157-0.003,0.327,0.112,0.443c0.086,0.085,0.2,0.131,0.317,0.131c0.042,0,0.085-0.006,0.126-0.019l3.602-1.062 c0.084-0.024,0.149-0.076,0.204-0.138l4.939-4.915l-3.163-3.175L15.357,21.502z M15.836,24.618l-0.422-0.425l0.599-2.047 l1.532,0.316l0.303,1.562L15.836,24.618z"></path>
+              <path
+                d="M25.576,15.934l-1.517-1.52c-0.418-0.421-1.094-0.424-1.507-0.009l-1.22,1.228l3.03,3.043 l1.221-1.229C25.998,17.032,25.995,16.354,25.576,15.934z"
+              ></path>
+              <path
+                d="M15.357,21.502c-0.067,0.055-0.124,0.123-0.15,0.213L14.15,25.33 c-0.047,0.157-0.003,0.327,0.112,0.443c0.086,0.085,0.2,0.131,0.317,0.131c0.042,0,0.085-0.006,0.126-0.019l3.602-1.062 c0.084-0.024,0.149-0.076,0.204-0.138l4.939-4.915l-3.163-3.175L15.357,21.502z M15.836,24.618l-0.422-0.425l0.599-2.047 l1.532,0.316l0.303,1.562L15.836,24.618z"
+              ></path>
             </svg>
           </button>
+          {% endif %} {% if request.path != '/' %}
+          <a href="/">
+            <h1 class="piano-app__header-title">Piano Tour</h1>
+          </a>
+          {% else %}
+          <h1 class="piano-app__header-title">Piano Tour</h1>
           {% endif %}
-			{% if request.path != '/' %}
-				<a href="/">
-				<h1 class="piano-app__header-title">Piano Tour</h1>
-				</a>
-			{% else %}
-				<h1 class="piano-app__header-title">Piano Tour</h1>
-			{% endif %}
         </header>
 
-        {% block player %} {% include 'partials/_menu.html' %} {% endblock %}
-        {% block volume %} {% include 'partials/_volumeControl.html' %} {% endblock %}
+        {% block player %} {% include 'partials/_menu.html' %} {% endblock %} {%
+        block volume %} {% include 'partials/_volumeControl.html' %} {% endblock
+        %}
         <div class="hidden" id="audio-settings">
-        {% block settings %} {% include 'partials/_settings.html' %} {% endblock %}
+          {% block settings %} {% include 'partials/_settings.html' %} {%
+          endblock %}
         </div>
-        {% block top %}{% endblock %}
-        
-        {% include
-          'partials/_transpose.html' %}
+        {% block top %}{% endblock %} {% include 'partials/_transpose.html' %}
         <div class="piano-app__now-playing" id="nowPlayingDisplay"></div>
-          {% block score %} {% if not hide_score %}  {% include
-          'partials/_score.html' %}  {% endif %} {% endblock %}
-          {% block palette %}{% endblock %}
+        {% block score %} {% if not hide_score %} {% include
+        'partials/_score.html' %} {% endif %} {% endblock %} {% block palette
+        %}{% endblock %}
         <div class="outer-wrapper">
           <section class="instrument-panel">
             {% block spectrum %} {% if not hide_spectrum %} {% include
-            'partials/_spectrum.html' %} {% endif %} {% endblock %}
-            {% include 'partials/_playalong_hud.html' %}
-            {% block instrument %} {% if not hide_instrument %} {% include
-            'partials/_instrument.html' %} {% endif %} {% endblock %}
-
-            {% block content %}{% endblock %}
+            'partials/_spectrum.html' %} {% endif %} {% endblock %} {% include
+            'partials/_playalong_hud.html' %} {% block instrument %} {% if not
+            hide_instrument %} {% include 'partials/_instrument.html' %} {%
+            endif %} {% endblock %} {% block content %}{% endblock %}
           </section>
         </div>
         {% block after %}{% endblock %}
@@ -137,17 +160,15 @@
             <a href="/" class="btn btn--info"><span>Close Editor</span></a>
             {% else %}
             <a href="/editor" class="btn btn--info"><span>Open Editor</span></a>
-            {% endif %}
-            
-            {% if request.path != '/' %}<a href="/" class="btn btn--info"
+            {% endif %} {% if request.path != '/' %}<a
+              href="/"
+              class="btn btn--info"
               ><span>Piano</span></a
-            >{% endif %}
-                        {% if request.path != '/drums' %}<a
+            >{% endif %} {% if request.path != '/drums' %}<a
               href="/drums"
               class="btn btn--info"
               ><span>Drums</span></a
-            >{% endif %}
-            {% if request.path != '/guitar' %}<a
+            >{% endif %} {% if request.path != '/guitar' %}<a
               href="/guitar"
               class="btn btn--info"
               ><span>Guitar</span></a
@@ -166,7 +187,7 @@
         window.innerWidth - document.documentElement.clientWidth;
       document.documentElement.style.setProperty(
         "--scrollbar-width",
-        `${scrollbarWidth}px`
+        `${scrollbarWidth}px`,
       );
       // --- COMMON IMPORTS (for base template) ---
       import {
@@ -185,7 +206,10 @@
         drawAll,
         setKeySignature,
       } from '{{ url_for("static", filename="js/score/scoreRenderer.js") }}';
-      import { initializeFileHandlers, exportMidi } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
+      import {
+        initializeFileHandlers,
+        exportMidi,
+      } from '{{ url_for("static", filename="js/utils/ioHelpers.js") }}';
       import {
         handleChordDisplayToggle,
         handleSettingsDisplayToggle,
@@ -211,64 +235,77 @@
       } from '{{ url_for("static", filename="js/instrument/midi-controller.js") }}';
       // NEW: Import audioManager
       import audioManager from '{{ url_for("static", filename="js/core/audioManager.js") }}';
-      import { 
-        audioSettingsController, 
-        resetAudioSettings, 
-        getCurrentAudioSettings, 
-        applyAudioSettings 
-    } from '{{ url_for("static", filename="js/ui/audioSettings.js") }}';
-      
-    import { 
-  exportScoreAsAudio, 
-  shareScoreAsAudio,
-  showExportProgress, 
-  hideExportProgress, 
-  showExportSuccess, 
-  showExportError 
-} from '{{ url_for("static", filename="js/export/audioExporter.js") }}';
-import { handleQuantizeChange } from '{{ url_for("static", filename="js/ui/listenerManager.js") }}';
-// Add to your initializePlayer() or similar init function
-document.getElementById('export-audio-btn')?.addEventListener('click', async () => {
-  const measures = getMeasures();
-  const bpm = pianoState.tempo || 120;
-  
-  const progress = showExportProgress();
-  
-  try {
-    await exportScoreAsAudio(measures, bpm);
-    hideExportProgress();
-    showExportSuccess(`composition-${new Date().toISOString().slice(0,10)}.wav`);
-  } catch (error) {
-    hideExportProgress();
-    showExportError(error);
-  }
-});
+      import {
+        audioSettingsController,
+        resetAudioSettings,
+        getCurrentAudioSettings,
+        applyAudioSettings,
+      } from '{{ url_for("static", filename="js/ui/audioSettings.js") }}';
 
-// Export MIDI button handler
-document.getElementById('export-midi-btn')?.addEventListener('click', (e) => {
-  e.preventDefault();
-  exportMidi();
-});
+      import {
+        exportScoreAsAudio,
+        shareScoreAsAudio,
+        showExportProgress,
+        hideExportProgress,
+        showExportSuccess,
+        showExportError,
+      } from '{{ url_for("static", filename="js/export/audioExporter.js") }}';
+      import { handleQuantizeChange } from '{{ url_for("static", filename="js/ui/listenerManager.js") }}';
+      // Add to your initializePlayer() or similar init function
+      document
+        .getElementById("export-audio-btn")
+        ?.addEventListener("click", async () => {
+          const measures = getMeasures();
+          const bpm = pianoState.tempo || 120;
 
-// Share Audio button handler
-document.getElementById('share-audio-btn')?.addEventListener('click', async () => {
-  const measures = getMeasures();
-  const bpm = pianoState.tempo || 120;
+          const progress = showExportProgress();
 
-  const progress = showExportProgress('Rendering & uploading...');
+          try {
+            await exportScoreAsAudio(measures, bpm);
+            hideExportProgress();
+            showExportSuccess(
+              `composition-${new Date().toISOString().slice(0, 10)}.wav`,
+            );
+          } catch (error) {
+            hideExportProgress();
+            showExportError(error);
+          }
+        });
 
-  try {
-    const shareCode = await shareScoreAsAudio(measures, bpm);
-    hideExportProgress();
-    showToast(`Share code: ${shareCode}`, { type: 'success', duration: 8000 });
-  } catch (error) {
-    hideExportProgress();
-    showExportError(error);
-  }
-});
+      // Export MIDI button handler
+      document
+        .getElementById("export-midi-btn")
+        ?.addEventListener("click", (e) => {
+          e.preventDefault();
+          exportMidi();
+        });
 
-// Export menu toggle handler
-document.getElementById('export-menu-btn')?.addEventListener('click', handleExportMenuToggle);
+      // Share Audio button handler
+      document
+        .getElementById("share-audio-btn")
+        ?.addEventListener("click", async () => {
+          const measures = getMeasures();
+          const bpm = pianoState.tempo || 120;
+
+          const progress = showExportProgress("Rendering & uploading...");
+
+          try {
+            const shareCode = await shareScoreAsAudio(measures, bpm);
+            hideExportProgress();
+            showToast(`Share code: ${shareCode}`, {
+              type: "success",
+              duration: 8000,
+            });
+          } catch (error) {
+            hideExportProgress();
+            showExportError(error);
+          }
+        });
+
+      // Export menu toggle handler
+      document
+        .getElementById("export-menu-btn")
+        ?.addEventListener("click", handleExportMenuToggle);
 
       // Store initialization state globally so child scripts can check it
       window.pianoTourInitState = {
@@ -278,7 +315,6 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
 
       // --- COMMON DOM READY & EVENT LISTENERS (for base template) ---
       document.addEventListener("DOMContentLoaded", () => {
-
         // PHASE 1: Immediate UI setup (no blocking operations)
         initializeImmediateUI();
 
@@ -334,22 +370,22 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
         // Calculate viewport-based dimensions
         const vw = Math.max(
           document.documentElement.clientWidth || 0,
-          window.innerWidth || 0
+          window.innerWidth || 0,
         );
         const vh = Math.max(
           document.documentElement.clientHeight || 0,
-          window.innerHeight || 0
+          window.innerHeight || 0,
         );
 
         // Set minimum dimensions to prevent layout shift
         root.style.setProperty(
           "--score-min-width",
-          Math.min(vw * 0.9, 1100) + "px"
+          Math.min(vw * 0.9, 1100) + "px",
         );
         root.style.setProperty("--score-min-height", "400px");
         root.style.setProperty(
           "--instrument-min-width",
-          Math.min(vw * 0.9, 1040) + "px"
+          Math.min(vw * 0.9, 1040) + "px",
         );
         root.style.setProperty("--instrument-min-height", "120px");
       }
@@ -373,7 +409,6 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
       }
 
       async function initializeHeavyComponents() {
-
         try {
           // Load score from localStorage asynchronously
           await loadScoreFromStorage();
@@ -473,16 +508,15 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
 
         // setKeySignature handles checking if it's already set and updating UI
         setKeySignature(keySignature);
-        
+
         pianoState.isMinorChordMode = isMinorChordMode;
-        
+
         // Update minor/major mode display
-        const minorKeyText = document.getElementById('minor-key-text');
+        const minorKeyText = document.getElementById("minor-key-text");
         if (minorKeyText) {
           minorKeyText.textContent = pianoState.isMinorKey ? "Minor" : "Major";
         }
       }
-
 
       function updateLoadingMessage(message) {
         const scoreElement = document.getElementById("score");
@@ -505,9 +539,8 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
       // REVISED: setupUnlockSystem to use audioManager for MIDI initialization
       function setupUnlockSystem() {
         pianoState.unlock = async () => {
-
           console.log(
-            "🔓 Attempting to unlock audio and initialize MIDI via audioManager..."
+            "🔓 Attempting to unlock audio and initialize MIDI via audioManager...",
           );
 
           const success = await audioManager.unlockAndExecute(() => {
@@ -520,13 +553,12 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
               });
               initMidi();
               pianoState.midiInitialized = true;
-
             }
           });
 
           if (success) {
             console.log(
-              "Audio and MIDI systems are now live (or were already)."
+              "Audio and MIDI systems are now live (or were already).",
             );
           } else {
             console.warn("❌ Failed to initialize audio/MIDI system.");
@@ -600,17 +632,19 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
         });
 
         // Add event listeners for instrument options
-        document.querySelectorAll('.instrument-option').forEach(option => {
-          option.addEventListener('click', handleInstrumentSelect);
+        document.querySelectorAll(".instrument-option").forEach((option) => {
+          option.addEventListener("click", handleInstrumentSelect);
         });
 
         // Add event listeners for key signature options
-        document.querySelectorAll('.key-option').forEach(option => {
-          option.addEventListener('click', handleKeySelect);
+        document.querySelectorAll(".key-option").forEach((option) => {
+          option.addEventListener("click", handleKeySelect);
         });
 
         // Add event listener for key mode toggle in dropdown
-        document.getElementById('key-mode-toggle-btn')?.addEventListener('click', toggleIsMinorKey);
+        document
+          .getElementById("key-mode-toggle-btn")
+          ?.addEventListener("click", toggleIsMinorKey);
       }
 
       // Event handler functions
@@ -622,9 +656,9 @@ document.getElementById('export-menu-btn')?.addEventListener('click', handleExpo
         undoLastWrite();
       }
 
-          import('../static/js/core/audioManager.js').then(module => {
+      import("../static/js/core/audioManager.js").then((module) => {
         window.audioManager = module.default;
-    });
+      });
     </script>
 
     {% block scripts %}{% endblock %}
