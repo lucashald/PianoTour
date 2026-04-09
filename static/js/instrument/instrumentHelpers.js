@@ -15,6 +15,7 @@ import {
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
   notesByMidiKeyAware,
+  normalizeNoteName,
   WHITE_KEY_WIDTH
 } from "../core/note-data.js";
 import { writeNote } from "../score/scoreWriter.js";
@@ -407,7 +408,7 @@ export function paintChord() {
   const chord = getChord(pianoState.chordCenterNote, quality);
   if (!chord) return;
 
-  const midis = chord.notes.map((n) => NOTES_BY_NAME[n]).filter(Boolean);
+  const midis = chord.notes.map((n) => NOTES_BY_NAME[normalizeNoteName(n)]).filter(Boolean);
   if (midis[0] !== undefined)
     pianoState.noteEls[midis[0]]?.classList.add("chord-root");
   if (midis[1] !== undefined)
@@ -421,7 +422,7 @@ export function paintChord() {
 export function paintChordOnTheFly(chord) {
   clearHi();
   clearChordHi();
-  const midis = chord.notes.map((n) => NOTES_BY_NAME[n]).filter(Boolean);
+  const midis = chord.notes.map((n) => NOTES_BY_NAME[normalizeNoteName(n)]).filter(Boolean);
   if (midis[0] !== undefined)
     pianoState.noteEls[midis[0]]?.classList.add("chord-root");
   if (midis[1] !== undefined)
@@ -438,8 +439,8 @@ export function paintChordOnTheFly(chord) {
  * @param {boolean} isActive - Whether the notes are being played (true) or released (false).
  */
 export function updateKeyVisuals(notes, isActive) {
-  // Convert notes to midis
-  const midis = notes.map((n) => NOTES_BY_NAME[n]).filter((m) => m !== undefined);
+  // Convert notes to midis, normalizing double sharps/flats first
+  const midis = notes.map((n) => NOTES_BY_NAME[normalizeNoteName(n)]).filter((m) => m !== undefined);
   const isChord = midis.length > 1;
 
   midis.forEach((midi, index) => {

@@ -173,6 +173,33 @@ const {
   BW: BLACK_KEY_WIDTH,
 } = buildNoteData();
 
+/**
+ * Normalizes a note name with double sharps or double flats to its enharmonic
+ * equivalent using standard accidentals, preserving the octave number if present.
+ * e.g. "F##3" → "G3", "D##" → "E", "Bbb2" → "Ab2"
+ * Single-accidental and natural notes are returned unchanged.
+ */
+export function normalizeNoteName(noteName) {
+  const match = noteName.match(/^([A-G])(##|bb|#|b?)(\d*)$/);
+  if (!match) return noteName;
+  const [, letter, accidental, octaveStr] = match;
+  if (accidental !== '##' && accidental !== 'bb') return noteName;
+
+  const NATURAL_SEMITONES = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const FLAT_NAMES  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+  let semitone = NATURAL_SEMITONES[letter] + (accidental === '##' ? 2 : -2);
+  let octave = octaveStr !== '' ? parseInt(octaveStr, 10) : null;
+
+  if (semitone >= 12) { semitone -= 12; if (octave !== null) octave++; }
+  if (semitone < 0)   { semitone += 12; if (octave !== null) octave--; }
+
+  const names = accidental === 'bb' ? FLAT_NAMES : SHARP_NAMES;
+  const normalized = names[semitone];
+  return octave !== null ? normalized + octave : normalized;
+}
+
 // Map of note durations to their corresponding SVG file paths
 export const NOTE_IMAGE_MAP = {
   // Regular notes - up stems

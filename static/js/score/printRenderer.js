@@ -252,15 +252,16 @@ export async function drawAllPrint(containerId, measures) {
       // Draw ties for this system
       drawTies(context, tieGroups, vexflowNoteMap, vexflowIndexByNoteId);
 
-      // Append chord piano diagrams below this system
-      if (displayPianoDiagrams) {
-        await appendChordDiagramRow(systemDiv, systemMeasures);
-      }
-
     } catch (error) {
       console.error(`Error rendering system ${systemIndex}:`, error);
       systemDiv.innerHTML = `<div class="error">Error rendering measures ${startMeasure + 1}-${endMeasure}: ${error.message}</div>`;
     }
+  }
+
+  // Append chord piano diagrams once, below all systems
+  console.log('[diagrams] displayPianoDiagrams:', displayPianoDiagrams);
+  if (displayPianoDiagrams) {
+    await appendChordDiagramRow(container, measures);
   }
 }
 
@@ -362,38 +363,70 @@ function drawTies(context, tieGroups, vexflowNoteMap, vexflowIndexByNoteId) {
 }
 
 /**
+ * Returns true if the value looks like a real chord symbol (e.g. "Am", "Cmaj7")
+ * rather than a raw note name ("F4"), unidentified group ("(C4 E4 G4)"), or rest.
+ */
+function isChordSymbol(chordName) {
+  if (!chordName || chordName === 'Rest') return false;
+  if (chordName.startsWith('(')) return false;  // unidentified multi-note fallback
+  if (/\d$/.test(chordName)) return false;       // single note name ending with octave digit
+  return true;
+}
+
+/**
  * Builds a row of mini piano chord diagrams and appends it below a system div.
  * Shows one diagram per unique chord name found in the system's measures.
  * @param {HTMLElement} systemDiv
  * @param {Array} measures - measures in this system
  */
-async function appendChordDiagramRow(systemDiv, measures) {
+async function appendChordDiagramRow(container, measures) {
+  console.log('[diagrams] appendChordDiagramRow called, measures count:', measures.length);
+
+  // Log all raw chordName values to see what we're working with
+  const allChordNames = measures.flat().map(n => ({ clef: n.clef, chordName: n.chordName, name: n.name }));
+  console.log('[diagrams] all note chordName values:', allChordNames);
+
   // Collect unique chord names in order of first appearance, treble only to avoid duplicates
   const seen = new Set();
   const chordNames = [];
   for (const measure of measures) {
     for (const note of measure) {
-      if (note.clef === 'treble' && note.chordName && note.chordName !== 'Rest' && !seen.has(note.chordName)) {
+      const passes = isChordSymbol(note.chordName);
+      console.log(`[diagrams] note "${note.name}" clef=${note.clef} chordName="${note.chordName}" isChordSymbol=${passes}`);
+      if (passes && !seen.has(note.chordName)) {
         seen.add(note.chordName);
         chordNames.push(note.chordName);
       }
     }
   }
 
-  if (chordNames.length === 0) return;
+  console.log('[diagrams] chord symbols to render:', chordNames);
+
+  if (chordNames.length === 0) {
+    console.log('[diagrams] no chord symbols found, skipping diagram row');
+    return;
+  }
 
   const row = document.createElement('div');
   row.className = 'chord-diagram-row';
 
   for (const chordName of chordNames) {
-    const pitchClasses = await getChordPitchClasses(chordName);
-    if (!pitchClasses) continue;
-
-    const diagram = document.createElement('div');
-    diagram.className = 'chord-diagram';
-    diagram.innerHTML = `<span class="chord-diagram-label">${chordName}</span>${buildPianoSVG(pitchClasses)}`;
-    row.appendChild(diagram);
+    try {
+      const pitchClasses = await getChordPitchClasses(chordName) ?? [];
+      console.log(`[diagrams] "${chordName}" → pitchClasses:`, pitchClasses);
+      const diagram = document.createElement('div');
+      diagram.className = 'chord-diagram';
+      diagram.innerHTML = `<span class="chord-diagram-label">${chordName}</span>${buildPianoSVG(pitchClasses)}`;
+      row.appendChild(diagram);
+    } catch (err) {
+      console.error('[diagrams] failed to render diagram for', chordName, err);
+    }
   }
 
-  systemDiv.appendChild(row);
+  console.log('[diagrams] row child count:', row.childElementCount);
+
+  if (row.childElementCount > 0) {
+    container.appendChild(row);
+    console.log('[diagrams] row appended to container');
+  }
 }
