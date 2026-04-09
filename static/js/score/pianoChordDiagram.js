@@ -7,16 +7,16 @@ const WK_W = 18;   // white key width (px)
 const WK_H = 60;   // white key height (px)
 const BK_W = 12;   // black key width (px)
 const BK_H = 38;   // black key height (px)
-const PIANO_W = WK_W * 7; // 126px total
 
 const WHITE_NOTES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
-const BLACK_KEYS = [
-  { note: 'C#', enharmonic: 'Db', x: WK_W * 1 - BK_W / 2 },
-  { note: 'D#', enharmonic: 'Eb', x: WK_W * 2 - BK_W / 2 },
-  { note: 'F#', enharmonic: 'Gb', x: WK_W * 4 - BK_W / 2 },
-  { note: 'G#', enharmonic: 'Ab', x: WK_W * 5 - BK_W / 2 },
-  { note: 'A#', enharmonic: 'Bb', x: WK_W * 6 - BK_W / 2 },
+// Black keys defined by which white-key boundary they sit on (rightKeyIdx * WK_W - BK_W/2)
+const BLACK_KEY_INFO = [
+  { rightKeyIdx: 1, note: 'C#', enharmonic: 'Db' },
+  { rightKeyIdx: 2, note: 'D#', enharmonic: 'Eb' },
+  { rightKeyIdx: 4, note: 'F#', enharmonic: 'Gb' },
+  { rightKeyIdx: 5, note: 'G#', enharmonic: 'Ab' },
+  { rightKeyIdx: 6, note: 'A#', enharmonic: 'Bb' },
 ];
 
 const HIGHLIGHT_COLOR = '#467089';
@@ -66,26 +66,58 @@ export async function getChordPitchClasses(chordName) {
 }
 
 /**
- * Builds an inline SVG string of a mini piano keyboard with specified keys highlighted.
- * @param {string[]} pitchClasses - e.g. ["C", "E", "G"]
+ * Builds an inline SVG string of a 2-octave piano keyboard with specified keys highlighted.
+ * Accepts note names with octave numbers ("F4", "A4", "C5") and highlights them at their
+ * correct positions across the two octaves.
+ * @param {string[]} notes - e.g. ["F4", "A4", "C5"]
  * @returns {string} SVG markup
  */
-export function buildPianoSVG(pitchClasses) {
-  const highlighted = new Set(pitchClasses.map(normalizeNoteName));
+export function buildPianoSVG(notes) {
+  // Normalize each note (handles double sharps/flats) and split into pitch class + octave
+  const parsed = notes.map(n => {
+    const norm = normalizeNoteName(n);
+    const octaveMatch = norm.match(/\d+$/);
+    return {
+      pitchClass: norm.replace(/\d+$/, ''),
+      octave: octaveMatch ? parseInt(octaveMatch[0]) : null,
+    };
+  });
+
+  // Start the diagram at the lowest octave present in the notes
+  const knownOctaves = parsed.map(p => p.octave).filter(o => o !== null);
+  const startOctave = knownOctaves.length > 0 ? Math.min(...knownOctaves) : 4;
+
+  const OCTAVES = 2;
+  const TOTAL_W = WK_W * 7 * OCTAVES;
+
+  // Build highlighted sets: octave-specific wins; pitch-class-only is fallback
+  const withOctave = new Set(parsed.filter(p => p.octave !== null).map(p => p.pitchClass + p.octave));
+  const pitchOnly  = new Set(parsed.filter(p => p.octave === null).map(p => p.pitchClass));
+
+  function isHighlighted(pitchClass, octave) {
+    return withOctave.has(pitchClass + octave) || pitchOnly.has(pitchClass);
+  }
+
   let rects = '';
 
-  // White keys (rendered first; black keys painted on top)
-  WHITE_NOTES.forEach((note, i) => {
-    const fill = highlighted.has(note) ? HIGHLIGHT_COLOR : 'white';
-    rects += `<rect x="${i * WK_W}" y="0" width="${WK_W}" height="${WK_H}" fill="${fill}" stroke="#555" stroke-width="0.5"/>`;
-  });
+  for (let oct = 0; oct < OCTAVES; oct++) {
+    const octaveNum = startOctave + oct;
+    const xOff = oct * 7 * WK_W;
 
-  // Black keys
-  BLACK_KEYS.forEach(({ note, enharmonic, x }) => {
-    const isHighlighted = highlighted.has(note) || highlighted.has(enharmonic);
-    const fill = isHighlighted ? HIGHLIGHT_COLOR : '#222';
-    rects += `<rect x="${x}" y="0" width="${BK_W}" height="${BK_H}" fill="${fill}" stroke="#555" stroke-width="0.5"/>`;
-  });
+    // White keys
+    WHITE_NOTES.forEach((note, i) => {
+      const fill = isHighlighted(note, octaveNum) ? HIGHLIGHT_COLOR : 'white';
+      rects += `<rect x="${xOff + i * WK_W}" y="0" width="${WK_W}" height="${WK_H}" fill="${fill}" stroke="#555" stroke-width="0.5"/>`;
+    });
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${PIANO_W}" height="${WK_H}" viewBox="0 0 ${PIANO_W} ${WK_H}" style="display:block">${rects}</svg>`;
+    // Black keys (drawn after white keys so they render on top)
+    BLACK_KEY_INFO.forEach(({ rightKeyIdx, note, enharmonic }) => {
+      const lit = isHighlighted(note, octaveNum) || isHighlighted(enharmonic, octaveNum);
+      const fill = lit ? HIGHLIGHT_COLOR : '#222';
+      const x = xOff + rightKeyIdx * WK_W - BK_W / 2;
+      rects += `<rect x="${x}" y="0" width="${BK_W}" height="${BK_H}" fill="${fill}" stroke="#555" stroke-width="0.5"/>`;
+    });
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${TOTAL_W}" height="${WK_H}" viewBox="0 0 ${TOTAL_W} ${WK_H}" style="display:block">${rects}</svg>`;
 }

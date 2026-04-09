@@ -119,37 +119,37 @@ const buildNoteData = () => {
     const match = note.name.match(/-?\d+$/);
     if (match) {
       const octave = parseInt(match[0], 10);
-      
+
       // F -> E# (same octave)
-      if (note.pitchClass === 'F') {
+      if (note.pitchClass === "F") {
         notesByName[`E#${octave}`] = note.midi;
         // Default pitch-class mapping (no octave) map to octave 4 (E# -> E#4)
         if (octave === 4) {
-          notesByName['E#'] = note.midi;
+          notesByName["E#"] = note.midi;
         }
       }
       // E -> Fb (same octave)
-      else if (note.pitchClass === 'E') {
+      else if (note.pitchClass === "E") {
         notesByName[`Fb${octave}`] = note.midi;
         // Default pitch-class mapping (no octave) map to octave 4 (Fb -> Fb4)
         if (octave === 4) {
-          notesByName['Fb'] = note.midi;
+          notesByName["Fb"] = note.midi;
         }
       }
       // C -> B# (previous octave)
-      else if (note.pitchClass === 'C') {
+      else if (note.pitchClass === "C") {
         notesByName[`B#${octave - 1}`] = note.midi;
         // Default pitch-class mapping (no octave) map B# to match C4 -> B#3 (use when octave === 4)
         if (octave === 4) {
-          notesByName['B#'] = note.midi;
+          notesByName["B#"] = note.midi;
         }
       }
       // B -> Cb (next octave)
-      else if (note.pitchClass === 'B') {
+      else if (note.pitchClass === "B") {
         notesByName[`Cb${octave + 1}`] = note.midi;
         // Default pitch-class mapping (no octave) map to Cb -> Cb4 (when B3 produced)
         if (octave === 3) {
-          notesByName['Cb'] = note.midi;
+          notesByName["Cb"] = note.midi;
         }
       }
     }
@@ -164,8 +164,6 @@ const buildNoteData = () => {
   };
 };
 
-
-
 const {
   NOTES_BY_MIDI,
   NOTES_BY_NAME,
@@ -174,28 +172,73 @@ const {
 } = buildNoteData();
 
 /**
- * Normalizes a note name with double sharps or double flats to its enharmonic
- * equivalent using standard accidentals, preserving the octave number if present.
- * e.g. "F##3" → "G3", "D##" → "E", "Bbb2" → "Ab2"
- * Single-accidental and natural notes are returned unchanged.
+ * Normalizes a note name with accidentals to its enharmonic equivalent using
+ * standard accidentals, preserving the octave number if present.
+ * Handles single sharps/flats that go out of the natural note range (e.g., E# → F, B# → C, Fb → E, Cb → B)
+ * and double sharps/flats (e.g., "F##3" → "G3", "Bbb2" → "Ab2").
+ * Single-accidental notes within the natural range and natural notes are returned unchanged.
  */
 export function normalizeNoteName(noteName) {
   const match = noteName.match(/^([A-G])(##|bb|#|b?)(\d*)$/);
   if (!match) return noteName;
   const [, letter, accidental, octaveStr] = match;
-  if (accidental !== '##' && accidental !== 'bb') return noteName;
+  if (!accidental) return noteName; // Natural note, return as-is
 
   const NATURAL_SEMITONES = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-  const SHARP_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-  const FLAT_NAMES  = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  const SHARP_NAMES = [
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B",
+  ];
+  const FLAT_NAMES = [
+    "C",
+    "Db",
+    "D",
+    "Eb",
+    "E",
+    "F",
+    "Gb",
+    "G",
+    "Ab",
+    "A",
+    "Bb",
+    "B",
+  ];
 
-  let semitone = NATURAL_SEMITONES[letter] + (accidental === '##' ? 2 : -2);
-  let octave = octaveStr !== '' ? parseInt(octaveStr, 10) : null;
+  // Calculate semitone offset: ## or # adds semitones, bb or b subtracts
+  let semitoneOffset = 0;
+  if (accidental === "##") semitoneOffset = 2;
+  else if (accidental === "#") semitoneOffset = 1;
+  else if (accidental === "bb") semitoneOffset = -2;
+  else if (accidental === "b") semitoneOffset = -1;
 
-  if (semitone >= 12) { semitone -= 12; if (octave !== null) octave++; }
-  if (semitone < 0)   { semitone += 12; if (octave !== null) octave--; }
+  let semitone = NATURAL_SEMITONES[letter] + semitoneOffset;
+  let octave = octaveStr !== "" ? parseInt(octaveStr, 10) : null;
 
-  const names = accidental === 'bb' ? FLAT_NAMES : SHARP_NAMES;
+  // Handle octave wrapping
+  if (semitone >= 12) {
+    semitone -= 12;
+    if (octave !== null) octave++;
+  }
+  if (semitone < 0) {
+    semitone += 12;
+    if (octave !== null) octave--;
+  }
+
+  // Use flat names for flats and double flats, sharp names otherwise
+  const names =
+    accidental === "bb" || (accidental === "b" && semitoneOffset === -1)
+      ? FLAT_NAMES
+      : SHARP_NAMES;
   const normalized = names[semitone];
   return octave !== null ? normalized + octave : normalized;
 }
@@ -203,2384 +246,2412 @@ export function normalizeNoteName(noteName) {
 // Map of note durations to their corresponding SVG file paths
 export const NOTE_IMAGE_MAP = {
   // Regular notes - up stems
-  'w': '/static/images/generatedsvg/note-whole-up.svg',
-  'h': '/static/images/generatedsvg/note-half-up.svg',
-  'q': '/static/images/generatedsvg/note-quarter-up.svg',
-  '8': '/static/images/generatedsvg/note-eighth-up.svg',
-  '16': '/static/images/generatedsvg/note-16th-up.svg',
-  '32': '/static/images/generatedsvg/note-32nd-up.svg',
-  
+  w: "/static/images/generatedsvg/note-whole-up.svg",
+  h: "/static/images/generatedsvg/note-half-up.svg",
+  q: "/static/images/generatedsvg/note-quarter-up.svg",
+  8: "/static/images/generatedsvg/note-eighth-up.svg",
+  16: "/static/images/generatedsvg/note-16th-up.svg",
+  32: "/static/images/generatedsvg/note-32nd-up.svg",
+
   // Dotted notes - up stems
-  'w.': '/static/images/generatedsvg/note-whole-up-dotted.svg',
-  'h.': '/static/images/generatedsvg/note-half-up-dotted.svg',
-  'q.': '/static/images/generatedsvg/note-quarter-up-dotted.svg',
-  '8.': '/static/images/generatedsvg/note-eighth-up-dotted.svg',
-  '16.': '/static/images/generatedsvg/note-16th-up-dotted.svg',
-  '32.': '/static/images/generatedsvg/note-32nd-up-dotted.svg',
-  
+  "w.": "/static/images/generatedsvg/note-whole-up-dotted.svg",
+  "h.": "/static/images/generatedsvg/note-half-up-dotted.svg",
+  "q.": "/static/images/generatedsvg/note-quarter-up-dotted.svg",
+  "8.": "/static/images/generatedsvg/note-eighth-up-dotted.svg",
+  "16.": "/static/images/generatedsvg/note-16th-up-dotted.svg",
+  "32.": "/static/images/generatedsvg/note-32nd-up-dotted.svg",
+
   // Down stem variants
-  'hdown': '/static/images/generatedsvg/note-half-down.svg',
-  'qdown': '/static/images/generatedsvg/note-quarter-down.svg',
-  '8down': '/static/images/generatedsvg/note-eighth-down.svg',
-  '16down': '/static/images/generatedsvg/note-16th-down.svg',
-  '32down': '/static/images/generatedsvg/note-32nd-down.svg',
-  
+  hdown: "/static/images/generatedsvg/note-half-down.svg",
+  qdown: "/static/images/generatedsvg/note-quarter-down.svg",
+  "8down": "/static/images/generatedsvg/note-eighth-down.svg",
+  "16down": "/static/images/generatedsvg/note-16th-down.svg",
+  "32down": "/static/images/generatedsvg/note-32nd-down.svg",
+
   // Dotted down stem variants
-  'h.down': '/static/images/generatedsvg/note-half-down-dotted.svg',
-  'q.down': '/static/images/generatedsvg/note-quarter-down-dotted.svg',
-  '8.down': '/static/images/generatedsvg/note-eighth-down-dotted.svg',
-  '16.down': '/static/images/generatedsvg/note-16th-down-dotted.svg',
-  '32.down': '/static/images/generatedsvg/note-32nd-down-dotted.svg',
-  
+  "h.down": "/static/images/generatedsvg/note-half-down-dotted.svg",
+  "q.down": "/static/images/generatedsvg/note-quarter-down-dotted.svg",
+  "8.down": "/static/images/generatedsvg/note-eighth-down-dotted.svg",
+  "16.down": "/static/images/generatedsvg/note-16th-down-dotted.svg",
+  "32.down": "/static/images/generatedsvg/note-32nd-down-dotted.svg",
+
   // Rest images
-  'wr': '/static/images/generatedsvg/rest-whole.svg',
-  'hr': '/static/images/generatedsvg/rest-half.svg',
-  'qr': '/static/images/generatedsvg/rest-quarter.svg',
-  '8r': '/static/images/generatedsvg/rest-eighth.svg',
-  '16r': '/static/images/generatedsvg/rest-16th.svg',
-  '32r': '/static/images/generatedsvg/rest-32nd.svg',
-  
+  wr: "/static/images/generatedsvg/rest-whole.svg",
+  hr: "/static/images/generatedsvg/rest-half.svg",
+  qr: "/static/images/generatedsvg/rest-quarter.svg",
+  "8r": "/static/images/generatedsvg/rest-eighth.svg",
+  "16r": "/static/images/generatedsvg/rest-16th.svg",
+  "32r": "/static/images/generatedsvg/rest-32nd.svg",
+
   // Dotted rests
-  'w.r': '/static/images/generatedsvg/rest-whole-dotted.svg',
-  'h.r': '/static/images/generatedsvg/rest-half-dotted.svg',
-  'q.r': '/static/images/generatedsvg/rest-quarter-dotted.svg',
-  '8.r': '/static/images/generatedsvg/rest-eighth-dotted.svg',
-  '16.r': '/static/images/generatedsvg/rest-16th-dotted.svg',
-  '32.r': '/static/images/generatedsvg/rest-32nd-dotted.svg'
+  "w.r": "/static/images/generatedsvg/rest-whole-dotted.svg",
+  "h.r": "/static/images/generatedsvg/rest-half-dotted.svg",
+  "q.r": "/static/images/generatedsvg/rest-quarter-dotted.svg",
+  "8.r": "/static/images/generatedsvg/rest-eighth-dotted.svg",
+  "16.r": "/static/images/generatedsvg/rest-16th-dotted.svg",
+  "32.r": "/static/images/generatedsvg/rest-32nd-dotted.svg",
 };
 
 // Note positions with stem directions (combined for all notes)
 export const NOTE_STEM_DIRECTIONS = {
   // Treble clef - down stems (above and including middle line B4)
-  'E6': 'down', 'D6': 'down', 'C6': 'down', 'B5': 'down', 'A5': 'down', 'G5': 'down',
-  'F5': 'down', 'E5': 'down', 'D5': 'down', 'C5': 'down', 'B4': 'down',
-  
+  E6: "down",
+  D6: "down",
+  C6: "down",
+  B5: "down",
+  A5: "down",
+  G5: "down",
+  F5: "down",
+  E5: "down",
+  D5: "down",
+  C5: "down",
+  B4: "down",
+
   // Treble clef - up stems (below middle line B4)
-  'A4': 'up', 'G4': 'up', 'F4': 'up', 'E4': 'up', 'D4': 'up', 'C4': 'up', 'B3': 'up', 'A3': 'up',
-  
+  A4: "up",
+  G4: "up",
+  F4: "up",
+  E4: "up",
+  D4: "up",
+  C4: "up",
+  B3: "up",
+  A3: "up",
+
   // Bass clef - down stems (above and including middle line B2)
-  'G3': 'down', 'F3': 'down', 'E3': 'down', 'D3': 'down', 
-  
+  G3: "down",
+  F3: "down",
+  E3: "down",
+  D3: "down",
+
   // Bass clef - up stems (below middle line B2)
- 'C3': 'up', 'B2': 'up', 'A2': 'up', 'G2': 'up', 'F2': 'up', 'E2': 'up', 'D2': 'up', 'C2': 'up'
+  C3: "up",
+  B2: "up",
+  A2: "up",
+  G2: "up",
+  F2: "up",
+  E2: "up",
+  D2: "up",
+  C2: "up",
 };
 
 // Helper function to get the correct image path based on note name, duration, and whether it's a rest
 export function getNoteImagePath(duration, noteName, isRest = false) {
   // Handle rests
   if (isRest) {
-    const restKey = duration + 'r';
-    return NOTE_IMAGE_MAP[restKey] || NOTE_IMAGE_MAP['qr'];
+    const restKey = duration + "r";
+    return NOTE_IMAGE_MAP[restKey] || NOTE_IMAGE_MAP["qr"];
   }
-  
+
   // Whole notes don't have stems
-  if (duration === 'w' || duration === 'w.') {
+  if (duration === "w" || duration === "w.") {
     return NOTE_IMAGE_MAP[duration];
   }
-  
+
   // Get stem direction for this note
-  const stemDirection = NOTE_STEM_DIRECTIONS[noteName] || 'up'; // Default to up
-  
+  const stemDirection = NOTE_STEM_DIRECTIONS[noteName] || "up"; // Default to up
+
   // Build the correct duration key based on stem direction
   let durationKey = duration;
-  if (stemDirection === 'down') {
+  if (stemDirection === "down") {
     // Handle dotted notes with down stems (e.g., 'q.' -> 'q.down')
-    if (duration.endsWith('.')) {
-      durationKey = duration + 'down';
+    if (duration.endsWith(".")) {
+      durationKey = duration + "down";
     } else {
-      durationKey = duration + 'down';
+      durationKey = duration + "down";
     }
   }
-  
-  return NOTE_IMAGE_MAP[durationKey] || NOTE_IMAGE_MAP['q'];
+
+  return NOTE_IMAGE_MAP[durationKey] || NOTE_IMAGE_MAP["q"];
 }
 
 // Export the core note data and key dimensions
 export {
-  ALL_NOTE_INFO, BLACK_KEY_WIDTH, NOTES_BY_MIDI,
+  ALL_NOTE_INFO,
+  BLACK_KEY_WIDTH,
+  NOTES_BY_MIDI,
   NOTES_BY_NAME,
-  WHITE_KEY_WIDTH
+  WHITE_KEY_WIDTH,
 };
 
 export const CHORD_DEFINITIONS = {
-  "C": {
-    notes: ["C","E","G"],
-    treble: ["C4","E4","G4"],
-    bass: ["C3","E3","G3"],
+  C: {
+    notes: ["C", "E", "G"],
+    treble: ["C4", "E4", "G4"],
+    bass: ["C3", "E3", "G3"],
     displayName: "C Major",
   },
-  "Cmaj7": {
-    notes: ["C","E","G","B"],
-    treble: ["C4","E4","G4","B4"],
-    bass: ["C3","E3","G3","B3"],
+  Cmaj7: {
+    notes: ["C", "E", "G", "B"],
+    treble: ["C4", "E4", "G4", "B4"],
+    bass: ["C3", "E3", "G3", "B3"],
     displayName: "C Major 7th",
   },
-  "Cmaj6": {
-    notes: ["C","E","G","A"],
-    treble: ["C4","E4","G4","A4"],
-    bass: ["C3","E3","G3","A3"],
+  Cmaj6: {
+    notes: ["C", "E", "G", "A"],
+    treble: ["C4", "E4", "G4", "A4"],
+    bass: ["C3", "E3", "G3", "A3"],
     displayName: "C Major 6th",
   },
-  "Cmaj9": {
-    notes: ["C","E","G","B","D"],
-    treble: ["C4","E4","G4","B4","D5"],
-    bass: ["C2","E2","G2","B2","D3"],
+  Cmaj9: {
+    notes: ["C", "E", "G", "B", "D"],
+    treble: ["C4", "E4", "G4", "B4", "D5"],
+    bass: ["C2", "E2", "G2", "B2", "D3"],
     displayName: "C Major 9th",
   },
-  "Cm": {
-    notes: ["C","Eb","G"],
-    treble: ["C4","Eb4","G4"],
-    bass: ["C3","Eb3","G3"],
+  Cm: {
+    notes: ["C", "Eb", "G"],
+    treble: ["C4", "Eb4", "G4"],
+    bass: ["C3", "Eb3", "G3"],
     displayName: "C Minor",
   },
-  "Cmin7": {
-    notes: ["C","Eb","G","Bb"],
-    treble: ["C4","Eb4","G4","Bb4"],
-    bass: ["C3","Eb3","G3","Bb3"],
+  Cmin7: {
+    notes: ["C", "Eb", "G", "Bb"],
+    treble: ["C4", "Eb4", "G4", "Bb4"],
+    bass: ["C3", "Eb3", "G3", "Bb3"],
     displayName: "C Minor 7th",
   },
-  "Cmin6": {
-    notes: ["C","Eb","G","A"],
-    treble: ["C4","Eb4","G4","A4"],
-    bass: ["C3","Eb3","G3","A3"],
+  Cmin6: {
+    notes: ["C", "Eb", "G", "A"],
+    treble: ["C4", "Eb4", "G4", "A4"],
+    bass: ["C3", "Eb3", "G3", "A3"],
     displayName: "C Minor 6th",
   },
-  "Cmin9": {
-    notes: ["C","Eb","G","Bb","D"],
-    treble: ["C4","Eb4","G4","Bb4","D5"],
-    bass: ["C2","Eb2","G2","Bb2","D3"],
+  Cmin9: {
+    notes: ["C", "Eb", "G", "Bb", "D"],
+    treble: ["C4", "Eb4", "G4", "Bb4", "D5"],
+    bass: ["C2", "Eb2", "G2", "Bb2", "D3"],
     displayName: "C Minor 9th",
   },
-  "Cdim": {
-    notes: ["C","Eb","Gb"],
-    treble: ["C4","Eb4","Gb4"],
-    bass: ["C3","Eb3","Gb3"],
+  Cdim: {
+    notes: ["C", "Eb", "Gb"],
+    treble: ["C4", "Eb4", "Gb4"],
+    bass: ["C3", "Eb3", "Gb3"],
     displayName: "C Diminished",
   },
-  "Cdim7": {
-    notes: ["C","Eb","Gb","Bbb"],
-    treble: ["C4","Eb4","Gb4","Bbb4"],
-    bass: ["C3","Eb3","Gb3","Bbb3"],
+  Cdim7: {
+    notes: ["C", "Eb", "Gb", "Bbb"],
+    treble: ["C4", "Eb4", "Gb4", "Bbb4"],
+    bass: ["C3", "Eb3", "Gb3", "Bbb3"],
     displayName: "C Diminished 7th",
   },
-  "Cm7b5": {
-    notes: ["C","Eb","Gb","Bb"],
-    treble: ["C4","Eb4","Gb4","Bb4"],
-    bass: ["C3","Eb3","Gb3","Bb3"],
+  Cm7b5: {
+    notes: ["C", "Eb", "Gb", "Bb"],
+    treble: ["C4", "Eb4", "Gb4", "Bb4"],
+    bass: ["C3", "Eb3", "Gb3", "Bb3"],
     displayName: "C Half-Diminished 7th",
   },
-  "Caug": {
-    notes: ["C","E","G#"],
-    treble: ["C4","E4","G#4"],
-    bass: ["C3","E3","G#3"],
+  Caug: {
+    notes: ["C", "E", "G#"],
+    treble: ["C4", "E4", "G#4"],
+    bass: ["C3", "E3", "G#3"],
     displayName: "C Augmented",
   },
-  "Caug7": {
-    notes: ["C","E","G#","Bb"],
-    treble: ["C4","E4","G#4","Bb4"],
-    bass: ["C2","E2","G#2","Bb2"],
+  Caug7: {
+    notes: ["C", "E", "G#", "Bb"],
+    treble: ["C4", "E4", "G#4", "Bb4"],
+    bass: ["C2", "E2", "G#2", "Bb2"],
     displayName: "C Augmented 7th",
   },
-  "C7": {
-    notes: ["C","E","G","Bb"],
-    treble: ["C4","E4","G4","Bb4"],
-    bass: ["C3","E3","G3","Bb3"],
+  C7: {
+    notes: ["C", "E", "G", "Bb"],
+    treble: ["C4", "E4", "G4", "Bb4"],
+    bass: ["C3", "E3", "G3", "Bb3"],
     displayName: "C Dominant 7th",
   },
-  "C9": {
-    notes: ["C","E","G","Bb","D"],
-    treble: ["C4","E4","G4","Bb4","D5"],
-    bass: ["C2","E2","G2","Bb2","D3"],
+  C9: {
+    notes: ["C", "E", "G", "Bb", "D"],
+    treble: ["C4", "E4", "G4", "Bb4", "D5"],
+    bass: ["C2", "E2", "G2", "Bb2", "D3"],
     displayName: "C Dominant 9th",
   },
-  "Csus4": {
-    notes: ["C","F","G"],
-    treble: ["C4","F4","G4"],
-    bass: ["C3","F3","G3"],
+  Csus4: {
+    notes: ["C", "F", "G"],
+    treble: ["C4", "F4", "G4"],
+    bass: ["C3", "F3", "G3"],
     displayName: "C Suspended 4th",
   },
-  "Csus2": {
-    notes: ["C","D","G"],
-    treble: ["C4","D4","G4"],
-    bass: ["C3","D3","G3"],
+  Csus2: {
+    notes: ["C", "D", "G"],
+    treble: ["C4", "D4", "G4"],
+    bass: ["C3", "D3", "G3"],
     displayName: "C Suspended 2nd",
   },
   "C#": {
-    notes: ["C#","E#","G#"],
-    treble: ["C#4","E#4","G#4"],
-    bass: ["C#3","E#3","G#3"],
+    notes: ["C#", "E#", "G#"],
+    treble: ["C#4", "E#4", "G#4"],
+    bass: ["C#3", "E#3", "G#3"],
     displayName: "C# Major",
   },
   "C#alt": {
-    notes: ["C#","F","G#"],
-    treble: ["C#4","F4","G#4"],
-    bass: ["C#3","F3","G#3"],
+    notes: ["C#", "F", "G#"],
+    treble: ["C#4", "F4", "G#4"],
+    bass: ["C#3", "F3", "G#3"],
     displayName: "C# Major",
   },
   "C#maj7": {
-    notes: ["C#","E#","G#","B#"],
-    treble: ["C#4","E#4","G#4","B#4"],
-    bass: ["C#3","E#3","G#3","B#3"],
+    notes: ["C#", "E#", "G#", "B#"],
+    treble: ["C#4", "E#4", "G#4", "B#4"],
+    bass: ["C#3", "E#3", "G#3", "B#3"],
     displayName: "C# Major 7th",
   },
   "C#maj6": {
-    notes: ["C#","E#","G#","A#"],
-    treble: ["C#4","E#4","G#4","A#4"],
-    bass: ["C#3","E#3","G#3","A#3"],
+    notes: ["C#", "E#", "G#", "A#"],
+    treble: ["C#4", "E#4", "G#4", "A#4"],
+    bass: ["C#3", "E#3", "G#3", "A#3"],
     displayName: "C# Major 6th",
   },
   "C#maj9": {
-    notes: ["C#","E#","G#","B#","D#"],
-    treble: ["C#4","E#4","G#4","B#4","D#5"],
-    bass: ["C#2","E#2","G#2","B#2","D#3"],
+    notes: ["C#", "E#", "G#", "B#", "D#"],
+    treble: ["C#4", "E#4", "G#4", "B#4", "D#5"],
+    bass: ["C#2", "E#2", "G#2", "B#2", "D#3"],
     displayName: "C# Major 9th",
   },
   "C#m": {
-    notes: ["C#","E","G#"],
-    treble: ["C#4","E4","G#4"],
-    bass: ["C#3","E3","G#3"],
+    notes: ["C#", "E", "G#"],
+    treble: ["C#4", "E4", "G#4"],
+    bass: ["C#3", "E3", "G#3"],
     displayName: "C# Minor",
   },
   "C#min7": {
-    notes: ["C#","E","G#","B"],
-    treble: ["C#4","E4","G#4","B4"],
-    bass: ["C#3","E3","G#3","B3"],
+    notes: ["C#", "E", "G#", "B"],
+    treble: ["C#4", "E4", "G#4", "B4"],
+    bass: ["C#3", "E3", "G#3", "B3"],
     displayName: "C# Minor 7th",
   },
   "C#min6": {
-    notes: ["C#","E","G#","A#"],
-    treble: ["C#4","E4","G#4","A#4"],
-    bass: ["C#3","E3","G#3","A#3"],
+    notes: ["C#", "E", "G#", "A#"],
+    treble: ["C#4", "E4", "G#4", "A#4"],
+    bass: ["C#3", "E3", "G#3", "A#3"],
     displayName: "C# Minor 6th",
   },
   "C#min9": {
-    notes: ["C#","E","G#","B","D#"],
-    treble: ["C#4","E4","G#4","B4","D#5"],
-    bass: ["C#2","E2","G#2","B2","D#3"],
+    notes: ["C#", "E", "G#", "B", "D#"],
+    treble: ["C#4", "E4", "G#4", "B4", "D#5"],
+    bass: ["C#2", "E2", "G#2", "B2", "D#3"],
     displayName: "C# Minor 9th",
   },
   "C#dim": {
-    notes: ["C#","E","G"],
-    treble: ["C#4","E4","G4"],
-    bass: ["C#3","E3","G3"],
+    notes: ["C#", "E", "G"],
+    treble: ["C#4", "E4", "G4"],
+    bass: ["C#3", "E3", "G3"],
     displayName: "C# Diminished",
   },
   "C#dim7": {
-    notes: ["C#","E","G","Bb"],
-    treble: ["C#4","E4","G4","Bb4"],
-    bass: ["C#3","E3","G3","Bb3"],
+    notes: ["C#", "E", "G", "Bb"],
+    treble: ["C#4", "E4", "G4", "Bb4"],
+    bass: ["C#3", "E3", "G3", "Bb3"],
     displayName: "C# Diminished 7th",
   },
   "C#m7b5": {
-    notes: ["C#","E","G","B"],
-    treble: ["C#4","E4","G4","B4"],
-    bass: ["C#3","E3","G3","B3"],
+    notes: ["C#", "E", "G", "B"],
+    treble: ["C#4", "E4", "G4", "B4"],
+    bass: ["C#3", "E3", "G3", "B3"],
     displayName: "C# Half-Diminished 7th",
   },
   "C#aug": {
-    notes: ["C#","E#","G##"],
-    treble: ["C#4","E#4","G##4"],
-    bass: ["C#3","E#3","G##3"],
+    notes: ["C#", "E#", "G##"],
+    treble: ["C#4", "E#4", "G##4"],
+    bass: ["C#3", "E#3", "G##3"],
     displayName: "C# Augmented",
   },
   "C#aug7": {
-    notes: ["C#","E#","G##","B"],
-    treble: ["C#4","E#4","G##4","B4"],
-    bass: ["C#2","E#2","G##2","B2"],
+    notes: ["C#", "E#", "G##", "B"],
+    treble: ["C#4", "E#4", "G##4", "B4"],
+    bass: ["C#2", "E#2", "G##2", "B2"],
     displayName: "C# Augmented 7th",
   },
   "C#7": {
-    notes: ["C#","E#","G#","B"],
-    treble: ["C#4","E#4","G#4","B4"],
-    bass: ["C#3","E#3","G#3","B3"],
+    notes: ["C#", "E#", "G#", "B"],
+    treble: ["C#4", "E#4", "G#4", "B4"],
+    bass: ["C#3", "E#3", "G#3", "B3"],
     displayName: "C# Dominant 7th",
   },
   "C#9": {
-    notes: ["C#","E#","G#","B","D#"],
-    treble: ["C#4","E#4","G#4","B4","D#5"],
-    bass: ["C#2","E#2","G#2","B2","D#3"],
+    notes: ["C#", "E#", "G#", "B", "D#"],
+    treble: ["C#4", "E#4", "G#4", "B4", "D#5"],
+    bass: ["C#2", "E#2", "G#2", "B2", "D#3"],
     displayName: "C# Dominant 9th",
   },
   "C#sus4": {
-    notes: ["C#","F#","G#"],
-    treble: ["C#4","F#4","G#4"],
-    bass: ["C#3","F#3","G#3"],
+    notes: ["C#", "F#", "G#"],
+    treble: ["C#4", "F#4", "G#4"],
+    bass: ["C#3", "F#3", "G#3"],
     displayName: "C# Suspended 4th",
   },
   "C#sus2": {
-    notes: ["C#","D#","G#"],
-    treble: ["C#4","D#4","G#4"],
-    bass: ["C#3","D#3","G#3"],
+    notes: ["C#", "D#", "G#"],
+    treble: ["C#4", "D#4", "G#4"],
+    bass: ["C#3", "D#3", "G#3"],
     displayName: "C# Suspended 2nd",
   },
-  "Db": {
-    notes: ["Db","F","Ab"],
-    treble: ["Db4","F4","Ab4"],
-    bass: ["Db3","F3","Ab3"],
+  Db: {
+    notes: ["Db", "F", "Ab"],
+    treble: ["Db4", "F4", "Ab4"],
+    bass: ["Db3", "F3", "Ab3"],
     displayName: "Db Major",
   },
-  "Dbmaj7": {
-    notes: ["Db","F","Ab","C"],
-    treble: ["Db4","F4","Ab4","C5"],
-    bass: ["Db2","F2","Ab2","C3"],
+  Dbmaj7: {
+    notes: ["Db", "F", "Ab", "C"],
+    treble: ["Db4", "F4", "Ab4", "C5"],
+    bass: ["Db2", "F2", "Ab2", "C3"],
     displayName: "Db Major 7th",
   },
-  "Dbmaj6": {
-    notes: ["Db","F","Ab","Bb"],
-    treble: ["Db4","F4","Ab4","Bb4"],
-    bass: ["Db2","F2","Ab2","Bb2"],
+  Dbmaj6: {
+    notes: ["Db", "F", "Ab", "Bb"],
+    treble: ["Db4", "F4", "Ab4", "Bb4"],
+    bass: ["Db2", "F2", "Ab2", "Bb2"],
     displayName: "Db Major 6th",
   },
-  "Dbmaj9": {
-    notes: ["Db","F","Ab","C","Eb"],
-    treble: ["Db4","F4","Ab4","C5","Eb5"],
-    bass: ["Db2","F2","Ab2","C3","Eb3"],
+  Dbmaj9: {
+    notes: ["Db", "F", "Ab", "C", "Eb"],
+    treble: ["Db4", "F4", "Ab4", "C5", "Eb5"],
+    bass: ["Db2", "F2", "Ab2", "C3", "Eb3"],
     displayName: "Db Major 9th",
   },
-  "Dbm": {
-    notes: ["Db","Fb","Ab"],
-    treble: ["Db4","Fb4","Ab4"],
-    bass: ["Db3","Fb3","Ab3"],
+  Dbm: {
+    notes: ["Db", "Fb", "Ab"],
+    treble: ["Db4", "Fb4", "Ab4"],
+    bass: ["Db3", "Fb3", "Ab3"],
     displayName: "Db Minor",
   },
-  "Dbmin7": {
-    notes: ["Db","Fb","Ab","Cb"],
-    treble: ["Db4","Fb4","Ab4","Cb5"],
-    bass: ["Db2","Fb2","Ab2","Cb3"],
+  Dbmin7: {
+    notes: ["Db", "Fb", "Ab", "Cb"],
+    treble: ["Db4", "Fb4", "Ab4", "Cb5"],
+    bass: ["Db2", "Fb2", "Ab2", "Cb3"],
     displayName: "Db Minor 7th",
   },
-  "Dbmin6": {
-    notes: ["Db","Fb","Ab","Bb"],
-    treble: ["Db4","Fb4","Ab4","Bb4"],
-    bass: ["Db2","Fb2","Ab2","Bb2"],
+  Dbmin6: {
+    notes: ["Db", "Fb", "Ab", "Bb"],
+    treble: ["Db4", "Fb4", "Ab4", "Bb4"],
+    bass: ["Db2", "Fb2", "Ab2", "Bb2"],
     displayName: "Db Minor 6th",
   },
-  "Dbmin9": {
-    notes: ["Db","Fb","Ab","Cb","Eb"],
-    treble: ["Db4","Fb4","Ab4","Cb5","Eb5"],
-    bass: ["Db2","Fb2","Ab2","Cb2","Eb3"],
+  Dbmin9: {
+    notes: ["Db", "Fb", "Ab", "Cb", "Eb"],
+    treble: ["Db4", "Fb4", "Ab4", "Cb5", "Eb5"],
+    bass: ["Db2", "Fb2", "Ab2", "Cb2", "Eb3"],
     displayName: "Db Minor 9th",
   },
-  "Dbdim": {
-    notes: ["Db","Fb","Abb"],
-    treble: ["Db4","Fb4","Abb4"],
-    bass: ["Db3","Fb3","Abb3"],
+  Dbdim: {
+    notes: ["Db", "Fb", "Abb"],
+    treble: ["Db4", "Fb4", "Abb4"],
+    bass: ["Db3", "Fb3", "Abb3"],
     displayName: "Db Diminished",
   },
-  "Dbdim7": {
-    notes: ["Db","Fb","Abb","Cbb"],
-    treble: ["Db4","Fb4","Abb4","Cbb5"],
-    bass: ["Db3","Fb3","Abb3","Cbb4"],
+  Dbdim7: {
+    notes: ["Db", "Fb", "Abb", "Cbb"],
+    treble: ["Db4", "Fb4", "Abb4", "Cbb5"],
+    bass: ["Db3", "Fb3", "Abb3", "Cbb4"],
     displayName: "Db Diminished 7th",
   },
-  "Dbm7b5": {
-    notes: ["Db","Fb","Abb","Cb"],
-    treble: ["Db4","Fb4","Abb4","Cb5"],
-    bass: ["Db3","Fb3","Abb4","Cb4"],
+  Dbm7b5: {
+    notes: ["Db", "Fb", "Abb", "Cb"],
+    treble: ["Db4", "Fb4", "Abb4", "Cb5"],
+    bass: ["Db3", "Fb3", "Abb4", "Cb4"],
     displayName: "Db Half-Diminished 7th",
   },
-  "Dbaug": {
-    notes: ["Db","F","A"],
-    treble: ["Db4","F4","A4"],
-    bass: ["Db3","F3","A3"],
+  Dbaug: {
+    notes: ["Db", "F", "A"],
+    treble: ["Db4", "F4", "A4"],
+    bass: ["Db3", "F3", "A3"],
     displayName: "Db Augmented",
   },
-  "Dbaug7": {
-    notes: ["Db","F","A","Cb"],
-    treble: ["Db4","F4","A4","Cb5"],
-    bass: ["Db2","F2","A2","Cb3"],
+  Dbaug7: {
+    notes: ["Db", "F", "A", "Cb"],
+    treble: ["Db4", "F4", "A4", "Cb5"],
+    bass: ["Db2", "F2", "A2", "Cb3"],
     displayName: "Db Augmented 7th",
   },
-  "Db7": {
-    notes: ["Db","F","Ab","Cb"],
-    treble: ["Db4","F4","Ab4","Cb5"],
-    bass: ["Db2","F2","Ab2","Cb3"],
+  Db7: {
+    notes: ["Db", "F", "Ab", "Cb"],
+    treble: ["Db4", "F4", "Ab4", "Cb5"],
+    bass: ["Db2", "F2", "Ab2", "Cb3"],
     displayName: "Db Dominant 7th",
   },
-  "Db9": {
-    notes: ["Db","F","Ab","Cb","Eb"],
-    treble: ["Db4","F4","Ab4","Cb5","Eb5"],
-    bass: ["Db2","F2","Ab2","Cb3","Eb3"],
+  Db9: {
+    notes: ["Db", "F", "Ab", "Cb", "Eb"],
+    treble: ["Db4", "F4", "Ab4", "Cb5", "Eb5"],
+    bass: ["Db2", "F2", "Ab2", "Cb3", "Eb3"],
     displayName: "Db Dominant 9th",
   },
-  "Dbsus4": {
-    notes: ["Db","Gb","Ab"],
-    treble: ["Db4","Gb4","Ab4"],
-    bass: ["Db3","Gb3","Ab3"],
+  Dbsus4: {
+    notes: ["Db", "Gb", "Ab"],
+    treble: ["Db4", "Gb4", "Ab4"],
+    bass: ["Db3", "Gb3", "Ab3"],
     displayName: "Db Suspended 4th",
   },
-  "Dbsus2": {
-    notes: ["Db","Eb","Ab"],
-    treble: ["Db4","Eb4","Ab4"],
-    bass: ["Db3","Eb3","Ab3"],
+  Dbsus2: {
+    notes: ["Db", "Eb", "Ab"],
+    treble: ["Db4", "Eb4", "Ab4"],
+    bass: ["Db3", "Eb3", "Ab3"],
     displayName: "Db Suspended 2nd",
   },
-  "D": {
-    notes: ["D","F#","A"],
-    treble: ["D4","F#4","A4"],
-    bass: ["D3","F#3","A3"],
+  D: {
+    notes: ["D", "F#", "A"],
+    treble: ["D4", "F#4", "A4"],
+    bass: ["D3", "F#3", "A3"],
     displayName: "D Major",
   },
-  "Dmaj7": {
-    notes: ["D","F#","A","C#"],
-    treble: ["D4","F#4","A4","C#5"],
-    bass: ["D3","F#3","A3","C#4"],
+  Dmaj7: {
+    notes: ["D", "F#", "A", "C#"],
+    treble: ["D4", "F#4", "A4", "C#5"],
+    bass: ["D3", "F#3", "A3", "C#4"],
     displayName: "D Major 7th",
   },
-  "Dmaj6": {
-    notes: ["D","F#","A","B"],
-    treble: ["D4","F#4","A4","B4"],
-    bass: ["D3","F#3","A3","B3"],
+  Dmaj6: {
+    notes: ["D", "F#", "A", "B"],
+    treble: ["D4", "F#4", "A4", "B4"],
+    bass: ["D3", "F#3", "A3", "B3"],
     displayName: "D Major 6th",
   },
-  "Dmaj9": {
-    notes: ["D","F#","A","C#","E"],
-    treble: ["D4","F#4","A4","C#5","E5"],
-    bass: ["D2","F#2","A2","C#3","E3"],
+  Dmaj9: {
+    notes: ["D", "F#", "A", "C#", "E"],
+    treble: ["D4", "F#4", "A4", "C#5", "E5"],
+    bass: ["D2", "F#2", "A2", "C#3", "E3"],
     displayName: "D Major 9th",
   },
-  "Dm": {
-    notes: ["D","F","A"],
-    treble: ["D4","F4","A4"],
-    bass: ["D3","F3","A3"],
+  Dm: {
+    notes: ["D", "F", "A"],
+    treble: ["D4", "F4", "A4"],
+    bass: ["D3", "F3", "A3"],
     displayName: "D Minor",
   },
-  "Dmin7": {
-    notes: ["D","F","A","C"],
-    treble: ["D4","F4","A4","C5"],
-    bass: ["D2","F2","A2","C3"],
+  Dmin7: {
+    notes: ["D", "F", "A", "C"],
+    treble: ["D4", "F4", "A4", "C5"],
+    bass: ["D2", "F2", "A2", "C3"],
     displayName: "D Minor 7th",
   },
-  "Dmin6": {
-    notes: ["D","F","A","B"],
-    treble: ["D4","F4","A4","B4"],
-    bass: ["D3","F3","A3","B3"],
+  Dmin6: {
+    notes: ["D", "F", "A", "B"],
+    treble: ["D4", "F4", "A4", "B4"],
+    bass: ["D3", "F3", "A3", "B3"],
     displayName: "D Minor 6th",
   },
-  "Dmin9": {
-    notes: ["D","F","A","C","E"],
-    treble: ["D4","F4","A4","C5","E5"],
-    bass: ["D2","F2","A2","C3","E3"],
+  Dmin9: {
+    notes: ["D", "F", "A", "C", "E"],
+    treble: ["D4", "F4", "A4", "C5", "E5"],
+    bass: ["D2", "F2", "A2", "C3", "E3"],
     displayName: "D Minor 9th",
   },
-  "Ddim": {
-    notes: ["D","F","Ab"],
-    treble: ["D4","F4","Ab4"],
-    bass: ["D3","F3","Ab3"],
+  Ddim: {
+    notes: ["D", "F", "Ab"],
+    treble: ["D4", "F4", "Ab4"],
+    bass: ["D3", "F3", "Ab3"],
     displayName: "D Diminished",
   },
-  "Ddim7": {
-    notes: ["D","F","Ab","Cb"],
-    treble: ["D4","F4","Ab4","Cb5"],
-    bass: ["D3","F3","Ab3","Cb4"],
+  Ddim7: {
+    notes: ["D", "F", "Ab", "Cb"],
+    treble: ["D4", "F4", "Ab4", "Cb5"],
+    bass: ["D3", "F3", "Ab3", "Cb4"],
     displayName: "D Diminished 7th",
   },
-  "Dm7b5": {
-    notes: ["D","F","Ab","C"],
-    treble: ["D4","F4","Ab4","C5"],
-    bass: ["D3","F3","Ab3","C4"],
+  Dm7b5: {
+    notes: ["D", "F", "Ab", "C"],
+    treble: ["D4", "F4", "Ab4", "C5"],
+    bass: ["D3", "F3", "Ab3", "C4"],
     displayName: "D Half-Diminished 7th",
   },
-  "Daug": {
-    notes: ["D","F#","A#"],
-    treble: ["D4","F#4","A#4"],
-    bass: ["D3","F#3","A#3"],
+  Daug: {
+    notes: ["D", "F#", "A#"],
+    treble: ["D4", "F#4", "A#4"],
+    bass: ["D3", "F#3", "A#3"],
     displayName: "D Augmented",
   },
-  "Daug7": {
-    notes: ["D","F#","A#","C"],
-    treble: ["D4","F#4","A#4","C5"],
-    bass: ["D2","F#2","A#2","C3"],
+  Daug7: {
+    notes: ["D", "F#", "A#", "C"],
+    treble: ["D4", "F#4", "A#4", "C5"],
+    bass: ["D2", "F#2", "A#2", "C3"],
     displayName: "D Augmented 7th",
   },
-  "D7": {
-    notes: ["D","F#","A","C"],
-    treble: ["D4","F#4","A4","C5"],
-    bass: ["D3","F#3","A3","C4"],
+  D7: {
+    notes: ["D", "F#", "A", "C"],
+    treble: ["D4", "F#4", "A4", "C5"],
+    bass: ["D3", "F#3", "A3", "C4"],
     displayName: "D Dominant 7th",
   },
-  "D9": {
-    notes: ["D","F#","A","C","E"],
-    treble: ["D4","F#4","A4","C5","E5"],
-    bass: ["D2","F#2","A2","C3","E3"],
+  D9: {
+    notes: ["D", "F#", "A", "C", "E"],
+    treble: ["D4", "F#4", "A4", "C5", "E5"],
+    bass: ["D2", "F#2", "A2", "C3", "E3"],
     displayName: "D Dominant 9th",
   },
-  "Dsus4": {
-    notes: ["D","G","A"],
-    treble: ["D4","G4","A4"],
-    bass: ["D3","G3","A3"],
+  Dsus4: {
+    notes: ["D", "G", "A"],
+    treble: ["D4", "G4", "A4"],
+    bass: ["D3", "G3", "A3"],
     displayName: "D Suspended 4th",
   },
-  "Dsus2": {
-    notes: ["D","E","A"],
-    treble: ["D4","E4","A4"],
-    bass: ["D3","E3","A3"],
+  Dsus2: {
+    notes: ["D", "E", "A"],
+    treble: ["D4", "E4", "A4"],
+    bass: ["D3", "E3", "A3"],
     displayName: "D Suspended 2nd",
   },
   "D#": {
-    notes: ["D#","F##","A#"],
-    treble: ["D#4","F##4","A#4"],
-    bass: ["D#3","F##3","A#3"],
+    notes: ["D#", "F##", "A#"],
+    treble: ["D#4", "F##4", "A#4"],
+    bass: ["D#3", "F##3", "A#3"],
     displayName: "D# Major",
   },
   "D#maj7": {
-    notes: ["D#","F##","A#","C##"],
-    treble: ["D#4","F##4","A#4","C##5"],
-    bass: ["D#2","F##2","A#2","C##3"],
+    notes: ["D#", "F##", "A#", "C##"],
+    treble: ["D#4", "F##4", "A#4", "C##5"],
+    bass: ["D#2", "F##2", "A#2", "C##3"],
     displayName: "D# Major 7th",
   },
   "D#maj6": {
-    notes: ["D#","F##","A#","B#"],
-    treble: ["D#4","F##4","A#4","B#4"],
-    bass: ["D#3","F##3","A#3","B#3"],
+    notes: ["D#", "F##", "A#", "B#"],
+    treble: ["D#4", "F##4", "A#4", "B#4"],
+    bass: ["D#3", "F##3", "A#3", "B#3"],
     displayName: "D# Major 6th",
   },
   "D#maj9": {
-    notes: ["D#","F##","A#","C##","E#"],
-    treble: ["D#4","F##4","A#4","C##5","E#5"],
-    bass: ["D#2","F##2","A#2","C##3","E#3"],
+    notes: ["D#", "F##", "A#", "C##", "E#"],
+    treble: ["D#4", "F##4", "A#4", "C##5", "E#5"],
+    bass: ["D#2", "F##2", "A#2", "C##3", "E#3"],
     displayName: "D# Major 9th",
   },
   "D#m": {
-    notes: ["D#","F#","A#"],
-    treble: ["D#4","F#4","A#4"],
-    bass: ["D#3","F#3","A#3"],
+    notes: ["D#", "F#", "A#"],
+    treble: ["D#4", "F#4", "A#4"],
+    bass: ["D#3", "F#3", "A#3"],
     displayName: "D# Minor",
   },
   "D#min7": {
-    notes: ["D#","F#","A#","C#"],
-    treble: ["D#4","F#4","A#4","C#5"],
-    bass: ["D#2","F#2","A#2","C#3"],
+    notes: ["D#", "F#", "A#", "C#"],
+    treble: ["D#4", "F#4", "A#4", "C#5"],
+    bass: ["D#2", "F#2", "A#2", "C#3"],
     displayName: "D# Minor 7th",
   },
   "D#min6": {
-    notes: ["D#","F#","A#","B#"],
-    treble: ["D#4","F#4","A#4","B#4"],
-    bass: ["D#3","F#3","A#3","B#3"],
+    notes: ["D#", "F#", "A#", "B#"],
+    treble: ["D#4", "F#4", "A#4", "B#4"],
+    bass: ["D#3", "F#3", "A#3", "B#3"],
     displayName: "D# Minor 6th",
   },
   "D#min9": {
-    notes: ["D#","F#","A#","C#","E#"],
-    treble: ["D#4","F#4","A#4","C#5","E#5"],
-    bass: ["D#2","F#2","A#2","C#3","E#3"],
+    notes: ["D#", "F#", "A#", "C#", "E#"],
+    treble: ["D#4", "F#4", "A#4", "C#5", "E#5"],
+    bass: ["D#2", "F#2", "A#2", "C#3", "E#3"],
     displayName: "D# Minor 9th",
   },
   "D#dim": {
-    notes: ["D#","F#","A"],
-    treble: ["D#4","F#4","A4"],
-    bass: ["D#3","F#3","A3"],
+    notes: ["D#", "F#", "A"],
+    treble: ["D#4", "F#4", "A4"],
+    bass: ["D#3", "F#3", "A3"],
     displayName: "D# Diminished",
   },
   "D#dim7": {
-    notes: ["D#","F#","A","C"],
-    treble: ["D#4","F#4","A4","C5"],
-    bass: ["D#3","F#3","A3","C4"],
+    notes: ["D#", "F#", "A", "C"],
+    treble: ["D#4", "F#4", "A4", "C5"],
+    bass: ["D#3", "F#3", "A3", "C4"],
     displayName: "D# Diminished 7th",
   },
   "D#m7b5": {
-    notes: ["D#","F#","A","C#"],
-    treble: ["D#4","F#4","A4","C#5"],
-    bass: ["D#3","F#3","A3","C#4"],
+    notes: ["D#", "F#", "A", "C#"],
+    treble: ["D#4", "F#4", "A4", "C#5"],
+    bass: ["D#3", "F#3", "A3", "C#4"],
     displayName: "D# Half-Diminished 7th",
   },
   "D#aug": {
-    notes: ["D#","F##","A##"],
-    treble: ["D#4","F##4","A##4"],
-    bass: ["D#3","F##3","A##3"],
+    notes: ["D#", "F##", "A##"],
+    treble: ["D#4", "F##4", "A##4"],
+    bass: ["D#3", "F##3", "A##3"],
     displayName: "D# Augmented",
   },
   "D#aug7": {
-    notes: ["D#","F##","A##","C#"],
-    treble: ["D#4","F##4","A##4","C#5"],
-    bass: ["D#2","F##2","A##2","C#3"],
+    notes: ["D#", "F##", "A##", "C#"],
+    treble: ["D#4", "F##4", "A##4", "C#5"],
+    bass: ["D#2", "F##2", "A##2", "C#3"],
     displayName: "D# Augmented 7th",
   },
   "D#7": {
-    notes: ["D#","F##","A#","C#"],
-    treble: ["D#4","F##4","A#4","C#5"],
-    bass: ["D#3","F##3","A#3","C#4"],
+    notes: ["D#", "F##", "A#", "C#"],
+    treble: ["D#4", "F##4", "A#4", "C#5"],
+    bass: ["D#3", "F##3", "A#3", "C#4"],
     displayName: "D# Dominant 7th",
   },
   "D#9": {
-    notes: ["D#","F##","A#","C#","E#"],
-    treble: ["D#4","F##4","A#4","C#5","E#5"],
-    bass: ["D#2","F##2","A#2","C#3","E#3"],
+    notes: ["D#", "F##", "A#", "C#", "E#"],
+    treble: ["D#4", "F##4", "A#4", "C#5", "E#5"],
+    bass: ["D#2", "F##2", "A#2", "C#3", "E#3"],
     displayName: "D# Dominant 9th",
   },
   "D#sus4": {
-    notes: ["D#","G#","A#"],
-    treble: ["D#4","G#4","A#4"],
-    bass: ["D#3","G#3","A#3"],
+    notes: ["D#", "G#", "A#"],
+    treble: ["D#4", "G#4", "A#4"],
+    bass: ["D#3", "G#3", "A#3"],
     displayName: "D# Suspended 4th",
   },
   "D#sus2": {
-    notes: ["D#","E#","A#"],
-    treble: ["D#4","E#4","A#4"],
-    bass: ["D#3","E#3","A#3"],
+    notes: ["D#", "E#", "A#"],
+    treble: ["D#4", "E#4", "A#4"],
+    bass: ["D#3", "E#3", "A#3"],
     displayName: "D# Suspended 2nd",
   },
-  "Eb": {
-    notes: ["Eb","G","Bb"],
-    treble: ["Eb4","G4","Bb4"],
-    bass: ["Eb3","G3","Bb3"],
+  Eb: {
+    notes: ["Eb", "G", "Bb"],
+    treble: ["Eb4", "G4", "Bb4"],
+    bass: ["Eb3", "G3", "Bb3"],
     displayName: "Eb Major",
   },
-  "Ebmaj7": {
-    notes: ["Eb","G","Bb","D"],
-    treble: ["Eb4","G4","Bb4","D5"],
-    bass: ["Eb2","G2","Bb2","D3"],
+  Ebmaj7: {
+    notes: ["Eb", "G", "Bb", "D"],
+    treble: ["Eb4", "G4", "Bb4", "D5"],
+    bass: ["Eb2", "G2", "Bb2", "D3"],
     displayName: "Eb Major 7th",
   },
-  "Ebmaj6": {
-    notes: ["Eb","G","Bb","C"],
-    treble: ["Eb4","G4","Bb4","C5"],
-    bass: ["Eb2","G2","Bb2","C3"],
+  Ebmaj6: {
+    notes: ["Eb", "G", "Bb", "C"],
+    treble: ["Eb4", "G4", "Bb4", "C5"],
+    bass: ["Eb2", "G2", "Bb2", "C3"],
     displayName: "Eb Major 6th",
   },
-  "Ebmaj9": {
-    notes: ["Eb","G","Bb","D","F"],
-    treble: ["Eb4","G4","Bb4","D5","F5"],
-    bass: ["Eb2","G2","Bb2","D3","F3"],
+  Ebmaj9: {
+    notes: ["Eb", "G", "Bb", "D", "F"],
+    treble: ["Eb4", "G4", "Bb4", "D5", "F5"],
+    bass: ["Eb2", "G2", "Bb2", "D3", "F3"],
     displayName: "Eb Major 9th",
   },
-  "Ebm": {
-    notes: ["Eb","Gb","Bb"],
-    treble: ["Eb4","Gb4","Bb4"],
-    bass: ["Eb3","Gb3","Bb3"],
+  Ebm: {
+    notes: ["Eb", "Gb", "Bb"],
+    treble: ["Eb4", "Gb4", "Bb4"],
+    bass: ["Eb3", "Gb3", "Bb3"],
     displayName: "Eb Minor",
   },
-  "Ebmin7": {
-    notes: ["Eb","Gb","Bb","Db"],
-    treble: ["Eb4","Gb4","Bb4","Db5"],
-    bass: ["Eb2","Gb2","Bb2","Db3"],
+  Ebmin7: {
+    notes: ["Eb", "Gb", "Bb", "Db"],
+    treble: ["Eb4", "Gb4", "Bb4", "Db5"],
+    bass: ["Eb2", "Gb2", "Bb2", "Db3"],
     displayName: "Eb Minor 7th",
   },
-  "Ebmin6": {
-    notes: ["Eb","Gb","Bb","C"],
-    treble: ["Eb4","Gb4","Bb4","C5"],
-    bass: ["Eb2","Gb2","Bb2","C3"],
+  Ebmin6: {
+    notes: ["Eb", "Gb", "Bb", "C"],
+    treble: ["Eb4", "Gb4", "Bb4", "C5"],
+    bass: ["Eb2", "Gb2", "Bb2", "C3"],
     displayName: "Eb Minor 6th",
   },
-  "Ebmin9": {
-    notes: ["Eb","Gb","Bb","Db","F"],
-    treble: ["Eb4","Gb4","Bb4","Db5","F5"],
-    bass: ["Eb2","Gb2","Bb2","Db3","F3"],
+  Ebmin9: {
+    notes: ["Eb", "Gb", "Bb", "Db", "F"],
+    treble: ["Eb4", "Gb4", "Bb4", "Db5", "F5"],
+    bass: ["Eb2", "Gb2", "Bb2", "Db3", "F3"],
     displayName: "Eb Minor 9th",
   },
-  "Ebdim": {
-    notes: ["Eb","Gb","Bbb"],
-    treble: ["Eb4","Gb4","Bbb4"],
-    bass: ["Eb3","Gb3","Bbb3"],
+  Ebdim: {
+    notes: ["Eb", "Gb", "Bbb"],
+    treble: ["Eb4", "Gb4", "Bbb4"],
+    bass: ["Eb3", "Gb3", "Bbb3"],
     displayName: "Eb Diminished",
   },
-  "Ebdim7": {
-    notes: ["Eb","Gb","Bbb","Dbb"],
-    treble: ["Eb4","Gb4","Bbb4","Dbb5"],
-    bass: ["Eb3","Gb3","Bbb3","Dbb4"],
+  Ebdim7: {
+    notes: ["Eb", "Gb", "Bbb", "Dbb"],
+    treble: ["Eb4", "Gb4", "Bbb4", "Dbb5"],
+    bass: ["Eb3", "Gb3", "Bbb3", "Dbb4"],
     displayName: "Eb Diminished 7th",
   },
-  "Ebm7b5": {
-    notes: ["Eb","Gb","Bbb","Db"],
-    treble: ["Eb4","Gb4","Bbb4","Db5"],
-    bass: ["Eb3","Gb3","Bbb3","Db4"],
+  Ebm7b5: {
+    notes: ["Eb", "Gb", "Bbb", "Db"],
+    treble: ["Eb4", "Gb4", "Bbb4", "Db5"],
+    bass: ["Eb3", "Gb3", "Bbb3", "Db4"],
     displayName: "Eb Half-Diminished 7th",
   },
-  "Ebaug": {
-    notes: ["Eb","G","B"],
-    treble: ["Eb4","G4","B4"],
-    bass: ["Eb3","G3","B3"],
+  Ebaug: {
+    notes: ["Eb", "G", "B"],
+    treble: ["Eb4", "G4", "B4"],
+    bass: ["Eb3", "G3", "B3"],
     displayName: "Eb Augmented",
   },
-  "Ebaug7": {
-    notes: ["Eb","G","B","Db"],
-    treble: ["Eb4","G4","B4","Db5"],
-    bass: ["Eb2","G2","B2","Db3"],
+  Ebaug7: {
+    notes: ["Eb", "G", "B", "Db"],
+    treble: ["Eb4", "G4", "B4", "Db5"],
+    bass: ["Eb2", "G2", "B2", "Db3"],
     displayName: "Eb Augmented 7th",
   },
-  "Eb7": {
-    notes: ["Eb","G","Bb","Db"],
-    treble: ["Eb4","G4","Bb4","Db5"],
-    bass: ["Eb2","G2","Bb2","Db3"],
+  Eb7: {
+    notes: ["Eb", "G", "Bb", "Db"],
+    treble: ["Eb4", "G4", "Bb4", "Db5"],
+    bass: ["Eb2", "G2", "Bb2", "Db3"],
     displayName: "Eb Dominant 7th",
   },
-  "Eb9": {
-    notes: ["Eb","G","Bb","Db","F"],
-    treble: ["Eb4","G4","Bb4","Db5","F5"],
-    bass: ["Eb2","G2","Bb2","Db3","F3"],
+  Eb9: {
+    notes: ["Eb", "G", "Bb", "Db", "F"],
+    treble: ["Eb4", "G4", "Bb4", "Db5", "F5"],
+    bass: ["Eb2", "G2", "Bb2", "Db3", "F3"],
     displayName: "Eb Dominant 9th",
   },
-  "Ebsus4": {
-    notes: ["Eb","Ab","Bb"],
-    treble: ["Eb4","Ab4","Bb4"],
-    bass: ["Eb3","Ab3","Bb3"],
+  Ebsus4: {
+    notes: ["Eb", "Ab", "Bb"],
+    treble: ["Eb4", "Ab4", "Bb4"],
+    bass: ["Eb3", "Ab3", "Bb3"],
     displayName: "Eb Suspended 4th",
   },
-  "Ebsus2": {
-    notes: ["Eb","F","Bb"],
-    treble: ["Eb4","F4","Bb4"],
-    bass: ["Eb3","F3","Bb3"],
+  Ebsus2: {
+    notes: ["Eb", "F", "Bb"],
+    treble: ["Eb4", "F4", "Bb4"],
+    bass: ["Eb3", "F3", "Bb3"],
     displayName: "Eb Suspended 2nd",
   },
-  "E": {
-    notes: ["E","G#","B"],
-    treble: ["E4","G#4","B4"],
-    bass: ["E3","G#3","B3"],
+  E: {
+    notes: ["E", "G#", "B"],
+    treble: ["E4", "G#4", "B4"],
+    bass: ["E3", "G#3", "B3"],
     displayName: "E Major",
   },
-  "Fb": {
-    notes: ["Fb","Ab","Cb"],
-    treble: ["Fb4","Ab4","Cb5"],
-    bass: ["Fb3","Ab3","Cb4"],
+  Fb: {
+    notes: ["Fb", "Ab", "Cb"],
+    treble: ["Fb4", "Ab4", "Cb5"],
+    bass: ["Fb3", "Ab3", "Cb4"],
     displayName: "Fb Major",
   },
-  "Emaj7": {
-    notes: ["E","G#","B","D#"],
-    treble: ["E4","G#4","B4","D#5"],
-    bass: ["E2","G#2","B2","D#3"],
+  Emaj7: {
+    notes: ["E", "G#", "B", "D#"],
+    treble: ["E4", "G#4", "B4", "D#5"],
+    bass: ["E2", "G#2", "B2", "D#3"],
     displayName: "E Major 7th",
   },
-  "Emaj6": {
-    notes: ["E","G#","B","C#"],
-    treble: ["E4","G#4","B4","C#5"],
-    bass: ["E2","G#2","B2","C#3"],
+  Emaj6: {
+    notes: ["E", "G#", "B", "C#"],
+    treble: ["E4", "G#4", "B4", "C#5"],
+    bass: ["E2", "G#2", "B2", "C#3"],
     displayName: "E Major 6th",
   },
-  "Emaj9": {
-    notes: ["E","G#","B","D#","F#"],
-    treble: ["E4","G#4","B4","D#5","F#5"],
-    bass: ["E2","G#2","B2","D#3","F#3"],
+  Emaj9: {
+    notes: ["E", "G#", "B", "D#", "F#"],
+    treble: ["E4", "G#4", "B4", "D#5", "F#5"],
+    bass: ["E2", "G#2", "B2", "D#3", "F#3"],
     displayName: "E Major 9th",
   },
-  "Em": {
-    notes: ["E","G","B"],
-    treble: ["E4","G4","B4"],
-    bass: ["E3","G3","B3"],
+  Em: {
+    notes: ["E", "G", "B"],
+    treble: ["E4", "G4", "B4"],
+    bass: ["E3", "G3", "B3"],
     displayName: "E Minor",
   },
-  "Emin7": {
-    notes: ["E","G","B","D"],
-    treble: ["E4","G4","B4","D5"],
-    bass: ["E2","G2","B2","D3"],
+  Emin7: {
+    notes: ["E", "G", "B", "D"],
+    treble: ["E4", "G4", "B4", "D5"],
+    bass: ["E2", "G2", "B2", "D3"],
     displayName: "E Minor 7th",
   },
-  "Emin6": {
-    notes: ["E","G","B","C#"],
-    treble: ["E4","G4","B4","C#5"],
-    bass: ["E2","G2","B2","C#3"],
+  Emin6: {
+    notes: ["E", "G", "B", "C#"],
+    treble: ["E4", "G4", "B4", "C#5"],
+    bass: ["E2", "G2", "B2", "C#3"],
     displayName: "E Minor 6th",
   },
-  "Emin9": {
-    notes: ["E","G","B","D","F#"],
-    treble: ["E4","G4","B4","D5","F#5"],
-    bass: ["E2","G2","B2","D3","F#3"],
+  Emin9: {
+    notes: ["E", "G", "B", "D", "F#"],
+    treble: ["E4", "G4", "B4", "D5", "F#5"],
+    bass: ["E2", "G2", "B2", "D3", "F#3"],
     displayName: "E Minor 9th",
   },
-  "Edim": {
-    notes: ["E","G","Bb"],
-    treble: ["E4","G4","Bb4"],
-    bass: ["E3","G3","Bb3"],
+  Edim: {
+    notes: ["E", "G", "Bb"],
+    treble: ["E4", "G4", "Bb4"],
+    bass: ["E3", "G3", "Bb3"],
     displayName: "E Diminished",
   },
   "B#dim": {
-    notes: ["B#","G","A#"],
-    treble: ["B#4","G4","A#4"],
-    bass: ["B#3","G3","A#3"],
+    notes: ["B#", "G", "A#"],
+    treble: ["B#4", "G4", "A#4"],
+    bass: ["B#3", "G3", "A#3"],
     displayName: "B# Diminished",
   },
-  "Edim7": {
-    notes: ["E","G","Bb","Db"],
-    treble: ["E4","G4","Bb4","Db5"],
-    bass: ["E2","G2","Bb2","Db3"],
+  Edim7: {
+    notes: ["E", "G", "Bb", "Db"],
+    treble: ["E4", "G4", "Bb4", "Db5"],
+    bass: ["E2", "G2", "Bb2", "Db3"],
     displayName: "E Diminished 7th",
   },
-  "Em7b5": {
-    notes: ["E","G","Bb","D"],
-    treble: ["E4","G4","Bb4","D5"],
-    bass: ["E2","G2","Bb2","D3"],
+  Em7b5: {
+    notes: ["E", "G", "Bb", "D"],
+    treble: ["E4", "G4", "Bb4", "D5"],
+    bass: ["E2", "G2", "Bb2", "D3"],
     displayName: "E Half-Diminished 7th",
   },
-  "Eaug": {
-    notes: ["E","G#","B#"],
-    treble: ["E4","G#4","B#4"],
-    bass: ["E3","G#3","B#3"],
+  Eaug: {
+    notes: ["E", "G#", "B#"],
+    treble: ["E4", "G#4", "B#4"],
+    bass: ["E3", "G#3", "B#3"],
     displayName: "E Augmented",
   },
-  "Eaug7": {
-    notes: ["E","G#","B#","D"],
-    treble: ["E4","G#4","B#4","D5"],
-    bass: ["E2","G#2","B#2","D3"],
+  Eaug7: {
+    notes: ["E", "G#", "B#", "D"],
+    treble: ["E4", "G#4", "B#4", "D5"],
+    bass: ["E2", "G#2", "B#2", "D3"],
     displayName: "E Augmented 7th",
   },
-  "E7": {
-    notes: ["E","G#","B","D"],
-    treble: ["E4","G#4","B4","D5"],
-    bass: ["E2","G#2","B2","D3"],
+  E7: {
+    notes: ["E", "G#", "B", "D"],
+    treble: ["E4", "G#4", "B4", "D5"],
+    bass: ["E2", "G#2", "B2", "D3"],
     displayName: "E Dominant 7th",
   },
-  "E9": {
-    notes: ["E","G#","B","D","F#"],
-    treble: ["E4","G#4","B4","D5","F#5"],
-    bass: ["E2","G#2","B2","D3","F#3"],
+  E9: {
+    notes: ["E", "G#", "B", "D", "F#"],
+    treble: ["E4", "G#4", "B4", "D5", "F#5"],
+    bass: ["E2", "G#2", "B2", "D3", "F#3"],
     displayName: "E Dominant 9th",
   },
-  "Esus4": {
-    notes: ["E","A","B"],
-    treble: ["E4","A4","B4"],
-    bass: ["E3","A3","B3"],
+  Esus4: {
+    notes: ["E", "A", "B"],
+    treble: ["E4", "A4", "B4"],
+    bass: ["E3", "A3", "B3"],
     displayName: "E Suspended 4th",
   },
-  "Esus2": {
-    notes: ["E","F#","B"],
-    treble: ["E4","F#4","B4"],
-    bass: ["E3","F#3","B3"],
+  Esus2: {
+    notes: ["E", "F#", "B"],
+    treble: ["E4", "F#4", "B4"],
+    bass: ["E3", "F#3", "B3"],
     displayName: "E Suspended 2nd",
   },
-  "F": {
-    notes: ["F","A","C"],
-    treble: ["F4","A4","C5"],
-    bass: ["F2","A2","C3"],
+  F: {
+    notes: ["F", "A", "C"],
+    treble: ["F4", "A4", "C5"],
+    bass: ["F2", "A2", "C3"],
     displayName: "F Major",
   },
-  "Fmaj7": {
-    notes: ["F","A","C","E"],
-    treble: ["F4","A4","C5","E5"],
-    bass: ["F2","A2","C3","E3"],
+  Fmaj7: {
+    notes: ["F", "A", "C", "E"],
+    treble: ["F4", "A4", "C5", "E5"],
+    bass: ["F2", "A2", "C3", "E3"],
     displayName: "F Major 7th",
   },
-  "Fmaj6": {
-    notes: ["F","A","C","D"],
-    treble: ["F4","A4","C5","D5"],
-    bass: ["F2","A2","C3","D3"],
+  Fmaj6: {
+    notes: ["F", "A", "C", "D"],
+    treble: ["F4", "A4", "C5", "D5"],
+    bass: ["F2", "A2", "C3", "D3"],
     displayName: "F Major 6th",
   },
-  "Fmaj9": {
-    notes: ["F","A","C","E","G"],
-    treble: ["F4","A4","C5","E5","G5"],
-    bass: ["F2","A2","C3","E3","G3"],
+  Fmaj9: {
+    notes: ["F", "A", "C", "E", "G"],
+    treble: ["F4", "A4", "C5", "E5", "G5"],
+    bass: ["F2", "A2", "C3", "E3", "G3"],
     displayName: "F Major 9th",
   },
-  "Fm": {
-    notes: ["F","Ab","C"],
-    treble: ["F4","Ab4","C5"],
-    bass: ["F2","Ab2","C3"],
+  Fm: {
+    notes: ["F", "Ab", "C"],
+    treble: ["F4", "Ab4", "C5"],
+    bass: ["F2", "Ab2", "C3"],
     displayName: "F Minor",
   },
   "E#m": {
-    notes: ["E#","G#","C"],
-    treble: ["E#4","G#4","C5"],
-    bass: ["E#2","G#2","C3"],
+    notes: ["E#", "G#", "C"],
+    treble: ["E#4", "G#4", "C5"],
+    bass: ["E#2", "G#2", "C3"],
     displayName: "E# Minor",
   },
-  "Fmin7": {
-    notes: ["F","Ab","C","Eb"],
-    treble: ["F4","Ab4","C5","Eb5"],
-    bass: ["F2","Ab2","C3","Eb3"],
+  Fmin7: {
+    notes: ["F", "Ab", "C", "Eb"],
+    treble: ["F4", "Ab4", "C5", "Eb5"],
+    bass: ["F2", "Ab2", "C3", "Eb3"],
     displayName: "F Minor 7th",
   },
-  "Fmin6": {
-    notes: ["F","Ab","C","D"],
-    treble: ["F4","Ab4","C5","D5"],
-    bass: ["F2","Ab2","C3","D3"],
+  Fmin6: {
+    notes: ["F", "Ab", "C", "D"],
+    treble: ["F4", "Ab4", "C5", "D5"],
+    bass: ["F2", "Ab2", "C3", "D3"],
     displayName: "F Minor 6th",
   },
-  "Fmin9": {
-    notes: ["F","Ab","C","Eb","G"],
-    treble: ["F4","Ab4","C5","Eb5","G5"],
-    bass: ["F2","Ab2","C3","Eb3","G3"],
+  Fmin9: {
+    notes: ["F", "Ab", "C", "Eb", "G"],
+    treble: ["F4", "Ab4", "C5", "Eb5", "G5"],
+    bass: ["F2", "Ab2", "C3", "Eb3", "G3"],
     displayName: "F Minor 9th",
   },
-  "Fdim": {
-    notes: ["F","Ab","Cb"],
-    treble: ["F4","Ab4","Cb5"],
-    bass: ["F3","Ab3","Cb4"],
+  Fdim: {
+    notes: ["F", "Ab", "Cb"],
+    treble: ["F4", "Ab4", "Cb5"],
+    bass: ["F3", "Ab3", "Cb4"],
     displayName: "F Diminished",
   },
   "E#dim": {
-    notes: ["E#","G#","B"],
-    treble: ["E#4","G#4","B4"],
-    bass: ["E#3","Ab3","B4"],
+    notes: ["E#", "G#", "B"],
+    treble: ["E#4", "G#4", "B4"],
+    bass: ["E#3", "Ab3", "B4"],
     displayName: "E# Diminished",
   },
-  "Fdim7": {
-    notes: ["F","Ab","Cb","Ebb"],
-    treble: ["F4","Ab4","Cb5","Ebb5"],
-    bass: ["F2","Ab2","Cb3","Ebb3"],
+  Fdim7: {
+    notes: ["F", "Ab", "Cb", "Ebb"],
+    treble: ["F4", "Ab4", "Cb5", "Ebb5"],
+    bass: ["F2", "Ab2", "Cb3", "Ebb3"],
     displayName: "F Diminished 7th",
   },
-  "Fm7b5": {
-    notes: ["F","Ab","Cb","Eb"],
-    treble: ["F4","Ab4","Cb5","Eb5"],
-    bass: ["F2","Ab2","Cb3","Eb3"],
+  Fm7b5: {
+    notes: ["F", "Ab", "Cb", "Eb"],
+    treble: ["F4", "Ab4", "Cb5", "Eb5"],
+    bass: ["F2", "Ab2", "Cb3", "Eb3"],
     displayName: "F Half-Diminished 7th",
   },
-  "Faug": {
-    notes: ["F","A","C#"],
-    treble: ["F4","A4","C#5"],
-    bass: ["F2","A2","C#3"],
+  Faug: {
+    notes: ["F", "A", "C#"],
+    treble: ["F4", "A4", "C#5"],
+    bass: ["F2", "A2", "C#3"],
     displayName: "F Augmented",
   },
-  "Faug7": {
-    notes: ["F","A","C#","Eb"],
-    treble: ["F4","A4","C#5","Eb5"],
-    bass: ["F2","A2","C#3","Eb3"],
+  Faug7: {
+    notes: ["F", "A", "C#", "Eb"],
+    treble: ["F4", "A4", "C#5", "Eb5"],
+    bass: ["F2", "A2", "C#3", "Eb3"],
     displayName: "F Augmented 7th",
   },
-  "F7": {
-    notes: ["F","A","C","Eb"],
-    treble: ["F4","A4","C5","Eb5"],
-    bass: ["F2","A2","C3","Eb3"],
+  F7: {
+    notes: ["F", "A", "C", "Eb"],
+    treble: ["F4", "A4", "C5", "Eb5"],
+    bass: ["F2", "A2", "C3", "Eb3"],
     displayName: "F Dominant 7th",
   },
-  "F9": {
-    notes: ["F","A","C","Eb","G"],
-    treble: ["F4","A4","C5","Eb5","G5"],
-    bass: ["F2","A2","C3","Eb3","G3"],
+  F9: {
+    notes: ["F", "A", "C", "Eb", "G"],
+    treble: ["F4", "A4", "C5", "Eb5", "G5"],
+    bass: ["F2", "A2", "C3", "Eb3", "G3"],
     displayName: "F Dominant 9th",
   },
-  "Fsus4": {
-    notes: ["F","Bb","C"],
-    treble: ["F4","Bb4","C5"],
-    bass: ["F2","Bb2","C3"],
+  Fsus4: {
+    notes: ["F", "Bb", "C"],
+    treble: ["F4", "Bb4", "C5"],
+    bass: ["F2", "Bb2", "C3"],
     displayName: "F Suspended 4th",
   },
-  "Fsus2": {
-    notes: ["F","G","C"],
-    treble: ["F4","G4","C5"],
-    bass: ["F2","G2","C3"],
+  Fsus2: {
+    notes: ["F", "G", "C"],
+    treble: ["F4", "G4", "C5"],
+    bass: ["F2", "G2", "C3"],
     displayName: "F Suspended 2nd",
   },
   "F#": {
-    notes: ["F#","A#","C#"],
-    treble: ["F#4","A#4","C#5"],
-    bass: ["F#2","A#2","C#3"],
+    notes: ["F#", "A#", "C#"],
+    treble: ["F#4", "A#4", "C#5"],
+    bass: ["F#2", "A#2", "C#3"],
     displayName: "F# Major",
   },
   "F#maj7": {
-    notes: ["F#","A#","C#","E#"],
-    treble: ["F#4","A#4","C#5","E#5"],
-    bass: ["F#2","A#2","C#3","E#3"],
+    notes: ["F#", "A#", "C#", "E#"],
+    treble: ["F#4", "A#4", "C#5", "E#5"],
+    bass: ["F#2", "A#2", "C#3", "E#3"],
     displayName: "F# Major 7th",
   },
   "F#maj6": {
-    notes: ["F#","A#","C#","D#"],
-    treble: ["F#4","A#4","C#5","D#5"],
-    bass: ["F#2","A#2","C#3","D#3"],
+    notes: ["F#", "A#", "C#", "D#"],
+    treble: ["F#4", "A#4", "C#5", "D#5"],
+    bass: ["F#2", "A#2", "C#3", "D#3"],
     displayName: "F# Major 6th",
   },
   "F#maj9": {
-    notes: ["F#","A#","C#","E#","G#"],
-    treble: ["F#4","A#4","C#5","E#5","G#5"],
-    bass: ["F#2","A#2","C#3","E#3","G#3"],
+    notes: ["F#", "A#", "C#", "E#", "G#"],
+    treble: ["F#4", "A#4", "C#5", "E#5", "G#5"],
+    bass: ["F#2", "A#2", "C#3", "E#3", "G#3"],
     displayName: "F# Major 9th",
   },
   "F#m": {
-    notes: ["F#","A","C#"],
-    treble: ["F#4","A4","C#5"],
-    bass: ["F#2","A2","C#3"],
+    notes: ["F#", "A", "C#"],
+    treble: ["F#4", "A4", "C#5"],
+    bass: ["F#2", "A2", "C#3"],
     displayName: "F# Minor",
   },
   "F#min7": {
-    notes: ["F#","A","C#","E"],
-    treble: ["F#4","A4","C#5","E5"],
-    bass: ["F#2","A2","C#3","E3"],
+    notes: ["F#", "A", "C#", "E"],
+    treble: ["F#4", "A4", "C#5", "E5"],
+    bass: ["F#2", "A2", "C#3", "E3"],
     displayName: "F# Minor 7th",
   },
   "F#min6": {
-    notes: ["F#","A","C#","D#"],
-    treble: ["F#4","A4","C#5","D#5"],
-    bass: ["F#2","A2","C#3","D#3"],
+    notes: ["F#", "A", "C#", "D#"],
+    treble: ["F#4", "A4", "C#5", "D#5"],
+    bass: ["F#2", "A2", "C#3", "D#3"],
     displayName: "F# Minor 6th",
   },
   "F#min9": {
-    notes: ["F#","A","C#","E","G#"],
-    treble: ["F#4","A4","C#5","E5","G#5"],
-    bass: ["F#2","A2","C#3","E3","G#3"],
+    notes: ["F#", "A", "C#", "E", "G#"],
+    treble: ["F#4", "A4", "C#5", "E5", "G#5"],
+    bass: ["F#2", "A2", "C#3", "E3", "G#3"],
     displayName: "F# Minor 9th",
   },
   "F#dim": {
-    notes: ["F#","A","C"],
-    treble: ["F#4","A4","C5"],
-    bass: ["F#3","A3","C4"],
+    notes: ["F#", "A", "C"],
+    treble: ["F#4", "A4", "C5"],
+    bass: ["F#3", "A3", "C4"],
     displayName: "F# Diminished",
   },
   "F#dim7": {
-    notes: ["F#","A","C","Eb"],
-    treble: ["F#4","A4","C5","Eb5"],
-    bass: ["F#2","A2","C3","Eb3"],
+    notes: ["F#", "A", "C", "Eb"],
+    treble: ["F#4", "A4", "C5", "Eb5"],
+    bass: ["F#2", "A2", "C3", "Eb3"],
     displayName: "F# Diminished 7th",
   },
   "F#m7b5": {
-    notes: ["F#","A","C","E"],
-    treble: ["F#4","A4","C5","E5"],
-    bass: ["F#2","A2","C3","E3"],
+    notes: ["F#", "A", "C", "E"],
+    treble: ["F#4", "A4", "C5", "E5"],
+    bass: ["F#2", "A2", "C3", "E3"],
     displayName: "F# Half-Diminished 7th",
   },
   "F#aug": {
-    notes: ["F#","A#","C##"],
-    treble: ["F#4","A#4","C##5"],
-    bass: ["F#2","A#2","C##3"],
+    notes: ["F#", "A#", "C##"],
+    treble: ["F#4", "A#4", "C##5"],
+    bass: ["F#2", "A#2", "C##3"],
     displayName: "F# Augmented",
   },
   "F#aug7": {
-    notes: ["F#","A#","C##","E"],
-    treble: ["F#4","A#4","C##5","E5"],
-    bass: ["F#2","A#2","C##3","E3"],
+    notes: ["F#", "A#", "C##", "E"],
+    treble: ["F#4", "A#4", "C##5", "E5"],
+    bass: ["F#2", "A#2", "C##3", "E3"],
     displayName: "F# Augmented 7th",
   },
   "F#7": {
-    notes: ["F#","A#","C#","E"],
-    treble: ["F#4","A#4","C#5","E5"],
-    bass: ["F#2","A#2","C#3","E3"],
+    notes: ["F#", "A#", "C#", "E"],
+    treble: ["F#4", "A#4", "C#5", "E5"],
+    bass: ["F#2", "A#2", "C#3", "E3"],
     displayName: "F# Dominant 7th",
   },
   "F#9": {
-    notes: ["F#","A#","C#","E","G#"],
-    treble: ["F#4","A#4","C#5","E5","G#5"],
-    bass: ["F#2","A#2","C#3","E3","G#3"],
+    notes: ["F#", "A#", "C#", "E", "G#"],
+    treble: ["F#4", "A#4", "C#5", "E5", "G#5"],
+    bass: ["F#2", "A#2", "C#3", "E3", "G#3"],
     displayName: "F# Dominant 9th",
   },
   "F#sus4": {
-    notes: ["F#","B","C#"],
-    treble: ["F#4","B4","C#5"],
-    bass: ["F#2","B2","C#3"],
+    notes: ["F#", "B", "C#"],
+    treble: ["F#4", "B4", "C#5"],
+    bass: ["F#2", "B2", "C#3"],
     displayName: "F# Suspended 4th",
   },
   "F#sus2": {
-    notes: ["F#","G#","C#"],
-    treble: ["F#4","G#4","C#5"],
-    bass: ["F#2","G#2","C#3"],
+    notes: ["F#", "G#", "C#"],
+    treble: ["F#4", "G#4", "C#5"],
+    bass: ["F#2", "G#2", "C#3"],
     displayName: "F# Suspended 2nd",
   },
-  "Gb": {
-    notes: ["Gb","Bb","Db"],
-    treble: ["Gb4","Bb4","Db5"],
-    bass: ["Gb2","Bb2","Db3"],
+  Gb: {
+    notes: ["Gb", "Bb", "Db"],
+    treble: ["Gb4", "Bb4", "Db5"],
+    bass: ["Gb2", "Bb2", "Db3"],
     displayName: "Gb Major",
   },
-  "Gbmaj7": {
-    notes: ["Gb","Bb","Db","F"],
-    treble: ["Gb4","Bb4","Db5","F5"],
-    bass: ["Gb2","Bb2","Db3","F3"],
+  Gbmaj7: {
+    notes: ["Gb", "Bb", "Db", "F"],
+    treble: ["Gb4", "Bb4", "Db5", "F5"],
+    bass: ["Gb2", "Bb2", "Db3", "F3"],
     displayName: "Gb Major 7th",
   },
-  "Gbmaj6": {
-    notes: ["Gb","Bb","Db","Eb"],
-    treble: ["Gb4","Bb4","Db5","Eb5"],
-    bass: ["Gb2","Bb2","Db3","Eb3"],
+  Gbmaj6: {
+    notes: ["Gb", "Bb", "Db", "Eb"],
+    treble: ["Gb4", "Bb4", "Db5", "Eb5"],
+    bass: ["Gb2", "Bb2", "Db3", "Eb3"],
     displayName: "Gb Major 6th",
   },
-  "Gbmaj9": {
-    notes: ["Gb","Bb","Db","F","Ab"],
-    treble: ["Gb4","Bb4","Db5","F5","Ab5"],
-    bass: ["Gb2","Bb2","Db3","F3","Ab3"],
+  Gbmaj9: {
+    notes: ["Gb", "Bb", "Db", "F", "Ab"],
+    treble: ["Gb4", "Bb4", "Db5", "F5", "Ab5"],
+    bass: ["Gb2", "Bb2", "Db3", "F3", "Ab3"],
     displayName: "Gb Major 9th",
   },
-  "Gbm": {
-    notes: ["Gb","Bbb","Db"],
-    treble: ["Gb4","Bbb4","Db5"],
-    bass: ["Gb2","Bbb2","Db3"],
+  Gbm: {
+    notes: ["Gb", "Bbb", "Db"],
+    treble: ["Gb4", "Bbb4", "Db5"],
+    bass: ["Gb2", "Bbb2", "Db3"],
     displayName: "Gb Minor",
   },
-  "Gbmin7": {
-    notes: ["Gb","Bbb","Db","Fb"],
-    treble: ["Gb4","Bbb4","Db5","Fb5"],
-    bass: ["Gb2","Bbb2","Db3","Fb3"],
+  Gbmin7: {
+    notes: ["Gb", "Bbb", "Db", "Fb"],
+    treble: ["Gb4", "Bbb4", "Db5", "Fb5"],
+    bass: ["Gb2", "Bbb2", "Db3", "Fb3"],
     displayName: "Gb Minor 7th",
   },
-  "Gbmin6": {
-    notes: ["Gb","Bbb","Db","Eb"],
-    treble: ["Gb4","Bbb4","Db5","Eb5"],
-    bass: ["Gb2","Bbb2","Db3","Eb3"],
+  Gbmin6: {
+    notes: ["Gb", "Bbb", "Db", "Eb"],
+    treble: ["Gb4", "Bbb4", "Db5", "Eb5"],
+    bass: ["Gb2", "Bbb2", "Db3", "Eb3"],
     displayName: "Gb Minor 6th",
   },
-  "Gbmin9": {
-    notes: ["Gb","Bbb","Db","Fb","Ab"],
-    treble: ["Gb4","Bbb4","Db5","Fb5","Ab5"],
-    bass: ["Gb2","Bbb2","Db3","Fb3","Ab3"],
+  Gbmin9: {
+    notes: ["Gb", "Bbb", "Db", "Fb", "Ab"],
+    treble: ["Gb4", "Bbb4", "Db5", "Fb5", "Ab5"],
+    bass: ["Gb2", "Bbb2", "Db3", "Fb3", "Ab3"],
     displayName: "Gb Minor 9th",
   },
-  "Gbdim": {
-    notes: ["Gb","Bbb","Dbb"],
-    treble: ["Gb4","Bbb4","Dbb5"],
-    bass: ["Gb3","Bbb3","Dbb4"],
+  Gbdim: {
+    notes: ["Gb", "Bbb", "Dbb"],
+    treble: ["Gb4", "Bbb4", "Dbb5"],
+    bass: ["Gb3", "Bbb3", "Dbb4"],
     displayName: "Gb Diminished",
   },
-  "Gbdim7": {
-    notes: ["Gb","Bbb","Dbb","Fbb"],
-    treble: ["Gb4","Bbb4","Dbb5","Fbb5"],
-    bass: ["Gb3","Bbb3","Dbb4","Fbb4"],
+  Gbdim7: {
+    notes: ["Gb", "Bbb", "Dbb", "Fbb"],
+    treble: ["Gb4", "Bbb4", "Dbb5", "Fbb5"],
+    bass: ["Gb3", "Bbb3", "Dbb4", "Fbb4"],
     displayName: "Gb Diminished 7th",
   },
-  "Gbm7b5": {
-    notes: ["Gb","Bbb","Dbb","Fb"],
-    treble: ["Gb4","Bbb4","Dbb5","Fb5"],
-    bass: ["Gb3","Bbb3","Dbb4","Fb4"],
+  Gbm7b5: {
+    notes: ["Gb", "Bbb", "Dbb", "Fb"],
+    treble: ["Gb4", "Bbb4", "Dbb5", "Fb5"],
+    bass: ["Gb3", "Bbb3", "Dbb4", "Fb4"],
     displayName: "Gb Half-Diminished 7th",
   },
-  "Gbaug": {
-    notes: ["Gb","Bb","D"],
-    treble: ["Gb4","Bb4","D5"],
-    bass: ["Gb2","Bb2","D3"],
+  Gbaug: {
+    notes: ["Gb", "Bb", "D"],
+    treble: ["Gb4", "Bb4", "D5"],
+    bass: ["Gb2", "Bb2", "D3"],
     displayName: "Gb Augmented",
   },
-  "Gbaug7": {
-    notes: ["Gb","Bb","D","Fb"],
-    treble: ["Gb4","Bb4","D5","Fb5"],
-    bass: ["Gb2","Bb2","D3","Fb3"],
+  Gbaug7: {
+    notes: ["Gb", "Bb", "D", "Fb"],
+    treble: ["Gb4", "Bb4", "D5", "Fb5"],
+    bass: ["Gb2", "Bb2", "D3", "Fb3"],
     displayName: "Gb Augmented 7th",
   },
-  "Gb7": {
-    notes: ["Gb","Bb","Db","Fb"],
-    treble: ["Gb4","Bb4","Db5","Fb5"],
-    bass: ["Gb2","Bb2","Db3","Fb3"],
+  Gb7: {
+    notes: ["Gb", "Bb", "Db", "Fb"],
+    treble: ["Gb4", "Bb4", "Db5", "Fb5"],
+    bass: ["Gb2", "Bb2", "Db3", "Fb3"],
     displayName: "Gb Dominant 7th",
   },
-  "Gb9": {
-    notes: ["Gb","Bb","Db","Fb","Ab"],
-    treble: ["Gb4","Bb4","Db5","Fb5","Ab5"],
-    bass: ["Gb2","Bb2","Db3","Fb3","Ab3"],
+  Gb9: {
+    notes: ["Gb", "Bb", "Db", "Fb", "Ab"],
+    treble: ["Gb4", "Bb4", "Db5", "Fb5", "Ab5"],
+    bass: ["Gb2", "Bb2", "Db3", "Fb3", "Ab3"],
     displayName: "Gb Dominant 9th",
   },
-  "Gbsus4": {
-    notes: ["Gb","Cb","Db"],
-    treble: ["Gb4","Cb5","Db5"],
-    bass: ["Gb2","Cb3","Db3"],
+  Gbsus4: {
+    notes: ["Gb", "Cb", "Db"],
+    treble: ["Gb4", "Cb5", "Db5"],
+    bass: ["Gb2", "Cb3", "Db3"],
     displayName: "Gb Suspended 4th",
   },
-  "Gbsus2": {
-    notes: ["Gb","Ab","Db"],
-    treble: ["Gb4","Ab4","Db5"],
-    bass: ["Gb2","Ab2","Db3"],
+  Gbsus2: {
+    notes: ["Gb", "Ab", "Db"],
+    treble: ["Gb4", "Ab4", "Db5"],
+    bass: ["Gb2", "Ab2", "Db3"],
     displayName: "Gb Suspended 2nd",
   },
-  "G": {
-    notes: ["G","B","D"],
-    treble: ["G4","B4","D5"],
-    bass: ["G2","B2","D3"],
+  G: {
+    notes: ["G", "B", "D"],
+    treble: ["G4", "B4", "D5"],
+    bass: ["G2", "B2", "D3"],
     displayName: "G Major",
   },
-  "Gmaj7": {
-    notes: ["G","B","D","F#"],
-    treble: ["G4","B4","D5","F#5"],
-    bass: ["G2","B2","D3","F#3"],
+  Gmaj7: {
+    notes: ["G", "B", "D", "F#"],
+    treble: ["G4", "B4", "D5", "F#5"],
+    bass: ["G2", "B2", "D3", "F#3"],
     displayName: "G Major 7th",
   },
-  "Gmaj6": {
-    notes: ["G","B","D","E"],
-    treble: ["G4","B4","D5","E5"],
-    bass: ["G2","B2","D3","E3"],
+  Gmaj6: {
+    notes: ["G", "B", "D", "E"],
+    treble: ["G4", "B4", "D5", "E5"],
+    bass: ["G2", "B2", "D3", "E3"],
     displayName: "G Major 6th",
   },
-  "Gmaj9": {
-    notes: ["G","B","D","F#","A"],
-    treble: ["G4","B4","D5","F#5","A5"],
-    bass: ["G2","B2","D3","F#3","A3"],
+  Gmaj9: {
+    notes: ["G", "B", "D", "F#", "A"],
+    treble: ["G4", "B4", "D5", "F#5", "A5"],
+    bass: ["G2", "B2", "D3", "F#3", "A3"],
     displayName: "G Major 9th",
   },
-  "Gm": {
-    notes: ["G","Bb","D"],
-    treble: ["G4","Bb4","D5"],
-    bass: ["G2","Bb2","D3"],
+  Gm: {
+    notes: ["G", "Bb", "D"],
+    treble: ["G4", "Bb4", "D5"],
+    bass: ["G2", "Bb2", "D3"],
     displayName: "G Minor",
   },
-  "Gmin7": {
-    notes: ["G","Bb","D","F"],
-    treble: ["G4","Bb4","D5","F5"],
-    bass: ["G2","Bb2","D3","F3"],
+  Gmin7: {
+    notes: ["G", "Bb", "D", "F"],
+    treble: ["G4", "Bb4", "D5", "F5"],
+    bass: ["G2", "Bb2", "D3", "F3"],
     displayName: "G Minor 7th",
   },
-  "Gmin6": {
-    notes: ["G","Bb","D","E"],
-    treble: ["G4","Bb4","D5","E5"],
-    bass: ["G2","Bb2","D3","E3"],
+  Gmin6: {
+    notes: ["G", "Bb", "D", "E"],
+    treble: ["G4", "Bb4", "D5", "E5"],
+    bass: ["G2", "Bb2", "D3", "E3"],
     displayName: "G Minor 6th",
   },
-  "Gmin9": {
-    notes: ["G","Bb","D","F","A"],
-    treble: ["G4","Bb4","D5","F5","A5"],
-    bass: ["G2","Bb2","D3","F3","A3"],
+  Gmin9: {
+    notes: ["G", "Bb", "D", "F", "A"],
+    treble: ["G4", "Bb4", "D5", "F5", "A5"],
+    bass: ["G2", "Bb2", "D3", "F3", "A3"],
     displayName: "G Minor 9th",
   },
-  "Gdim": {
-    notes: ["G","Bb","Db"],
-    treble: ["G4","Bb4","Db5"],
-    bass: ["G2","Bb2","Db3"],
+  Gdim: {
+    notes: ["G", "Bb", "Db"],
+    treble: ["G4", "Bb4", "Db5"],
+    bass: ["G2", "Bb2", "Db3"],
     displayName: "G Diminished",
   },
-  "Gdim7": {
-    notes: ["G","Bb","Db","Fb"],
-    treble: ["G4","Bb4","Db5","Fb5"],
-    bass: ["G2","Bb2","Db3","Fb3"],
+  Gdim7: {
+    notes: ["G", "Bb", "Db", "Fb"],
+    treble: ["G4", "Bb4", "Db5", "Fb5"],
+    bass: ["G2", "Bb2", "Db3", "Fb3"],
     displayName: "G Diminished 7th",
   },
-  "Gm7b5": {
-    notes: ["G","Bb","Db","F"],
-    treble: ["G4","Bb4","Db5","F5"],
-    bass: ["G2","Bb2","Db3","F3"],
+  Gm7b5: {
+    notes: ["G", "Bb", "Db", "F"],
+    treble: ["G4", "Bb4", "Db5", "F5"],
+    bass: ["G2", "Bb2", "Db3", "F3"],
     displayName: "G Half-Diminished 7th",
   },
-  "Gaug": {
-    notes: ["G","B","D#"],
-    treble: ["G4","B4","D#5"],
-    bass: ["G2","B2","D#3"],
+  Gaug: {
+    notes: ["G", "B", "D#"],
+    treble: ["G4", "B4", "D#5"],
+    bass: ["G2", "B2", "D#3"],
     displayName: "G Augmented",
   },
-  "Gaug7": {
-    notes: ["G","B","D#","F"],
-    treble: ["G4","B4","D#5","F5"],
-    bass: ["G2","B2","D#3","F3"],
+  Gaug7: {
+    notes: ["G", "B", "D#", "F"],
+    treble: ["G4", "B4", "D#5", "F5"],
+    bass: ["G2", "B2", "D#3", "F3"],
     displayName: "G Augmented 7th",
   },
-  "G7": {
-    notes: ["G","B","D","F"],
-    treble: ["G4","B4","D5","F5"],
-    bass: ["G2","B2","D3","F3"],
+  G7: {
+    notes: ["G", "B", "D", "F"],
+    treble: ["G4", "B4", "D5", "F5"],
+    bass: ["G2", "B2", "D3", "F3"],
     displayName: "G Dominant 7th",
   },
-  "G9": {
-    notes: ["G","B","D","F","A"],
-    treble: ["G4","B4","D5","F5","A5"],
-    bass: ["G2","B2","D3","F3","A3"],
+  G9: {
+    notes: ["G", "B", "D", "F", "A"],
+    treble: ["G4", "B4", "D5", "F5", "A5"],
+    bass: ["G2", "B2", "D3", "F3", "A3"],
     displayName: "G Dominant 9th",
   },
-  "Gsus4": {
-    notes: ["G","C","D"],
-    treble: ["G4","C5","D5"],
-    bass: ["G2","C3","D3"],
+  Gsus4: {
+    notes: ["G", "C", "D"],
+    treble: ["G4", "C5", "D5"],
+    bass: ["G2", "C3", "D3"],
     displayName: "G Suspended 4th",
   },
-  "Gsus2": {
-    notes: ["G","A","D"],
-    treble: ["G4","A4","D5"],
-    bass: ["G2","A2","D3"],
+  Gsus2: {
+    notes: ["G", "A", "D"],
+    treble: ["G4", "A4", "D5"],
+    bass: ["G2", "A2", "D3"],
     displayName: "G Suspended 2nd",
   },
   "G#": {
-    notes: ["G#","B#","D#"],
-    treble: ["G#4","B#4","D#5"],
-    bass: ["G#2","B#2","D#3"],
+    notes: ["G#", "B#", "D#"],
+    treble: ["G#4", "B#4", "D#5"],
+    bass: ["G#2", "B#2", "D#3"],
     displayName: "G# Major",
   },
   "G#maj7": {
-    notes: ["G#","B#","D#","F##"],
-    treble: ["G#4","B#4","D#5","F##5"],
-    bass: ["G#2","B#2","D#3","F##3"],
+    notes: ["G#", "B#", "D#", "F##"],
+    treble: ["G#4", "B#4", "D#5", "F##5"],
+    bass: ["G#2", "B#2", "D#3", "F##3"],
     displayName: "G# Major 7th",
   },
   "G#maj6": {
-    notes: ["G#","B#","D#","E#"],
-    treble: ["G#4","B#4","D#5","E#5"],
-    bass: ["G#2","B#2","D#3","E#3"],
+    notes: ["G#", "B#", "D#", "E#"],
+    treble: ["G#4", "B#4", "D#5", "E#5"],
+    bass: ["G#2", "B#2", "D#3", "E#3"],
     displayName: "G# Major 6th",
   },
   "G#maj9": {
-    notes: ["G#","B#","D#","F##","A#"],
-    treble: ["G#4","B#4","D#5","F##5","A#5"],
-    bass: ["G#2","B#2","D#3","F##3","A#3"],
+    notes: ["G#", "B#", "D#", "F##", "A#"],
+    treble: ["G#4", "B#4", "D#5", "F##5", "A#5"],
+    bass: ["G#2", "B#2", "D#3", "F##3", "A#3"],
     displayName: "G# Major 9th",
   },
   "G#m": {
-    notes: ["G#","B","D#"],
-    treble: ["G#4","B4","D#5"],
-    bass: ["G#2","B2","D#3"],
+    notes: ["G#", "B", "D#"],
+    treble: ["G#4", "B4", "D#5"],
+    bass: ["G#2", "B2", "D#3"],
     displayName: "G# Minor",
   },
   "G#min7": {
-    notes: ["G#","B","D#","F#"],
-    treble: ["G#4","B4","D#5","F#5"],
-    bass: ["G#2","B2","D#3","F#3"],
+    notes: ["G#", "B", "D#", "F#"],
+    treble: ["G#4", "B4", "D#5", "F#5"],
+    bass: ["G#2", "B2", "D#3", "F#3"],
     displayName: "G# Minor 7th",
   },
   "G#min6": {
-    notes: ["G#","B","D#","E#"],
-    treble: ["G#4","B4","D#5","E#5"],
-    bass: ["G#2","B2","D#3","E#3"],
+    notes: ["G#", "B", "D#", "E#"],
+    treble: ["G#4", "B4", "D#5", "E#5"],
+    bass: ["G#2", "B2", "D#3", "E#3"],
     displayName: "G# Minor 6th",
   },
   "G#min9": {
-    notes: ["G#","B","D#","F#","A#"],
-    treble: ["G#4","B4","D#5","F#5","A#5"],
-    bass: ["G#2","B2","D#3","F#3","A#3"],
+    notes: ["G#", "B", "D#", "F#", "A#"],
+    treble: ["G#4", "B4", "D#5", "F#5", "A#5"],
+    bass: ["G#2", "B2", "D#3", "F#3", "A#3"],
     displayName: "G# Minor 9th",
   },
   "G#dim": {
-    notes: ["G#","B","D"],
-    treble: ["G#4","B4","D5"],
-    bass: ["G#2","B2","D3"],
+    notes: ["G#", "B", "D"],
+    treble: ["G#4", "B4", "D5"],
+    bass: ["G#2", "B2", "D3"],
     displayName: "G# Diminished",
   },
   "G#dim7": {
-    notes: ["G#","B","D","F"],
-    treble: ["G#4","B4","D5","F5"],
-    bass: ["G#2","B2","D3","F3"],
+    notes: ["G#", "B", "D", "F"],
+    treble: ["G#4", "B4", "D5", "F5"],
+    bass: ["G#2", "B2", "D3", "F3"],
     displayName: "G# Diminished 7th",
   },
   "G#m7b5": {
-    notes: ["G#","B","D","F#"],
-    treble: ["G#4","B4","D5","F#5"],
-    bass: ["G#2","B2","D3","F#3"],
+    notes: ["G#", "B", "D", "F#"],
+    treble: ["G#4", "B4", "D5", "F#5"],
+    bass: ["G#2", "B2", "D3", "F#3"],
     displayName: "G# Half-Diminished 7th",
   },
   "G#aug": {
-    notes: ["G#","B#","D##"],
-    treble: ["G#4","B#4","D##5"],
-    bass: ["G#2","B#2","D##3"],
+    notes: ["G#", "B#", "D##"],
+    treble: ["G#4", "B#4", "D##5"],
+    bass: ["G#2", "B#2", "D##3"],
     displayName: "G# Augmented",
   },
   "G#aug7": {
-    notes: ["G#","B#","D##","F#"],
-    treble: ["G#4","B#4","D##5","F#5"],
-    bass: ["G#2","B#2","D##3","F#3"],
+    notes: ["G#", "B#", "D##", "F#"],
+    treble: ["G#4", "B#4", "D##5", "F#5"],
+    bass: ["G#2", "B#2", "D##3", "F#3"],
     displayName: "G# Augmented 7th",
   },
   "G#7": {
-    notes: ["G#","B#","D#","F#"],
-    treble: ["G#4","B#4","D#5","F#5"],
-    bass: ["G#2","B#2","D#3","F#3"],
+    notes: ["G#", "B#", "D#", "F#"],
+    treble: ["G#4", "B#4", "D#5", "F#5"],
+    bass: ["G#2", "B#2", "D#3", "F#3"],
     displayName: "G# Dominant 7th",
   },
   "G#9": {
-    notes: ["G#","B#","D#","F#","A#"],
-    treble: ["G#4","B#4","D#5","F#5","A#5"],
-    bass: ["G#2","B#2","D#3","F#3","A#3"],
+    notes: ["G#", "B#", "D#", "F#", "A#"],
+    treble: ["G#4", "B#4", "D#5", "F#5", "A#5"],
+    bass: ["G#2", "B#2", "D#3", "F#3", "A#3"],
     displayName: "G# Dominant 9th",
   },
   "G#sus4": {
-    notes: ["G#","C#","D#"],
-    treble: ["G#4","C#5","D#5"],
-    bass: ["G#2","C#3","D#3"],
+    notes: ["G#", "C#", "D#"],
+    treble: ["G#4", "C#5", "D#5"],
+    bass: ["G#2", "C#3", "D#3"],
     displayName: "G# Suspended 4th",
   },
   "G#sus2": {
-    notes: ["G#","A#","D#"],
-    treble: ["G#4","A#4","D#5"],
-    bass: ["G#2","A#2","D#3"],
+    notes: ["G#", "A#", "D#"],
+    treble: ["G#4", "A#4", "D#5"],
+    bass: ["G#2", "A#2", "D#3"],
     displayName: "G# Suspended 2nd",
   },
-  "Ab": {
-    notes: ["Ab","C","Eb"],
-    treble: ["Ab4","C5","Eb5"],
-    bass: ["Ab2","C3","Eb3"],
+  Ab: {
+    notes: ["Ab", "C", "Eb"],
+    treble: ["Ab4", "C5", "Eb5"],
+    bass: ["Ab2", "C3", "Eb3"],
     displayName: "Ab Major",
   },
-  "Abmaj7": {
-    notes: ["Ab","C","Eb","G"],
-    treble: ["Ab4","C5","Eb5","G5"],
-    bass: ["Ab2","C3","Eb3","G3"],
+  Abmaj7: {
+    notes: ["Ab", "C", "Eb", "G"],
+    treble: ["Ab4", "C5", "Eb5", "G5"],
+    bass: ["Ab2", "C3", "Eb3", "G3"],
     displayName: "Ab Major 7th",
   },
-  "Abmaj6": {
-    notes: ["Ab","C","Eb","F"],
-    treble: ["Ab4","C5","Eb5","F5"],
-    bass: ["Ab2","C3","Eb3","F3"],
+  Abmaj6: {
+    notes: ["Ab", "C", "Eb", "F"],
+    treble: ["Ab4", "C5", "Eb5", "F5"],
+    bass: ["Ab2", "C3", "Eb3", "F3"],
     displayName: "Ab Major 6th",
   },
-  "Abmaj9": {
-    notes: ["Ab","C","Eb","G","Bb"],
-    treble: ["Ab4","C5","Eb5","G5","Bb5"],
-    bass: ["Ab2","C3","Eb3","G3","Bb3"],
+  Abmaj9: {
+    notes: ["Ab", "C", "Eb", "G", "Bb"],
+    treble: ["Ab4", "C5", "Eb5", "G5", "Bb5"],
+    bass: ["Ab2", "C3", "Eb3", "G3", "Bb3"],
     displayName: "Ab Major 9th",
   },
-  "Abm": {
-    notes: ["Ab","Cb","Eb"],
-    treble: ["Ab4","Cb5","Eb5"],
-    bass: ["Ab2","Cb3","Eb3"],
+  Abm: {
+    notes: ["Ab", "Cb", "Eb"],
+    treble: ["Ab4", "Cb5", "Eb5"],
+    bass: ["Ab2", "Cb3", "Eb3"],
     displayName: "Ab Minor",
   },
-  "Abmin7": {
-    notes: ["Ab","Cb","Eb","Gb"],
-    treble: ["Ab4","Cb5","Eb5","Gb5"],
-    bass: ["Ab2","Cb3","Eb3","Gb3"],
+  Abmin7: {
+    notes: ["Ab", "Cb", "Eb", "Gb"],
+    treble: ["Ab4", "Cb5", "Eb5", "Gb5"],
+    bass: ["Ab2", "Cb3", "Eb3", "Gb3"],
     displayName: "Ab Minor 7th",
   },
-  "Abmin6": {
-    notes: ["Ab","Cb","Eb","F"],
-    treble: ["Ab4","Cb5","Eb5","F5"],
-    bass: ["Ab2","Cb3","Eb3","F3"],
+  Abmin6: {
+    notes: ["Ab", "Cb", "Eb", "F"],
+    treble: ["Ab4", "Cb5", "Eb5", "F5"],
+    bass: ["Ab2", "Cb3", "Eb3", "F3"],
     displayName: "Ab Minor 6th",
   },
-  "Abmin9": {
-    notes: ["Ab","Cb","Eb","Gb","Bb"],
-    treble: ["Ab4","Cb5","Eb5","Gb5","Bb5"],
-    bass: ["Ab2","Cb3","Eb3","Gb3","Bb3"],
+  Abmin9: {
+    notes: ["Ab", "Cb", "Eb", "Gb", "Bb"],
+    treble: ["Ab4", "Cb5", "Eb5", "Gb5", "Bb5"],
+    bass: ["Ab2", "Cb3", "Eb3", "Gb3", "Bb3"],
     displayName: "Ab Minor 9th",
   },
-  "Abdim": {
-    notes: ["Ab","Cb","Ebb"],
-    treble: ["Ab4","Cb5","Ebb5"],
-    bass: ["Ab2","Cb3","Ebb3"],
+  Abdim: {
+    notes: ["Ab", "Cb", "Ebb"],
+    treble: ["Ab4", "Cb5", "Ebb5"],
+    bass: ["Ab2", "Cb3", "Ebb3"],
     displayName: "Ab Diminished",
   },
-  "Abdim7": {
-    notes: ["Ab","Cb","Ebb","Gbb"],
-    treble: ["Ab4","Cb5","Ebb5","Gbb5"],
-    bass: ["Ab2","Cb3","Ebb3","Gbb3"],
+  Abdim7: {
+    notes: ["Ab", "Cb", "Ebb", "Gbb"],
+    treble: ["Ab4", "Cb5", "Ebb5", "Gbb5"],
+    bass: ["Ab2", "Cb3", "Ebb3", "Gbb3"],
     displayName: "Ab Diminished 7th",
   },
-  "Abm7b5": {
-    notes: ["Ab","Cb","Ebb","Gb"],
-    treble: ["Ab4","Cb5","Ebb5","Gb5"],
-    bass: ["Ab2","Cb3","Ebb3","Gb3"],
+  Abm7b5: {
+    notes: ["Ab", "Cb", "Ebb", "Gb"],
+    treble: ["Ab4", "Cb5", "Ebb5", "Gb5"],
+    bass: ["Ab2", "Cb3", "Ebb3", "Gb3"],
     displayName: "Ab Half-Diminished 7th",
   },
-  "Abaug": {
-    notes: ["Ab","C","E"],
-    treble: ["Ab4","C5","E5"],
-    bass: ["Ab3","C3","E3"],
+  Abaug: {
+    notes: ["Ab", "C", "E"],
+    treble: ["Ab4", "C5", "E5"],
+    bass: ["Ab3", "C3", "E3"],
     displayName: "Ab Augmented",
   },
-  "Abaug7": {
-    notes: ["Ab","C","E","Gb"],
-    treble: ["Ab4","C5","E5","Gb5"],
-    bass: ["Ab2","C3","E3","Gb3"],
+  Abaug7: {
+    notes: ["Ab", "C", "E", "Gb"],
+    treble: ["Ab4", "C5", "E5", "Gb5"],
+    bass: ["Ab2", "C3", "E3", "Gb3"],
     displayName: "Ab Augmented 7th",
   },
-  "Ab7": {
-    notes: ["Ab","C","Eb","Gb"],
-    treble: ["Ab4","C5","Eb5","Gb5"],
-    bass: ["Ab2","C3","Eb3","Gb3"],
+  Ab7: {
+    notes: ["Ab", "C", "Eb", "Gb"],
+    treble: ["Ab4", "C5", "Eb5", "Gb5"],
+    bass: ["Ab2", "C3", "Eb3", "Gb3"],
     displayName: "Ab Dominant 7th",
   },
-  "Ab9": {
-    notes: ["Ab","C","Eb","Gb","Bb"],
-    treble: ["Ab4","C5","Eb5","Gb5","Bb5"],
-    bass: ["Ab2","C3","Eb3","Gb3","Bb3"],
+  Ab9: {
+    notes: ["Ab", "C", "Eb", "Gb", "Bb"],
+    treble: ["Ab4", "C5", "Eb5", "Gb5", "Bb5"],
+    bass: ["Ab2", "C3", "Eb3", "Gb3", "Bb3"],
     displayName: "Ab Dominant 9th",
   },
-  "Absus4": {
-    notes: ["Ab","Db","Eb"],
-    treble: ["Ab4","Db5","Eb5"],
-    bass: ["Ab2","Db3","Eb3"],
+  Absus4: {
+    notes: ["Ab", "Db", "Eb"],
+    treble: ["Ab4", "Db5", "Eb5"],
+    bass: ["Ab2", "Db3", "Eb3"],
     displayName: "Ab Suspended 4th",
   },
-  "Absus2": {
-    notes: ["Ab","Bb","Eb"],
-    treble: ["Ab4","Bb4","Eb5"],
-    bass: ["Ab2","Bb2","Eb3"],
+  Absus2: {
+    notes: ["Ab", "Bb", "Eb"],
+    treble: ["Ab4", "Bb4", "Eb5"],
+    bass: ["Ab2", "Bb2", "Eb3"],
     displayName: "Ab Suspended 2nd",
   },
-  "A": {
-    notes: ["A","C#","E"],
-    treble: ["A4","C#5","E5"],
-    bass: ["A2","C#3","E3"],
+  A: {
+    notes: ["A", "C#", "E"],
+    treble: ["A4", "C#5", "E5"],
+    bass: ["A2", "C#3", "E3"],
     displayName: "A Major",
   },
-  "Amaj7": {
-    notes: ["A","C#","E","G#"],
-    treble: ["A4","C#5","E5","G#5"],
-    bass: ["A2","C#3","E3","G#3"],
+  Amaj7: {
+    notes: ["A", "C#", "E", "G#"],
+    treble: ["A4", "C#5", "E5", "G#5"],
+    bass: ["A2", "C#3", "E3", "G#3"],
     displayName: "A Major 7th",
   },
-  "Amaj6": {
-    notes: ["A","C#","E","F#"],
-    treble: ["A4","C#5","E5","F#5"],
-    bass: ["A2","C#3","E3","F#3"],
+  Amaj6: {
+    notes: ["A", "C#", "E", "F#"],
+    treble: ["A4", "C#5", "E5", "F#5"],
+    bass: ["A2", "C#3", "E3", "F#3"],
     displayName: "A Major 6th",
   },
-  "Amaj9": {
-    notes: ["A","C#","E","G#","B"],
-    treble: ["A4","C#5","E5","G#5","B5"],
-    bass: ["A2","C#3","E3","G#3","B3"],
+  Amaj9: {
+    notes: ["A", "C#", "E", "G#", "B"],
+    treble: ["A4", "C#5", "E5", "G#5", "B5"],
+    bass: ["A2", "C#3", "E3", "G#3", "B3"],
     displayName: "A Major 9th",
   },
-  "Am": {
-    notes: ["A","C","E"],
-    treble: ["A4","C5","E5"],
-    bass: ["A2","C3","E3"],
+  Am: {
+    notes: ["A", "C", "E"],
+    treble: ["A4", "C5", "E5"],
+    bass: ["A2", "C3", "E3"],
     displayName: "A Minor",
   },
-  "Amin7": {
-    notes: ["A","C","E","G"],
-    treble: ["A4","C5","E5","G5"],
-    bass: ["A2","C3","E3","G3"],
+  Amin7: {
+    notes: ["A", "C", "E", "G"],
+    treble: ["A4", "C5", "E5", "G5"],
+    bass: ["A2", "C3", "E3", "G3"],
     displayName: "A Minor 7th",
   },
-  "Amin6": {
-    notes: ["A","C","E","F#"],
-    treble: ["A4","C5","E5","F#5"],
-    bass: ["A2","C3","E3","F#3"],
+  Amin6: {
+    notes: ["A", "C", "E", "F#"],
+    treble: ["A4", "C5", "E5", "F#5"],
+    bass: ["A2", "C3", "E3", "F#3"],
     displayName: "A Minor 6th",
   },
-  "Amin9": {
-    notes: ["A","C","E","G","B"],
-    treble: ["A4","C5","E5","G5","B5"],
-    bass: ["A2","C3","E3","G3","B3"],
+  Amin9: {
+    notes: ["A", "C", "E", "G", "B"],
+    treble: ["A4", "C5", "E5", "G5", "B5"],
+    bass: ["A2", "C3", "E3", "G3", "B3"],
     displayName: "A Minor 9th",
   },
-  "Adim": {
-    notes: ["A","C","Eb"],
-    treble: ["A4","C5","Eb5"],
-    bass: ["A2","C3","Eb3"],
+  Adim: {
+    notes: ["A", "C", "Eb"],
+    treble: ["A4", "C5", "Eb5"],
+    bass: ["A2", "C3", "Eb3"],
     displayName: "A Diminished",
   },
-  "Adim7": {
-    notes: ["A","C","Eb","Gb"],
-    treble: ["A4","C5","Eb5","Gb5"],
-    bass: ["A2","C3","Eb3","Gb3"],
+  Adim7: {
+    notes: ["A", "C", "Eb", "Gb"],
+    treble: ["A4", "C5", "Eb5", "Gb5"],
+    bass: ["A2", "C3", "Eb3", "Gb3"],
     displayName: "A Diminished 7th",
   },
-  "Am7b5": {
-    notes: ["A","C","Eb","G"],
-    treble: ["A4","C5","Eb5","G5"],
-    bass: ["A2","C3","Eb3","G3"],
+  Am7b5: {
+    notes: ["A", "C", "Eb", "G"],
+    treble: ["A4", "C5", "Eb5", "G5"],
+    bass: ["A2", "C3", "Eb3", "G3"],
     displayName: "A Half-Diminished 7th",
   },
-  "Aaug": {
-    notes: ["A","C#","E#"],
-    treble: ["A4","C#5","E#5"],
-    bass: ["A2","C#3","E#3"],
+  Aaug: {
+    notes: ["A", "C#", "E#"],
+    treble: ["A4", "C#5", "E#5"],
+    bass: ["A2", "C#3", "E#3"],
     displayName: "A Augmented",
   },
-  "Aaug7": {
-    notes: ["A","C#","E#","G"],
-    treble: ["A4","C#5","E#5","G5"],
-    bass: ["A2","C#3","E#3","G3"],
+  Aaug7: {
+    notes: ["A", "C#", "E#", "G"],
+    treble: ["A4", "C#5", "E#5", "G5"],
+    bass: ["A2", "C#3", "E#3", "G3"],
     displayName: "A Augmented 7th",
   },
-  "A7": {
-    notes: ["A","C#","E","G"],
-    treble: ["A4","C#5","E5","G5"],
-    bass: ["A2","C#3","E3","G3"],
+  A7: {
+    notes: ["A", "C#", "E", "G"],
+    treble: ["A4", "C#5", "E5", "G5"],
+    bass: ["A2", "C#3", "E3", "G3"],
     displayName: "A Dominant 7th",
   },
-  "A9": {
-    notes: ["A","C#","E","G","B"],
-    treble: ["A4","C#5","E5","G5","B5"],
-    bass: ["A2","C#3","E3","G3","B3"],
+  A9: {
+    notes: ["A", "C#", "E", "G", "B"],
+    treble: ["A4", "C#5", "E5", "G5", "B5"],
+    bass: ["A2", "C#3", "E3", "G3", "B3"],
     displayName: "A Dominant 9th",
   },
-  "Asus4": {
-    notes: ["A","D","E"],
-    treble: ["A4","D5","E5"],
-    bass: ["A2","D3","E3"],
+  Asus4: {
+    notes: ["A", "D", "E"],
+    treble: ["A4", "D5", "E5"],
+    bass: ["A2", "D3", "E3"],
     displayName: "A Suspended 4th",
   },
-  "Asus2": {
-    notes: ["A","B","E"],
-    treble: ["A4","B4","E5"],
-    bass: ["A2","B2","E3"],
+  Asus2: {
+    notes: ["A", "B", "E"],
+    treble: ["A4", "B4", "E5"],
+    bass: ["A2", "B2", "E3"],
     displayName: "A Suspended 2nd",
   },
   "A#": {
-    notes: ["A#","C##","E#"],
-    treble: ["A#4","C##5","E#5"],
-    bass: ["A#2","C##3","E#3"],
+    notes: ["A#", "C##", "E#"],
+    treble: ["A#4", "C##5", "E#5"],
+    bass: ["A#2", "C##3", "E#3"],
     displayName: "A# Major",
   },
   "A#maj7": {
-    notes: ["A#","C##","E#","G##"],
-    treble: ["A#4","C##5","E#5","G##5"],
-    bass: ["A#2","C##3","E#3","G##3"],
+    notes: ["A#", "C##", "E#", "G##"],
+    treble: ["A#4", "C##5", "E#5", "G##5"],
+    bass: ["A#2", "C##3", "E#3", "G##3"],
     displayName: "A# Major 7th",
   },
   "A#maj6": {
-    notes: ["A#","C##","E#","F##"],
-    treble: ["A#4","C##5","E#5","F##5"],
-    bass: ["A#2","C##3","E#3","F##3"],
+    notes: ["A#", "C##", "E#", "F##"],
+    treble: ["A#4", "C##5", "E#5", "F##5"],
+    bass: ["A#2", "C##3", "E#3", "F##3"],
     displayName: "A# Major 6th",
   },
   "A#maj9": {
-    notes: ["A#","C##","E#","G##","B#"],
-    treble: ["A#4","C##5","E#5","G##5","B#5"],
-    bass: ["A#2","C##3","E#3","G##3","B#3"],
+    notes: ["A#", "C##", "E#", "G##", "B#"],
+    treble: ["A#4", "C##5", "E#5", "G##5", "B#5"],
+    bass: ["A#2", "C##3", "E#3", "G##3", "B#3"],
     displayName: "A# Major 9th",
   },
   "A#m": {
-    notes: ["A#","C#","E#"],
-    treble: ["A#4","C#5","E#5"],
-    bass: ["A#2","C#3","E#3"],
+    notes: ["A#", "C#", "E#"],
+    treble: ["A#4", "C#5", "E#5"],
+    bass: ["A#2", "C#3", "E#3"],
     displayName: "A# Minor",
   },
   "A#min7": {
-    notes: ["A#","C#","E#","G#"],
-    treble: ["A#4","C#5","E#5","G#5"],
-    bass: ["A#2","C#3","E#3","G#3"],
+    notes: ["A#", "C#", "E#", "G#"],
+    treble: ["A#4", "C#5", "E#5", "G#5"],
+    bass: ["A#2", "C#3", "E#3", "G#3"],
     displayName: "A# Minor 7th",
   },
   "A#min6": {
-    notes: ["A#","C#","E#","F##"],
-    treble: ["A#4","C#5","E#5","F##5"],
-    bass: ["A#2","C#3","E#3","F##3"],
+    notes: ["A#", "C#", "E#", "F##"],
+    treble: ["A#4", "C#5", "E#5", "F##5"],
+    bass: ["A#2", "C#3", "E#3", "F##3"],
     displayName: "A# Minor 6th",
   },
   "A#min9": {
-    notes: ["A#","C#","E#","G#","B#"],
-    treble: ["A#4","C#5","E#5","G#5","B#5"],
-    bass: ["A#2","C#3","E#3","G#3","B#3"],
+    notes: ["A#", "C#", "E#", "G#", "B#"],
+    treble: ["A#4", "C#5", "E#5", "G#5", "B#5"],
+    bass: ["A#2", "C#3", "E#3", "G#3", "B#3"],
     displayName: "A# Minor 9th",
   },
   "A#dim": {
-    notes: ["A#","C#","E"],
-    treble: ["A#4","C#5","E5"],
-    bass: ["A#2","C#3","E3"],
+    notes: ["A#", "C#", "E"],
+    treble: ["A#4", "C#5", "E5"],
+    bass: ["A#2", "C#3", "E3"],
     displayName: "A# Diminished",
   },
   "A#dim7": {
-    notes: ["A#","C#","E","G"],
-    treble: ["A#4","C#5","E5","G5"],
-    bass: ["A#2","C#3","E3","G3"],
+    notes: ["A#", "C#", "E", "G"],
+    treble: ["A#4", "C#5", "E5", "G5"],
+    bass: ["A#2", "C#3", "E3", "G3"],
     displayName: "A# Diminished 7th",
   },
   "A#m7b5": {
-    notes: ["A#","C#","E","G#"],
-    treble: ["A#4","C#5","E5","G#5"],
-    bass: ["A#2","C#3","E3","G#3"],
+    notes: ["A#", "C#", "E", "G#"],
+    treble: ["A#4", "C#5", "E5", "G#5"],
+    bass: ["A#2", "C#3", "E3", "G#3"],
     displayName: "A# Half-Diminished 7th",
   },
   "A#aug": {
-    notes: ["A#","C##","E##"],
-    treble: ["A#4","C##5","E##5"],
-    bass: ["A#2","C##3","E##3"],
+    notes: ["A#", "C##", "E##"],
+    treble: ["A#4", "C##5", "E##5"],
+    bass: ["A#2", "C##3", "E##3"],
     displayName: "A# Augmented",
   },
   "A#aug7": {
-    notes: ["A#","C##","E##","G#"],
-    treble: ["A#4","C##5","E##5","G#5"],
-    bass: ["A#2","C##3","E##3","G#3"],
+    notes: ["A#", "C##", "E##", "G#"],
+    treble: ["A#4", "C##5", "E##5", "G#5"],
+    bass: ["A#2", "C##3", "E##3", "G#3"],
     displayName: "A# Augmented 7th",
   },
   "A#7": {
-    notes: ["A#","C##","E#","G#"],
-    treble: ["A#4","C##5","E#5","G#5"],
-    bass: ["A#2","C##3","E#3","G#3"],
+    notes: ["A#", "C##", "E#", "G#"],
+    treble: ["A#4", "C##5", "E#5", "G#5"],
+    bass: ["A#2", "C##3", "E#3", "G#3"],
     displayName: "A# Dominant 7th",
   },
   "A#9": {
-    notes: ["A#","C##","E#","G#","B#"],
-    treble: ["A#4","C##5","E#5","G#5","B#5"],
-    bass: ["A#2","C##3","E#3","G#3","B#3"],
+    notes: ["A#", "C##", "E#", "G#", "B#"],
+    treble: ["A#4", "C##5", "E#5", "G#5", "B#5"],
+    bass: ["A#2", "C##3", "E#3", "G#3", "B#3"],
     displayName: "A# Dominant 9th",
   },
   "A#sus4": {
-    notes: ["A#","D#","E#"],
-    treble: ["A#4","D#5","E#5"],
-    bass: ["A#2","D#3","E#3"],
+    notes: ["A#", "D#", "E#"],
+    treble: ["A#4", "D#5", "E#5"],
+    bass: ["A#2", "D#3", "E#3"],
     displayName: "A# Suspended 4th",
   },
   "A#sus2": {
-    notes: ["A#","B#","E#"],
-    treble: ["A#4","B#4","E#5"],
-    bass: ["A#2","B#2","E#3"],
+    notes: ["A#", "B#", "E#"],
+    treble: ["A#4", "B#4", "E#5"],
+    bass: ["A#2", "B#2", "E#3"],
     displayName: "A# Suspended 2nd",
   },
-  "Bb": {
-    notes: ["Bb","D","F"],
-    treble: ["Bb4","D5","F5"],
-    bass: ["Bb2","D3","F3"],
+  Bb: {
+    notes: ["Bb", "D", "F"],
+    treble: ["Bb4", "D5", "F5"],
+    bass: ["Bb2", "D3", "F3"],
     displayName: "Bb Major",
   },
-  "Bbmaj7": {
-    notes: ["Bb","D","F","A"],
-    treble: ["Bb4","D5","F5","A5"],
-    bass: ["Bb2","D3","F3","A3"],
+  Bbmaj7: {
+    notes: ["Bb", "D", "F", "A"],
+    treble: ["Bb4", "D5", "F5", "A5"],
+    bass: ["Bb2", "D3", "F3", "A3"],
     displayName: "Bb Major 7th",
   },
-  "Bbmaj6": {
-    notes: ["Bb","D","F","G"],
-    treble: ["Bb4","D5","F5","G5"],
-    bass: ["Bb2","D3","F3","G3"],
+  Bbmaj6: {
+    notes: ["Bb", "D", "F", "G"],
+    treble: ["Bb4", "D5", "F5", "G5"],
+    bass: ["Bb2", "D3", "F3", "G3"],
     displayName: "Bb Major 6th",
   },
-  "Bbmaj9": {
-    notes: ["Bb","D","F","A","C"],
-    treble: ["Bb3","D4","F4","A4","C5"],
-    bass: ["Bb2","D3","F3","A3","C4"],
+  Bbmaj9: {
+    notes: ["Bb", "D", "F", "A", "C"],
+    treble: ["Bb3", "D4", "F4", "A4", "C5"],
+    bass: ["Bb2", "D3", "F3", "A3", "C4"],
     displayName: "Bb Major 9th",
   },
-  "Bbm": {
-    notes: ["Bb","Db","F"],
-    treble: ["Bb4","Db5","F5"],
-    bass: ["Bb2","Db3","F3"],
+  Bbm: {
+    notes: ["Bb", "Db", "F"],
+    treble: ["Bb4", "Db5", "F5"],
+    bass: ["Bb2", "Db3", "F3"],
     displayName: "Bb Minor",
   },
-  "Bbmin7": {
-    notes: ["Bb","Db","F","Ab"],
-    treble: ["Bb4","Db5","F5","Ab5"],
-    bass: ["Bb2","Db3","F3","Ab3"],
+  Bbmin7: {
+    notes: ["Bb", "Db", "F", "Ab"],
+    treble: ["Bb4", "Db5", "F5", "Ab5"],
+    bass: ["Bb2", "Db3", "F3", "Ab3"],
     displayName: "Bb Minor 7th",
   },
-  "Bbmin6": {
-    notes: ["Bb","Db","F","G"],
-    treble: ["Bb4","Db5","F5","G5"],
-    bass: ["Bb2","Db3","F3","G3"],
+  Bbmin6: {
+    notes: ["Bb", "Db", "F", "G"],
+    treble: ["Bb4", "Db5", "F5", "G5"],
+    bass: ["Bb2", "Db3", "F3", "G3"],
     displayName: "Bb Minor 6th",
   },
-  "Bbmin9": {
-    notes: ["Bb","Db","F","Ab","C"],
-    treble: ["Bb3","Db4","F4","Ab4","C5"],
-    bass: ["Bb2","Db3","F3","Ab3","C4"],
+  Bbmin9: {
+    notes: ["Bb", "Db", "F", "Ab", "C"],
+    treble: ["Bb3", "Db4", "F4", "Ab4", "C5"],
+    bass: ["Bb2", "Db3", "F3", "Ab3", "C4"],
     displayName: "Bb Minor 9th",
   },
-  "Bbdim": {
-    notes: ["Bb","Db","Fb"],
-    treble: ["Bb4","Db5","Fb5"],
-    bass: ["Bb3","Db4","Fb4"],
+  Bbdim: {
+    notes: ["Bb", "Db", "Fb"],
+    treble: ["Bb4", "Db5", "Fb5"],
+    bass: ["Bb3", "Db4", "Fb4"],
     displayName: "Bb Diminished",
   },
-  "Bbdim7": {
-    notes: ["Bb","Db","Fb","Abb"],
-    treble: ["Bb4","Db5","Fb5","Abb5"],
-    bass: ["Bb2","Db3","Fb3","Abb3"],
+  Bbdim7: {
+    notes: ["Bb", "Db", "Fb", "Abb"],
+    treble: ["Bb4", "Db5", "Fb5", "Abb5"],
+    bass: ["Bb2", "Db3", "Fb3", "Abb3"],
     displayName: "Bb Diminished 7th",
   },
-  "Bbm7b5": {
-    notes: ["Bb","Db","Fb","Ab"],
-    treble: ["Bb4","Db5","Fb5","Ab5"],
-    bass: ["Bb2","Db3","Fb3","Ab3"],
+  Bbm7b5: {
+    notes: ["Bb", "Db", "Fb", "Ab"],
+    treble: ["Bb4", "Db5", "Fb5", "Ab5"],
+    bass: ["Bb2", "Db3", "Fb3", "Ab3"],
     displayName: "Bb Half-Diminished 7th",
   },
-  "Bbaug": {
-    notes: ["Bb","D","F#"],
-    treble: ["Bb4","D5","F#5"],
-    bass: ["Bb2","D3","F#3"],
+  Bbaug: {
+    notes: ["Bb", "D", "F#"],
+    treble: ["Bb4", "D5", "F#5"],
+    bass: ["Bb2", "D3", "F#3"],
     displayName: "Bb Augmented",
   },
-  "Bbaug7": {
-    notes: ["Bb","D","F#","Ab"],
-    treble: ["Bb4","D5","F#5","Ab5"],
-    bass: ["Bb2","D3","F#3","Ab3"],
+  Bbaug7: {
+    notes: ["Bb", "D", "F#", "Ab"],
+    treble: ["Bb4", "D5", "F#5", "Ab5"],
+    bass: ["Bb2", "D3", "F#3", "Ab3"],
     displayName: "Bb Augmented 7th",
   },
-  "Bb7": {
-    notes: ["Bb","D","F","Ab"],
-    treble: ["Bb4","D5","F5","Ab5"],
-    bass: ["Bb2","D3","F3","Ab3"],
+  Bb7: {
+    notes: ["Bb", "D", "F", "Ab"],
+    treble: ["Bb4", "D5", "F5", "Ab5"],
+    bass: ["Bb2", "D3", "F3", "Ab3"],
     displayName: "Bb Dominant 7th",
   },
-  "Bb9": {
-    notes: ["Bb","D","F","Ab","C"],
-    treble: ["Bb4","D5","F5","Ab5","C6"],
-    bass: ["Bb2","D3","F3","Ab3","C4"],
+  Bb9: {
+    notes: ["Bb", "D", "F", "Ab", "C"],
+    treble: ["Bb4", "D5", "F5", "Ab5", "C6"],
+    bass: ["Bb2", "D3", "F3", "Ab3", "C4"],
     displayName: "Bb Dominant 9th",
   },
-  "Bbsus4": {
-    notes: ["Bb","Eb","F"],
-    treble: ["Bb4","Eb5","F5"],
-    bass: ["Bb2","Eb3","F3"],
+  Bbsus4: {
+    notes: ["Bb", "Eb", "F"],
+    treble: ["Bb4", "Eb5", "F5"],
+    bass: ["Bb2", "Eb3", "F3"],
     displayName: "Bb Suspended 4th",
   },
-  "Bbsus2": {
-    notes: ["Bb","C","F"],
-    treble: ["Bb4","C5","F5"],
-    bass: ["Bb2","C3","F3"],
+  Bbsus2: {
+    notes: ["Bb", "C", "F"],
+    treble: ["Bb4", "C5", "F5"],
+    bass: ["Bb2", "C3", "F3"],
     displayName: "Bb Suspended 2nd",
   },
-  "B": {
-    notes: ["B","D#","F#"],
-    treble: ["B4","D#5","F#5"],
-    bass: ["B2","D#3","F#3"],
+  B: {
+    notes: ["B", "D#", "F#"],
+    treble: ["B4", "D#5", "F#5"],
+    bass: ["B2", "D#3", "F#3"],
     displayName: "B Major",
   },
-  "Cb": {
-    notes: ["Cb","Eb","Gb"],
-    treble: ["Cb5","Eb5","Gb5"],
-    bass: ["Cb3","Eb3","Gb3"],
+  Cb: {
+    notes: ["Cb", "Eb", "Gb"],
+    treble: ["Cb5", "Eb5", "Gb5"],
+    bass: ["Cb3", "Eb3", "Gb3"],
     displayName: "Cb Major",
   },
-  "Bmaj7": {
-    notes: ["B","D#","F#","A#"],
-    treble: ["B4","D#5","F#5","A#5"],
-    bass: ["B2","D#3","F#3","A#3"],
+  Bmaj7: {
+    notes: ["B", "D#", "F#", "A#"],
+    treble: ["B4", "D#5", "F#5", "A#5"],
+    bass: ["B2", "D#3", "F#3", "A#3"],
     displayName: "B Major 7th",
   },
-  "Bmaj6": {
-    notes: ["B","D#","F#","G#"],
-    treble: ["B4","D#5","F#5","G#5"],
-    bass: ["B2","D#3","F#3","G#3"],
+  Bmaj6: {
+    notes: ["B", "D#", "F#", "G#"],
+    treble: ["B4", "D#5", "F#5", "G#5"],
+    bass: ["B2", "D#3", "F#3", "G#3"],
     displayName: "B Major 6th",
   },
-  "Bmaj9": {
-    notes: ["B","D#","F#","A#","C#"],
-    treble: ["B4","D#5","F#5","A#5","C#6"],
-    bass: ["B2","D#3","F#3","A#3","C#4"],
+  Bmaj9: {
+    notes: ["B", "D#", "F#", "A#", "C#"],
+    treble: ["B4", "D#5", "F#5", "A#5", "C#6"],
+    bass: ["B2", "D#3", "F#3", "A#3", "C#4"],
     displayName: "B Major 9th",
   },
-  "Bm": {
-    notes: ["B","D","F#"],
-    treble: ["B4","D5","F#5"],
-    bass: ["B2","D3","F#3"],
+  Bm: {
+    notes: ["B", "D", "F#"],
+    treble: ["B4", "D5", "F#5"],
+    bass: ["B2", "D3", "F#3"],
     displayName: "B Minor",
   },
-  "Bmin7": {
-    notes: ["B","D","F#","A"],
-    treble: ["B4","D5","F#5","A5"],
-    bass: ["B2","D3","F#3","A3"],
+  Bmin7: {
+    notes: ["B", "D", "F#", "A"],
+    treble: ["B4", "D5", "F#5", "A5"],
+    bass: ["B2", "D3", "F#3", "A3"],
     displayName: "B Minor 7th",
   },
-  "Bmin6": {
-    notes: ["B","D","F#","G#"],
-    treble: ["B4","D5","F#5","G#5"],
-    bass: ["B2","D3","F#3","G#3"],
+  Bmin6: {
+    notes: ["B", "D", "F#", "G#"],
+    treble: ["B4", "D5", "F#5", "G#5"],
+    bass: ["B2", "D3", "F#3", "G#3"],
     displayName: "B Minor 6th",
   },
-  "Bmin9": {
-    notes: ["B","D","F#","A","C#"],
-    treble: ["B3","D4","F#4","A4","C#5"],
-    bass: ["B2","D3","F#3","A3","C#4"],
+  Bmin9: {
+    notes: ["B", "D", "F#", "A", "C#"],
+    treble: ["B3", "D4", "F#4", "A4", "C#5"],
+    bass: ["B2", "D3", "F#3", "A3", "C#4"],
     displayName: "B Minor 9th",
   },
-  "Bdim": {
-    notes: ["B","D","F"],
-    treble: ["B4","D5","F5"],
-    bass: ["B2","D3","F3"],
+  Bdim: {
+    notes: ["B", "D", "F"],
+    treble: ["B4", "D5", "F5"],
+    bass: ["B2", "D3", "F3"],
     displayName: "B Diminished",
   },
-  "Bdim7": {
-    notes: ["B","D","F","Ab"],
-    treble: ["B4","D5","F5","Ab5"],
-    bass: ["B2","D3","F3","Ab3"],
+  Bdim7: {
+    notes: ["B", "D", "F", "Ab"],
+    treble: ["B4", "D5", "F5", "Ab5"],
+    bass: ["B2", "D3", "F3", "Ab3"],
     displayName: "B Diminished 7th",
   },
-  "Bm7b5": {
-    notes: ["B","D","F","A"],
-    treble: ["B4","D5","F5","A5"],
-    bass: ["B2","D3","F3","A3"],
+  Bm7b5: {
+    notes: ["B", "D", "F", "A"],
+    treble: ["B4", "D5", "F5", "A5"],
+    bass: ["B2", "D3", "F3", "A3"],
     displayName: "B Half-Diminished 7th",
   },
-  "Baug": {
-    notes: ["B","D#","F##"],
-    treble: ["B4","D#5","F##5"],
-    bass: ["B2","D#3","F##3"],
+  Baug: {
+    notes: ["B", "D#", "F##"],
+    treble: ["B4", "D#5", "F##5"],
+    bass: ["B2", "D#3", "F##3"],
     displayName: "B Augmented",
   },
-  "Baug7": {
-    notes: ["B","D#","F##","A"],
-    treble: ["B4","D#5","F##5","A5"],
-    bass: ["B2","D#3","F##3","A3"],
+  Baug7: {
+    notes: ["B", "D#", "F##", "A"],
+    treble: ["B4", "D#5", "F##5", "A5"],
+    bass: ["B2", "D#3", "F##3", "A3"],
     displayName: "B Augmented 7th",
   },
-  "B7": {
-    notes: ["B","D#","F#","A"],
-    treble: ["B4","D#5","F#5","A5"],
-    bass: ["B2","D#3","F#3","A3"],
+  B7: {
+    notes: ["B", "D#", "F#", "A"],
+    treble: ["B4", "D#5", "F#5", "A5"],
+    bass: ["B2", "D#3", "F#3", "A3"],
     displayName: "B Dominant 7th",
   },
-  "B9": {
-    notes: ["B","D#","F#","A","C#"],
-    treble: ["B3","D#4","F#4","A4","C#5"],
-    bass: ["B2","D#3","F#3","A3","C#4"],
+  B9: {
+    notes: ["B", "D#", "F#", "A", "C#"],
+    treble: ["B3", "D#4", "F#4", "A4", "C#5"],
+    bass: ["B2", "D#3", "F#3", "A3", "C#4"],
     displayName: "B Dominant 9th",
   },
-  "Bsus4": {
-    notes: ["B","E","F#"],
-    treble: ["B4","E5","F#5"],
-    bass: ["B2","E3","F#3"],
+  Bsus4: {
+    notes: ["B", "E", "F#"],
+    treble: ["B4", "E5", "F#5"],
+    bass: ["B2", "E3", "F#3"],
     displayName: "B Suspended 4th",
   },
-  "Bsus2": {
-    notes: ["B","C#","F#"],
-    treble: ["B4","C#5","F#5"],
-    bass: ["B2","C#3","F#3"],
+  Bsus2: {
+    notes: ["B", "C#", "F#"],
+    treble: ["B4", "C#5", "F#5"],
+    bass: ["B2", "C#3", "F#3"],
     displayName: "B Suspended 2nd",
   },
   "C/E": {
-    notes: ["E","G","C"],
-    treble: ["E4","G4","C5"],
-    bass: ["E3","G3","C4"],
+    notes: ["E", "G", "C"],
+    treble: ["E4", "G4", "C5"],
+    bass: ["E3", "G3", "C4"],
     displayName: "C Major (1st Inversion)",
   },
   "Db/F": {
-    notes: ["F","Ab","Db"],
-    treble: ["F4","Ab4","Db5"],
-    bass: ["F2","Ab2","Db3"],
+    notes: ["F", "Ab", "Db"],
+    treble: ["F4", "Ab4", "Db5"],
+    bass: ["F2", "Ab2", "Db3"],
     displayName: "Db Major (1st Inversion)",
   },
   "D/F#": {
-    notes: ["F#","A","D"],
-    treble: ["F#4","A4","D5"],
-    bass: ["F#2","A2","D3"],
+    notes: ["F#", "A", "D"],
+    treble: ["F#4", "A4", "D5"],
+    bass: ["F#2", "A2", "D3"],
     displayName: "D Major (1st Inversion)",
   },
   "Eb/G": {
-    notes: ["G","Bb","Eb"],
-    treble: ["G4","Bb4","Eb5"],
-    bass: ["G2","Bb2","Eb3"],
+    notes: ["G", "Bb", "Eb"],
+    treble: ["G4", "Bb4", "Eb5"],
+    bass: ["G2", "Bb2", "Eb3"],
     displayName: "Eb Major (1st Inversion)",
   },
   "E/G#": {
-    notes: ["G#","B","E"],
-    treble: ["G#4","B4","E5"],
-    bass: ["G#2","B2","E3"],
+    notes: ["G#", "B", "E"],
+    treble: ["G#4", "B4", "E5"],
+    bass: ["G#2", "B2", "E3"],
     displayName: "E Major (1st Inversion)",
   },
   "F/A": {
-    notes: ["A","C","F"],
-    treble: ["A4","C5","F5"],
-    bass: ["A2","C3","F3"],
+    notes: ["A", "C", "F"],
+    treble: ["A4", "C5", "F5"],
+    bass: ["A2", "C3", "F3"],
     displayName: "F Major (1st Inversion)",
   },
   "F#/A#": {
-    notes: ["A#","C#","F#"],
-    treble: ["A#4","C#5","F#5"],
-    bass: ["A#2","C#3","F#3"],
+    notes: ["A#", "C#", "F#"],
+    treble: ["A#4", "C#5", "F#5"],
+    bass: ["A#2", "C#3", "F#3"],
     displayName: "F# Major (1st Inversion)",
   },
   "Gb/Bb": {
-    notes: ["Bb","Db","Gb"],
-    treble: ["Bb4","Db5","Gb5"],
-    bass: ["Bb2","Db3","Gb3"],
+    notes: ["Bb", "Db", "Gb"],
+    treble: ["Bb4", "Db5", "Gb5"],
+    bass: ["Bb2", "Db3", "Gb3"],
     displayName: "Gb Major (1st Inversion)",
   },
   "G/B": {
-    notes: ["B","D","G"],
-    treble: ["B4","D5","G5"],
-    bass: ["B2","D3","G3"],
+    notes: ["B", "D", "G"],
+    treble: ["B4", "D5", "G5"],
+    bass: ["B2", "D3", "G3"],
     displayName: "G Major (1st Inversion)",
   },
   "Ab/C": {
-    notes: ["C","Eb","Ab"],
-    treble: ["C5","Eb5","Ab5"],
-    bass: ["C3","Eb3","Ab3"],
+    notes: ["C", "Eb", "Ab"],
+    treble: ["C5", "Eb5", "Ab5"],
+    bass: ["C3", "Eb3", "Ab3"],
     displayName: "Ab Major (1st Inversion)",
   },
   "A/C#": {
-    notes: ["C#","E","A"],
-    treble: ["C#5","E5","A5"],
-    bass: ["C#3","E3","A3"],
+    notes: ["C#", "E", "A"],
+    treble: ["C#5", "E5", "A5"],
+    bass: ["C#3", "E3", "A3"],
     displayName: "A Major (1st Inversion)",
   },
   "Bb/D": {
-    notes: ["D","F","Bb"],
-    treble: ["D5","F5","Bb5"],
-    bass: ["D3","F3","Bb3"],
+    notes: ["D", "F", "Bb"],
+    treble: ["D5", "F5", "Bb5"],
+    bass: ["D3", "F3", "Bb3"],
     displayName: "Bb Major (1st Inversion)",
   },
   "B/D#": {
-    notes: ["D#","F#","B"],
-    treble: ["D#5","F#5","B5"],
-    bass: ["D#3","F#3","B3"],
+    notes: ["D#", "F#", "B"],
+    treble: ["D#5", "F#5", "B5"],
+    bass: ["D#3", "F#3", "B3"],
     displayName: "B Major (1st Inversion)",
   },
   "C#/E#": {
-    notes: ["E#","G#","C#"],
-    treble: ["E#4","G#4","C#5"],
-    bass: ["E#3","G#3","C#4"],
+    notes: ["E#", "G#", "C#"],
+    treble: ["E#4", "G#4", "C#5"],
+    bass: ["E#3", "G#3", "C#4"],
     displayName: "C# Major (1st Inversion)",
   },
   "D#/F##": {
-    notes: ["F##","A#","D#"],
-    treble: ["F##4","A#4","D#5"],
-    bass: ["F##2","A#2","D#3"],
+    notes: ["F##", "A#", "D#"],
+    treble: ["F##4", "A#4", "D#5"],
+    bass: ["F##2", "A#2", "D#3"],
     displayName: "D# Major (1st Inversion)",
   },
   "G#/B#": {
-    notes: ["B#","D#","G#"],
-    treble: ["B#4","D#5","G#5"],
-    bass: ["B#2","D#3","G#3"],
+    notes: ["B#", "D#", "G#"],
+    treble: ["B#4", "D#5", "G#5"],
+    bass: ["B#2", "D#3", "G#3"],
     displayName: "G# Major (1st Inversion)",
   },
   "A#/C##": {
-    notes: ["C##","E#","A#"],
-    treble: ["C##5","E#5","A#5"],
-    bass: ["C##3","E#3","A#3"],
+    notes: ["C##", "E#", "A#"],
+    treble: ["C##5", "E#5", "A#5"],
+    bass: ["C##3", "E#3", "A#3"],
     displayName: "A# Major (1st Inversion)",
   },
   "C/G": {
-    notes: ["G","C","E"],
-    treble: ["G4","C5","E5"],
-    bass: ["G2","C3","E3"],
+    notes: ["G", "C", "E"],
+    treble: ["G4", "C5", "E5"],
+    bass: ["G2", "C3", "E3"],
     displayName: "C Major (2nd Inversion)",
   },
   "Db/Ab": {
-    notes: ["Ab","Db","F"],
-    treble: ["Ab4","Db5","F5"],
-    bass: ["Ab2","Db3","F3"],
+    notes: ["Ab", "Db", "F"],
+    treble: ["Ab4", "Db5", "F5"],
+    bass: ["Ab2", "Db3", "F3"],
     displayName: "Db Major (2nd Inversion)",
   },
   "D/A": {
-    notes: ["A","D","F#"],
-    treble: ["A4","D5","F#5"],
-    bass: ["A2","D3","F#3"],
+    notes: ["A", "D", "F#"],
+    treble: ["A4", "D5", "F#5"],
+    bass: ["A2", "D3", "F#3"],
     displayName: "D Major (2nd Inversion)",
   },
   "Eb/Bb": {
-    notes: ["Bb","Eb","G"],
-    treble: ["Bb4","Eb5","G5"],
-    bass: ["Bb2","Eb3","G3"],
+    notes: ["Bb", "Eb", "G"],
+    treble: ["Bb4", "Eb5", "G5"],
+    bass: ["Bb2", "Eb3", "G3"],
     displayName: "Eb Major (2nd Inversion)",
   },
   "E/B": {
-    notes: ["B","E","G#"],
-    treble: ["B4","E5","G#5"],
-    bass: ["B2","E3","G#3"],
+    notes: ["B", "E", "G#"],
+    treble: ["B4", "E5", "G#5"],
+    bass: ["B2", "E3", "G#3"],
     displayName: "E Major (2nd Inversion)",
   },
   "F/C": {
-    notes: ["C","F","A"],
-    treble: ["C5","F5","A5"],
-    bass: ["C3","F3","A3"],
+    notes: ["C", "F", "A"],
+    treble: ["C5", "F5", "A5"],
+    bass: ["C3", "F3", "A3"],
     displayName: "F Major (2nd Inversion)",
   },
   "F#/C#": {
-    notes: ["C#","F#","A#"],
-    treble: ["C#5","F#5","A#5"],
-    bass: ["C#3","F#3","A#3"],
+    notes: ["C#", "F#", "A#"],
+    treble: ["C#5", "F#5", "A#5"],
+    bass: ["C#3", "F#3", "A#3"],
     displayName: "F# Major (2nd Inversion)",
   },
   "Gb/Db": {
-    notes: ["Db","Gb","Bb"],
-    treble: ["Db5","Gb5","Bb5"],
-    bass: ["Db3","Gb3","Bb3"],
+    notes: ["Db", "Gb", "Bb"],
+    treble: ["Db5", "Gb5", "Bb5"],
+    bass: ["Db3", "Gb3", "Bb3"],
     displayName: "Gb Major (2nd Inversion)",
   },
   "G/D": {
-    notes: ["D","G","B"],
-    treble: ["D5","G5","B5"],
-    bass: ["D3","G3","B3"],
+    notes: ["D", "G", "B"],
+    treble: ["D5", "G5", "B5"],
+    bass: ["D3", "G3", "B3"],
     displayName: "G Major (2nd Inversion)",
   },
   "Ab/Eb": {
-    notes: ["Eb","Ab","C"],
-    treble: ["Eb4","Ab4","C5"],
-    bass: ["Eb3","Ab3","C4"],
+    notes: ["Eb", "Ab", "C"],
+    treble: ["Eb4", "Ab4", "C5"],
+    bass: ["Eb3", "Ab3", "C4"],
     displayName: "Ab Major (2nd Inversion)",
   },
   "A/E": {
-    notes: ["E","A","C#"],
-    treble: ["E4","A4","C#5"],
-    bass: ["E3","A3","C#4"],
+    notes: ["E", "A", "C#"],
+    treble: ["E4", "A4", "C#5"],
+    bass: ["E3", "A3", "C#4"],
     displayName: "A Major (2nd Inversion)",
   },
   "Bb/F": {
-    notes: ["F","Bb","D"],
-    treble: ["F4","Bb4","D5"],
-    bass: ["F2","Bb2","D3"],
+    notes: ["F", "Bb", "D"],
+    treble: ["F4", "Bb4", "D5"],
+    bass: ["F2", "Bb2", "D3"],
     displayName: "Bb Major (2nd Inversion)",
   },
   "B/F#": {
-    notes: ["F#","B","D#"],
-    treble: ["F#4","B4","D#5"],
-    bass: ["F#2","B2","D#3"],
+    notes: ["F#", "B", "D#"],
+    treble: ["F#4", "B4", "D#5"],
+    bass: ["F#2", "B2", "D#3"],
     displayName: "B Major (2nd Inversion)",
   },
   "C#/G#": {
-    notes: ["G#","C#","E#"],
-    treble: ["G#4","C#5","E#5"],
-    bass: ["G#2","C#3","E#3"],
+    notes: ["G#", "C#", "E#"],
+    treble: ["G#4", "C#5", "E#5"],
+    bass: ["G#2", "C#3", "E#3"],
     displayName: "C# Major (2nd Inversion)",
   },
   "D#/A#": {
-    notes: ["A#","D#","F##"],
-    treble: ["A#4","D#5","F##5"],
-    bass: ["A#2","D#3","F##3"],
+    notes: ["A#", "D#", "F##"],
+    treble: ["A#4", "D#5", "F##5"],
+    bass: ["A#2", "D#3", "F##3"],
     displayName: "D# Major (2nd Inversion)",
   },
   "G#/D#": {
-    notes: ["D#","G#","B#"],
-    treble: ["D#5","G#5","B#5"],
-    bass: ["D#3","G#3","B#3"],
+    notes: ["D#", "G#", "B#"],
+    treble: ["D#5", "G#5", "B#5"],
+    bass: ["D#3", "G#3", "B#3"],
     displayName: "G# Major (2nd Inversion)",
   },
   "A#/E#": {
-    notes: ["E#","A#","C##"],
-    treble: ["E#5","A#5","C##6"],
-    bass: ["E#3","A#3","C##4"],
+    notes: ["E#", "A#", "C##"],
+    treble: ["E#5", "A#5", "C##6"],
+    bass: ["E#3", "A#3", "C##4"],
     displayName: "A# Major (2nd Inversion)",
   },
   "Cm/Eb": {
-    notes: ["Eb","G","C"],
-    treble: ["Eb4","G4","C5"],
-    bass: ["Eb3","G3","C4"],
+    notes: ["Eb", "G", "C"],
+    treble: ["Eb4", "G4", "C5"],
+    bass: ["Eb3", "G3", "C4"],
     displayName: "C Minor (1st Inversion)",
   },
   "C#m/E": {
-    notes: ["E","G#","C#"],
-    treble: ["E4","G#4","C#5"],
-    bass: ["E3","G#3","C#4"],
+    notes: ["E", "G#", "C#"],
+    treble: ["E4", "G#4", "C#5"],
+    bass: ["E3", "G#3", "C#4"],
     displayName: "C# Minor (1st Inversion)",
   },
   "Dm/F": {
-    notes: ["F","A","D"],
-    treble: ["F4","A4","D5"],
-    bass: ["F2","A2","D3"],
+    notes: ["F", "A", "D"],
+    treble: ["F4", "A4", "D5"],
+    bass: ["F2", "A2", "D3"],
     displayName: "D Minor (1st Inversion)",
   },
   "D#m/F#": {
-    notes: ["F#","A#","D#"],
-    treble: ["F#4","A#4","D#5"],
-    bass: ["F#2","A#2","D#3"],
+    notes: ["F#", "A#", "D#"],
+    treble: ["F#4", "A#4", "D#5"],
+    bass: ["F#2", "A#2", "D#3"],
     displayName: "D# Minor (1st Inversion)",
   },
   "Ebm/Gb": {
-    notes: ["Gb","Bb","Eb"],
-    treble: ["Gb4","Bb4","Eb5"],
-    bass: ["Gb2","Bb2","Eb3"],
+    notes: ["Gb", "Bb", "Eb"],
+    treble: ["Gb4", "Bb4", "Eb5"],
+    bass: ["Gb2", "Bb2", "Eb3"],
     displayName: "Eb Minor (1st Inversion)",
   },
   "Em/G": {
-    notes: ["G","B","E"],
-    treble: ["G4","B4","E5"],
-    bass: ["G2","B2","E3"],
+    notes: ["G", "B", "E"],
+    treble: ["G4", "B4", "E5"],
+    bass: ["G2", "B2", "E3"],
     displayName: "E Minor (1st Inversion)",
   },
   "Fm/Ab": {
-    notes: ["Ab","C","F"],
-    treble: ["Ab4","C5","F5"],
-    bass: ["Ab2","C3","F3"],
+    notes: ["Ab", "C", "F"],
+    treble: ["Ab4", "C5", "F5"],
+    bass: ["Ab2", "C3", "F3"],
     displayName: "F Minor (1st Inversion)",
   },
   "F#m/A": {
-    notes: ["A","C#","F#"],
-    treble: ["A4","C#5","F#5"],
-    bass: ["A2","C#3","F#3"],
+    notes: ["A", "C#", "F#"],
+    treble: ["A4", "C#5", "F#5"],
+    bass: ["A2", "C#3", "F#3"],
     displayName: "F# Minor (1st Inversion)",
   },
   "Gm/Bb": {
-    notes: ["Bb","D","G"],
-    treble: ["Bb4","D5","G5"],
-    bass: ["Bb2","D3","G3"],
+    notes: ["Bb", "D", "G"],
+    treble: ["Bb4", "D5", "G5"],
+    bass: ["Bb2", "D3", "G3"],
     displayName: "G Minor (1st Inversion)",
   },
   "G#m/B": {
-    notes: ["B","D#","G#"],
-    treble: ["B4","D#5","G#5"],
-    bass: ["B2","D#3","G#3"],
+    notes: ["B", "D#", "G#"],
+    treble: ["B4", "D#5", "G#5"],
+    bass: ["B2", "D#3", "G#3"],
     displayName: "G# Minor (1st Inversion)",
   },
   "Am/C": {
-    notes: ["C","E","A"],
-    treble: ["C5","E5","A5"],
-    bass: ["C3","E3","A3"],
+    notes: ["C", "E", "A"],
+    treble: ["C5", "E5", "A5"],
+    bass: ["C3", "E3", "A3"],
     displayName: "A Minor (1st Inversion)",
   },
   "A#m/C#": {
-    notes: ["C#","E#","A#"],
-    treble: ["C#5","E#5","A#5"],
-    bass: ["C#3","E#3","A#3"],
+    notes: ["C#", "E#", "A#"],
+    treble: ["C#5", "E#5", "A#5"],
+    bass: ["C#3", "E#3", "A#3"],
     displayName: "A# Minor (1st Inversion)",
   },
   "Bbm/Db": {
-    notes: ["Db","F","Bb"],
-    treble: ["Db5","F5","Bb5"],
-    bass: ["Db3","F3","Bb3"],
+    notes: ["Db", "F", "Bb"],
+    treble: ["Db5", "F5", "Bb5"],
+    bass: ["Db3", "F3", "Bb3"],
     displayName: "Bb Minor (1st Inversion)",
   },
   "Bm/D": {
-    notes: ["D","F#","B"],
-    treble: ["D5","F#5","B5"],
-    bass: ["D3","F#3","B3"],
+    notes: ["D", "F#", "B"],
+    treble: ["D5", "F#5", "B5"],
+    bass: ["D3", "F#3", "B3"],
     displayName: "B Minor (1st Inversion)",
   },
   "Dbm/Fb": {
-    notes: ["Fb","Ab","Db"],
-    treble: ["Fb4","Ab4","Db5"],
-    bass: ["Fb2","Ab2","Db3"],
+    notes: ["Fb", "Ab", "Db"],
+    treble: ["Fb4", "Ab4", "Db5"],
+    bass: ["Fb2", "Ab2", "Db3"],
     displayName: "Db Minor (1st Inversion)",
   },
   "Gbm/Bbb": {
-    notes: ["Bbb","Db","Gb"],
-    treble: ["Bbb4","Db5","Gb5"],
-    bass: ["Bbb2","Db3","Gb3"],
+    notes: ["Bbb", "Db", "Gb"],
+    treble: ["Bbb4", "Db5", "Gb5"],
+    bass: ["Bbb2", "Db3", "Gb3"],
     displayName: "Gb Minor (1st Inversion)",
   },
   "Abm/Cb": {
-    notes: ["Cb","Eb","Ab"],
-    treble: ["Cb5","Eb5","Ab5"],
-    bass: ["Cb3","Eb3","Ab3"],
+    notes: ["Cb", "Eb", "Ab"],
+    treble: ["Cb5", "Eb5", "Ab5"],
+    bass: ["Cb3", "Eb3", "Ab3"],
     displayName: "Ab Minor (1st Inversion)",
   },
   "Cm/G": {
-    notes: ["G","C","Eb"],
-    treble: ["G4","C5","Eb5"],
-    bass: ["G2","C3","Eb3"],
+    notes: ["G", "C", "Eb"],
+    treble: ["G4", "C5", "Eb5"],
+    bass: ["G2", "C3", "Eb3"],
     displayName: "C Minor (2nd Inversion)",
   },
   "C#m/G#": {
-    notes: ["G#","C#","E"],
-    treble: ["G#4","C#5","E5"],
-    bass: ["G#2","C#3","E3"],
+    notes: ["G#", "C#", "E"],
+    treble: ["G#4", "C#5", "E5"],
+    bass: ["G#2", "C#3", "E3"],
     displayName: "C# Minor (2nd Inversion)",
   },
   "Dm/A": {
-    notes: ["A","D","F"],
-    treble: ["A4","D5","F5"],
-    bass: ["A2","D3","F3"],
+    notes: ["A", "D", "F"],
+    treble: ["A4", "D5", "F5"],
+    bass: ["A2", "D3", "F3"],
     displayName: "D Minor (2nd Inversion)",
   },
   "D#m/A#": {
-    notes: ["A#","D#","F#"],
-    treble: ["A#4","D#5","F#5"],
-    bass: ["A#2","D#3","F#3"],
+    notes: ["A#", "D#", "F#"],
+    treble: ["A#4", "D#5", "F#5"],
+    bass: ["A#2", "D#3", "F#3"],
     displayName: "D# Minor (2nd Inversion)",
   },
   "Ebm/Bb": {
-    notes: ["Bb","Eb","Gb"],
-    treble: ["Bb4","Eb5","Gb5"],
-    bass: ["Bb2","Eb3","Gb3"],
+    notes: ["Bb", "Eb", "Gb"],
+    treble: ["Bb4", "Eb5", "Gb5"],
+    bass: ["Bb2", "Eb3", "Gb3"],
     displayName: "Eb Minor (2nd Inversion)",
   },
   "Em/B": {
-    notes: ["B","E","G"],
-    treble: ["B4","E5","G5"],
-    bass: ["B2","E3","G3"],
+    notes: ["B", "E", "G"],
+    treble: ["B4", "E5", "G5"],
+    bass: ["B2", "E3", "G3"],
     displayName: "E Minor (2nd Inversion)",
   },
   "Fm/C": {
-    notes: ["C","F","Ab"],
-    treble: ["C5","F5","Ab5"],
-    bass: ["C3","F3","Ab3"],
+    notes: ["C", "F", "Ab"],
+    treble: ["C5", "F5", "Ab5"],
+    bass: ["C3", "F3", "Ab3"],
     displayName: "F Minor (2nd Inversion)",
   },
   "F#m/C#": {
-    notes: ["C#","F#","A"],
-    treble: ["C#5","F#5","A5"],
-    bass: ["C#3","F#3","A3"],
+    notes: ["C#", "F#", "A"],
+    treble: ["C#5", "F#5", "A5"],
+    bass: ["C#3", "F#3", "A3"],
     displayName: "F# Minor (2nd Inversion)",
   },
   "Gm/D": {
-    notes: ["D","G","Bb"],
-    treble: ["D5","G5","Bb5"],
-    bass: ["D3","G3","Bb3"],
+    notes: ["D", "G", "Bb"],
+    treble: ["D5", "G5", "Bb5"],
+    bass: ["D3", "G3", "Bb3"],
     displayName: "G Minor (2nd Inversion)",
   },
   "G#m/D#": {
-    notes: ["D#","G#","B"],
-    treble: ["D#5","G#5","B5"],
-    bass: ["D#3","G#3","B3"],
+    notes: ["D#", "G#", "B"],
+    treble: ["D#5", "G#5", "B5"],
+    bass: ["D#3", "G#3", "B3"],
     displayName: "G# Minor (2nd Inversion)",
   },
   "Am/E": {
-    notes: ["E","A","C"],
-    treble: ["E4","A4","C5"],
-    bass: ["E3","A3","C4"],
+    notes: ["E", "A", "C"],
+    treble: ["E4", "A4", "C5"],
+    bass: ["E3", "A3", "C4"],
     displayName: "A Minor (2nd Inversion)",
   },
   "A#m/E#": {
-    notes: ["E#","A#","C#"],
-    treble: ["E#5","A#5","C#6"],
-    bass: ["E#3","A#3","C#4"],
+    notes: ["E#", "A#", "C#"],
+    treble: ["E#5", "A#5", "C#6"],
+    bass: ["E#3", "A#3", "C#4"],
     displayName: "A# Minor (2nd Inversion)",
   },
   "Bbm/F": {
-    notes: ["F","Bb","Db"],
-    treble: ["F4","Bb4","Db5"],
-    bass: ["F2","Bb2","Db3"],
+    notes: ["F", "Bb", "Db"],
+    treble: ["F4", "Bb4", "Db5"],
+    bass: ["F2", "Bb2", "Db3"],
     displayName: "Bb Minor (2nd Inversion)",
   },
   "Bm/F#": {
-    notes: ["F#","B","D"],
-    treble: ["F#4","B4","D5"],
-    bass: ["F#2","B2","D3"],
+    notes: ["F#", "B", "D"],
+    treble: ["F#4", "B4", "D5"],
+    bass: ["F#2", "B2", "D3"],
     displayName: "B Minor (2nd Inversion)",
   },
   "Dbm/Ab": {
-    notes: ["Ab","Db","Fb"],
-    treble: ["Ab4","Db5","Fb5"],
-    bass: ["Ab2","Db3","Fb3"],
+    notes: ["Ab", "Db", "Fb"],
+    treble: ["Ab4", "Db5", "Fb5"],
+    bass: ["Ab2", "Db3", "Fb3"],
     displayName: "Db Minor (2nd Inversion)",
   },
   "Gbm/Db": {
-    notes: ["Db","Gb","Bbb"],
-    treble: ["Db5","Gb5","Bbb5"],
-    bass: ["Db3","Gb3","Bbb3"],
+    notes: ["Db", "Gb", "Bbb"],
+    treble: ["Db5", "Gb5", "Bbb5"],
+    bass: ["Db3", "Gb3", "Bbb3"],
     displayName: "Gb Minor (2nd Inversion)",
   },
   "Abm/Eb": {
-    notes: ["Eb","Ab","Cb"],
-    treble: ["Eb4","Ab4","Cb5"],
-    bass: ["Eb3","Ab3","Cb4"],
+    notes: ["Eb", "Ab", "Cb"],
+    treble: ["Eb4", "Ab4", "Cb5"],
+    bass: ["Eb3", "Ab3", "Cb4"],
     displayName: "Ab Minor (2nd Inversion)",
   },
   "C7/E": {
-    notes: ["E","Bb","C"],
-    treble: ["E4","Bb4","C5"],
-    bass: ["E2","Bb2","C3"],
+    notes: ["E", "Bb", "C"],
+    treble: ["E4", "Bb4", "C5"],
+    bass: ["E2", "Bb2", "C3"],
     displayName: "C Dominant 7th (1st Inv, no 5)",
   },
   "C#7/E#": {
-    notes: ["E#","B","C#"],
-    treble: ["E#4","B4","C#5"],
-    bass: ["E#2","B2","C#3"],
+    notes: ["E#", "B", "C#"],
+    treble: ["E#4", "B4", "C#5"],
+    bass: ["E#2", "B2", "C#3"],
     displayName: "C# Dominant 7th (1st Inv, no 5)",
   },
   "Db7/F": {
-    notes: ["F","Cb","Db"],
-    treble: ["F4","Cb5","Db5"],
-    bass: ["F2","Cb3","Db3"],
+    notes: ["F", "Cb", "Db"],
+    treble: ["F4", "Cb5", "Db5"],
+    bass: ["F2", "Cb3", "Db3"],
     displayName: "Db Dominant 7th (1st Inv, no 5)",
   },
   "D7/F#": {
-    notes: ["F#","C","D"],
-    treble: ["F#4","C5","D5"],
-    bass: ["F#2","C3","D3"],
+    notes: ["F#", "C", "D"],
+    treble: ["F#4", "C5", "D5"],
+    bass: ["F#2", "C3", "D3"],
     displayName: "D Dominant 7th (1st Inv, no 5)",
   },
   "D#7/F##": {
-    notes: ["F##","C#","D#"],
-    treble: ["F##4","C#5","D#5"],
-    bass: ["F##2","C#3","D#3"],
+    notes: ["F##", "C#", "D#"],
+    treble: ["F##4", "C#5", "D#5"],
+    bass: ["F##2", "C#3", "D#3"],
     displayName: "D# Dominant 7th (1st Inv, no 5)",
   },
   "Eb7/G": {
-    notes: ["G","Db","Eb"],
-    treble: ["G4","Db5","Eb5"],
-    bass: ["G2","Db3","Eb3"],
+    notes: ["G", "Db", "Eb"],
+    treble: ["G4", "Db5", "Eb5"],
+    bass: ["G2", "Db3", "Eb3"],
     displayName: "Eb Dominant 7th (1st Inv, no 5)",
   },
   "E7/G#": {
-    notes: ["G#","D","E"],
-    treble: ["G#4","D5","E5"],
-    bass: ["G#2","D3","E3"],
+    notes: ["G#", "D", "E"],
+    treble: ["G#4", "D5", "E5"],
+    bass: ["G#2", "D3", "E3"],
     displayName: "E Dominant 7th (1st Inv, no 5)",
   },
   "F7/A": {
-    notes: ["A","Eb","F"],
-    treble: ["A4","Eb5","F5"],
-    bass: ["A2","Eb3","F3"],
+    notes: ["A", "Eb", "F"],
+    treble: ["A4", "Eb5", "F5"],
+    bass: ["A2", "Eb3", "F3"],
     displayName: "F Dominant 7th (1st Inv, no 5)",
   },
   "F#7/A#": {
-    notes: ["A#","E","F#"],
-    treble: ["A#4","E5","F#5"],
-    bass: ["A#2","E3","F#3"],
+    notes: ["A#", "E", "F#"],
+    treble: ["A#4", "E5", "F#5"],
+    bass: ["A#2", "E3", "F#3"],
     displayName: "F# Dominant 7th (1st Inv, no 5)",
   },
   "Gb7/Bb": {
-    notes: ["Bb","Fb","Gb"],
-    treble: ["Bb4","Fb5","Gb5"],
-    bass: ["Bb2","Fb3","Gb3"],
+    notes: ["Bb", "Fb", "Gb"],
+    treble: ["Bb4", "Fb5", "Gb5"],
+    bass: ["Bb2", "Fb3", "Gb3"],
     displayName: "Gb Dominant 7th (1st Inv, no 5)",
   },
   "G7/B": {
-    notes: ["B","F","G"],
-    treble: ["B4","F5","G5"],
-    bass: ["B2","F3","G3"],
+    notes: ["B", "F", "G"],
+    treble: ["B4", "F5", "G5"],
+    bass: ["B2", "F3", "G3"],
     displayName: "G Dominant 7th (1st Inv, no 5)",
   },
   "G#7/B#": {
-    notes: ["B#","F#","G#"],
-    treble: ["B#4","F#5","G#5"],
-    bass: ["B#2","F#3","G#3"],
+    notes: ["B#", "F#", "G#"],
+    treble: ["B#4", "F#5", "G#5"],
+    bass: ["B#2", "F#3", "G#3"],
     displayName: "G# Dominant 7th (1st Inv, no 5)",
   },
   "Ab7/C": {
-    notes: ["C","Gb","Ab"],
-    treble: ["C5","Gb5","Ab5"],
-    bass: ["C3","Gb3","Ab3"],
+    notes: ["C", "Gb", "Ab"],
+    treble: ["C5", "Gb5", "Ab5"],
+    bass: ["C3", "Gb3", "Ab3"],
     displayName: "Ab Dominant 7th (1st Inv, no 5)",
   },
   "A7/C#": {
-    notes: ["C#","G","A"],
-    treble: ["C#5","G5","A5"],
-    bass: ["C#3","G3","A3"],
+    notes: ["C#", "G", "A"],
+    treble: ["C#5", "G5", "A5"],
+    bass: ["C#3", "G3", "A3"],
     displayName: "A Dominant 7th (1st Inv, no 5)",
   },
   "A#7/C##": {
-    notes: ["C##","G#","A#"],
-    treble: ["C##5","G#5","A#5"],
-    bass: ["C##3","G#3","A#3"],
+    notes: ["C##", "G#", "A#"],
+    treble: ["C##5", "G#5", "A#5"],
+    bass: ["C##3", "G#3", "A#3"],
     displayName: "A# Dominant 7th (1st Inv, no 5)",
   },
   "Bb7/D": {
-    notes: ["D","Ab","Bb"],
-    treble: ["D5","Ab5","Bb5"],
-    bass: ["D3","Ab3","Bb3"],
+    notes: ["D", "Ab", "Bb"],
+    treble: ["D5", "Ab5", "Bb5"],
+    bass: ["D3", "Ab3", "Bb3"],
     displayName: "Bb Dominant 7th (1st Inv, no 5)",
   },
   "B7/D#": {
-    notes: ["D#","A","B"],
-    treble: ["D#5","A5","B5"],
-    bass: ["D#3","A3","B3"],
+    notes: ["D#", "A", "B"],
+    treble: ["D#5", "A5", "B5"],
+    bass: ["D#3", "A3", "B3"],
     displayName: "B Dominant 7th (1st Inv, no 5)",
   },
 };
@@ -3251,225 +3322,225 @@ export const UNIFIED_CHORD_DEFINITIONS = {
 };
 
 export const DIATONIC_SCALES = {
-  "C": {
+  C: {
     rootNote: "C",
     scaleNotes: ["C", "D", "E", "F", "G", "A", "B"],
     chordRoots: ["C", "D", "E", "F", "G", "A", "B"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "G": {
+  G: {
     rootNote: "G",
     scaleNotes: ["G", "A", "B", "C", "D", "E", "F#"],
     chordRoots: ["G", "A", "B", "C", "D", "E", "F#"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "D": {
+  D: {
     rootNote: "D",
     scaleNotes: ["D", "E", "F#", "G", "A", "B", "C#"],
     chordRoots: ["D", "E", "F#", "G", "A", "B", "C#"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "A": {
+  A: {
     rootNote: "A",
     scaleNotes: ["A", "B", "C#", "D", "E", "F#", "G#"],
     chordRoots: ["A", "B", "C#", "D", "E", "F#", "G#"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "E": {
+  E: {
     rootNote: "E",
     scaleNotes: ["E", "F#", "G#", "A", "B", "C#", "D#"],
     chordRoots: ["E", "F#", "G#", "A", "B", "C#", "D#"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "B": {
+  B: {
     rootNote: "B",
     scaleNotes: ["B", "C#", "D#", "E", "F#", "G#", "A#"],
     chordRoots: ["B", "C#", "D#", "E", "F#", "G#", "A#"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
   "F#": {
     rootNote: "F#",
     scaleNotes: ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
     chordRoots: ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "Db": {
+  Db: {
     rootNote: "Db",
     scaleNotes: ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
     chordRoots: ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "Ab": {
+  Ab: {
     rootNote: "Ab",
     scaleNotes: ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
     chordRoots: ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "Eb": {
+  Eb: {
     rootNote: "Eb",
     scaleNotes: ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
     chordRoots: ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "Bb": {
+  Bb: {
     rootNote: "Bb",
     scaleNotes: ["Bb", "C", "D", "Eb", "F", "G", "A"],
     chordRoots: ["Bb", "C", "D", "Eb", "F", "G", "A"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "F": {
+  F: {
     rootNote: "F",
     scaleNotes: ["F", "G", "A", "Bb", "C", "D", "E"],
     chordRoots: ["F", "G", "A", "Bb", "C", "D", "E"],
     labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
   },
-  "Am": {
+  Am: {
     rootNote: "A",
     scaleNotes: ["A", "B", "C", "D", "E", "F", "G"],
     chordRoots: ["A", "B", "C", "D", "E", "F", "G"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Em": {
+  Em: {
     rootNote: "E",
     scaleNotes: ["E", "F#", "G", "A", "B", "C", "D"],
     chordRoots: ["E", "F#", "G", "A", "B", "C", "D"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Bm": {
+  Bm: {
     rootNote: "B",
     scaleNotes: ["B", "C#", "D", "E", "F#", "G", "A"],
     chordRoots: ["B", "C#", "D", "E", "F#", "G", "A"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
   "F#m": {
     rootNote: "F#",
     scaleNotes: ["F#", "G#", "A", "B", "C#", "D", "E"],
     chordRoots: ["F#", "G#", "A", "B", "C#", "D", "E"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
   "C#m": {
     rootNote: "C#",
     scaleNotes: ["C#", "D#", "E", "F#", "G#", "A", "B"],
     chordRoots: ["C#", "D#", "E", "F#", "G#", "A", "B"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
   "G#m": {
     rootNote: "G#",
     scaleNotes: ["G#", "A#", "B", "C#", "D#", "E", "F#"],
     chordRoots: ["G#", "A#", "B", "C#", "D#", "E", "F#"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Dbm": {
+  Dbm: {
     rootNote: "Db",
     scaleNotes: ["Db", "Eb", "Fb", "Gb", "Ab", "Bbb", "Cb"],
     chordRoots: ["Db", "Eb", "Fb", "Gb", "Ab", "Bbb", "Cb"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Abm": {
+  Abm: {
     rootNote: "Ab",
     scaleNotes: ["Ab", "Bb", "Cb", "Db", "Eb", "Fb", "Gb"],
     chordRoots: ["Ab", "Bb", "Cb", "Db", "Eb", "Fb", "Gb"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Ebm": {
+  Ebm: {
     rootNote: "Eb",
     scaleNotes: ["Eb", "F", "Gb", "Ab", "Bb", "Cb", "Db"],
     chordRoots: ["Eb", "F", "Gb", "Ab", "Bb", "Cb", "Db"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Bbm": {
+  Bbm: {
     rootNote: "Bb",
     scaleNotes: ["Bb", "C", "Db", "Eb", "F", "Gb", "Ab"],
     chordRoots: ["Bb", "C", "Db", "Eb", "F", "Gb", "Ab"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Fm": {
+  Fm: {
     rootNote: "F",
     scaleNotes: ["F", "G", "Ab", "Bb", "C", "Db", "Eb"],
     chordRoots: ["F", "G", "Ab", "Bb", "C", "Db", "Eb"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Cm": {
+  Cm: {
     rootNote: "C",
     scaleNotes: ["C", "D", "Eb", "F", "G", "Ab", "Bb"],
     chordRoots: ["C", "D", "Eb", "F", "G", "Ab", "Bb"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Gm": {
+  Gm: {
     rootNote: "G",
     scaleNotes: ["G", "A", "Bb", "C", "D", "Eb", "F"],
     chordRoots: ["G", "A", "Bb", "C", "D", "Eb", "F"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
   },
-  "Dm": {
+  Dm: {
     rootNote: "D",
     scaleNotes: ["D", "E", "F", "G", "A", "Bb", "C"],
     chordRoots: ["D", "E", "F", "G", "A", "Bb", "C"],
     labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
-},
-"C#": {
-  rootNote: "C#",
-  scaleNotes: ["C#", "D#", "E#", "F#", "G#", "A#", "B#"],
-  chordRoots: ["C#", "D#", "E#", "F#", "G#", "A#", "B#"],
-  labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-  qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
-},
-"Gb": {
-  rootNote: "Gb",
-  scaleNotes: ["Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F"],
-  chordRoots: ["Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F"],
-  labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-  qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
-},
-"Cb": {
-  rootNote: "Cb",
-  scaleNotes: ["Cb", "Db", "Eb", "Fb", "Gb", "Ab", "Bb"],
-  chordRoots: ["Cb", "Db", "Eb", "Fb", "Gb", "Ab", "Bb"],
-  labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
-  qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"]
-},
-"D#m": {
-  rootNote: "D#",
-  scaleNotes: ["D#", "E#", "F#", "G#", "A#", "B", "C#"],
-  chordRoots: ["D#", "E#", "F#", "G#", "A#", "B", "C#"],
-  labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-  qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
-},
-"A#m": {
-  rootNote: "A#",
-  scaleNotes: ["A#", "B#", "C#", "D#", "E#", "F#", "G#"],
-  chordRoots: ["A#", "B#", "C#", "D#", "E#", "F#", "G#"],
-  labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
-  qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"]
-}
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
+  },
+  "C#": {
+    rootNote: "C#",
+    scaleNotes: ["C#", "D#", "E#", "F#", "G#", "A#", "B#"],
+    chordRoots: ["C#", "D#", "E#", "F#", "G#", "A#", "B#"],
+    labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
+  },
+  Gb: {
+    rootNote: "Gb",
+    scaleNotes: ["Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F"],
+    chordRoots: ["Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F"],
+    labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
+  },
+  Cb: {
+    rootNote: "Cb",
+    scaleNotes: ["Cb", "Db", "Eb", "Fb", "Gb", "Ab", "Bb"],
+    chordRoots: ["Cb", "Db", "Eb", "Fb", "Gb", "Ab", "Bb"],
+    labels: ["I", "ii", "iii", "IV", "V", "vi", "vii°"],
+    qualities: ["maj", "min", "min", "maj", "dom7", "min", "dim"],
+  },
+  "D#m": {
+    rootNote: "D#",
+    scaleNotes: ["D#", "E#", "F#", "G#", "A#", "B", "C#"],
+    chordRoots: ["D#", "E#", "F#", "G#", "A#", "B", "C#"],
+    labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
+  },
+  "A#m": {
+    rootNote: "A#",
+    scaleNotes: ["A#", "B#", "C#", "D#", "E#", "F#", "G#"],
+    chordRoots: ["A#", "B#", "C#", "D#", "E#", "F#", "G#"],
+    labels: ["i", "ii°", "III", "iv", "v", "VI", "VII"],
+    qualities: ["min", "dim", "maj", "min", "min", "maj", "maj"],
+  },
 };
-  
+
 export const MAJOR_DIATONIC_LABELS = {
   intervals: [0, 2, 4, 5, 7, 9, 11],
   labels: ["I", "ii", "iii", "IV", "V", "vi", "7°"],
@@ -3509,13 +3580,13 @@ export const CHORD_STRUCTURES = {
 // Base thresholds at 120 BPM (in milliseconds)
 // Each duration is based on its beat value relative to a quarter note (550ms at 120 BPM)
 const BASE_DURATION_THRESHOLDS = {
-  "8": 275,      // Eighth: 0.5 beats
-  "8.": 412.5,   // Dotted Eighth: 0.75 beats
-  q: 550,        // Quarter: 1 beat
-  "q.": 825,     // Dotted Quarter: 1.5 beats
-  h: 1100,       // Half: 2 beats
-  "h.": 1650,    // Dotted Half: 3 beats
-  w: 2200,       // Whole: 4 beats
+  8: 275, // Eighth: 0.5 beats
+  "8.": 412.5, // Dotted Eighth: 0.75 beats
+  q: 550, // Quarter: 1 beat
+  "q.": 825, // Dotted Quarter: 1.5 beats
+  h: 1100, // Half: 2 beats
+  "h.": 1650, // Dotted Half: 3 beats
+  w: 2200, // Whole: 4 beats
 };
 
 /**
@@ -3526,11 +3597,11 @@ const BASE_DURATION_THRESHOLDS = {
 export function getDurationThresholds(tempo = 120) {
   const tempoRatio = 120 / tempo;
   const thresholds = {};
-  
+
   for (const [duration, baseMs] of Object.entries(BASE_DURATION_THRESHOLDS)) {
     thresholds[duration] = baseMs * tempoRatio;
   }
-  
+
   return thresholds;
 }
 
@@ -3547,8 +3618,8 @@ export const DURATIONS = [
   { key: "8", name: "Eighth", beatValue: 0.5 },
   { key: "16.", name: "Dotted Sixteenth", beatValue: 0.375 },
   { key: "16", name: "Sixteenth", beatValue: 0.25 },
-  { key: '32.', name: 'Dotted Thirty-second', beatValue: 0.1875 },
-  { key: '32', name: 'Thirty-second', beatValue: 0.125 },
+  { key: "32.", name: "Dotted Thirty-second", beatValue: 0.1875 },
+  { key: "32", name: "Thirty-second", beatValue: 0.125 },
 ];
 
 // KEYS AND SCALES
@@ -3776,7 +3847,7 @@ keySignatures.forEach(({ accidentals, type, displayName, aliases }) => {
 /**
  * Strict chord identification - notes must match exactly as-is
  * No normalization, no reordering, no enharmonic conversion
- * 
+ *
  * @param {string[]} notes - Array of note names exactly as they should appear
  * @returns {string|null} - Chord display name or null if no exact match
  */
@@ -3784,7 +3855,7 @@ export function identifyChordStrict(notes, useSymbol = false) {
   if (!notes || notes.length === 0) return null;
 
   // Remove octaves but keep everything else as-is
-  const pitchClasses = notes.map(note => note.replace(/\d+/g, ''));
+  const pitchClasses = notes.map((note) => note.replace(/\d+/g, ""));
 
   // Search chord definitions for exact match
   for (const [symbol, chord] of Object.entries(CHORD_DEFINITIONS)) {
@@ -3800,72 +3871,74 @@ export function identifyChordStrict(notes, useSymbol = false) {
 /**
  * Flexible chord identification - normalizes and sorts to find matches
  * Converts flats to sharps, sorts notes, handles inversions
- * 
+ *
  * @param {string[]} notes - Array of note names in any order/spelling
  * @returns {string|null} - Chord display name or null if no match
  */
 export function identifyChordFlexible(notes) {
   if (!notes || notes.length === 0) return null;
-  
+
   const normalized = notes
-    .map(note => note.replace(/\d+/g, '')) // THEN remove octaves  
-    .filter(note => note !== null)        // Remove any invalid notes
-    .sort();                              // Sort alphabetically
-  
+    .map((note) => note.replace(/\d+/g, "")) // THEN remove octaves
+    .filter((note) => note !== null) // Remove any invalid notes
+    .sort(); // Sort alphabetically
+
   if (normalized.length === 0) return null;
-  
+
   // Search chord definitions for a match
   for (const [symbol, chord] of Object.entries(CHORD_DEFINITIONS)) {
     const chordNotes = chord.notes.slice().sort(); // Sort chord notes too
-    
+
     if (arraysEqual(normalized, chordNotes)) {
       return chord.displayName;
     }
   }
-  
+
   return null;
 }
 
 // FUNCTIONS
 function normalizeToSharps(note) {
-  const match = ALL_NOTE_INFO.find(info => info.flatName === note);
+  const match = ALL_NOTE_INFO.find((info) => info.flatName === note);
   return match ? match.name : note;
 }
 
 function arraysEqual(arr1, arr2) {
-  return arr1.length === arr2.length && 
-         arr1.every((val, index) => val === arr2[index]);
+  return (
+    arr1.length === arr2.length &&
+    arr1.every((val, index) => val === arr2[index])
+  );
 }
-
-
 
 /**
  * Get scale notes for a given tonic and mode
- * @param {string} tonic - Root note (e.g., "C", "F#")  
+ * @param {string} tonic - Root note (e.g., "C", "F#")
  * @param {string} mode - "major" or "minor"
  * @returns {string[]} - Array of note names in the scale
  */
 export function getScaleNotes(tonic, mode) {
   const SCALE_INTERVALS = {
     major: [0, 2, 4, 5, 7, 9, 11],
-    minor: [0, 2, 3, 5, 7, 8, 10]
+    minor: [0, 2, 3, 5, 7, 8, 10],
   };
-  
+
   const intervals = SCALE_INTERVALS[mode];
   if (!intervals) return [];
-  
+
   // Find the tonic's MIDI number (use middle octave as reference)
-  const tonicPitchClass = tonic.replace(/\d+/g, '');
+  const tonicPitchClass = tonic.replace(/\d+/g, "");
   const referenceTonic = tonicPitchClass + "4"; // C4, F#4, etc.
   const tonicMidi = NOTES_BY_NAME[referenceTonic];
-  
+
   if (tonicMidi === undefined) return [];
-  
-  return intervals.map(interval => {
-    const noteMidi = tonicMidi + interval;
-    const noteInfo = NOTES_BY_MIDI[noteMidi];
-    return noteInfo ? noteInfo.pitchClass : null;
-  }).filter(Boolean);
+
+  return intervals
+    .map((interval) => {
+      const noteMidi = tonicMidi + interval;
+      const noteInfo = NOTES_BY_MIDI[noteMidi];
+      return noteInfo ? noteInfo.pitchClass : null;
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -3874,7 +3947,7 @@ export function getScaleNotes(tonic, mode) {
  * @returns {string} - Pitch class (e.g., "C", "F#")
  */
 export function getPitchClass(noteName) {
-  return noteName.replace(/\d+/g, '');
+  return noteName.replace(/\d+/g, "");
 }
 
 /**
@@ -3890,24 +3963,24 @@ export function getOctave(noteName) {
 /**
  * Calculate interval between two pitch classes
  * @param {string} fromNote - Starting pitch class
- * @param {string} toNote - Ending pitch class  
+ * @param {string} toNote - Ending pitch class
  * @returns {number} - Semitones between notes (0-11)
  */
 export function getInterval(fromNote, toNote) {
   const fromPitchClass = getPitchClass(fromNote);
   const toPitchClass = getPitchClass(toNote);
-  
+
   // Find MIDI numbers for comparison (use same octave)
   const fromMidi = NOTES_BY_NAME[fromPitchClass + "4"];
   const toMidi = NOTES_BY_NAME[toPitchClass + "4"];
-  
+
   if (fromMidi === undefined || toMidi === undefined) return 0;
-  
+
   let interval = toMidi - fromMidi;
   // Normalize to 0-11 range
   while (interval < 0) interval += 12;
   while (interval > 11) interval -= 12;
-  
+
   return interval;
 }
 
@@ -3920,21 +3993,47 @@ export function getInterval(fromNote, toNote) {
 export function transposeNote(noteName, semitones) {
   const originalMidi = NOTES_BY_NAME[noteName];
   if (originalMidi === undefined) return noteName;
-  
+
   const newMidi = originalMidi + semitones;
   const newNoteInfo = notesByMidiKeyAware(newMidi);
-  
+
   return newNoteInfo ? newNoteInfo.name : noteName;
 }
 
 const MINOR_TO_RELATIVE_MAJOR = {
-  "A": "C", "E": "G", "B": "D", "F#": "A", "C#": "E", "G#": "B", "D#": "F#", "A#": "C#",
-  "D": "F", "G": "Bb", "C": "Eb", "F": "Ab", "Bb": "Db", "Eb": "Gb", "Ab": "Cb"
+  A: "C",
+  E: "G",
+  B: "D",
+  "F#": "A",
+  "C#": "E",
+  "G#": "B",
+  "D#": "F#",
+  "A#": "C#",
+  D: "F",
+  G: "Bb",
+  C: "Eb",
+  F: "Ab",
+  Bb: "Db",
+  Eb: "Gb",
+  Ab: "Cb",
 };
 
 const MAJOR_TO_RELATIVE_MINOR = {
-  "C": "Am", "G": "Em", "D": "Bm", "A": "F#m", "E": "C#m", "B": "G#m", "F#": "D#m", "C#": "A#m",
-  "F": "Dm", "Bb": "Gm", "Eb": "Cm", "Ab": "Fm", "Db": "Bbm", "Gb": "Ebm", "Cb": "Abm"
+  C: "Am",
+  G: "Em",
+  D: "Bm",
+  A: "F#m",
+  E: "C#m",
+  B: "G#m",
+  "F#": "D#m",
+  "C#": "A#m",
+  F: "Dm",
+  Bb: "Gm",
+  Eb: "Cm",
+  Ab: "Fm",
+  Db: "Bbm",
+  Gb: "Ebm",
+  Cb: "Abm",
 };
 
 export function getKeySignature() {
@@ -3959,7 +4058,7 @@ export function getCurrentVexFlowKeySignature() {
   // Handle enharmonic equivalents for major keys
   const enharmonicMap = {
     "A#": "Bb",
-    "D#": "Eb", 
+    "D#": "Eb",
     "G#": "Ab",
   };
 
@@ -3989,14 +4088,14 @@ export function getChordByDegree(degree = 1, keySignature = null) {
   // Build chord name based on quality
   let chordName = chordRoot;
   switch (quality) {
-    case "min": 
-      chordName += "m"; 
+    case "min":
+      chordName += "m";
       break;
-    case "dom7": 
-      chordName += "7"; 
+    case "dom7":
+      chordName += "7";
       break;
-    case "dim": 
-      chordName += "dim"; 
+    case "dim":
+      chordName += "dim";
       break;
     // "maj" gets no suffix
   }
@@ -4023,7 +4122,8 @@ export function getRelativeKey() {
   }
 }
 
-export function getScale() {  // Get scale data directly
+export function getScale() {
+  // Get scale data directly
   const keySignature = getKeySignature();
   const scaleData = DIATONIC_SCALES[keySignature];
 
@@ -4035,7 +4135,6 @@ export function getScale() {  // Get scale data directly
   return scaleData;
 }
 
-
 /**
  * Splits an array of notes between bass and treble clefs for optimal notation display
  * @param {string[]} noteNames - Array of note names (e.g., ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'])
@@ -4044,11 +4143,11 @@ export function getScale() {  // Get scale data directly
 export function splitNotesIntoClefs(noteNames) {
   // Split point - notes at or above C4 (MIDI 60) go to treble, below go to bass
   const SPLIT_POINT = 60; // C4
-  
+
   const bassNotes = [];
   const trebleNotes = [];
-  
-  noteNames.forEach(noteName => {
+
+  noteNames.forEach((noteName) => {
     const midiNumber = NOTES_BY_NAME[noteName];
     if (midiNumber !== undefined) {
       if (midiNumber < SPLIT_POINT) {
@@ -4058,56 +4157,56 @@ export function splitNotesIntoClefs(noteNames) {
       }
     }
   });
-  
+
   const result = [];
-  
+
   // Add bass clef group if it has notes
   if (bassNotes.length > 0) {
     result.push({
-      clef: 'bass',
-      notes: bassNotes
+      clef: "bass",
+      notes: bassNotes,
     });
   }
-  
+
   // Add treble clef group if it has notes
   if (trebleNotes.length > 0) {
     result.push({
-      clef: 'treble', 
-      notes: trebleNotes
+      clef: "treble",
+      notes: trebleNotes,
     });
   }
-  
+
   return result;
 }
 
 /**
  * Guitar-friendly chord identification - handles duplicate notes at different octaves
  * Normalizes, deduplicates, and sorts to find matches
- * 
+ *
  * @param {string[]} notes - Array of note names (can include duplicates from guitar voicings)
  * @returns {string|null} - Chord display name or null if no match
  */
 export function identifyGuitarChord(notes) {
   if (!notes || notes.length === 0) return null;
-  
+
   const normalized = notes
-    .map(normalizeToSharps)                // Convert flats to sharps (keep octaves)
-    .map(note => note.replace(/\d+/g, '')) // Remove octaves  
-    .filter(note => note !== null)        // Remove any invalid notes
+    .map(normalizeToSharps) // Convert flats to sharps (keep octaves)
+    .map((note) => note.replace(/\d+/g, "")) // Remove octaves
+    .filter((note) => note !== null) // Remove any invalid notes
     .filter((note, index, arr) => arr.indexOf(note) === index) // Remove duplicates
-    .sort();                              // Sort alphabetically
-  
+    .sort(); // Sort alphabetically
+
   if (normalized.length === 0) return null;
-  
+
   // Search chord definitions for a match
   for (const [symbol, chord] of Object.entries(CHORD_DEFINITIONS)) {
     const chordNotes = chord.notes.slice().sort(); // Sort chord notes too
-    
+
     if (arraysEqual(normalized, chordNotes)) {
       return chord.displayName;
     }
   }
-  
+
   return null;
 }
 
@@ -4119,65 +4218,67 @@ export function identifyGuitarChord(notes) {
  */
 export function identifyChord(notes, allowDuplicates = true) {
   if (!notes || notes.length === 0) return null;
-  
+
   // Remove octaves but keep everything else as-is
-  let pitchClasses = notes.map(note => note.replace(/\d+/g, ''));
+  let pitchClasses = notes.map((note) => note.replace(/\d+/g, ""));
 
   // Remove duplicates if requested (useful for guitar chords)
   if (!allowDuplicates) {
     pitchClasses = [...new Set(pitchClasses)]; // Also use Set for deduplication
   }
-  
+
   // Search chord definitions for exact match
   for (const [symbol, chord] of Object.entries(CHORD_DEFINITIONS)) {
     // Compare using Set - order doesn't matter
     const pitchSet = new Set(pitchClasses);
     const chordSet = new Set(chord.notes);
-    
-    if (pitchSet.size === chordSet.size && 
-        [...pitchSet].every(note => chordSet.has(note))) {
+
+    if (
+      pitchSet.size === chordSet.size &&
+      [...pitchSet].every((note) => chordSet.has(note))
+    ) {
       return chord.displayName;
     }
   }
-  
+
   return null;
 }
 
 const INTERVAL_DEFINITIONS = {
-    unison: { semitones: 0, displayName: 'Unison' },
-    major2: { semitones: 2, displayName: 'Major 2nd' },
-    minor3: { semitones: 3, displayName: 'Minor 3rd' },
-    major3: { semitones: 4, displayName: 'Major 3rd' },
-    perfect4: { semitones: 5, displayName: 'Perfect 4th' },
-    perfect5: { semitones: 7, displayName: 'Perfect 5th' },
-    major6: { semitones: 9, displayName: 'Major 6th' },
-    major7: { semitones: 11, displayName: 'Major 7th' },
-    octave: { semitones: 12, displayName: 'Octave' }
+  unison: { semitones: 0, displayName: "Unison" },
+  major2: { semitones: 2, displayName: "Major 2nd" },
+  minor3: { semitones: 3, displayName: "Minor 3rd" },
+  major3: { semitones: 4, displayName: "Major 3rd" },
+  perfect4: { semitones: 5, displayName: "Perfect 4th" },
+  perfect5: { semitones: 7, displayName: "Perfect 5th" },
+  major6: { semitones: 9, displayName: "Major 6th" },
+  major7: { semitones: 11, displayName: "Major 7th" },
+  octave: { semitones: 12, displayName: "Octave" },
 };
 
 // Function to create interval chord from a root note
 export function createIntervalChord(rootNoteName, intervalType) {
-    const interval = INTERVAL_DEFINITIONS[intervalType];
-    if (!interval) return null;
-    
-    const rootMidi = NOTES_BY_NAME[rootNoteName];
-    if (rootMidi === undefined) return null;
-    
-    const intervalMidi = rootMidi + interval.semitones;
-    const intervalNote = ALL_NOTE_INFO.find(note => note.midi === intervalMidi);
-    
-    if (!intervalNote) return null;
-    
-    return {
-        displayName: `${rootNoteName} + ${interval.displayName}`,
-        treble: [rootNoteName, intervalNote.name],
-        bass: [rootNoteName, intervalNote.name]
-    };
+  const interval = INTERVAL_DEFINITIONS[intervalType];
+  if (!interval) return null;
+
+  const rootMidi = NOTES_BY_NAME[rootNoteName];
+  if (rootMidi === undefined) return null;
+
+  const intervalMidi = rootMidi + interval.semitones;
+  const intervalNote = ALL_NOTE_INFO.find((note) => note.midi === intervalMidi);
+
+  if (!intervalNote) return null;
+
+  return {
+    displayName: `${rootNoteName} + ${interval.displayName}`,
+    treble: [rootNoteName, intervalNote.name],
+    bass: [rootNoteName, intervalNote.name],
+  };
 }
 
 const KEY_SIGNATURE_MIDI_CORRECTIONS = {
   // SHARP KEYS
-  "G": {
+  G: {
     // F → F# (all octaves from C1 to B8)
     29: 30, // F1 → F#1
     41: 42, // F2 → F#2
@@ -4188,243 +4289,1069 @@ const KEY_SIGNATURE_MIDI_CORRECTIONS = {
     101: 102, // F7 → F#7
     113: 114, // F8 → F#8
   },
-  
-  "D": {
+
+  D: {
     // F → F#, C → C#
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114, // F → F#
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109, // C → C#
   },
-  
-  "A": {
+
+  A: {
     // F → F#, C → C#, G → G#
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114, // F → F#
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109, // C → C#
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116, // G → G#
   },
-  
-  "E": {
+
+  E: {
     // F → F#, C → C#, G → G#, D → D#
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
-    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111, // D → D#
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114, // F → F#
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109, // C → C#
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116, // G → G#
+    26: 27,
+    38: 39,
+    50: 51,
+    62: 63,
+    74: 75,
+    86: 87,
+    98: 99,
+    110: 111, // D → D#
   },
-  
-  "B": {
+
+  B: {
     // F → F#, C → C#, G → G#, D → D#, A → A#
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
-    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111, // D → D#
-    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118, // A → A#
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114, // F → F#
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109, // C → C#
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116, // G → G#
+    26: 27,
+    38: 39,
+    50: 51,
+    62: 63,
+    74: 75,
+    86: 87,
+    98: 99,
+    110: 111, // D → D#
+    33: 34,
+    45: 46,
+    57: 58,
+    69: 70,
+    81: 82,
+    93: 94,
+    105: 106,
+    117: 118, // A → A#
   },
-  
+
   "F#": {
     // F → F#, C → C#, G → G#, D → D#, A → A#, E → E#
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
-    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111, // D → D#
-    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118, // A → A#
-    28: 29, 40: 41, 52: 53, 64: 65, 76: 77, 88: 89, 100: 101, 112: 113, // E → E# (F)
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114, // F → F#
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109, // C → C#
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116, // G → G#
+    26: 27,
+    38: 39,
+    50: 51,
+    62: 63,
+    74: 75,
+    86: 87,
+    98: 99,
+    110: 111, // D → D#
+    33: 34,
+    45: 46,
+    57: 58,
+    69: 70,
+    81: 82,
+    93: 94,
+    105: 106,
+    117: 118, // A → A#
+    28: 29,
+    40: 41,
+    52: 53,
+    64: 65,
+    76: 77,
+    88: 89,
+    100: 101,
+    112: 113, // E → E# (F)
   },
-  
+
   "C#": {
     // F → F#, C → C#, G → G#, D → D#, A → A#, E → E#, B → B#
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114, // F → F#
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109, // C → C#
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116, // G → G#
-    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111, // D → D#
-    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118, // A → A#
-    28: 29, 40: 41, 52: 53, 64: 65, 76: 77, 88: 89, 100: 101, 112: 113, // E → E# (F)
-    35: 36, 47: 48, 59: 60, 71: 72, 83: 84, 95: 96, 107: 108, 119: 120, // B → B# (C)
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114, // F → F#
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109, // C → C#
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116, // G → G#
+    26: 27,
+    38: 39,
+    50: 51,
+    62: 63,
+    74: 75,
+    86: 87,
+    98: 99,
+    110: 111, // D → D#
+    33: 34,
+    45: 46,
+    57: 58,
+    69: 70,
+    81: 82,
+    93: 94,
+    105: 106,
+    117: 118, // A → A#
+    28: 29,
+    40: 41,
+    52: 53,
+    64: 65,
+    76: 77,
+    88: 89,
+    100: 101,
+    112: 113, // E → E# (F)
+    35: 36,
+    47: 48,
+    59: 60,
+    71: 72,
+    83: 84,
+    95: 96,
+    107: 108,
+    119: 120, // B → B# (C)
   },
 
   // FLAT KEYS
-  "F": {
+  F: {
     // B → Bb
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118, // B → Bb
   },
-  
-  "Bb": {
+
+  Bb: {
     // B → Bb, E → Eb
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118, // B → Bb
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111, // E → Eb
   },
-  
-  "Eb": {
+
+  Eb: {
     // B → Bb, E → Eb, A → Ab
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118, // B → Bb
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111, // E → Eb
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116, // A → Ab
   },
-  
-  "Ab": {
+
+  Ab: {
     // B → Bb, E → Eb, A → Ab, D → Db
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
-    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109, // D → Db
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118, // B → Bb
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111, // E → Eb
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116, // A → Ab
+    26: 25,
+    38: 37,
+    50: 49,
+    62: 61,
+    74: 73,
+    86: 85,
+    98: 97,
+    110: 109, // D → Db
   },
-  
-  "Db": {
+
+  Db: {
     // B → Bb, E → Eb, A → Ab, D → Db, G → Gb
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
-    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109, // D → Db
-    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114, // G → Gb
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118, // B → Bb
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111, // E → Eb
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116, // A → Ab
+    26: 25,
+    38: 37,
+    50: 49,
+    62: 61,
+    74: 73,
+    86: 85,
+    98: 97,
+    110: 109, // D → Db
+    31: 30,
+    43: 42,
+    55: 54,
+    67: 66,
+    79: 78,
+    91: 90,
+    103: 102,
+    115: 114, // G → Gb
   },
-  
-  "Gb": {
+
+  Gb: {
     // B → Bb, E → Eb, A → Ab, D → Db, G → Gb, C → Cb
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
-    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109, // D → Db
-    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114, // G → Gb
-    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107, // C → Cb (B)
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118, // B → Bb
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111, // E → Eb
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116, // A → Ab
+    26: 25,
+    38: 37,
+    50: 49,
+    62: 61,
+    74: 73,
+    86: 85,
+    98: 97,
+    110: 109, // D → Db
+    31: 30,
+    43: 42,
+    55: 54,
+    67: 66,
+    79: 78,
+    91: 90,
+    103: 102,
+    115: 114, // G → Gb
+    24: 23,
+    36: 35,
+    48: 47,
+    60: 59,
+    72: 71,
+    84: 83,
+    96: 95,
+    108: 107, // C → Cb (B)
   },
-  
-  "Cb": {
+
+  Cb: {
     // B → Bb, E → Eb, A → Ab, D → Db, G → Gb, C → Cb, F → Fb
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118, // B → Bb
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111, // E → Eb
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116, // A → Ab
-    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109, // D → Db
-    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114, // G → Gb
-    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107, // C → Cb (B)
-    29: 28, 41: 40, 53: 52, 65: 64, 77: 76, 89: 88, 101: 100, 113: 112, // F → Fb (E)
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118, // B → Bb
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111, // E → Eb
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116, // A → Ab
+    26: 25,
+    38: 37,
+    50: 49,
+    62: 61,
+    74: 73,
+    86: 85,
+    98: 97,
+    110: 109, // D → Db
+    31: 30,
+    43: 42,
+    55: 54,
+    67: 66,
+    79: 78,
+    91: 90,
+    103: 102,
+    115: 114, // G → Gb
+    24: 23,
+    36: 35,
+    48: 47,
+    60: 59,
+    72: 71,
+    84: 83,
+    96: 95,
+    108: 107, // C → Cb (B)
+    29: 28,
+    41: 40,
+    53: 52,
+    65: 64,
+    77: 76,
+    89: 88,
+    101: 100,
+    113: 112, // F → Fb (E)
   },
 
   // MINOR KEYS (use same accidentals as relative major)
-  "Am": {}, // A minor = C major (no accidentals)
-  
-  "Em": {
+  Am: {}, // A minor = C major (no accidentals)
+
+  Em: {
     // F → F# (same as G major)
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114,
   },
-  
-  "Bm": {
+
+  Bm: {
     // F → F#, C → C# (same as D major)
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114,
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109,
   },
-  
+
   "F#m": {
     // F → F#, C → C#, G → G# (same as A major)
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114,
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109,
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116,
   },
-  
+
   "C#m": {
     // F → F#, C → C#, G → G#, D → D# (same as E major)
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
-    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111,
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114,
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109,
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116,
+    26: 27,
+    38: 39,
+    50: 51,
+    62: 63,
+    74: 75,
+    86: 87,
+    98: 99,
+    110: 111,
   },
-  
+
   "G#m": {
     // F → F#, C → C#, G → G#, D → D#, A → A# (same as B major)
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
-    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111,
-    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118,
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114,
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109,
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116,
+    26: 27,
+    38: 39,
+    50: 51,
+    62: 63,
+    74: 75,
+    86: 87,
+    98: 99,
+    110: 111,
+    33: 34,
+    45: 46,
+    57: 58,
+    69: 70,
+    81: 82,
+    93: 94,
+    105: 106,
+    117: 118,
   },
-  
+
   "D#m": {
     // F → F#, C → C#, G → G#, D → D#, A → A#, E → E# (same as F# major)
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
-    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111,
-    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118,
-    28: 29, 40: 41, 52: 53, 64: 65, 76: 77, 88: 89, 100: 101, 112: 113,
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114,
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109,
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116,
+    26: 27,
+    38: 39,
+    50: 51,
+    62: 63,
+    74: 75,
+    86: 87,
+    98: 99,
+    110: 111,
+    33: 34,
+    45: 46,
+    57: 58,
+    69: 70,
+    81: 82,
+    93: 94,
+    105: 106,
+    117: 118,
+    28: 29,
+    40: 41,
+    52: 53,
+    64: 65,
+    76: 77,
+    88: 89,
+    100: 101,
+    112: 113,
   },
-  
+
   "A#m": {
     // All 7 sharps (same as C# major)
-    29: 30, 41: 42, 53: 54, 65: 66, 77: 78, 89: 90, 101: 102, 113: 114,
-    24: 25, 36: 37, 48: 49, 60: 61, 72: 73, 84: 85, 96: 97, 108: 109,
-    31: 32, 43: 44, 55: 56, 67: 68, 79: 80, 91: 92, 103: 104, 115: 116,
-    26: 27, 38: 39, 50: 51, 62: 63, 74: 75, 86: 87, 98: 99, 110: 111,
-    33: 34, 45: 46, 57: 58, 69: 70, 81: 82, 93: 94, 105: 106, 117: 118,
-    28: 29, 40: 41, 52: 53, 64: 65, 76: 77, 88: 89, 100: 101, 112: 113,
-    35: 36, 47: 48, 59: 60, 71: 72, 83: 84, 95: 96, 107: 108, 119: 120,
+    29: 30,
+    41: 42,
+    53: 54,
+    65: 66,
+    77: 78,
+    89: 90,
+    101: 102,
+    113: 114,
+    24: 25,
+    36: 37,
+    48: 49,
+    60: 61,
+    72: 73,
+    84: 85,
+    96: 97,
+    108: 109,
+    31: 32,
+    43: 44,
+    55: 56,
+    67: 68,
+    79: 80,
+    91: 92,
+    103: 104,
+    115: 116,
+    26: 27,
+    38: 39,
+    50: 51,
+    62: 63,
+    74: 75,
+    86: 87,
+    98: 99,
+    110: 111,
+    33: 34,
+    45: 46,
+    57: 58,
+    69: 70,
+    81: 82,
+    93: 94,
+    105: 106,
+    117: 118,
+    28: 29,
+    40: 41,
+    52: 53,
+    64: 65,
+    76: 77,
+    88: 89,
+    100: 101,
+    112: 113,
+    35: 36,
+    47: 48,
+    59: 60,
+    71: 72,
+    83: 84,
+    95: 96,
+    107: 108,
+    119: 120,
   },
-  
-  "Dm": {
+
+  Dm: {
     // B → Bb (same as F major)
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118,
   },
-  
-  "Gm": {
+
+  Gm: {
     // B → Bb, E → Eb (same as Bb major)
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118,
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111,
   },
-  
-  "Cm": {
+
+  Cm: {
     // B → Bb, E → Eb, A → Ab (same as Eb major)
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118,
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111,
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116,
   },
-  
-  "Fm": {
+
+  Fm: {
     // B → Bb, E → Eb, A → Ab, D → Db (same as Ab major)
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
-    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118,
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111,
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116,
+    26: 25,
+    38: 37,
+    50: 49,
+    62: 61,
+    74: 73,
+    86: 85,
+    98: 97,
+    110: 109,
   },
-  
-  "Bbm": {
+
+  Bbm: {
     // B → Bb, E → Eb, A → Ab, D → Db, G → Gb (same as Db major)
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
-    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
-    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114,
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118,
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111,
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116,
+    26: 25,
+    38: 37,
+    50: 49,
+    62: 61,
+    74: 73,
+    86: 85,
+    98: 97,
+    110: 109,
+    31: 30,
+    43: 42,
+    55: 54,
+    67: 66,
+    79: 78,
+    91: 90,
+    103: 102,
+    115: 114,
   },
-  
-  "Ebm": {
+
+  Ebm: {
     // B → Bb, E → Eb, A → Ab, D → Db, G → Gb, C → Cb (same as Gb major)
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
-    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
-    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114,
-    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107,
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118,
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111,
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116,
+    26: 25,
+    38: 37,
+    50: 49,
+    62: 61,
+    74: 73,
+    86: 85,
+    98: 97,
+    110: 109,
+    31: 30,
+    43: 42,
+    55: 54,
+    67: 66,
+    79: 78,
+    91: 90,
+    103: 102,
+    115: 114,
+    24: 23,
+    36: 35,
+    48: 47,
+    60: 59,
+    72: 71,
+    84: 83,
+    96: 95,
+    108: 107,
   },
-  
-  "Abm": {
+
+  Abm: {
     // All 7 flats (same as Cb major)
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
-    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
-    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114,
-    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107,
-    29: 28, 41: 40, 53: 52, 65: 64, 77: 76, 89: 88, 101: 100, 113: 112,
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118,
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111,
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116,
+    26: 25,
+    38: 37,
+    50: 49,
+    62: 61,
+    74: 73,
+    86: 85,
+    98: 97,
+    110: 109,
+    31: 30,
+    43: 42,
+    55: 54,
+    67: 66,
+    79: 78,
+    91: 90,
+    103: 102,
+    115: 114,
+    24: 23,
+    36: 35,
+    48: 47,
+    60: 59,
+    72: 71,
+    84: 83,
+    96: 95,
+    108: 107,
+    29: 28,
+    41: 40,
+    53: 52,
+    65: 64,
+    77: 76,
+    89: 88,
+    101: 100,
+    113: 112,
   },
-  
-  "Dbm": {
+
+  Dbm: {
     // All 7 flats (same as Cb major - theoretical key)
-    35: 34, 47: 46, 59: 58, 71: 70, 83: 82, 95: 94, 107: 106, 119: 118,
-    28: 27, 40: 39, 52: 51, 64: 63, 76: 75, 88: 87, 100: 99, 112: 111,
-    33: 32, 45: 44, 57: 56, 69: 68, 81: 80, 93: 92, 105: 104, 117: 116,
-    26: 25, 38: 37, 50: 49, 62: 61, 74: 73, 86: 85, 98: 97, 110: 109,
-    31: 30, 43: 42, 55: 54, 67: 66, 79: 78, 91: 90, 103: 102, 115: 114,
-    24: 23, 36: 35, 48: 47, 60: 59, 72: 71, 84: 83, 96: 95, 108: 107,
-    29: 28, 41: 40, 53: 52, 65: 64, 77: 76, 89: 88, 101: 100, 113: 112,
+    35: 34,
+    47: 46,
+    59: 58,
+    71: 70,
+    83: 82,
+    95: 94,
+    107: 106,
+    119: 118,
+    28: 27,
+    40: 39,
+    52: 51,
+    64: 63,
+    76: 75,
+    88: 87,
+    100: 99,
+    112: 111,
+    33: 32,
+    45: 44,
+    57: 56,
+    69: 68,
+    81: 80,
+    93: 92,
+    105: 104,
+    117: 116,
+    26: 25,
+    38: 37,
+    50: 49,
+    62: 61,
+    74: 73,
+    86: 85,
+    98: 97,
+    110: 109,
+    31: 30,
+    43: 42,
+    55: 54,
+    67: 66,
+    79: 78,
+    91: 90,
+    103: 102,
+    115: 114,
+    24: 23,
+    36: 35,
+    48: 47,
+    60: 59,
+    72: 71,
+    84: 83,
+    96: 95,
+    108: 107,
+    29: 28,
+    41: 40,
+    53: 52,
+    65: 64,
+    77: 76,
+    89: 88,
+    101: 100,
+    113: 112,
   },
-  
+
   // C major has no accidentals, so no corrections needed
-  "C": {}
+  C: {},
 };
 
 // Function to apply key signature corrections to MIDI number
@@ -4434,6 +5361,6 @@ export function applyKeySignatureCorrection(midiNumber, keySignature) {
     console.warn(`Unknown key signature: ${keySignature}`);
     return midiNumber;
   }
-  
+
   return corrections[midiNumber] || midiNumber;
 }
