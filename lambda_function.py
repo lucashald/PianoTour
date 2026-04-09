@@ -179,6 +179,47 @@ def lambda_handler(event, context):
             "body": json.dumps(result),
         }
 
+    # ── Download audio (302 redirect to presigned URL) ─────────
+    if action == "download":
+        share_code = params.get("code", "").strip()
+        if not share_code:
+            return {
+                "statusCode": 400,
+                "headers": HEADERS,
+                "body": json.dumps({"error": "code required"}),
+            }
+
+        response = table.get_item(Key={"share_code": share_code})
+        item = response.get("Item")
+        if not item:
+            return {
+                "statusCode": 404,
+                "headers": HEADERS,
+                "body": json.dumps({"error": "Share code not found"}),
+            }
+
+        s3_key = item["s3_key"]
+        name = item.get("name", "composition.wav")
+
+        audio_url = s3.generate_presigned_url(
+            "get_object",
+            Params={
+                "Bucket": BUCKET,
+                "Key": s3_key,
+                "ResponseContentDisposition": f'attachment; filename="{name}"',
+            },
+            ExpiresIn=3600,
+        )
+
+        return {
+            "statusCode": 302,
+            "headers": {
+                **HEADERS,
+                "Location": audio_url,
+            },
+            "body": "",
+        }
+
     return {
         "statusCode": 400,
         "headers": HEADERS,

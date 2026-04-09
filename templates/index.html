@@ -290,11 +290,12 @@
           const progress = showExportProgress("Rendering & uploading...");
 
           try {
-            const shareCode = await shareScoreAsAudio(measures, bpm);
+            const downloadUrl = await shareScoreAsAudio(measures, bpm);
             hideExportProgress();
-            showToast(`Share code: ${shareCode}`, {
+            await navigator.clipboard.writeText(downloadUrl);
+            showToast("Download link copied to clipboard!", {
               type: "success",
-              duration: 8000,
+              duration: 5000,
             });
           } catch (error) {
             hideExportProgress();

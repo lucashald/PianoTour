@@ -98,6 +98,12 @@ def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=Non
 
 # --- Flask Routes ---
 
+SHARE_API = "https://7vw7rxom9h.execute-api.us-east-1.amazonaws.com/default/pianotour-share"
+
+@app.route('/share/<code>')
+def share_redirect(code):
+    return redirect(f"{SHARE_API}?action=download&code={code}")
+
 @app.route('/')
 def index():
     return render_template('piano.html',

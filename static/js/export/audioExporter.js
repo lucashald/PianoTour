@@ -676,5 +676,7 @@ export async function shareScoreAsAudio(measures, bpm = 120) {
     throw new Error("Upload failed (" + uploadRes.status + ")");
   }
 
-  return share_code;
+  // Build the permanent download URL (Flask redirects to lambda which 302s to S3)
+  const downloadUrl = `${window.location.origin}/share/${encodeURIComponent(share_code)}`;
+  return downloadUrl;
 }
