@@ -80,6 +80,42 @@ function transposeChord(chordString, semitones) {
     return formatChord(transposedNotes);
 }
 
+/**
+ * Inverts a chord up or down by one position.
+ * Up: lowest note moves up an octave (to the top).
+ * Down: highest note moves down an octave (to the bottom).
+ * @param {string} chordString - e.g. "(C4 E4 G4)"
+ * @param {'up'|'down'} direction
+ * @returns {string} - Inverted chord in same format, or original if not a chord
+ */
+function invertChord(chordString, direction) {
+    if (!isChord(chordString)) return chordString;
+
+    const notes = parseChord(chordString);
+    if (notes.length < 2) return chordString;
+
+    const inverted = [...notes];
+    if (direction === 'up') {
+        // Move lowest note (first) up an octave to the end
+        const lowest = inverted.shift();
+        const midi = NOTES_BY_NAME[lowest];
+        if (midi === undefined) return chordString;
+        const newNote = ALL_NOTE_INFO.find(n => n.midi === midi + 12);
+        if (!newNote) return chordString;
+        inverted.push(newNote.name);
+    } else {
+        // Move highest note (last) down an octave to the front
+        const highest = inverted.pop();
+        const midi = NOTES_BY_NAME[highest];
+        if (midi === undefined) return chordString;
+        const newNote = ALL_NOTE_INFO.find(n => n.midi === midi - 12);
+        if (!newNote) return chordString;
+        inverted.unshift(newNote.name);
+    }
+
+    return formatChord(inverted);
+}
+
 function parseSingleNoteName(noteName) {
     if (!noteName) return { letter: 'C', accidental: '', octave: '4' };
     const match = noteName.match(/^([A-G])([#b]?)([0-9]?)$/i);
@@ -506,6 +542,20 @@ function transposeSelectedNote(semitones) {
     renderNoteEditBox(false);
 }
 
+function invertSelectedNote(direction) {
+    if (!editorSelectedNoteId) return;
+
+    const measures = getMeasures();
+    const note = measures[editorSelectedMeasureIndex]?.find(n => n.id === editorSelectedNoteId);
+    if (!note || note.isRest || !isChord(note.name)) return;
+
+    const invertedName = invertChord(note.name, direction);
+    if (invertedName === note.name) return;
+
+    updateNoteInMeasure(editorSelectedMeasureIndex, editorSelectedNoteId, { name: invertedName });
+    renderNoteEditBox(false);
+}
+
 // ===================================================================
 // CONTEXT MENU
 // ===================================================================
@@ -581,6 +631,14 @@ function buildNoteContextMenu(menu, detail) {
         { label: 'Octave Up', action: () => transposeSelectedNote(12) },
         { label: 'Octave Down', action: () => transposeSelectedNote(-12) },
     ]);
+
+    // Invert submenu (chords only)
+    if (isChord(note.name)) {
+        addSubmenu(menu, 'Invert', [
+            { label: 'Invert Up', action: () => invertSelectedNote('up') },
+            { label: 'Invert Down', action: () => invertSelectedNote('down') },
+        ]);
+    }
 
     // Ties & Slurs submenu
     addSubmenu(menu, 'Ties & Slurs', [
