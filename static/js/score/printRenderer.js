@@ -7,10 +7,13 @@ import {
   getCurrentVexFlowKeySignature,
 } from "../core/note-data.js";
 import { populateChordNames } from "./scoreWriter.js";
+import { buildPianoSVG, getChordPitchClasses } from "./pianoChordDiagram.js";
 
 // Print layout constants
 export let displayChordName = true;
 export function setDisplayChordName(value) { displayChordName = value; }
+export let displayPianoDiagrams = true;
+export function setDisplayPianoDiagrams(value) { displayPianoDiagrams = value; }
 const MEASURES_PER_LINE = 2;
 const MEASURE_WIDTH = 340; // Match scoreRenderer.js measure width
 const SYSTEM_HEIGHT = 250;
@@ -249,6 +252,11 @@ export async function drawAllPrint(containerId, measures) {
       // Draw ties for this system
       drawTies(context, tieGroups, vexflowNoteMap, vexflowIndexByNoteId);
 
+      // Append chord piano diagrams below this system
+      if (displayPianoDiagrams) {
+        await appendChordDiagramRow(systemDiv, systemMeasures);
+      }
+
     } catch (error) {
       console.error(`Error rendering system ${systemIndex}:`, error);
       systemDiv.innerHTML = `<div class="error">Error rendering measures ${startMeasure + 1}-${endMeasure}: ${error.message}</div>`;
@@ -351,4 +359,41 @@ function drawTies(context, tieGroups, vexflowNoteMap, vexflowIndexByNoteId) {
       console.warn('Could not find start/end notes for tie:', tie);
     }
   });
+}
+
+/**
+ * Builds a row of mini piano chord diagrams and appends it below a system div.
+ * Shows one diagram per unique chord name found in the system's measures.
+ * @param {HTMLElement} systemDiv
+ * @param {Array} measures - measures in this system
+ */
+async function appendChordDiagramRow(systemDiv, measures) {
+  // Collect unique chord names in order of first appearance, treble only to avoid duplicates
+  const seen = new Set();
+  const chordNames = [];
+  for (const measure of measures) {
+    for (const note of measure) {
+      if (note.clef === 'treble' && note.chordName && note.chordName !== 'Rest' && !seen.has(note.chordName)) {
+        seen.add(note.chordName);
+        chordNames.push(note.chordName);
+      }
+    }
+  }
+
+  if (chordNames.length === 0) return;
+
+  const row = document.createElement('div');
+  row.className = 'chord-diagram-row';
+
+  for (const chordName of chordNames) {
+    const pitchClasses = await getChordPitchClasses(chordName);
+    if (!pitchClasses) continue;
+
+    const diagram = document.createElement('div');
+    diagram.className = 'chord-diagram';
+    diagram.innerHTML = `<span class="chord-diagram-label">${chordName}</span>${buildPianoSVG(pitchClasses)}`;
+    row.appendChild(diagram);
+  }
+
+  systemDiv.appendChild(row);
 }

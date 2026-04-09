@@ -196,6 +196,27 @@
             background: #444;
         }
 
+        /* Chord diagram row (below each system) */
+        .chord-diagram-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 6px 0 10px 20px;
+        }
+
+        .chord-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .chord-diagram-label {
+            font-size: 8pt;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+        }
+
         @media print {
             .print-controls {
                 display: none;
@@ -217,6 +238,7 @@
     <div class="print-controls no-print">
         <button class="print-btn" onclick="window.print()">🖨️ Print</button>
         <button class="print-btn secondary" id="toggleAnnotationsBtn">Annotations: On</button>
+        <button class="print-btn secondary" id="toggleDiagramsBtn">Piano Diagrams: On</button>
         <button class="print-btn secondary" onclick="window.close()">✕ Close</button>
     </div>
 
@@ -255,7 +277,7 @@
     <script type="module">
         // Import necessary modules from existing codebase
         import { pianoState } from '/static/js/core/appState.js';
-        import { drawAllPrint, displayChordName, setDisplayChordName } from '/static/js/score/printRenderer.js';
+        import { drawAllPrint, displayChordName, setDisplayChordName, displayPianoDiagrams, setDisplayPianoDiagrams } from '/static/js/score/printRenderer.js';
         import { processAndSyncScore } from '/static/js/score/scoreWriter.js';
 
         // Load score data from localStorage
@@ -364,6 +386,16 @@
             toggleBtn.addEventListener('click', async () => {
                 setDisplayChordName(!displayChordName);
                 toggleBtn.textContent = displayChordName ? 'Annotations: On' : 'Annotations: Off';
+                if (loadedScoreData) {
+                    await drawAllPrint('scoreContent', loadedScoreData.measures);
+                }
+            });
+
+            // Toggle piano diagrams button
+            const toggleDiagramsBtn = document.getElementById('toggleDiagramsBtn');
+            toggleDiagramsBtn.addEventListener('click', async () => {
+                setDisplayPianoDiagrams(!displayPianoDiagrams);
+                toggleDiagramsBtn.textContent = displayPianoDiagrams ? 'Piano Diagrams: On' : 'Piano Diagrams: Off';
                 if (loadedScoreData) {
                     await drawAllPrint('scoreContent', loadedScoreData.measures);
                 }
