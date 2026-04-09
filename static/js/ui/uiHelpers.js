@@ -592,7 +592,7 @@ export async function updateUI(message, options = {}) {
     // Regenerate chord buttons if requested
     if (regenerateChords) {
         const currentKey = getKeySignature();
-        generateChordPreviewButtons();
+        generateChordPreviewButtons(getCurrentChordClef());
         await createChordDiagrams('.chord-container', currentKey);
         // createChordPalette will use window.guitarInstance as default if not provided
         await createChordPalette(undefined, currentKey);
