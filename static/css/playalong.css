@@ -40,7 +40,7 @@
   width: 100%;
   min-height: 120px;
   background: var(--color-blue-darkest, #04273C);
-  border: 1px solid var(--color-border, #6F91A5);
+  box-shadow: 0 0 0 1px var(--color-border, #6F91A5);
   border-radius: var(--border-radius, 8px);
   color: var(--color-text-primary, #FFFFFF);
   font-family: inherit;
