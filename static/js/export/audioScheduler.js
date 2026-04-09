@@ -33,19 +33,21 @@ export const DURATION_TO_BEATS = {
  */
 export function buildTieMap(measures) {
   const tieMap = new Map();
-  
-  // Build note details map first
+
+  // Build note details map and id lookup
   const noteDetails = new Map();
+  const noteById = new Map();
   let currentTime = 0;
-  
+
   measures.forEach((measure, measureIndex) => {
     let trebleTime = currentTime;
     let bassTime = currentTime;
-    
+
     measure.forEach(note => {
+      noteById.set(note.id, note);
       const noteTime = note.clef === 'treble' ? trebleTime : bassTime;
       const noteDuration = DURATION_TO_BEATS[note.duration] || 1;
-      
+
       noteDetails.set(note.id, {
         time: noteTime,
         duration: noteDuration,
@@ -53,71 +55,67 @@ export function buildTieMap(measures) {
         clef: note.clef,
         name: note.name
       });
-      
+
       if (note.clef === 'treble') {
         trebleTime += noteDuration;
       } else {
         bassTime += noteDuration;
       }
     });
-    
+
     const beatsPerMeasure = pianoState.timeSignature.numerator;
     currentTime += beatsPerMeasure;
   });
-  
-  // Process ties
-  measures.forEach(measure => {
-    measure.forEach(note => {
-      if (note.tie?.type === 'start' && note.tie?.endNoteId) {
-        const startDetails = noteDetails.get(note.id);
-        const endDetails = noteDetails.get(note.tie.endNoteId);
-        
-        if (startDetails && endDetails) {
-          let totalDuration = startDetails.duration + endDetails.duration;
-          let currentEndId = note.tie.endNoteId;
-          let currentEndNote = measures
-            .flat()
-            .find(n => n.id === currentEndId);
-          
-          // Follow tie chain
-          while (currentEndNote?.tie?.type === 'continue' && currentEndNote?.tie?.endNoteId) {
-            const nextEndDetails = noteDetails.get(currentEndNote.tie.endNoteId);
-            if (nextEndDetails) {
-              totalDuration += nextEndDetails.duration;
-              currentEndId = currentEndNote.tie.endNoteId;
-              currentEndNote = measures.flat().find(n => n.id === currentEndId);
-            } else {
-              break;
-            }
-          }
-          
-          tieMap.set(note.id, {
-            isStart: true,
-            totalDuration: totalDuration,
-            endNoteId: currentEndId
-          });
-          
-          // Mark intermediate and end notes
-          let markId = note.tie.endNoteId;
-          let markNote = measures.flat().find(n => n.id === markId);
-          
-          while (markNote) {
-            const isEnd = markNote.id === currentEndId;
-            tieMap.set(markNote.id, {
-              isEnd: true,
-              isChainStart: false,
-              startNoteId: note.id
-            });
-            
-            if (isEnd || !markNote.tie?.endNoteId) break;
-            markId = markNote.tie.endNoteId;
-            markNote = measures.flat().find(n => n.id === markId);
-          }
+
+  // Process ties. Each tied pair stores type:'tie' on both notes, with
+  // startNoteId/endNoteId identifying the pair. Chain starts are notes
+  // where note.id === note.tie.startNoteId and not already part of a chain.
+  measures.flat().forEach(note => {
+    if (
+      note.tie?.type === 'tie' &&
+      note.id === note.tie.startNoteId &&
+      !tieMap.has(note.id)
+    ) {
+      const startDetails = noteDetails.get(note.id);
+      if (!startDetails) return;
+
+      let totalDuration = startDetails.duration;
+      let currentNote = note;
+      const chainNoteIds = [];
+
+      // Follow the chain: each end note may itself be the start of the next segment
+      while (currentNote.tie?.type === 'tie' && currentNote.tie.endNoteId) {
+        const endId = currentNote.tie.endNoteId;
+        const endNote = noteById.get(endId);
+        const endDetails = noteDetails.get(endId);
+
+        if (!endNote || !endDetails) break;
+
+        totalDuration += endDetails.duration;
+        chainNoteIds.push(endId);
+
+        if (endNote.tie?.type === 'tie' && endNote.id === endNote.tie.startNoteId) {
+          currentNote = endNote;
+        } else {
+          break;
         }
       }
-    });
+
+      tieMap.set(note.id, {
+        isStart: true,
+        totalDuration: totalDuration,
+      });
+
+      // Mark all subsequent notes in the chain — they should not retrigger audio
+      chainNoteIds.forEach(id => {
+        tieMap.set(id, {
+          isEnd: true,
+          startNoteId: note.id,
+        });
+      });
+    }
   });
-  
+
   return tieMap;
 }
 
