@@ -1,0 +1,527 @@
+{
+  "keySignature": "C",
+  "tempo": 120,
+  "timeSignature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "instrument": "piano",
+  "midiChannel": "0",
+  "measures": [
+    [{
+        "id": "1775764719694-1",
+        "name": "(C3 E3 G3)",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 0,
+        "isRest": false,
+        "chordName": "C Major",
+        "performedDuration": 0.854,
+        "velocity": 92
+      },
+      {
+        "name": "D4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765118087",
+        "performedDuration": 0.848,
+        "velocity": 101,
+        "measure": 0,
+        "chordName": "D4"
+      },
+      {
+        "name": "C4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765124566",
+        "performedDuration": 0.864,
+        "velocity": 104,
+        "measure": 0
+      },
+      {
+        "name": "C4",
+        "clef": "treble",
+        "duration": "h.",
+        "isRest": false,
+        "id": "1775765133685",
+        "performedDuration": 0.848,
+        "velocity": 102,
+        "measure": 0
+      }
+    ],
+    [{
+        "id": "1775764766434-4",
+        "name": "(B2 E3 G#3)",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 1,
+        "isRest": false,
+        "chordName": "E Major (2nd Inversion)",
+        "performedDuration": 0.855,
+        "velocity": 102
+      },
+      {
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": true,
+        "id": "1775765161283",
+        "performedDuration": 0.852,
+        "velocity": 102,
+        "measure": 1
+      },
+      {
+        "name": "E4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765169813",
+        "performedDuration": 0.85,
+        "velocity": 106,
+        "measure": 1
+      },
+      {
+        "name": "F#4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765175915",
+        "performedDuration": 0.845,
+        "velocity": 100,
+        "measure": 1,
+        "chordName": "F#4"
+      },
+      {
+        "name": "G#4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765202173",
+        "performedDuration": 0.855,
+        "velocity": 98,
+        "measure": 1,
+        "chordName": "G#4"
+      },
+      {
+        "name": "A4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765229382",
+        "performedDuration": 0.862,
+        "velocity": 101,
+        "measure": 1
+      },
+      {
+        "name": "B4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765238789",
+        "performedDuration": 0.851,
+        "velocity": 93,
+        "measure": 1
+      },
+      {
+        "name": "C5",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765244572",
+        "performedDuration": 0.849,
+        "velocity": 96,
+        "measure": 1
+      }
+    ],
+    [{
+        "id": "1775764826760-10",
+        "name": "(C3 E3 A3)",
+        "clef": "bass",
+        "duration": "w",
+        "measure": 2,
+        "isRest": false,
+        "chordName": "A Minor (1st Inversion)",
+        "performedDuration": 0.851,
+        "velocity": 100
+      },
+      {
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": false,
+        "id": "1775765257471",
+        "performedDuration": 0.838,
+        "velocity": 95,
+        "measure": 2
+      },
+      {
+        "name": "A4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765270415",
+        "performedDuration": 0.855,
+        "velocity": 101,
+        "measure": 2
+      },
+      {
+        "name": "A4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765275905",
+        "performedDuration": 0.85,
+        "velocity": 100,
+        "measure": 2,
+        "tie": {
+          "type": "tie",
+          "startNoteId": "1775765275905",
+          "endNoteId": "1775765281069"
+        }
+      },
+      {
+        "name": "A4",
+        "clef": "treble",
+        "duration": "h",
+        "isRest": false,
+        "id": "1775765281069",
+        "performedDuration": 0.846,
+        "velocity": 102,
+        "measure": 2,
+        "tie": {
+          "type": "tie",
+          "startNoteId": "1775765275905",
+          "endNoteId": "1775765281069"
+        }
+      }
+    ],
+    [{
+        "id": "1775764830801-11",
+        "name": "(C3 F3 A3)",
+        "clef": "bass",
+        "duration": "h",
+        "measure": 3,
+        "isRest": false,
+        "chordName": "F Major (2nd Inversion)",
+        "performedDuration": 0.853,
+        "velocity": 103
+      },
+      {
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": true,
+        "id": "1775765361015",
+        "performedDuration": 0.849,
+        "velocity": 103,
+        "measure": 3
+      },
+      {
+        "name": "A4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765372851",
+        "performedDuration": 0.857,
+        "velocity": 99,
+        "measure": 3
+      },
+      {
+        "name": "A4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765377635",
+        "performedDuration": 0.844,
+        "velocity": 99,
+        "measure": 3
+      },
+      {
+        "name": "G4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765383891",
+        "performedDuration": 0.843,
+        "velocity": 96,
+        "measure": 3
+      },
+      {
+        "name": "F4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765387628",
+        "performedDuration": 0.856,
+        "velocity": 98,
+        "measure": 3
+      },
+      {
+        "name": "E4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765394211",
+        "performedDuration": 0.84,
+        "velocity": 98,
+        "measure": 3,
+        "chordName": "E4"
+      },
+      {
+        "name": "D4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765402232",
+        "performedDuration": 0.855,
+        "velocity": 99,
+        "measure": 3
+      },
+      {
+        "name": "(D3 G3 B3)",
+        "clef": "bass",
+        "duration": "h",
+        "isRest": false,
+        "chordName": "G Major (2nd Inversion)",
+        "id": "1775765864331-22",
+        "performedDuration": 0.851,
+        "velocity": 93,
+        "measure": 3
+      }
+    ],
+    [{
+        "name": "F4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": false,
+        "id": "1775765409945",
+        "performedDuration": 0.857,
+        "velocity": 102,
+        "measure": 4
+      },
+      {
+        "name": "E4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765437709",
+        "performedDuration": 0.849,
+        "velocity": 104,
+        "measure": 4
+      },
+      {
+        "name": "E4",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "id": "1775765443475",
+        "performedDuration": 0.838,
+        "velocity": 105,
+        "measure": 4,
+        "tie": {
+          "type": "tie",
+          "startNoteId": "1775765443475",
+          "endNoteId": "1775765448673"
+        }
+      },
+      {
+        "name": "E4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": false,
+        "id": "1775765448673",
+        "performedDuration": 0.848,
+        "velocity": 100,
+        "measure": 4,
+        "tie": {
+          "type": "tie",
+          "startNoteId": "1775765443475",
+          "endNoteId": "1775765448673"
+        }
+      },
+      {
+        "name": "D4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": false,
+        "id": "1775765459192",
+        "performedDuration": 0.847,
+        "velocity": 104,
+        "measure": 4
+      },
+      {
+        "id": "1775764842799-13",
+        "name": "(C3 F3 A3)",
+        "clef": "bass",
+        "duration": "h",
+        "measure": 4,
+        "isRest": false,
+        "chordName": "F Major (2nd Inversion)",
+        "performedDuration": 0.854,
+        "velocity": 109
+      },
+      {
+        "id": "1775764844657-14",
+        "name": "(C3 E3 G3)",
+        "clef": "bass",
+        "duration": "h",
+        "measure": 4,
+        "isRest": false,
+        "chordName": "C Major",
+        "performedDuration": 0.853,
+        "velocity": 104
+      }
+    ],
+    [{
+        "name": "C4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": false,
+        "id": "1775765465863",
+        "performedDuration": 0.858,
+        "velocity": 99,
+        "measure": 5
+      },
+      {
+        "name": "E4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": false,
+        "id": "1775765472679",
+        "performedDuration": 0.855,
+        "velocity": 96,
+        "measure": 5
+      },
+      {
+        "name": "D4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": false,
+        "id": "1775765480214",
+        "performedDuration": 0.85,
+        "velocity": 96,
+        "measure": 5
+      },
+      {
+        "name": "B4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": true,
+        "id": "1775765484676",
+        "performedDuration": 0.844,
+        "velocity": 97,
+        "measure": 5
+      },
+      {
+        "id": "1775764852008-15",
+        "name": "(C3 E3 A3)",
+        "clef": "bass",
+        "duration": "h",
+        "measure": 5,
+        "isRest": false,
+        "chordName": "A Minor (1st Inversion)",
+        "performedDuration": 0.86,
+        "velocity": 106
+      },
+      {
+        "id": "1775764856175-16",
+        "name": "(D3 F#3 A3)",
+        "clef": "bass",
+        "duration": "q",
+        "measure": 5,
+        "isRest": false,
+        "chordName": "D Major",
+        "performedDuration": 0.846,
+        "velocity": 100
+      },
+      {
+        "name": "A3",
+        "clef": "bass",
+        "duration": "q",
+        "isRest": false,
+        "id": "1775766001045",
+        "performedDuration": 0.849,
+        "velocity": 104,
+        "measure": 5
+      }
+    ],
+    [{
+        "name": "C4",
+        "clef": "treble",
+        "duration": "q",
+        "isRest": false,
+        "id": "1775765495392",
+        "performedDuration": 0.848,
+        "velocity": 104,
+        "measure": 6
+      },
+      {
+        "name": "(C4 E4)",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "chordName": "C4 + Major 3rd",
+        "id": "1775765507172-19",
+        "performedDuration": 0.852,
+        "velocity": 102,
+        "measure": 6
+      },
+      {
+        "name": "(C4 E4)",
+        "clef": "treble",
+        "duration": "8",
+        "isRest": false,
+        "chordName": "C4 + Major 3rd",
+        "id": "1775765519413-20",
+        "performedDuration": 0.854,
+        "velocity": 101,
+        "measure": 6,
+        "tie": {
+          "type": "tie",
+          "startNoteId": "1775765519413-20",
+          "endNoteId": "1775765544598-21"
+        }
+      },
+      {
+        "name": "(C4 E4)",
+        "clef": "treble",
+        "duration": "h",
+        "isRest": false,
+        "chordName": "C4 + Major 3rd",
+        "id": "1775765544598-21",
+        "performedDuration": 0.856,
+        "velocity": 99,
+        "measure": 6,
+        "tie": {
+          "type": "tie",
+          "startNoteId": "1775765519413-20",
+          "endNoteId": "1775765544598-21"
+        }
+      },
+      {
+        "id": "1775764861175-17",
+        "name": "(C3 F3 A3)",
+        "clef": "bass",
+        "duration": "q",
+        "measure": 6,
+        "isRest": false,
+        "chordName": "F Major (2nd Inversion)",
+        "performedDuration": 0.856,
+        "velocity": 103
+      },
+      {
+        "id": "1775764863100-18",
+        "name": "(C3 E3 G3)",
+        "clef": "bass",
+        "duration": "h.",
+        "measure": 6,
+        "isRest": false,
+        "chordName": "C Major",
+        "performedDuration": 0.856,
+        "velocity": 100
+      }
+    ]
+  ]
+}

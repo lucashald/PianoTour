@@ -53,14 +53,15 @@ export async function drawAllPrint(containerId, measures) {
   const totalMeasures = measures.length;
   const systemCount = Math.ceil(totalMeasures / MEASURES_PER_LINE);
 
-  // Storage for ties and beams (similar to scoreRenderer.js)
-  const tieGroups = [];
+  // Storage for beams and note lookup (shared across systems)
   const vexflowBeams = [];
   const vexflowNoteMap = [];
   const vexflowIndexByNoteId = {};
 
   // Group measures into systems (lines)
   for (let systemIndex = 0; systemIndex < systemCount; systemIndex++) {
+    // Reset ties per system — each system has its own SVG context
+    const tieGroups = [];
     const startMeasure = systemIndex * MEASURES_PER_LINE;
     const endMeasure = Math.min(
       startMeasure + MEASURES_PER_LINE,

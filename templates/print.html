@@ -239,6 +239,7 @@
         <button class="print-btn" onclick="window.print()">🖨️ Print</button>
         <button class="print-btn secondary" id="toggleAnnotationsBtn">Annotations: On</button>
         <button class="print-btn secondary" id="toggleDiagramsBtn">Piano Diagrams: On</button>
+        <button class="print-btn secondary" id="toggleHeaderBtn">Header: On</button>
         <button class="print-btn secondary" onclick="window.close()">✕ Close</button>
     </div>
 
@@ -399,6 +400,15 @@
                 if (loadedScoreData) {
                     await drawAllPrint('scoreContent', loadedScoreData.measures);
                 }
+            });
+
+            // Toggle header button
+            const toggleHeaderBtn = document.getElementById('toggleHeaderBtn');
+            let headerVisible = true;
+            toggleHeaderBtn.addEventListener('click', () => {
+                headerVisible = !headerVisible;
+                document.querySelector('.score-header').style.display = headerVisible ? '' : 'none';
+                toggleHeaderBtn.textContent = headerVisible ? 'Header: On' : 'Header: Off';
             });
         });
     </script>
