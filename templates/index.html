@@ -254,6 +254,8 @@
       import {
         exportScoreAsAudio,
         shareScoreAsAudio,
+        shareScoreAsMIDI,
+        shareScoreAsJSON,
         showExportProgress,
         hideExportProgress,
         showExportSuccess,
@@ -275,6 +277,52 @@
             showExportSuccess(
               `composition-${new Date().toISOString().slice(0, 10)}.wav`,
             );
+          } catch (error) {
+            hideExportProgress();
+            showExportError(error);
+          }
+        });
+
+      // Share MIDI button handler
+      document
+        .getElementById("share-midi-btn")
+        ?.addEventListener("click", async () => {
+          const measures = getMeasures();
+          const bpm = pianoState.tempo || 120;
+
+          const progress = showExportProgress("Converting & uploading MIDI...");
+
+          try {
+            const shareUrl = await shareScoreAsMIDI(measures, bpm);
+            hideExportProgress();
+            await navigator.clipboard.writeText(shareUrl);
+            showToast("MIDI link copied to clipboard!", {
+              type: "success",
+              duration: 5000,
+            });
+          } catch (error) {
+            hideExportProgress();
+            showExportError(error);
+          }
+        });
+
+      // Share JSON button handler
+      document
+        .getElementById("share-json-btn")
+        ?.addEventListener("click", async () => {
+          const measures = getMeasures();
+          const bpm = pianoState.tempo || 120;
+
+          const progress = showExportProgress("Uploading score...");
+
+          try {
+            const shareUrl = await shareScoreAsJSON(measures, bpm);
+            hideExportProgress();
+            await navigator.clipboard.writeText(shareUrl);
+            showToast("Score link copied to clipboard!", {
+              type: "success",
+              duration: 5000,
+            });
           } catch (error) {
             hideExportProgress();
             showExportError(error);

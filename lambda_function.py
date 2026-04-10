@@ -1,9 +1,11 @@
 """
-PianoTour Share Lambda — handles audio export sharing.
+PianoTour Share Lambda — handles file sharing.
 
 Actions:
   get_upload_url  — returns a presigned PUT URL + share code
-  get_audio       — takes a share code, returns a presigned GET URL
+  get_file        — takes a share code, returns a presigned GET URL
+  download        — 302 redirect to presigned GET URL (triggers browser download)
+  list_shares     — returns all shares (admin)
 """
 
 import boto3
@@ -36,7 +38,17 @@ HEADERS = {
 CODE_ALPHABET = string.ascii_lowercase + string.digits
 CODE_LENGTH = 8
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
-WAV_MAGIC = (b"RIFF", b"WAVE")  # bytes 0-3 and 8-11
+
+ALLOWED_CONTENT_TYPES = {
+    "audio/wav":        ".wav",
+    "audio/midi":       ".mid",
+    "audio/x-midi":     ".mid",
+    "application/json": ".json",
+}
+
+# Magic byte signatures for server-side fallback validation
+WAV_MAGIC  = (b"RIFF", b"WAVE")  # bytes 0-3 and 8-11
+MIDI_MAGIC = b"MThd"             # bytes 0-3
 
 
 def _generate_code():
@@ -58,8 +70,17 @@ def lambda_handler(event, context):
         file_size = params.get("file_size", "0")
         duration = params.get("duration", "0")
 
+        ext = ALLOWED_CONTENT_TYPES.get(content_type)
+        if not ext:
+            return {
+                "statusCode": 400,
+                "headers": HEADERS,
+                "body": json.dumps({"error": f"Unsupported content type: {content_type}"}),
+            }
+
         share_code = _generate_code()
-        s3_key = f"exports/{share_code}.wav"
+        file_type = ext.lstrip(".")  # "wav", "mid", "json"
+        s3_key = f"exports/{share_code}{ext}"
 
         upload_url = s3.generate_presigned_url(
             "put_object",
@@ -77,6 +98,7 @@ def lambda_handler(event, context):
             "s3_key": s3_key,
             "name": name,
             "content_type": content_type,
+            "file_type": file_type,
             "created_at": datetime.utcnow().isoformat() + "Z",
         }
         if file_size and file_size != "0":
@@ -86,7 +108,7 @@ def lambda_handler(event, context):
 
         table.put_item(Item=item)
 
-        logger.info(f"Created share code {share_code} for {name}")
+        logger.info(f"Created share code {share_code} for {name} ({file_type})")
 
         return {
             "statusCode": 200,
@@ -106,6 +128,7 @@ def lambda_handler(event, context):
             shares.append({
                 "share_code": item["share_code"],
                 "name": item.get("name", "composition"),
+                "file_type": item.get("file_type", "wav"),
                 "created_at": item.get("created_at", ""),
                 "duration_seconds": float(item["duration_seconds"]) if "duration_seconds" in item else None,
                 "file_size": int(item["file_size"]) if "file_size" in item else None,
@@ -117,8 +140,8 @@ def lambda_handler(event, context):
             "body": json.dumps({"shares": shares}),
         }
 
-    # ── Get audio by share code ───────────────────────────────────
-    if action == "get_audio":
+    # ── Get file by share code ────────────────────────────────────
+    if action in ("get_file", "get_audio"):  # get_audio kept for backwards compatibility
         share_code = params.get("code", "").strip()
         if not share_code:
             return {
@@ -136,28 +159,57 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "Share code not found"}),
             }
 
-        # Validate WAV magic bytes before serving
         s3_key = item["s3_key"]
+        file_type = item.get("file_type", "wav")
+
+        # Magic byte validation — runs regardless of validator lambda result
         try:
-            head = s3.get_object(Bucket=BUCKET, Key=s3_key, Range="bytes=0-11")
-            header = head["Body"].read()
-            if header[:4] != WAV_MAGIC[0] or header[8:12] != WAV_MAGIC[1]:
-                logger.warning(f"Invalid WAV file for {share_code}: bad magic bytes")
-                s3.delete_object(Bucket=BUCKET, Key=s3_key)
-                table.delete_item(Key={"share_code": share_code})
-                return {
-                    "statusCode": 400,
-                    "headers": HEADERS,
-                    "body": json.dumps({"error": "File is not a valid WAV"}),
-                }
+            if file_type == "wav":
+                head = s3.get_object(Bucket=BUCKET, Key=s3_key, Range="bytes=0-11")
+                header = head["Body"].read()
+                if header[:4] != WAV_MAGIC[0] or header[8:12] != WAV_MAGIC[1]:
+                    logger.warning(f"Invalid WAV for {share_code}: bad magic bytes")
+                    s3.delete_object(Bucket=BUCKET, Key=s3_key)
+                    table.delete_item(Key={"share_code": share_code})
+                    return {
+                        "statusCode": 400,
+                        "headers": HEADERS,
+                        "body": json.dumps({"error": "File is not a valid WAV"}),
+                    }
+            elif file_type == "mid":
+                head = s3.get_object(Bucket=BUCKET, Key=s3_key, Range="bytes=0-3")
+                header = head["Body"].read()
+                if header[:4] != MIDI_MAGIC:
+                    logger.warning(f"Invalid MIDI for {share_code}: bad magic bytes")
+                    s3.delete_object(Bucket=BUCKET, Key=s3_key)
+                    table.delete_item(Key={"share_code": share_code})
+                    return {
+                        "statusCode": 400,
+                        "headers": HEADERS,
+                        "body": json.dumps({"error": "File is not a valid MIDI"}),
+                    }
+            elif file_type == "json":
+                head = s3.get_object(Bucket=BUCKET, Key=s3_key, Range="bytes=0-0")
+                first_byte = head["Body"].read()
+                if first_byte != b"{":
+                    logger.warning(f"Invalid JSON for {share_code}: does not start with {{")
+                    s3.delete_object(Bucket=BUCKET, Key=s3_key)
+                    table.delete_item(Key={"share_code": share_code})
+                    return {
+                        "statusCode": 400,
+                        "headers": HEADERS,
+                        "body": json.dumps({"error": "File is not a valid JSON document"}),
+                    }
         except s3.exceptions.NoSuchKey:
+            # File was deleted (likely by validator lambda) — clean up orphan record
+            table.delete_item(Key={"share_code": share_code})
             return {
                 "statusCode": 404,
                 "headers": HEADERS,
-                "body": json.dumps({"error": "Audio file not found in storage"}),
+                "body": json.dumps({"error": "File not found in storage"}),
             }
 
-        audio_url = s3.generate_presigned_url(
+        file_url = s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": BUCKET, "Key": s3_key},
             ExpiresIn=3600,
@@ -165,7 +217,8 @@ def lambda_handler(event, context):
 
         result = {
             "name": item.get("name", "composition"),
-            "audio_url": audio_url,
+            "file_type": file_type,
+            "file_url": file_url,
             "created_at": item.get("created_at", ""),
         }
         if "file_size" in item:
@@ -199,7 +252,8 @@ def lambda_handler(event, context):
             }
 
         s3_key = item["s3_key"]
-        name = item.get("name", "composition.wav")
+        file_type = item.get("file_type", "wav")
+        name = item.get("name", f"composition.{file_type}")
 
         audio_url = s3.generate_presigned_url(
             "get_object",

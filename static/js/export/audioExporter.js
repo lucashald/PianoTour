@@ -518,11 +518,11 @@ function downloadAudioFile(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-function generateFilename() {
+function generateFilename(ext = ".wav") {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10);
   const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, "");
-  return `composition-${dateStr}-${timeStr}.wav`;
+  return `composition-${dateStr}-${timeStr}${ext}`;
 }
 
 // ===================================================================
@@ -670,4 +670,116 @@ export async function shareScoreAsAudio(measures, bpm = 120) {
   // Build the permanent download URL (Flask redirects to lambda which 302s to S3)
   const downloadUrl = `${window.location.origin}/share/${encodeURIComponent(share_code)}`;
   return downloadUrl;
+}
+
+/**
+ * Converts the current score to MIDI via the server and uploads it to the cloud.
+ * Returns the share URL on success.
+ */
+export async function shareScoreAsMIDI(measures, bpm = 120) {
+  if (!measures || measures.length === 0) {
+    throw new Error("No measures to share");
+  }
+
+  // --- Convert to MIDI via Flask ---
+  const songData = {
+    measures,
+    tempo: bpm,
+    keySignature: pianoState.keySignature || "C",
+    timeSignature: pianoState.timeSignature || { numerator: 4, denominator: 4 },
+    instrument: pianoState.instrument || "piano",
+    midiChannel: String(pianoState.midiChannel ?? 0),
+    isMinorChordMode: pianoState.isMinorChordMode || false,
+  };
+
+  const convertRes = await fetch("/convert-to-midi", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(songData),
+  });
+  if (!convertRes.ok) {
+    const body = await convertRes.json().catch(() => ({}));
+    throw new Error(body.error || "MIDI conversion failed");
+  }
+  const midiBlob = await convertRes.blob();
+
+  // --- Get presigned upload URL ---
+  const filename = generateFilename(".mid");
+  const params = new URLSearchParams({
+    action: "get_upload_url",
+    name: filename,
+    content_type: "audio/midi",
+    file_size: String(midiBlob.size),
+  });
+
+  const apiRes = await fetch(`${SHARE_API}?${params}`);
+  if (!apiRes.ok) {
+    const body = await apiRes.json().catch(() => ({}));
+    throw new Error(body.error || "Failed to get upload URL");
+  }
+  const { share_code, upload_url } = await apiRes.json();
+
+  // --- Upload MIDI to S3 ---
+  const uploadRes = await fetch(upload_url, {
+    method: "PUT",
+    headers: { "Content-Type": "audio/midi" },
+    body: midiBlob,
+  });
+  if (!uploadRes.ok) {
+    throw new Error("Upload failed (" + uploadRes.status + ")");
+  }
+
+  return `${window.location.origin}/share/${encodeURIComponent(share_code)}`;
+}
+
+/**
+ * Serializes the current score to JSON and uploads it to the cloud.
+ * Returns the share URL on success.
+ */
+export async function shareScoreAsJSON(measures, bpm = 120) {
+  if (!measures || measures.length === 0) {
+    throw new Error("No measures to share");
+  }
+
+  // --- Build JSON blob ---
+  const songData = {
+    measures,
+    tempo: bpm,
+    keySignature: pianoState.keySignature || "C",
+    timeSignature: pianoState.timeSignature || { numerator: 4, denominator: 4 },
+    instrument: pianoState.instrument || "piano",
+    midiChannel: String(pianoState.midiChannel ?? 0),
+    isMinorChordMode: pianoState.isMinorChordMode || false,
+  };
+  const jsonBlob = new Blob([JSON.stringify(songData)], {
+    type: "application/json",
+  });
+
+  // --- Get presigned upload URL ---
+  const filename = generateFilename(".json");
+  const params = new URLSearchParams({
+    action: "get_upload_url",
+    name: filename,
+    content_type: "application/json",
+    file_size: String(jsonBlob.size),
+  });
+
+  const apiRes = await fetch(`${SHARE_API}?${params}`);
+  if (!apiRes.ok) {
+    const body = await apiRes.json().catch(() => ({}));
+    throw new Error(body.error || "Failed to get upload URL");
+  }
+  const { share_code, upload_url } = await apiRes.json();
+
+  // --- Upload JSON to S3 ---
+  const uploadRes = await fetch(upload_url, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: jsonBlob,
+  });
+  if (!uploadRes.ok) {
+    throw new Error("Upload failed (" + uploadRes.status + ")");
+  }
+
+  return `${window.location.origin}/share/${encodeURIComponent(share_code)}`;
 }
