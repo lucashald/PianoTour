@@ -227,6 +227,7 @@ body.no-scroll {
   width: 100%;
   max-width: var(--max-width-desktop);
   margin: 0 auto;
+  border-radius: var(--border-radius);
 }
 
 /* ==========================================================================
