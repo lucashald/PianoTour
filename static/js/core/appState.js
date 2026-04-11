@@ -20,6 +20,7 @@ export const pianoState = {
     lastDraggedKey: null, // Prevent rapid retriggering
 
     // Musical State (Instrument-specific)
+    title: '',
     keySignature: 'C',
     keySignatureType: '#', // Enharmonic preference
     isMinorKey: false,

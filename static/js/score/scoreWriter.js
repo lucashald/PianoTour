@@ -1107,6 +1107,7 @@ export function resetScore() {
     currentTrebleBeats = 0;
     currentBassBeats = 0;
     history.length = 0;
+    pianoState.title = '';
 
     // Save the initial empty state so the first note can be undone
     saveStateToHistory();
