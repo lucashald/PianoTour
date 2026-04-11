@@ -425,7 +425,6 @@ export function initializeDrumsPlayer() {
     .getElementById("play-drums-score-btn")
     ?.addEventListener("click", async (e) => {
       e.preventDefault();
-      document.getElementById("instrument")?.focus();
       // Directly check if audio is ready, or attempt to unlock and then play.
       // The audioManager.unlockAndExecute function is the single point for this.
       const playAction = () => {

@@ -1,244 +1,356 @@
 {% block settings %}
 <div class="audio-controls-container">
-    <!-- ADSR Envelope controls -->
-    <div class="control-section">
-        <h3>ADSR Envelope</h3>
-        <div class="vertical-controls">
-            <div class="volume-control vertical audio-uninitialized" id="attackControl">
-                <label class="control-label">Attack</label>
-                <input type="range" 
-                       min="0.001" 
-                       max="1" 
-                       value="0.01" 
-                       step="0.001"
-                       class="volume-slider vertical-slider" 
-                       id="attackSlider"
-                       aria-label="Attack time">
-                <span class="volume-value" id="attackValue" aria-live="polite">0.01</span>
-            </div>
+  <!-- ADSR Envelope controls -->
+  <div class="control-section">
+    <h3>ADSR Envelope</h3>
+    <div class="vertical-controls">
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="attackControl"
+      >
+        <label class="control-label">Attack</label>
+        <input
+          type="range"
+          min="0.001"
+          max="1"
+          value="0.01"
+          step="0.001"
+          class="volume-slider vertical-slider"
+          id="attackSlider"
+          aria-label="Attack time"
+        />
+        <span class="volume-value" id="attackValue" aria-live="polite"
+          >0.01</span
+        >
+      </div>
 
-            <div class="volume-control vertical audio-uninitialized" id="decayControl">
-                <label class="control-label">Decay</label>
-                <input type="range" 
-                       min="0.1" 
-                       max="2" 
-                       value="0.3" 
-                       step="0.01"
-                       class="volume-slider vertical-slider" 
-                       id="decaySlider"
-                       aria-label="Decay time">
-                <span class="volume-value" id="decayValue" aria-live="polite">0.3</span>
-            </div>
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="decayControl"
+      >
+        <label class="control-label">Decay</label>
+        <input
+          type="range"
+          min="0.1"
+          max="2"
+          value="0.3"
+          step="0.01"
+          class="volume-slider vertical-slider"
+          id="decaySlider"
+          aria-label="Decay time"
+        />
+        <span class="volume-value" id="decayValue" aria-live="polite">0.3</span>
+      </div>
 
-            <div class="volume-control vertical audio-uninitialized" id="sustainControl">
-                <label class="control-label">Sustain</label>
-                <input type="range" 
-                       min="0" 
-                       max="1" 
-                       value="0.8" 
-                       step="0.01"
-                       class="volume-slider vertical-slider" 
-                       id="sustainSlider"
-                       aria-label="Sustain level">
-                <span class="volume-value" id="sustainValue" aria-live="polite">0.8</span>
-            </div>
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="sustainControl"
+      >
+        <label class="control-label">Sustain</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          value="0.8"
+          step="0.01"
+          class="volume-slider vertical-slider"
+          id="sustainSlider"
+          aria-label="Sustain level"
+        />
+        <span class="volume-value" id="sustainValue" aria-live="polite"
+          >0.8</span
+        >
+      </div>
 
-            <div class="volume-control vertical audio-uninitialized" id="releaseControl">
-                <label class="control-label">Release</label>
-                <input type="range" 
-                       min="0.1" 
-                       max="3" 
-                       value="1.2" 
-                       step="0.01"
-                       class="volume-slider vertical-slider" 
-                       id="releaseSlider"
-                       aria-label="Release time">
-                <span class="volume-value" id="releaseValue" aria-live="polite">1.2</span>
-            </div>
-        </div>
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="releaseControl"
+      >
+        <label class="control-label">Release</label>
+        <input
+          type="range"
+          min="0.1"
+          max="3"
+          value="1.2"
+          step="0.01"
+          class="volume-slider vertical-slider"
+          id="releaseSlider"
+          aria-label="Release time"
+        />
+        <span class="volume-value" id="releaseValue" aria-live="polite"
+          >1.2</span
+        >
+      </div>
     </div>
+  </div>
 
-    <!-- Reverb controls -->
-    <div class="control-section">
-        <h3>Reverb</h3>
-        <div class="vertical-controls">
-            <div class="volume-control vertical audio-uninitialized" id="reverbRoomControl">
-                <label class="control-label">Room Size</label>
-                <input type="range" 
-                       min="0.01" 
-                       max="1" 
-                       value="0.2" 
-                       step="0.01"
-                       class="volume-slider vertical-slider" 
-                       id="reverbRoomSlider"
-                       aria-label="Reverb room size">
-                <span class="volume-value" id="reverbRoomValue" aria-live="polite">0.2</span>
-            </div>
+  <!-- Reverb controls -->
+  <div class="control-section">
+    <h3>Reverb</h3>
+    <div class="vertical-controls">
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="reverbRoomControl"
+      >
+        <label class="control-label">Room Size</label>
+        <input
+          type="range"
+          min="0.01"
+          max="1"
+          value="0.2"
+          step="0.01"
+          class="volume-slider vertical-slider"
+          id="reverbRoomSlider"
+          aria-label="Reverb room size"
+        />
+        <span class="volume-value" id="reverbRoomValue" aria-live="polite"
+          >0.2</span
+        >
+      </div>
 
-            <div class="volume-control vertical audio-uninitialized" id="reverbWetControl">
-                <label class="control-label">Wet</label>
-                <input type="range" 
-                       min="0" 
-                       max="1" 
-                       value="0.15" 
-                       step="0.01"
-                       class="volume-slider vertical-slider" 
-                       id="reverbWetSlider"
-                       aria-label="Reverb wet level">
-                <span class="volume-value" id="reverbWetValue" aria-live="polite">0.15</span>
-            </div>
-        </div>
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="reverbWetControl"
+      >
+        <label class="control-label">Wet</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          value="0.15"
+          step="0.01"
+          class="volume-slider vertical-slider"
+          id="reverbWetSlider"
+          aria-label="Reverb wet level"
+        />
+        <span class="volume-value" id="reverbWetValue" aria-live="polite"
+          >0.15</span
+        >
+      </div>
     </div>
+  </div>
 
-    
+  <!-- EQ controls -->
+  <div class="control-section">
+    <h3>EQ</h3>
+    <div class="vertical-controls">
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="eqLowControl"
+      >
+        <label class="control-label">Low</label>
+        <input
+          type="range"
+          min="-12"
+          max="12"
+          value="1"
+          step="0.1"
+          class="volume-slider vertical-slider"
+          id="eqLowSlider"
+          aria-label="EQ low frequency"
+        />
+        <span class="volume-value" id="eqLowValue" aria-live="polite">+1</span>
+      </div>
 
-<!-- Articulation controls -->
-    <div class="control-section">
-        <h3>Articulation</h3>
-        <div class="vertical-controls">
-            <div class="volume-control vertical audio-uninitialized" id="velocityControl">
-                <label class="control-label">Velocity</label>
-                <input type="range" 
-                       min="0" 
-                       max="127" 
-                       value="100" 
-                       step="1"
-                       class="volume-slider vertical-slider" 
-                       id="velocitySlider"
-                       aria-label="Velocity">
-                <span class="volume-value" id="velocityValue" aria-live="polite">100</span>
-            </div>
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="eqMidControl"
+      >
+        <label class="control-label">Mid</label>
+        <input
+          type="range"
+          min="-12"
+          max="12"
+          value="0"
+          step="0.1"
+          class="volume-slider vertical-slider"
+          id="eqMidSlider"
+          aria-label="EQ mid frequency"
+        />
+        <span class="volume-value" id="eqMidValue" aria-live="polite">0</span>
+      </div>
 
-            <div class="volume-control vertical audio-uninitialized" id="staccatoControl">
-                <label class="control-label">Duration</label>
-                <input type="range" 
-                       min="0.1" 
-                       max="1" 
-                       value="0.85" 
-                       step="0.05"
-                       class="volume-slider vertical-slider" 
-                       id="staccatoSlider"
-                       aria-label="Staccato duration">
-                <span class="volume-value" id="staccatoValue" aria-live="polite">0.85</span>
-            </div>
-
-            <div class="volume-control vertical audio-uninitialized" id="humanizeControl">
-                <label class="control-label">Humanize</label>
-                <input type="range" 
-                       min="0" 
-                       max="100" 
-                       value="10" 
-                       step="1"
-                       class="volume-slider vertical-slider" 
-                       id="humanizeSlider"
-                       aria-label="Humanize">
-                <span class="volume-value" id="humanizeValue" aria-live="polite">10%</span>
-            </div>
-        </div>
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="eqHighControl"
+      >
+        <label class="control-label">High</label>
+        <input
+          type="range"
+          min="-12"
+          max="12"
+          value="-1"
+          step="0.1"
+          class="volume-slider vertical-slider"
+          id="eqHighSlider"
+          aria-label="EQ high frequency"
+        />
+        <span class="volume-value" id="eqHighValue" aria-live="polite">-1</span>
+      </div>
     </div>
-    
-<!-- EQ controls -->
-    <div class="control-section">
-        <h3>EQ</h3>
-        <div class="vertical-controls">
-            <div class="volume-control vertical audio-uninitialized" id="eqLowControl">
-                <label class="control-label">Low</label>
-                <input type="range" 
-                       min="-12" 
-                       max="12" 
-                       value="1" 
-                       step="0.1"
-                       class="volume-slider vertical-slider" 
-                       id="eqLowSlider"
-                       aria-label="EQ low frequency">
-                <span class="volume-value" id="eqLowValue" aria-live="polite">+1</span>
-            </div>
+  </div>
 
-            <div class="volume-control vertical audio-uninitialized" id="eqMidControl">
-                <label class="control-label">Mid</label>
-                <input type="range" 
-                       min="-12" 
-                       max="12" 
-                       value="0" 
-                       step="0.1"
-                       class="volume-slider vertical-slider" 
-                       id="eqMidSlider"
-                       aria-label="EQ mid frequency">
-                <span class="volume-value" id="eqMidValue" aria-live="polite">0</span>
-            </div>
+  <!-- Compression controls -->
+  <div class="control-section">
+    <h3>Compression</h3>
+    <div class="vertical-controls">
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="compThresholdControl"
+      >
+        <label class="control-label">Threshold</label>
+        <input
+          type="range"
+          min="-40"
+          max="0"
+          value="-18"
+          step="0.1"
+          class="volume-slider vertical-slider"
+          id="compThresholdSlider"
+          aria-label="Compression threshold"
+        />
+        <span class="volume-value" id="compThresholdValue" aria-live="polite"
+          >-18</span
+        >
+      </div>
 
-            <div class="volume-control vertical audio-uninitialized" id="eqHighControl">
-                <label class="control-label">High</label>
-                <input type="range" 
-                       min="-12" 
-                       max="12" 
-                       value="-1" 
-                       step="0.1"
-                       class="volume-slider vertical-slider" 
-                       id="eqHighSlider"
-                       aria-label="EQ high frequency">
-                <span class="volume-value" id="eqHighValue" aria-live="polite">-1</span>
-            </div>
-        </div>
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="compRatioControl"
+      >
+        <label class="control-label">Ratio</label>
+        <input
+          type="range"
+          min="1"
+          max="20"
+          value="4"
+          step="0.1"
+          class="volume-slider vertical-slider"
+          id="compRatioSlider"
+          aria-label="Compression ratio"
+        />
+        <span class="volume-value" id="compRatioValue" aria-live="polite"
+          >4</span
+        >
+      </div>
+
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="compAttackControl"
+      >
+        <label class="control-label">Attack</label>
+        <input
+          type="range"
+          min="0.001"
+          max="0.1"
+          value="0.003"
+          step="0.0001"
+          class="volume-slider vertical-slider"
+          id="compAttackSlider"
+          aria-label="Compression attack"
+        />
+        <span class="volume-value" id="compAttackValue" aria-live="polite"
+          >0.003</span
+        >
+      </div>
+
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="compReleaseControl"
+      >
+        <label class="control-label">Release</label>
+        <input
+          type="range"
+          min="0.01"
+          max="1"
+          value="0.1"
+          step="0.01"
+          class="volume-slider vertical-slider"
+          id="compReleaseSlider"
+          aria-label="Compression release"
+        />
+        <span class="volume-value" id="compReleaseValue" aria-live="polite"
+          >0.1</span
+        >
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Compression controls -->
-    <div class="control-section">
-        <h3>Compression</h3>
-        <div class="vertical-controls">
-            <div class="volume-control vertical audio-uninitialized" id="compThresholdControl">
-                <label class="control-label">Threshold</label>
-                <input type="range" 
-                       min="-40" 
-                       max="0" 
-                       value="-18" 
-                       step="0.1"
-                       class="volume-slider vertical-slider" 
-                       id="compThresholdSlider"
-                       aria-label="Compression threshold">
-                <span class="volume-value" id="compThresholdValue" aria-live="polite">-18</span>
-            </div>
-
-            <div class="volume-control vertical audio-uninitialized" id="compRatioControl">
-                <label class="control-label">Ratio</label>
-                <input type="range" 
-                       min="1" 
-                       max="20" 
-                       value="4" 
-                       step="0.1"
-                       class="volume-slider vertical-slider" 
-                       id="compRatioSlider"
-                       aria-label="Compression ratio">
-                <span class="volume-value" id="compRatioValue" aria-live="polite">4</span>
-            </div>
-
-            <div class="volume-control vertical audio-uninitialized" id="compAttackControl">
-                <label class="control-label">Attack</label>
-                <input type="range" 
-                       min="0.001" 
-                       max="0.1" 
-                       value="0.003" 
-                       step="0.0001"
-                       class="volume-slider vertical-slider" 
-                       id="compAttackSlider"
-                       aria-label="Compression attack">
-                <span class="volume-value" id="compAttackValue" aria-live="polite">0.003</span>
-            </div>
-
-            <div class="volume-control vertical audio-uninitialized" id="compReleaseControl">
-                <label class="control-label">Release</label>
-                <input type="range" 
-                       min="0.01" 
-                       max="1" 
-                       value="0.1" 
-                       step="0.01"
-                       class="volume-slider vertical-slider" 
-                       id="compReleaseSlider"
-                       aria-label="Compression release">
-                <span class="volume-value" id="compReleaseValue" aria-live="polite">0.1</span>
-            </div>
-        </div>
+<div>
+  <!-- Articulation controls -->
+  <div class="control-section">
+    <h3>Articulation</h3>
+    <div class="articulation-apply-buttons">
+      <button id="applyArticulationAllBtn" class="btn btn--info btn--sm">Apply to All</button>
+      <button id="applyArticulationTrebleBtn" class="btn btn--info btn--sm">Apply to Treble</button>
+      <button id="applyArticulationBassBtn" class="btn btn--info btn--sm">Apply to Bass</button>
+      <button id="applyArticulationMeasureBtn" class="btn btn--info btn--sm">Apply to Measure</button>
+      <button id="applyArticulationNoteBtn" class="btn btn--info btn--sm">Apply to Note</button>
     </div>
+    <div id="articulationApplyStatus" class="articulation-apply-status"></div>
+    <div class="vertical-controls">
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="velocityControl"
+      >
+        <label class="control-label">Velocity</label>
+        <input
+          type="range"
+          min="0"
+          max="127"
+          value="100"
+          step="1"
+          class="volume-slider vertical-slider"
+          id="velocitySlider"
+          aria-label="Velocity"
+        />
+        <span class="volume-value" id="velocityValue" aria-live="polite"
+          >100</span
+        >
+      </div>
+
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="staccatoControl"
+      >
+        <label class="control-label">Duration</label>
+        <input
+          type="range"
+          min="0.1"
+          max="1"
+          value="0.85"
+          step="0.05"
+          class="volume-slider vertical-slider"
+          id="staccatoSlider"
+          aria-label="Staccato duration"
+        />
+        <span class="volume-value" id="staccatoValue" aria-live="polite"
+          >0.85</span
+        >
+      </div>
+
+      <div
+        class="volume-control vertical audio-uninitialized"
+        id="humanizeControl"
+      >
+        <label class="control-label">Humanize</label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value="10"
+          step="1"
+          class="volume-slider vertical-slider"
+          id="humanizeSlider"
+          aria-label="Humanize"
+        />
+        <span class="volume-value" id="humanizeValue" aria-live="polite"
+          >10%</span
+        >
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="reset-button-container">
@@ -251,7 +363,9 @@
       <input type="checkbox" id="toggleVelocityCheckbox" checked />
       <div class="slider round"></div>
     </label>
-    <label for="toggleVelocityCheckbox" class="velocity-label">Alt+Mouse Wheel Controls Velocity</label>
+    <label for="toggleVelocityCheckbox" class="velocity-label"
+      >Alt+Mouse Wheel Controls Velocity</label
+    >
   </div>
 
   <div class="checkbox-wrapper-velocity">
@@ -259,7 +373,9 @@
       <input type="checkbox" id="togglePaletteDragModeCheckbox" />
       <div class="slider round"></div>
     </label>
-    <label for="togglePaletteDragModeCheckbox" class="velocity-label">Drag Mode (uncheck for Click Mode)</label>
+    <label for="togglePaletteDragModeCheckbox" class="velocity-label"
+      >Drag Mode (uncheck for Click Mode)</label
+    >
   </div>
 
   <div class="checkbox-wrapper-velocity">
@@ -267,104 +383,173 @@
       <input type="checkbox" id="toggleFixedDurationCheckbox" />
       <div class="slider round"></div>
     </label>
-    <label for="toggleFixedDurationCheckbox" class="velocity-label">Fixed Duration (use quantize value)</label>
+    <label for="toggleFixedDurationCheckbox" class="velocity-label"
+      >Fixed Duration (use quantize value)</label
+    >
   </div>
 </div>
 
-    <div class="controls-tempo-container">
-            <!-- Quantize (Note Duration) -->
-      <label class="control-label">Default Note Duration (Quantize)</label>
-      <div class="tempo-controls">
-        <select id="quantize-select" class="tempo-dropdown">
-          <option value="32">32nd</option>
-          <option value="32.">Dotted 32nd</option>
-          <option value="16">16th</option>
-          <option value="16.">Dotted 16th</option>
-          <option value="8">8th</option>
-          <option value="8.">Dotted 8th</option>
-          <option value="q" selected>Quarter</option>
-          <option value="q.">Dotted Quarter</option>
-          <option value="h">Half</option>
-          <option value="h.">Dotted Half</option>
-          <option value="w">Whole</option>
-        </select>
-      </div>
+<div class="controls-tempo-container">
+  <!-- Quantize (Note Duration) -->
+  <label class="control-label">Default Note Duration (Quantize)</label>
+  <div class="tempo-controls">
+    <select id="quantize-select" class="tempo-dropdown">
+      <option value="32">32nd</option>
+      <option value="32.">Dotted 32nd</option>
+      <option value="16">16th</option>
+      <option value="16.">Dotted 16th</option>
+      <option value="8">8th</option>
+      <option value="8.">Dotted 8th</option>
+      <option value="q" selected>Quarter</option>
+      <option value="q.">Dotted Quarter</option>
+      <option value="h">Half</option>
+      <option value="h.">Dotted Half</option>
+      <option value="w">Whole</option>
+    </select>
+  </div>
 
-      <!-- Instrument Selector -->
-      <label class="control-label">Instrument</label>
-      <div class="instrument-controls">
-        <select id="instrumentSelect" class="instrument-dropdown">
-          <option value="piano">Piano</option>
-          <option value="guitar">Guitar</option>
-          <option value="electric_guitar">Electric Guitar</option>
-          <option value="bass">Bass</option>
-          <option value="cello">Cello</option>
-          <option value="violin">Violin</option>
-          <option value="harp">Harp</option>
-          <option value="sax">Saxophone</option>
-          <option value="clarinet">Clarinet</option>
-          <option value="french_horn">French Horn</option>
-          <option value="ambientSynth">Ambient Synth</option>
-          <option value="celloSynth">Cello Synth</option>
-          <option value="warmSynth">Warm Synth</option>
-        </select>
-      </div>
+  <!-- Instrument Selector -->
+  <label class="control-label">Instrument</label>
+  <div class="instrument-controls">
+    <select id="instrumentSelect" class="instrument-dropdown">
+      <option value="piano">Piano</option>
+      <option value="guitar">Guitar</option>
+      <option value="electric_guitar">Electric Guitar</option>
+      <option value="bass">Bass</option>
+      <option value="cello">Cello</option>
+      <option value="violin">Violin</option>
+      <option value="harp">Harp</option>
+      <option value="sax">Saxophone</option>
+      <option value="clarinet">Clarinet</option>
+      <option value="french_horn">French Horn</option>
+      <option value="ambientSynth">Ambient Synth</option>
+      <option value="celloSynth">Cello Synth</option>
+      <option value="warmSynth">Warm Synth</option>
+    </select>
+  </div>
 
-      <!-- Tempo Row -->
-      <label class="control-label">Tempo (BPM)</label>
-      <div class="tempo-controls">
-        <select id="tempo-input" class="tempo-dropdown">
-        <option value="60">60</option>
-        <option value="70">70</option>
-        <option value="80">80</option>
-        <option value="90">90</option>
-        <option value="100">100</option>
-        <option value="110">110</option>
-        <option value="120" selected>120</option>
-        <option value="130">130</option>
-        <option value="140">140</option>
-        <option value="150">150</option>
-        <option value="160">160</option>
-        <option value="170">170</option>
-        <option value="180">180</option>
-        <option value="190">190</option>
-        <option value="200">200</option>
-        <option value="210">210</option>
-        <option value="220">220</option>
-      </select>
-      </div>
-
-
-    </div>
+  <!-- Tempo Row -->
+  <label class="control-label">Tempo (BPM)</label>
+  <div class="tempo-controls">
+    <select id="tempo-input" class="tempo-dropdown">
+      <option value="60">60</option>
+      <option value="70">70</option>
+      <option value="80">80</option>
+      <option value="90">90</option>
+      <option value="100">100</option>
+      <option value="110">110</option>
+      <option value="120" selected>120</option>
+      <option value="130">130</option>
+      <option value="140">140</option>
+      <option value="150">150</option>
+      <option value="160">160</option>
+      <option value="170">170</option>
+      <option value="180">180</option>
+      <option value="190">190</option>
+      <option value="200">200</option>
+      <option value="210">210</option>
+      <option value="220">220</option>
+    </select>
+  </div>
+</div>
 
 <script type="module">
-      import { 
-        audioSettingsController, 
-        resetAudioSettings, 
-        getCurrentAudioSettings, 
-        applyAudioSettings 
-    } from '{{ url_for("static", filename="js/ui/audioSettings.js") }}';
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        // Check periodically if the controller has initialized
-        const checkInterval = setInterval(() => {
-            if (audioSettingsController.isInitialized) {
-                // Remove the disabled styling from all controls
-                document.querySelectorAll('.audio-uninitialized').forEach(el => {
-                    el.classList.remove('audio-uninitialized');
-                });
-                clearInterval(checkInterval);
+  import {
+    audioSettingsController,
+    resetAudioSettings,
+    getCurrentAudioSettings,
+    applyAudioSettings,
+  } from '{{ url_for("static", filename="js/ui/audioSettings.js") }}';
 
-            }
-        }, 100);
-        
-        // Safety timeout - remove uninitialized class after 5 seconds regardless
-        setTimeout(() => {
-            clearInterval(checkInterval);
-            document.querySelectorAll('.audio-uninitialized').forEach(el => {
-                el.classList.remove('audio-uninitialized');
-            });
-        }, 5000);
-    });
+  document.addEventListener("DOMContentLoaded", () => {
+    // Check periodically if the controller has initialized
+    const checkInterval = setInterval(() => {
+      if (audioSettingsController.isInitialized) {
+        // Remove the disabled styling from all controls
+        document.querySelectorAll(".audio-uninitialized").forEach((el) => {
+          el.classList.remove("audio-uninitialized");
+        });
+        clearInterval(checkInterval);
+      }
+    }, 100);
+
+    // Safety timeout - remove uninitialized class after 5 seconds regardless
+    setTimeout(() => {
+      clearInterval(checkInterval);
+      document.querySelectorAll(".audio-uninitialized").forEach((el) => {
+        el.classList.remove("audio-uninitialized");
+      });
+    }, 5000);
+  });
+</script>
+
+<script type="module">
+  import {
+    applyArticulationToAll,
+    applyArticulationToClef,
+    applyArticulationToMeasure,
+    applyArticulationToNote,
+  } from '{{ url_for("static", filename="js/score/scoreWriter.js") }}';
+  import {
+    getEditorSelectedNoteId,
+    getEditorSelectedMeasureIndex,
+  } from '{{ url_for("static", filename="js/editor/scoreEditor.js") }}';
+
+  function getArticulationValues() {
+    return {
+      velocity: parseInt(document.getElementById('velocitySlider').value, 10),
+      duration: parseFloat(document.getElementById('staccatoSlider').value),
+      humanize: parseInt(document.getElementById('humanizeSlider').value, 10),
+    };
+  }
+
+  function showApplyStatus(message, isError = false) {
+    const el = document.getElementById('articulationApplyStatus');
+    if (!el) return;
+    el.textContent = message;
+    el.className = 'articulation-apply-status ' + (isError ? 'error' : 'success');
+    setTimeout(() => { el.textContent = ''; el.className = 'articulation-apply-status'; }, 2500);
+  }
+
+  document.getElementById('applyArticulationAllBtn')?.addEventListener('click', () => {
+    const { velocity, duration, humanize } = getArticulationValues();
+    const n = applyArticulationToAll(velocity, duration, humanize);
+    showApplyStatus(`Applied to ${n} note${n !== 1 ? 's' : ''}`);
+  });
+
+  document.getElementById('applyArticulationTrebleBtn')?.addEventListener('click', () => {
+    const { velocity, duration, humanize } = getArticulationValues();
+    const n = applyArticulationToClef('treble', velocity, duration, humanize);
+    showApplyStatus(`Applied to ${n} treble note${n !== 1 ? 's' : ''}`);
+  });
+
+  document.getElementById('applyArticulationBassBtn')?.addEventListener('click', () => {
+    const { velocity, duration, humanize } = getArticulationValues();
+    const n = applyArticulationToClef('bass', velocity, duration, humanize);
+    showApplyStatus(`Applied to ${n} bass note${n !== 1 ? 's' : ''}`);
+  });
+
+  document.getElementById('applyArticulationMeasureBtn')?.addEventListener('click', () => {
+    const measureIndex = getEditorSelectedMeasureIndex();
+    if (measureIndex == null) {
+      showApplyStatus('No measure selected', true);
+      return;
+    }
+    const { velocity, duration, humanize } = getArticulationValues();
+    const n = applyArticulationToMeasure(measureIndex, velocity, duration, humanize);
+    showApplyStatus(`Applied to ${n} note${n !== 1 ? 's' : ''} in measure ${measureIndex + 1}`);
+  });
+
+  document.getElementById('applyArticulationNoteBtn')?.addEventListener('click', () => {
+    const noteId = getEditorSelectedNoteId();
+    const measureIndex = getEditorSelectedMeasureIndex();
+    if (noteId == null) {
+      showApplyStatus('No note selected', true);
+      return;
+    }
+    const { velocity, duration, humanize } = getArticulationValues();
+    const n = applyArticulationToNote(measureIndex, noteId, velocity, duration, humanize);
+    showApplyStatus(n ? 'Applied to selected note' : 'Could not apply (rest or missing note)', !n);
+  });
 </script>
 {% endblock %}

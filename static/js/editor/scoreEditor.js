@@ -1181,6 +1181,22 @@ function removeNoteFromChordUI(noteIndexToRemove) {
 // ===================================================================
 
 /**
+ * Get the currently selected note ID in the score editor
+ * @returns {string|number|null}
+ */
+export function getEditorSelectedNoteId() {
+    return editorSelectedNoteId;
+}
+
+/**
+ * Get the currently selected measure index in the score editor
+ * @returns {number}
+ */
+export function getEditorSelectedMeasureIndex() {
+    return editorSelectedMeasureIndex;
+}
+
+/**
  * Get the currently selected clef for palette operations
  * @returns {string} - 'treble' or 'bass'
  */

@@ -560,6 +560,29 @@ body.no-scroll {
   }
 }
 
+.articulation-apply-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--spacing-unit) * 0.75);
+  justify-content: center;
+  margin-top: calc(var(--spacing-unit) * 0.5);
+}
+
+.articulation-apply-status {
+  min-height: 1.2em;
+  font-size: 12px;
+  text-align: center;
+  padding: 2px 0;
+}
+
+.articulation-apply-status.success {
+  color: var(--color-green, #2e7d32);
+}
+
+.articulation-apply-status.error {
+  color: var(--color-red, #c62828);
+}
+
 /* Score Viewer */
 .score-viewer {
   position: relative;

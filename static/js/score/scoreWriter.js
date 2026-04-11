@@ -1638,6 +1638,99 @@ export function removeSlur(noteId) {
 }
 
 /**
+ * Applies articulation (velocity and performedDuration) to a filtered set of notes.
+ * Humanize is applied per-note so each note gets a slightly different value.
+ * @param {Function} filterFn - Predicate (note) => boolean to select which notes to update
+ * @param {number} velocity - Base velocity (0-127)
+ * @param {number} duration - Base performed duration (0.0-1.0)
+ * @param {number} humanize - Humanize percentage (0-100)
+ * @returns {number} Number of notes updated
+ */
+function applyArticulationToNotes(filterFn, velocity, duration, humanize) {
+    let notesUpdated = 0;
+
+    measuresData.forEach(measure => {
+        if (!measure) return;
+        measure.forEach(note => {
+            if (note.isRest || !filterFn(note)) return;
+            note.velocity = humanizeNote(velocity, humanize);
+            note.performedDuration = humanizeDuration(duration, humanize);
+            notesUpdated++;
+        });
+    });
+
+    if (notesUpdated > 0) {
+        saveStateToHistory();
+        drawAll(measuresData, true);
+        saveToLocalStorage();
+    }
+
+    return notesUpdated;
+}
+
+/**
+ * Apply articulation settings to all notes in the score
+ */
+export function applyArticulationToAll(velocity, duration, humanize) {
+    return applyArticulationToNotes(() => true, velocity, duration, humanize);
+}
+
+/**
+ * Apply articulation settings to all notes in a given clef
+ * @param {string} clef - 'treble' or 'bass'
+ */
+export function applyArticulationToClef(clef, velocity, duration, humanize) {
+    return applyArticulationToNotes(note => note.clef === clef, velocity, duration, humanize);
+}
+
+/**
+ * Apply articulation settings to all notes in a single measure
+ * @param {number} measureIndex
+ */
+export function applyArticulationToMeasure(measureIndex, velocity, duration, humanize) {
+    const measure = measuresData[measureIndex];
+    if (!measure) return 0;
+
+    let notesUpdated = 0;
+    measure.forEach(note => {
+        if (note.isRest) return;
+        note.velocity = humanizeNote(velocity, humanize);
+        note.performedDuration = humanizeDuration(duration, humanize);
+        notesUpdated++;
+    });
+
+    if (notesUpdated > 0) {
+        saveStateToHistory();
+        drawAll(measuresData, true);
+        saveToLocalStorage();
+    }
+
+    return notesUpdated;
+}
+
+/**
+ * Apply articulation settings to a single note
+ * @param {number} measureIndex
+ * @param {string|number} noteId
+ */
+export function applyArticulationToNote(measureIndex, noteId, velocity, duration, humanize) {
+    const measure = measuresData[measureIndex];
+    if (!measure) return 0;
+
+    const note = measure.find(n => n.id === noteId);
+    if (!note || note.isRest) return 0;
+
+    note.velocity = humanizeNote(velocity, humanize);
+    note.performedDuration = humanizeDuration(duration, humanize);
+
+    saveStateToHistory();
+    drawAll(measuresData, true);
+    saveToLocalStorage();
+
+    return 1;
+}
+
+/**
  * Updates the performedDuration of all notes in the score
  * @param {number} newPerformedDuration - New performed duration (0.0 to 1.0)
  * @returns {number} Number of notes updated

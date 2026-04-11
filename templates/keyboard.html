@@ -417,6 +417,9 @@
           updateKeySignature: true,
         });
 
+        // Default to Bass Chords mode on this route
+        document.getElementById('chord-display-toggle')?.click();
+
         // Mark base as initialized
         window.pianoTourInitState.baseInitialized = true;
 
@@ -722,6 +725,34 @@
       });
     </script>
 
-    {% block scripts %}{% endblock %}
+    {% block scripts %}
+    <script type="module">
+        import { addBasicKeyboardListeners } from "{{ url_for('static', filename='js/ui/listenerManager.js') }}";
+
+        addBasicKeyboardListeners();
+
+        function waitForBaseInit() {
+            return new Promise((resolve) => {
+                if (window.pianoTourInitState && window.pianoTourInitState.baseInitialized) {
+                    resolve();
+                } else {
+                    document.addEventListener('pianoTourBaseReady', () => resolve(), { once: true });
+                }
+            });
+        }
+
+        async function initializeScoreFeatures() {
+            try {
+                await waitForBaseInit();
+                const { initializeScoreInteraction } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
+                initializeScoreInteraction();
+            } catch (error) {
+                console.error('Failed to initialize score interaction:', error);
+            }
+        }
+
+        initializeScoreFeatures();
+    </script>
+    {% endblock %}
   </body>
 </html>
