@@ -261,6 +261,7 @@
             const { drawAll, setKeySignature } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
             const { setTimeSignature, setTempo } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
             const { pianoState } = await import('{{ url_for("static", filename="js/core/appState.js") }}');
+            const { sanitizeTitle } = await import('{{ url_for("static", filename="js/utils/sanitize.js") }}');
 
             // Import and initialize JSON Editor
             const { initializeJSONEditor } = await import('{{ url_for("static", filename="js/editor/jsonEditor.js") }}');
@@ -281,7 +282,8 @@ editorContainer.addEventListener('keyup', (e) => {
                 setKeySignature,
                 setTimeSignature,
                 setTempo,
-                pianoState
+                pianoState,
+                sanitizeTitle
             });
 
         } catch (error) {

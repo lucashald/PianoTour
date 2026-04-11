@@ -6,7 +6,7 @@
 let jsonEditor;
 let getMeasures, processAndSyncScore, drawAll;
 let setKeySignature, setTimeSignature, setTempo;
-let pianoState;
+let pianoState, sanitizeTitle;
 
 /**
  * Initialize the JSON Editor
@@ -16,14 +16,15 @@ export async function initializeJSONEditor(modules) {
     try {
 
         // Store imported modules
-        ({ 
-            getMeasures, 
-            processAndSyncScore, 
-            drawAll, 
-            setKeySignature, 
-            setTimeSignature, 
+        ({
+            getMeasures,
+            processAndSyncScore,
+            drawAll,
+            setKeySignature,
+            setTimeSignature,
             setTempo,
-            pianoState 
+            pianoState,
+            sanitizeTitle
         } = modules);
 
         // Initialize CodeMirror
@@ -375,6 +376,7 @@ async function applyToScore() {
         // Apply the processed score using the same logic as file loading
         await applyProcessedScore({
             measures: parsed.measures,
+            title: parsed.title ?? null,
             metadata: {
                 keySignature: parsed.keySignature || "C",
                 tempo: parsed.tempo || 120,
@@ -423,6 +425,12 @@ async function applyProcessedScore(processedScore) {
         if (!setTempo(tempo)) {
             console.warn('Failed to set tempo, using default 120 BPM');
             setTempo(120);
+        }
+
+        // Set title before processAndSyncScore so it's included in the localStorage save.
+        // Use title from the JSON if present, otherwise preserve the existing title.
+        if (processedScore.title != null) {
+            pianoState.title = sanitizeTitle(processedScore.title);
         }
 
         // Apply measures to scoreWriter (now with correct time signature set)

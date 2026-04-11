@@ -325,6 +325,9 @@ async function applyProcessedScore(processedScore) {
       setTempo(120);
     }
 
+    // Set title before processing so it's included in the localStorage save
+    pianoState.title = sanitizeTitle(processedScore.name.replace(/\.json$/i, ''));
+
     // Apply measures to scoreWriter (now with correct time signature set)
     if (processAndSyncScore(processedScore.measures)) {
       // Apply key signature
@@ -332,7 +335,6 @@ async function applyProcessedScore(processedScore) {
 
       if (setKeySignature(keySignature)) {
         // Update piano state with loaded metadata
-        pianoState.title = sanitizeTitle(processedScore.name.replace(/\.json$/i, ''));
         pianoState.tempo = processedScore.metadata.tempo;
         pianoState.instrument = processedScore.metadata.instrument;
         pianoState.midiChannel = processedScore.metadata.midiChannel;
@@ -951,6 +953,13 @@ export function exportMidi() {
       console.error("MIDI export failed:", error);
       alert("Failed to export MIDI file.");
     });
+}
+
+export function setScoreTitle(raw) {
+  pianoState.title = sanitizeTitle(raw);
+  saveToLocalStorage();
+  const titleEl = document.getElementById("score-title");
+  if (titleEl) titleEl.textContent = pianoState.title;
 }
 
 // Save to localStorage

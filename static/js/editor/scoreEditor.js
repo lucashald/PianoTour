@@ -17,6 +17,7 @@ import {
     scrollToMeasure
 } from '../score/scoreRenderer.js';
 import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur, updateNoteInMeasure, insertMeasure, deleteMeasure, duplicateMeasure, moveMeasureToEnd, splitNote, transposeScore } from '../score/scoreWriter.js';
+import { setScoreTitle } from '../utils/ioHelpers.js';
 
 // ===================================================================
 // Internal State
@@ -702,6 +703,14 @@ function buildMeasureContextMenu(menu, detail) {
         { label: 'Octave Up', action: () => { transposeScore(12); renderNoteEditBox(false); } },
         { label: 'Octave Down', action: () => { transposeScore(-12); renderNoteEditBox(false); } },
     ]);
+
+    addSeparator(menu);
+
+    addMenuItem(menu, 'Set Title', () => {
+        const current = pianoState.title;
+        const input = window.prompt('Score title:', current);
+        if (input !== null) setScoreTitle(input);
+    });
 }
 
 /**

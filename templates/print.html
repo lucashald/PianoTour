@@ -357,6 +357,7 @@
                 loadedScoreData = scoreData;
 
                 // Update pianoState with loaded data
+                pianoState.title = scoreData.title || '';
                 pianoState.keySignature = scoreData.keySignature;
                 pianoState.timeSignature = scoreData.timeSignature;
                 pianoState.tempo = scoreData.tempo;

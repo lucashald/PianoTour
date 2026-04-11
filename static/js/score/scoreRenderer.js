@@ -322,6 +322,9 @@ export function drawAll(measures, noScroll = false) {
   vexflowBeams = []; // Clear beams array
   tieGroups = []; // Clear ties array
 
+  const titleEl = document.getElementById("score-title");
+  if (titleEl) titleEl.textContent = pianoState.title;
+
   const measureWidth = 340;
   const measureCount = measures.length > 0 ? measures.length : 1;
 

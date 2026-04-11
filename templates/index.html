@@ -503,11 +503,13 @@
             ? savedData
             : savedData.measures;
 
+          // Apply metadata before processAndSyncScore so title is correct
+          // when it calls saveToLocalStorage internally
+          if (!Array.isArray(savedData)) {
+            applyScoreMetadata(savedData);
+          }
+
           if (processAndSyncScore(measures)) {
-            // Apply metadata if available
-            if (!Array.isArray(savedData)) {
-              applyScoreMetadata(savedData);
-            }
 
             // Re-render with loaded data
             updateLoadingMessage("Rendering score...");
@@ -562,12 +564,11 @@
       function applyScoreMetadata(savedData) {
         const keySignature = savedData.keySignature || "C";
         const isMinorChordMode = savedData.isMinorChordMode || false;
-        const title = savedData.title || null;
-
         // setKeySignature handles checking if it's already set and updating UI
         setKeySignature(keySignature);
 
         pianoState.isMinorChordMode = isMinorChordMode;
+        pianoState.title = savedData.title || '';
 
         // Update minor/major mode display
         const minorKeyText = document.getElementById("minor-key-text");
