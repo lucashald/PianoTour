@@ -785,7 +785,6 @@ body.no-scroll {
   padding: calc(var(--spacing-unit) * 2);
   gap: calc(var(--spacing-unit) * 1.5);
   width: 100%;
-  max-width: 1400px;
 }
 
 /* Main Controls */
@@ -1343,7 +1342,6 @@ body.no-scroll {
    ========================================================================== */
 .instrument-panel {
   width: 100%;
-  max-width: var(--max-width-main);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
