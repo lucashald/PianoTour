@@ -1,0 +1,2527 @@
+/* ==========================================================================
+   1. CSS Custom Properties & Reset
+   ========================================================================== */
+:root {
+  /* Color Palette */
+  --color-primary: #297b51;
+  --color-secondary: #295570;
+  --color-danger: #af563a;
+  --color-info: #295570;
+  --color-surface: #04273c;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #6f91a5;
+  --color-border: #6f91a5;
+  --color-warning: #af7a3a;
+
+  /* Extended Color System */
+  --color-green-lightest: #76b595;
+  --color-green-light: #499770;
+  --color-green-medium: #297b51;
+  --color-green-dark: #116038;
+  --color-green-darkest: #014221;
+
+  --color-blue-lightest: #6f91a5;
+  --color-blue-light: #467089;
+  --color-blue-medium: #295570;
+  --color-blue-dark: #143e58;
+  --color-blue-darkest: #04273c;
+
+  --color-gold-lightest: #ffd7a7;
+  --color-gold-light: #d8a668;
+  --color-gold-medium: #af7a3a;
+  --color-gold-dark: #895718;
+  --color-gold-darkest: #5e3401;
+
+  --color-peach-lightest: #ffbca7;
+  --color-peach-light: #d88368;
+  --color-peach-medium: #af563a;
+  --color-peach-dark: #893418;
+  --color-peach-darkest: #5e1701;
+
+  /* Mobile-First Sizing & Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+  --spacing-unit: 0.5rem;
+
+  /* Touch-friendly measurements */
+  --touch-target-min: 44px;
+  --touch-spacing: 8px;
+  --border-radius-sm: 4px;
+  --border-radius: 8px;
+  --border-radius-lg: 12px;
+
+  /* Typography Scale */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+  --font-size-4xl: 2.5rem;
+
+  /* Layout constraints */
+  --max-width-mobile: 100%;
+  --max-width-tablet: 768px;
+  --max-width-desktop: 1500px;
+  --container-padding: 10px;
+
+  --max-width-main: 1200px;
+
+  /* Component heights */
+  --header-height-mobile: auto;
+  --score-min-height-mobile: 200px;
+  --keyboard-min-height-mobile: 120px;
+  --controls-min-height-mobile: auto;
+
+  /* Guitar-specific */
+  --guitar-fretboard-width: 100%;
+  --guitar-fretboard-height: 200px;
+  --guitar-string-height: calc(var(--guitar-fretboard-height) / 6);
+}
+
+/* Enhanced Reset */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   2. Base Styles (Mobile First)
+   ========================================================================== */
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: linear-gradient(
+    135deg,
+    var(--color-blue-darkest) 0%,
+    var(--color-blue-medium) 50%,
+    var(--color-blue-lightest) 100%
+  );
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  min-height: 100dvh;
+  line-height: 1.5;
+  touch-action: manipulation;
+}
+
+body.no-scroll {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ==========================================================================
+   3. Layout Components (Mobile First)
+   ========================================================================== */
+
+.piano-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+}
+
+.piano-app__content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--container-padding);
+  gap: var(--spacing-md);
+  width: 100%;
+  max-width: var(--max-width-mobile);
+  margin: 0 auto;
+  align-items: center;
+}
+
+/* Header */
+.piano-app__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  width: 100%;
+  position: relative;
+}
+
+/* Position toggle button on the left */
+.piano-app__header .sidebar-toggle-btn {
+  position: absolute;
+  left: 0;
+}
+
+.piano-app__header-title {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  margin-bottom: var(--spacing-md);
+  background: linear-gradient(
+    135deg,
+    var(--color-green-medium) 0%,
+    var(--color-green-lightest) 50%,
+    #ffffff 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+/* Remove link styling from header title */
+.piano-app__header-title a,
+.piano-app__header a {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.piano-app__header-title a:visited,
+.piano-app__header a:visited {
+  color: inherit;
+}
+
+.piano-app__header-title a:hover,
+.piano-app__header a:hover {
+  opacity: 0.8;
+}
+
+.piano-app__now-playing {
+  min-height: var(--touch-target-min);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   4. Wrapper Components
+   ========================================================================== */
+.outer-wrapper,
+.controls-footer {
+  background: var(--color-blue-darkest);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--container-padding);
+  gap: var(--spacing-lg);
+  width: 100%;
+  max-width: var(--max-width-desktop);
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   5. Control Sections (Mobile Optimized)
+   ========================================================================== */
+
+/* Playback Controls */
+.playback-controls,
+.guitar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--touch-spacing);
+  width: 100%;
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Settings Icon */
+.settings-toggle-icon {
+  width: 40px;
+  height: 40px;
+  fill: var(--color-text-secondary);
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.settings-toggle-icon:hover {
+  fill: var(--color-primary);
+  background-color: var(--color-blue-dark);
+}
+
+/* Settings Icon Active State */
+.settings-toggle-icon.active {
+  fill: var(--color-primary);
+}
+
+.settings-toggle-icon:focus {
+  outline: none;
+}
+
+/* ===== HORIZONTAL VOLUME CONTROL ===== */
+.volume-control {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--touch-spacing);
+}
+
+@media (min-width: 768px) {
+  .volume-control {
+    width: 25%;
+  }
+}
+
+.volume-icon {
+  width: 40px;
+  height: 40px;
+  fill: var(--color-text-secondary);
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.volume-icon:hover {
+  fill: var(--color-primary);
+  background-color: var(--color-blue-dark);
+}
+
+.volume-icon:focus {
+  outline: none;
+}
+
+.volume-value {
+  min-width: 40px;
+  text-align: right;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition: color 0.3s ease;
+}
+
+/* HORIZONTAL SLIDER - Default behavior */
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  cursor: pointer;
+  outline: none;
+  border-radius: 8px;
+  background: linear-gradient(
+    to right,
+    var(--track-fill-color, var(--color-green-medium)) var(--value-percent, 0%),
+    var(--color-blue-dark) var(--value-percent, 0%)
+  );
+  flex-grow: 1;
+}
+
+/* Horizontal slider track - WebKit */
+.volume-slider::-webkit-slider-track {
+  background: transparent;
+  border: none;
+}
+
+/* Horizontal slider thumb - WebKit */
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 24px;
+  width: 24px;
+  margin-top: -2px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  border: 3px solid var(--color-green-medium);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+/* Horizontal slider track - Firefox */
+.volume-slider::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+/* Horizontal slider thumb - Firefox */
+.volume-slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: var(--color-text-primary);
+  border: 3px solid var(--color-green-medium);
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  border-color: inherit;
+}
+
+/* Hover & Active States - WebKit */
+.volume-slider:hover::-webkit-slider-thumb {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.volume-slider:active::-webkit-slider-thumb {
+  transform: scale(1.2);
+}
+
+/* Hover & Active States - Firefox */
+.volume-slider:hover::-moz-range-thumb {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.volume-slider:active::-moz-range-thumb {
+  transform: scale(1.2);
+}
+
+/* Focus states */
+.volume-slider:focus {
+  outline: none;
+}
+
+/* Audio initialization state */
+.volume-control.audio-uninitialized * {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.volume-control.audio-uninitialized .volume-slider {
+  opacity: 0.7;
+  filter: grayscale(50%);
+}
+
+.volume-control.audio-ready .volume-slider {
+  opacity: 1;
+  filter: none;
+}
+
+/* Muted state */
+.volume-control.muted .volume-slider {
+  --track-fill-color: var(--color-danger);
+}
+
+.volume-control.muted .volume-slider::-webkit-slider-thumb {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.volume-control.muted .volume-slider::-moz-range-thumb {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.volume-control.muted .volume-icon {
+  fill: var(--color-danger);
+}
+
+/* Touch-friendly improvements */
+@media (pointer: coarse) {
+  .volume-slider {
+    height: 20px;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    height: 24px;
+    width: 24px;
+    margin-top: -2px;
+  }
+  .volume-slider::-moz-range-thumb {
+    height: 24px;
+    width: 24px;
+  }
+  .volume-icon {
+    width: 50px;
+    height: 50px;
+    padding: 12px;
+  }
+}
+
+/* ===== VERTICAL SLIDER OVERRIDES ===== */
+.volume-control.vertical {
+  width: auto;
+  height: 200px;
+  max-width: none;
+  flex-direction: column;
+  justify-content: flex-start;
+  margin-bottom: 0;
+  gap: calc(var(--spacing-unit) / 2);
+}
+
+.volume-control.vertical .volume-icon {
+  display: none;
+}
+
+.volume-control.vertical .volume-value {
+  min-width: 60px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Vertical slider - simplified for functionality */
+.volume-control.vertical .volume-slider {
+  flex-grow: 0;
+  width: 20px;
+  height: 120px;
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: bt-lr;
+  cursor: pointer;
+}
+
+/* Muted state - vertical */
+.volume-control.vertical.muted .volume-slider {
+  opacity: 0.6;
+}
+
+/* Audio state - vertical */
+.volume-control.vertical.audio-uninitialized .volume-slider {
+  opacity: 0.7;
+}
+
+.volume-control.vertical.audio-ready .volume-slider {
+  opacity: 1;
+}
+
+/* Touch-friendly improvements - vertical */
+@media (pointer: coarse) {
+  .volume-control.vertical .volume-slider {
+    width: 28px;
+  }
+}
+
+/* Container for all controls */
+.controls-container,
+.audio-controls-container {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 2);
+  padding: var(--spacing-unit);
+  flex-wrap: wrap;
+}
+
+.control-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-unit);
+}
+
+.control-section h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.vertical-controls {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 1.5);
+}
+
+.control-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .controls-container,
+  .audio-controls-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  .vertical-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .volume-control.vertical {
+    height: 150px;
+  }
+  .volume-control.vertical .volume-slider {
+    height: 100px;
+  }
+}
+
+/* Score Viewer */
+.score-viewer {
+  position: relative;
+  width: 100%;
+  min-height: var(--score-min-height-mobile);
+  background-color: #ffffff;
+  color: var(--color-blue-darkest);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  flex: 1 1 auto;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.score-viewer__title {
+  display: none;
+  width: 100%;
+  text-align: center;
+  padding: 2px 8px 16px;
+  font-size: 24px;
+  color: var(--color-blue-darkest);
+}
+
+.score-viewer__title:not(:empty) {
+  display: block;
+}
+
+.score-viewer__container {
+  width: 100%;
+  height: 100%;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: auto;
+  display: flex;
+  justify-content: safe center;
+  align-items: center;
+}
+
+.score-viewer__content {
+  display: inline-block;
+}
+
+#score {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: pan-x;
+}
+
+.controls-tempo-container,
+.controls-transpose-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.controls-tempo-container label,
+.controls-transpose-container label {
+  font-size: 18px;
+}
+
+.tempo-button-group,
+.transpose-button-group {
+  display: inline-flex;
+  gap: var(--spacing-sm);
+}
+
+.tempo-controls,
+.instrument-controls {
+  display: flex;
+  justify-content: center;
+}
+
+.tempo-dropdown,
+.instrument-dropdown {
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .tempo-dropdown,
+  .instrument-dropdown {
+    width: 50%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .tempo-dropdown,
+  .instrument-dropdown {
+    width: 25%;
+  }
+}
+
+/* Preset Controls */
+.preset-controls {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 2);
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.preset-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--spacing-unit) * 0.5);
+}
+
+.preset-section h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.button-row {
+  display: flex;
+  gap: calc(var(--spacing-unit) * 0.5);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn--compact {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn--primary {
+  background-color: var(--color-primary, #007bff);
+  color: white;
+}
+
+.btn--primary:hover {
+  background-color: var(--color-primary-dark, #0056b3);
+}
+
+.btn--secondary {
+  background-color: var(--color-secondary, #6c757d);
+  color: white;
+}
+
+.btn--secondary:hover {
+  background-color: var(--color-secondary-dark, #545b62);
+}
+
+.instrument-selector {
+  min-width: 150px;
+  margin-bottom: var(--spacing-md);
+}
+
+.form-select {
+  padding: 8px 12px;
+  font-size: 14px;
+  background-color: #295570;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  width: 100%;
+}
+
+.form-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-select:hover {
+  border-color: var(--color-primary, #007bff);
+}
+
+/* Wrapper and Footer */
+.controls-footer,
+.outer-wrapper {
+  background: #04273c;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--spacing-unit) * 2);
+  gap: calc(var(--spacing-unit) * 1.5);
+  width: 100%;
+  max-width: 1400px;
+}
+
+#instrument {
+  position: sticky;
+  top: 0;
+}
+
+/* Main Controls */
+.main-controls {
+  width: 100%;
+  background-color: var(--color-surface);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-sm);
+}
+
+.controls-button-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--touch-spacing);
+  margin-bottom: var(--spacing-sm);
+}
+
+.controls-button-row:last-child {
+  margin-bottom: 0;
+}
+
+.main-controls__chord-interface {
+  width: 100%;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--spacing-md);
+}
+
+.chord-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  justify-content: center;
+}
+
+.chord-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Form Controls */
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.time-signature-input,
+.tempo-input,
+.measure-input,
+.chord-input,
+.form-select {
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-base);
+  background: var(--color-blue-darkest);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  width: 100%;
+}
+
+.time-signature-input:focus,
+.tempo-input:focus,
+.measure-input:focus,
+.chord-input:focus,
+.form-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(118, 181, 149, 0.2);
+}
+
+/* Control Groups */
+.time-signature-controls,
+.tempo-controls,
+.measure-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.time-signature-separator {
+  font-size: var(--font-size-xl);
+  font-weight: bold;
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: var(--spacing-xs);
+}
+
+/* Note Palette & Editor */
+.note-palette-container {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.palette-header {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chord-palette-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--touch-spacing);
+  justify-items: center;
+}
+
+.note-palette {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--touch-spacing);
+  justify-items: center;
+}
+
+.palette-note {
+  width: 100%;
+  min-width: 80px;
+  max-width: 120px;
+  min-height: var(--touch-target-min);
+  background: var(--color-green-lightest);
+  color: #000;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  transition: all 0.2s ease;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.palette-note:hover,
+.palette-note:active {
+  background: var(--color-peach-light);
+}
+
+/* Selected state for click mode */
+.palette-note-selected {
+  background: var(--color-blue-light, #4da6ff) !important;
+  box-shadow: 0 0 0 3px var(--color-blue, #007bff);
+  transform: scale(1.05);
+}
+
+/* Click mode styling - cursor pointer instead of grab */
+.palette-note.palette-click-mode {
+  cursor: pointer;
+  -webkit-user-drag: none;
+  user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.palette-note:not(.palette-click-mode) {
+  cursor: grab;
+}
+
+.palette-note:not(.palette-click-mode):active {
+  cursor: grabbing;
+}
+
+.note-duration {
+  font-size: var(--font-size-xs);
+  margin-top: 2px;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+/* Palette note icons - cropped SVGs scale naturally */
+.palette-icon {
+  height: 45px;
+  width: auto;
+  pointer-events: none;
+}
+
+/* Side Panel & Editor - Slide-in Drawer (non-modal) */
+.piano-app__side-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: min(320px, 85vw);
+  height: 100vh;
+  height: 100dvh;
+  background: rgba(30, 41, 59, 0.98);
+  backdrop-filter: blur(10px);
+  padding: var(--spacing-lg);
+  padding-top: calc(var(--spacing-lg) + 50px); /* Space for close button */
+  overflow-y: auto;
+  z-index: 1000;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+}
+
+.piano-app__side-panel.open {
+  transform: translateX(0);
+}
+
+/* Sidebar backdrop - just visual, doesn't block interaction */
+.sidebar-backdrop {
+  display: none; /* Disabled - sidebar is non-modal */
+}
+
+/* Sidebar close button */
+.sidebar-close-btn {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: var(--color-text-primary);
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  z-index: 10;
+}
+
+.sidebar-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Sidebar toggle button (edit icon) */
+.sidebar-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  padding: 2px;
+}
+
+.sidebar-toggle-icon {
+  width: 40px;
+  height: 40px;
+  fill: var(--color-text-secondary);
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle-btn:hover .sidebar-toggle-icon {
+  fill: var(--color-primary);
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: var(--color-blue-dark);
+  border-radius: 6px;
+}
+
+/* Hide toggle button when sidebar not available */
+.sidebar-toggle-btn.hidden {
+  display: none;
+}
+
+.floating-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 2rem);
+  max-width: 400px;
+  max-height: 80vh;
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(20px);
+  padding: var(--spacing-md);
+  z-index: 1000;
+  overflow-y: auto;
+  color: white;
+}
+
+.floating-panel.visible {
+  display: block;
+  animation: panelSlideIn 0.3s ease-out forwards;
+}
+
+.floating-panel.hidden {
+  display: none;
+}
+
+@keyframes panelSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.editor-widget {
+  margin-bottom: var(--spacing-md);
+}
+
+.editor-widget__title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.editor-widget__content--note-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+}
+
+.note-editor {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.note-editor__header {
+  color: white;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* Chord Search */
+.chord-search-container {
+  position: relative;
+  margin: var(--spacing-md) 0;
+}
+
+.chord-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid var(--color-primary);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.chord-suggestion {
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  font-size: var(--font-size-base);
+  min-height: var(--touch-target-min);
+  display: flex;
+  align-items: center;
+  color: var(--color-blue-darkest);
+  touch-action: manipulation;
+}
+
+.chord-suggestion:hover,
+.chord-suggestion.highlighted {
+  background-color: #f0f8ff;
+}
+
+.no-results {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: #666;
+  font-style: italic;
+  font-size: var(--font-size-sm);
+}
+
+/* Button System */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  line-height: 1.2;
+  border: none;
+  border-radius: var(--border-radius);
+  background-color: var(--color-secondary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn:hover,
+.btn:focus {
+  background-color: var(--color-blue-light);
+  outline: none;
+}
+
+.btn--primary {
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest);
+}
+
+.btn--primary:hover,
+.btn--primary:focus {
+  background-color: var(--color-green-light);
+}
+
+.btn--danger {
+  background-color: var(--color-peach-light);
+  color: var(--color-peach-darkest);
+}
+
+.btn--danger:hover,
+.btn--danger:focus {
+  background-color: var(--color-peach-medium);
+}
+
+.btn--info {
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest);
+}
+
+.btn--info:hover,
+.btn--info:focus {
+  background-color: var(--color-blue-light);
+}
+
+.btn--secondary {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.btn--secondary:hover {
+  background-color: var(--color-blue-dark);
+}
+
+.btn--toggle {
+  background-color: var(--color-blue-lightest);
+  color: var(--color-blue-darkest);
+}
+
+.btn--toggle.is-active {
+  background-color: var(--color-green-lightest);
+  color: var(--color-green-darkest);
+}
+
+/* Small Button */
+.btn--sm {
+  min-height: 2rem;
+  min-width: 2rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Quantize Button */
+.quantize-btn {
+  position: absolute;
+  bottom: var(--spacing-lg);
+  right: var(--spacing-sm);
+  z-index: 10;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+  min-width: 3rem;
+}
+
+.quantize-btn:hover {
+  opacity: 1;
+}
+
+.quantize-btn {
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Quantize icon - cropped SVGs scale naturally */
+.quantize-icon {
+  height: 35px;
+  width: auto;
+  filter: brightness(0) invert(1); /* Make white for dark buttons */
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
+.hidden-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--touch-spacing);
+}
+
+/* Responsive adjustments for buttons */
+@media (max-width: 768px) {
+  .preset-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  .button-row {
+    flex-direction: column;
+    width: 100%;
+  }
+  .btn--compact {
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
+/* ==========================================================================
+   7. Instrument Panel (Mobile Optimized)
+   ========================================================================== */
+.instrument-panel {
+  width: 100%;
+  max-width: var(--max-width-main);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  position: relative;
+}
+
+.instrument-panel__spectrum {
+  width: 100%;
+  min-height: 120px;
+  background-color: #000;
+  border-radius: var(--border-radius);
+}
+
+.rest-buttons-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-sm) 0;
+  gap: var(--spacing-md);
+}
+
+.rest-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.rest-btn:hover {
+  background-color: var(--color-blue-medium);
+  border-color: var(--color-blue-light);
+}
+
+.rest-btn:active,
+.rest-btn.pressed {
+  background-color: var(--color-blue-dark);
+  transform: scale(0.95);
+}
+
+.rest-btn .rest-icon {
+  height: 24px;
+  width: auto;
+  filter: invert(1) brightness(2); /* Make SVG white */
+}
+
+.rest-btn .rest-label {
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+}
+
+.rest-btn--bass {
+  border-color: var(--color-blue-medium);
+}
+
+.rest-btn--treble {
+  border-color: var(--color-peach-medium);
+}
+
+.rest-btn--bass:hover {
+  border-color: var(--color-blue-light);
+}
+
+.rest-btn--treble:hover {
+  border-color: var(--color-peach-light);
+}
+
+.instrument-panel__keyboard {
+  width: 100%;
+  min-height: var(--keyboard-min-height-mobile);
+  background-color: var(--color-surface);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Piano Key Styles */
+.instrument-panel__keyboard .white {
+  fill: #ffffff;
+  stroke: #444;
+  stroke-width: 1;
+}
+
+.instrument-panel__keyboard .black {
+  fill: #333333;
+  stroke: #000;
+  stroke-width: 1;
+}
+
+.instrument-panel__keyboard .white.pressed {
+  fill: #d1d5db;
+}
+
+.instrument-panel__keyboard .black.pressed {
+  fill: #555555;
+}
+
+/* Hand Position Highlighting */
+.instrument-panel__keyboard .left-white {
+  fill: var(--color-blue-light) !important;
+}
+.instrument-panel__keyboard .left-black {
+  fill: var(--color-blue-dark) !important;
+}
+.instrument-panel__keyboard .middle {
+  fill: var(--color-green-light) !important;
+}
+.instrument-panel__keyboard .right-white {
+  fill: var(--color-peach-light) !important;
+}
+.instrument-panel__keyboard .right-black {
+  fill: var(--color-peach-dark) !important;
+}
+
+/* Chord Highlighting */
+.instrument-panel__keyboard .chord-root {
+  fill: var(--color-blue-light) !important;
+}
+.instrument-panel__keyboard .chord-third {
+  fill: var(--color-green-light) !important;
+}
+.instrument-panel__keyboard .chord-fifth {
+  fill: var(--color-peach-light) !important;
+}
+.instrument-panel__keyboard .chord-seventh {
+  fill: var(--color-gold-light) !important;
+}
+.instrument-panel__keyboard .chord-ninth {
+  fill: var(--color-danger) !important;
+}
+
+/* Hand Overlay */
+#handOverlay {
+  position: absolute;
+  height: 20px;
+  background: var(--color-primary);
+  border-radius: 10px;
+  top: -25px;
+  cursor: grab;
+  touch-action: none;
+  backdrop-filter: blur(2px);
+  z-index: 5;
+  min-width: var(--touch-target-min);
+}
+
+#handOverlay.chord-mode {
+  background: var(--color-primary);
+  border: 2px solid var(--color-info);
+}
+
+/* ==========================================================================
+   8. Guitar Instrument Styles
+   ========================================================================== */
+
+.guitar-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  width: 100%;
+  margin: 0 auto;
+  flex-direction: column;
+}
+
+.guitar-fretboard {
+  position: relative;
+  width: 100%;
+  height: var(--guitar-fretboard-height);
+  background: linear-gradient(to bottom, #8b4513 0%, #d2691e 50%, #8b4513 100%);
+  border-radius: var(--border-radius);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+.guitar-string-container {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: var(--guitar-string-height);
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.guitar-string-container.string-1 {
+  top: calc(var(--guitar-fretboard-height) * 5 / 6);
+}
+.guitar-string-container.string-2 {
+  top: calc(var(--guitar-fretboard-height) * 4 / 6);
+}
+.guitar-string-container.string-3 {
+  top: calc(var(--guitar-fretboard-height) * 3 / 6);
+}
+.guitar-string-container.string-4 {
+  top: calc(var(--guitar-fretboard-height) * 2 / 6);
+}
+.guitar-string-container.string-5 {
+  top: calc(var(--guitar-fretboard-height) * 1 / 6);
+}
+.guitar-string-container.string-6 {
+  top: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.guitar-string-line {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  background: linear-gradient(to bottom, #c0c0c0, #808080, #c0c0c0);
+  z-index: 1;
+}
+
+.string-line-6 {
+  height: 4px;
+}
+.string-line-5 {
+  height: 3.5px;
+}
+.string-line-4 {
+  height: 3px;
+}
+.string-line-3 {
+  height: 2.5px;
+}
+.string-line-2 {
+  height: 2px;
+}
+.string-line-1 {
+  height: 1.5px;
+}
+
+.fret-position {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  z-index: 2;
+  cursor: pointer;
+  left: var(--fret-left-position);
+  width: var(--fret-width);
+  transition: background-color 0.1s ease;
+  touch-action: manipulation;
+}
+
+.fret-position.fret-nut {
+  background: linear-gradient(to bottom, #f5f5dc, #e0e0b8);
+  border-right: 4px solid #b39b7d;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.fret-position.fret {
+  border-left: 1px solid rgba(0, 0, 0, 0.3);
+}
+
+.fret-position.hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.finger-position {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, #444, #000);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  touch-action: manipulation;
+}
+
+.strum-area {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 9%;
+  height: var(--guitar-fretboard-height);
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  z-index: 5;
+  transition: background-color 0.2s ease;
+  border-top-right-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.strum-area.hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.strum-area span {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  text-align: center;
+  pointer-events: none;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* String Control Buttons */
+.string-labels-container {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 13%;
+}
+
+.string-button-container {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.string-button {
+  min-width: 60px;
+  min-height: var(--touch-target-min);
+  padding: var(--spacing-sm);
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+  border: 1px solid #dee2e6;
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+}
+
+.string-button:hover {
+  background: linear-gradient(to right, #e9ecef, #dee2e6);
+}
+
+.string-button.muted {
+  opacity: 0.5;
+  text-decoration: line-through;
+  color: #666;
+}
+
+.mute-button {
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  background: #fff;
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+
+.mute-button:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+.mute-button.active {
+  background: var(--color-danger);
+  color: white;
+  border-color: var(--color-danger);
+}
+
+/* Guitar String Animations */
+@keyframes vibrateJuicy {
+  0% {
+    transform: translateY(-50%) scaleY(1);
+    filter: blur(0px) brightness(1);
+    box-shadow: 0 0 0px rgba(255, 255, 255, 0);
+  }
+  3% {
+    transform: translateY(calc(-50% - 1.8px)) scaleY(0.92);
+    filter: blur(0.6px) brightness(1.4);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.9);
+  }
+  8% {
+    transform: translateY(calc(-50% + 1.5px)) scaleY(1.08);
+    filter: blur(0.4px) brightness(1.25);
+  }
+  15% {
+    transform: translateY(calc(-50% - 1.2px)) scaleY(0.95);
+    filter: blur(0.3px) brightness(1.15);
+  }
+  25% {
+    transform: translateY(calc(-50% + 1px)) scaleY(1.05);
+    filter: blur(0.25px) brightness(1.1);
+  }
+  35% {
+    transform: translateY(calc(-50% - 0.8px)) scaleY(0.97);
+    filter: blur(0.2px) brightness(1.08);
+  }
+  45% {
+    transform: translateY(calc(-50% + 0.6px)) scaleY(1.03);
+    filter: blur(0.15px) brightness(1.06);
+  }
+  55% {
+    transform: translateY(calc(-50% - 0.5px)) scaleY(0.98);
+    filter: blur(0.1px) brightness(1.04);
+  }
+  65% {
+    transform: translateY(calc(-50% + 0.3px)) scaleY(1.02);
+    filter: blur(0.08px) brightness(1.03);
+  }
+  75% {
+    transform: translateY(calc(-50% - 0.2px)) scaleY(0.99);
+    filter: blur(0.05px) brightness(1.02);
+  }
+  85% {
+    transform: translateY(calc(-50% + 0.15px)) scaleY(1.01);
+    filter: blur(0.03px) brightness(1.015);
+  }
+  92% {
+    transform: translateY(calc(-50% - 0.1px)) scaleY(0.995);
+    filter: blur(0.02px) brightness(1.01);
+  }
+  96% {
+    transform: translateY(calc(-50% + 0.05px)) scaleY(1.005);
+    filter: blur(0.01px) brightness(1.005);
+  }
+  98% {
+    transform: translateY(calc(-50% - 0.03px)) scaleY(0.998);
+    filter: blur(0.005px) brightness(1.002);
+  }
+  100% {
+    transform: translateY(-50%) scaleY(1);
+    filter: blur(0px) brightness(1);
+    box-shadow: 0 0 0px rgba(255, 255, 255, 0);
+  }
+}
+
+@keyframes stringGlow {
+  0% {
+    box-shadow: inset 0 0 0px rgba(255, 255, 255, 0);
+  }
+  5% {
+    box-shadow: inset 0 0 25px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.1);
+  }
+  85% {
+    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.05);
+  }
+  100% {
+    box-shadow: inset 0 0 0px rgba(255, 255, 255, 0);
+  }
+}
+
+.guitar-string-container.active .guitar-string-line {
+  animation: vibrateJuicy 1.4s cubic-bezier(0, 0, 0.58, 1);
+}
+
+.guitar-string-container.active {
+  animation: stringGlow 1.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Chord Diagrams */
+.chord-diagrams-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  justify-content: center;
+  margin-bottom: var(--spacing-md);
+}
+
+.chord-diagram-container {
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  background: white;
+  padding: var(--spacing-sm);
+}
+
+/* ==========================================================================
+   16. TABLET BREAKPOINT (768px and up)
+   ========================================================================== */
+@media (min-width: 768px) {
+  :root {
+    --container-padding: var(--spacing-lg);
+    --score-min-height-mobile: 250px;
+    --keyboard-min-height-mobile: 140px;
+    --guitar-fretboard-height: 250px;
+  }
+
+  .piano-app__content-area {
+    max-width: var(--max-width-tablet);
+    padding: var(--container-padding);
+    gap: var(--spacing-lg);
+  }
+
+  .piano-app__header-title {
+    font-size: var(--font-size-4xl);
+  }
+
+  .playback-controls,
+  .guitar-controls {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .controls-button-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-sm);
+  }
+
+  .time-signature-controls,
+  .tempo-controls,
+  .measure-controls,
+  .instrument-controls {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .note-palette {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .palette-note {
+    min-width: 100px;
+    height: 60px;
+  }
+
+  .floating-panel {
+    width: calc(100% - 4rem);
+    max-width: 500px;
+  }
+
+  .guitar-wrapper {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .string-labels-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .string-button {
+    min-width: 100px;
+  }
+
+  .controls-container,
+  .audio-controls-container {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .vertical-controls {
+    flex-direction: row;
+  }
+}
+
+/* ==========================================================================
+   17. DESKTOP BREAKPOINT (1024px and up)
+   ========================================================================== */
+@media (min-width: 1024px) {
+  :root {
+    --container-padding: var(--spacing-xl);
+    --score-min-height-mobile: 300px;
+    --keyboard-min-height-mobile: 160px;
+    --guitar-fretboard-height: 280px;
+  }
+
+  .piano-app__content-area {
+    max-width: var(--max-width-desktop);
+    gap: var(--spacing-xl);
+  }
+
+  /* Sidebar stays as overlay drawer on desktop too */
+  .piano-app__side-panel {
+    width: 350px;
+    padding: var(--spacing-xl);
+    padding-top: calc(var(--spacing-xl) + 50px);
+  }
+
+  .note-palette {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .controls-button-row {
+    gap: var(--spacing-md);
+  }
+
+  .button-group {
+    flex-direction: row;
+  }
+
+  .chord-grid {
+    gap: var(--spacing-sm);
+  }
+
+  .preset-controls {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  .button-row {
+    flex-direction: row;
+  }
+}
+
+/* ==========================================================================
+   18. LARGE DESKTOP BREAKPOINT (1280px and up)
+   ========================================================================== */
+@media (min-width: 1280px) {
+  .piano-app__header-title {
+    font-size: 3.5rem;
+  }
+
+  .note-palette {
+    grid-template-columns: repeat(8, 1fr);
+  }
+
+  .controls-button-row {
+    gap: var(--spacing-lg);
+  }
+}
+
+/* ==========================================================================
+   19. High DPI / Retina Display Optimizations
+   ========================================================================== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .instrument-panel__keyboard .white,
+  .instrument-panel__keyboard .black {
+    stroke-width: 0.5;
+  }
+}
+
+/* ==========================================================================
+   20. Touch Device Optimizations
+   ========================================================================== */
+@media (pointer: coarse) {
+  :root {
+    --touch-target-min: 48px;
+    --touch-spacing: 12px;
+  }
+
+  .btn {
+    min-height: 48px;
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+
+  .volume-slider,
+  .vertical-slider {
+    height: 48px;
+  }
+
+  .volume-slider::-webkit-slider-thumb,
+  .volume-slider::-moz-range-thumb {
+    height: 28px;
+    width: 28px;
+  }
+
+  .vertical-slider::-webkit-slider-thumb,
+  .vertical-slider::-moz-range-thumb {
+    height: 22px;
+    width: 22px;
+  }
+
+  .palette-note {
+    min-height: 48px;
+  }
+
+  .chord-suggestion {
+    min-height: 48px;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+}
+
+/* ==========================================================================
+   21. Print Styles
+   ========================================================================== */
+@media print {
+  .playback-controls,
+  .main-controls,
+  .volume-control,
+  .piano-app__side-panel,
+  .guitar-wrapper .string-labels-container {
+    display: none;
+  }
+
+  .score-viewer {
+    background: white;
+    box-shadow: none;
+    border: none;
+  }
+
+  body {
+    background: white;
+    color: black;
+  }
+}
+
+/* ==========================================================================
+   22. Reduced Motion Support
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   23. Focus Management for Accessibility
+   ========================================================================== */
+.btn:focus-visible,
+.volume-slider:focus-visible,
+.vertical-slider:focus-visible,
+.chord-input:focus-visible,
+.form-select:focus-visible,
+.palette-note:focus-visible {
+  outline: 3px solid var(--color-green-lightest);
+  outline-offset: 2px;
+}
+
+/* Hide focus outline for mouse users */
+.btn:focus:not(:focus-visible),
+.volume-slider:focus:not(:focus-visible),
+.vertical-slider:focus:not(:focus-visible),
+.chord-input:focus:not(:focus-visible),
+.form-select:focus:not(:focus-visible),
+.palette-note:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Instrument div receives programmatic focus only — never show outline */
+#instrument:focus {
+  outline: none;
+}
+
+/* ==========================================================================
+   24. Velocity Control Toggle Switch
+   ========================================================================== */
+.check-control {
+  display: none;
+}
+
+/* Container for settings checkboxes - left-aligned vertical stack */
+.settings-checkboxes-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-md) auto;
+  padding: 0 var(--spacing-md);
+  max-width: 400px;
+}
+
+/* Container for reset button */
+.reset-button-container {
+  display: flex;
+  justify-content: center;
+  margin: var(--spacing-md) auto;
+}
+
+.checkbox-wrapper-velocity {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  margin: 0;
+  width: 100%;
+}
+
+.checkbox-wrapper-velocity .switch {
+  display: inline-block;
+  height: 34px;
+  position: relative;
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.checkbox-wrapper-velocity .switch input {
+  display: none;
+}
+
+.checkbox-wrapper-velocity .slider {
+  background-color: var(--color-blue-dark);
+  bottom: 0;
+  cursor: pointer;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transition: 0.4s ease;
+}
+
+.checkbox-wrapper-velocity .slider::before {
+  background-color: #fff;
+  bottom: 4px;
+  content: "";
+  height: 26px;
+  left: 4px;
+  position: absolute;
+  transition: 0.4s ease;
+  width: 26px;
+}
+
+.checkbox-wrapper-velocity input:checked + .slider {
+  background-color: var(--color-green-medium);
+}
+
+.checkbox-wrapper-velocity input:checked + .slider::before {
+  transform: translateX(26px);
+}
+
+.checkbox-wrapper-velocity .slider.round {
+  border-radius: 34px;
+}
+
+.checkbox-wrapper-velocity .slider.round::before {
+  border-radius: 50%;
+}
+
+.velocity-label {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  transition: color 0.3s ease;
+}
+
+.velocity-label:hover {
+  color: var(--color-green-light);
+}
+
+/* ==========================================================================
+   Dropdown Menu Styles
+   ========================================================================== */
+.dropdown-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: block;
+  position: absolute;
+  background-color: var(--color-surface);
+  min-width: 220px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-xs);
+  right: 0; /* Align to the right of the button */
+  top: 100%; /* Position below the button */
+  margin-top: var(--spacing-xs);
+}
+
+.dropdown-content.hidden {
+  display: none;
+}
+
+.dropdown-item {
+  color: var(--color-text-primary);
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: var(--color-blue-medium);
+}
+
+/* Dropdown Submenu */
+.dropdown-submenu {
+  position: relative;
+}
+
+.dropdown-item.has-submenu {
+  /* Remove space-between to keep icon/text aligned like other items */
+}
+
+.submenu-content {
+  display: block;
+  position: absolute;
+  background-color: var(--color-surface);
+  min-width: 180px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-xs);
+  left: 100%;
+  top: 0;
+  margin-left: var(--spacing-xs);
+}
+
+/* Position submenu to the left on smaller screens */
+@media (max-width: 500px) {
+  .submenu-content {
+    left: auto;
+    right: 100%;
+    margin-left: 0;
+    margin-right: var(--spacing-xs);
+  }
+}
+
+.submenu-content.hidden {
+  display: none;
+}
+
+.instrument-option.active,
+.key-option.active {
+  background-color: var(--color-blue-dark);
+  font-weight: bold;
+}
+
+.submenu-section {
+  padding: var(--spacing-xs) 0;
+}
+
+.submenu-section:not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--spacing-xs);
+}
+
+.submenu-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   25. Chord Preview Styles
+   ========================================================================== */
+
+.chord-preview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+}
+
+.chord-preview-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.chord-preview-button {
+  width: 100%;
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm);
+  min-height: 80px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: var(--spacing-xs);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chord-preview-button:hover {
+  border-color: var(--color-green-medium);
+  box-shadow: 0 4px 12px rgba(41, 123, 81, 0.2);
+}
+
+.chord-preview-button.is-active {
+  border-color: var(--color-green-medium);
+  background: #f5f5f5;
+  box-shadow: 0 4px 16px rgba(41, 123, 81, 0.3);
+}
+
+.chord-preview-button.pressed {
+  background: #efefef;
+}
+
+.chord-preview-label {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-align: center;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* VexFlow SVG styling for chord previews */
+.chord-preview-button svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments for chord previews */
+@media (max-width: 768px) {
+  .chord-preview-item {
+    flex: 0 1 calc(50% - var(--spacing-sm));
+  }
+
+  .chord-preview-button {
+    min-height: 100px;
+  }
+}
+
+@media (min-width: 768px) {
+  .chord-preview-item {
+    flex: 0 1 calc(33.333% - var(--spacing-sm));
+  }
+
+  .chord-preview-button {
+    min-height: 100px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .chord-preview-item {
+    flex: 0 1 calc(25% - var(--spacing-sm));
+  }
+
+  .chord-preview-button {
+    min-height: 100px;
+  }
+}
+
+.menu-icon {
+  width: 1.5em;
+  height: 1.5em;
+  flex-shrink: 0;
+}
+
+/* Key signature icons in dropdown - wider to show accidentals */
+.menu-icon.key-sig-icon {
+  width: 3em;
+  height: 2em;
+  object-fit: contain;
+  filter: brightness(0) invert(1); /* Make white for dark buttons */
+}
+
+/* ==========================================================================
+   CONTEXT MENU STYLES
+   ========================================================================== */
+
+.editor-context-menu {
+  position: fixed;
+  z-index: 5000;
+  background: rgba(30, 41, 59, 0.97);
+  backdrop-filter: blur(20px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 200px;
+  padding: 4px 0;
+  color: white;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.editor-context-menu__header {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+.editor-context-menu__separator {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 4px 0;
+}
+
+.editor-context-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.editor-context-menu__item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.editor-context-menu__item--disabled {
+  color: #475569;
+  pointer-events: none;
+}
+
+/* Submenu parent item arrow indicator */
+.editor-context-menu__item--has-submenu::after {
+  content: "▸";
+  margin-left: 12px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Submenu container */
+.editor-context-menu__submenu-wrapper {
+  position: relative;
+}
+
+.editor-context-menu__submenu {
+  position: absolute;
+  left: calc(100%);
+  top: -4px;
+  background: rgba(30, 41, 59, 0.97);
+  backdrop-filter: blur(20px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 180px;
+  padding: 4px 0;
+  display: none;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+/* Invisible hover bridge spanning the gap between menu and submenu */
+.editor-context-menu__submenu::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: 8px;
+  height: 100%;
+}
+
+/* Flip submenu to left side when near viewport edge */
+.editor-context-menu__submenu--flip-left {
+  left: auto;
+  right: calc(100%);
+}
+
+.editor-context-menu__submenu--flip-left::before {
+  right: auto;
+  left: 100%;
+}
+
+/* Open submenu upward (anchored to bottom of trigger) */
+.editor-context-menu__submenu--open-up {
+  top: auto;
+  bottom: -4px;
+}
+
+.editor-context-menu__submenu-wrapper:hover > .editor-context-menu__submenu {
+  display: block;
+}

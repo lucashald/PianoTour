@@ -148,6 +148,10 @@ def practice():
 def playalong():
     return render_template('piano.html', hide_spectrum=False)
 
+@app.route('/keyboard')
+def keyboard():
+    return render_template('keyboard.html', hide_spectrum=True)
+
 
 @app.route('/guitar')
 def guitar():

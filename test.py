@@ -135,6 +135,10 @@ def print_page():
 def practice():
     return render_template('practice.html')
 
+@app.route('/keyboard')
+def keyboard():
+    return render_template('keyboard.html')
+
 
 @app.route('/guitar')
 def guitar():
