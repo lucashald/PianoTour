@@ -18,6 +18,7 @@ import {
 } from '../score/scoreRenderer.js';
 import { addNoteToMeasure, getMeasures, removeNoteFromMeasure, setTempo, setTimeSignature, placeNote, createTie, removeTie, createSlur, removeSlur, updateNoteInMeasure, insertMeasure, deleteMeasure, duplicateMeasure, moveMeasureToEnd, splitNote, transposeScore } from '../score/scoreWriter.js';
 import { setScoreTitle } from '../utils/ioHelpers.js';
+import { updateNowPlayingDisplay } from '../ui/uiHelpers.js';
 
 // ===================================================================
 // Internal State
@@ -852,10 +853,13 @@ function renderNoteEditBox(smoothScroll = true) {
             clef: selectedNote.clef,
             noteId: selectedNote.id
         };
+        const displayName = selectedNote.isRest ? 'Rest' : (selectedNote.chordName || selectedNote.name);
+        updateNowPlayingDisplay(displayName);
     } else {
         clearSelectedNoteHighlight();
         pianoState.currentSelectedNote = null;
         editorSelectedNoteId = null;
+        updateNowPlayingDisplay('');
     }
     scrollToMeasure(editorSelectedMeasureIndex, smoothScroll);
 }
