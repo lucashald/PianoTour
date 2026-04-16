@@ -2508,6 +2508,7 @@ body.no-scroll {
   display: none;
   max-height: calc(100vh - 16px);
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Invisible hover bridge spanning the gap between menu and submenu */

@@ -721,25 +721,37 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     resetDragState();
   });
 
-  // Right-click context menu — dispatch custom event with click target info
-  scoreElement.addEventListener("contextmenu", (event) => {
+  // Right-click context menu — attached to the whole score-viewer so the title
+  // and surrounding whitespace are also covered.
+  const scoreViewerElement = scoreElement.closest('.score-viewer');
+  const contextMenuTarget = scoreViewerElement || scoreElement;
+  contextMenuTarget.addEventListener("contextmenu", (event) => {
     event.preventDefault();
 
-    const rect = scoreElement.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    let noteTarget = null;
+    let measureIndex = -1;
+    let clickRegion = 'other';
 
-    const noteTarget = detectNoteClick(x, y);
-    const measureIndex = detectMeasureClick(x, y);
+    if (event.target.closest('#score-title')) {
+      clickRegion = 'title';
+    } else if (event.target.closest('#score')) {
+      clickRegion = 'score';
+      const rect = scoreElement.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      noteTarget = detectNoteClick(x, y);
+      measureIndex = detectMeasureClick(x, y);
+    }
 
-    console.log("context-menu: contextmenu event fired on score", { noteTarget, measureIndex });
+    console.log("context-menu: contextmenu event fired", { clickRegion, noteTarget, measureIndex });
 
     document.dispatchEvent(new CustomEvent('scoreContextMenu', {
       detail: {
         clientX: event.clientX,
         clientY: event.clientY,
         noteTarget,
-        measureIndex
+        measureIndex,
+        clickRegion,
       }
     }));
   });

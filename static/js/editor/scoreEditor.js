@@ -567,15 +567,34 @@ function invertSelectedNote(direction) {
  * @param {object} detail - The scoreContextMenu event detail.
  * @returns {HTMLElement} The context menu element.
  */
+function addSetTitleItem(menu) {
+    addMenuItem(menu, 'Set Title', () => {
+        const current = pianoState.title;
+        const input = window.prompt('Score title:', current);
+        if (input !== null) setScoreTitle(input);
+    });
+}
+
 function buildContextMenu(detail) {
+    const { noteTarget, measureIndex, clickRegion } = detail;
     const menu = document.createElement('div');
     menu.className = 'editor-context-menu';
     menu.id = 'editorContextMenu';
 
-    if (detail.noteTarget && detail.noteTarget.noteId !== null) {
+    // Title element, surrounding whitespace, or score canvas outside all measures
+    if (
+        clickRegion === 'title' ||
+        clickRegion === 'other' ||
+        (clickRegion === 'score' && !(noteTarget?.noteId) && measureIndex === -1)
+    ) {
+        addSetTitleItem(menu);
+        return menu;
+    }
+
+    if (noteTarget && noteTarget.noteId !== null) {
         console.log('context-menu: Building note context menu');
         buildNoteContextMenu(menu, detail);
-    } else if (detail.measureIndex !== -1) {
+    } else if (measureIndex !== -1) {
         console.log('context-menu: Building measure context menu');
         buildMeasureContextMenu(menu, detail);
     }
@@ -707,11 +726,7 @@ function buildMeasureContextMenu(menu, detail) {
 
     addSeparator(menu);
 
-    addMenuItem(menu, 'Set Title', () => {
-        const current = pianoState.title;
-        const input = window.prompt('Score title:', current);
-        if (input !== null) setScoreTitle(input);
-    });
+    addSetTitleItem(menu);
 }
 
 /**
@@ -1403,8 +1418,8 @@ export function initializeScoreInteraction() {
 
     // Listen for right-click context menu events from the score
     document.addEventListener('scoreContextMenu', (event) => {
-        const { clientX, clientY, noteTarget, measureIndex } = event.detail;
-        console.log('context-menu: scoreContextMenu received', { noteTarget, measureIndex });
+        const { clientX, clientY, noteTarget, measureIndex, clickRegion } = event.detail;
+        console.log('context-menu: scoreContextMenu received', { clickRegion, noteTarget, measureIndex });
 
         // If slur mode is active, show cancel option instead of normal menu
         if (slurMode) {
@@ -1421,13 +1436,16 @@ export function initializeScoreInteraction() {
             return;
         }
 
-        // Select the right-clicked note or measure first (but don't toggle-off an already selected note)
-        if (noteTarget && noteTarget.noteId !== null) {
-            if (editorSelectedNoteId !== noteTarget.noteId) {
-                handleEditorNoteSelectClick(noteTarget.measureIndex, noteTarget.clef, noteTarget.noteId);
+        // Select the right-clicked note or measure first (but don't toggle-off an already selected note).
+        // Only do this for clicks inside the score canvas — not for the title or surrounding whitespace.
+        if (clickRegion === 'score') {
+            if (noteTarget && noteTarget.noteId !== null) {
+                if (editorSelectedNoteId !== noteTarget.noteId) {
+                    handleEditorNoteSelectClick(noteTarget.measureIndex, noteTarget.clef, noteTarget.noteId);
+                }
+            } else if (measureIndex !== -1) {
+                changeMeasure(measureIndex);
             }
-        } else if (measureIndex !== -1) {
-            changeMeasure(measureIndex);
         }
 
         const menu = buildContextMenu(event.detail);
