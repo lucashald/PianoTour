@@ -52,6 +52,11 @@ let originalVexFlowNoteBBox = null; // Store the bounding box of the VexFlow not
 let isPaletteDrag = false;
 let paletteDragType = null;
 
+// Last snapped preview state — cached during pointermove so completeDrag uses
+// the exact position that was shown in the preview rather than re-deriving from
+// the raw lift coordinates (which can shift on touch as the finger leaves).
+let lastDragSnapState = null; // { measureIndex, clef, previewNoteName, x }
+
 // Drag Preview Cache - prevents unnecessary DOM recreation
 // All images are preloaded at module init, so no server polling occurs
 let dragPreviewCache = {
@@ -600,6 +605,7 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     activePointerType = null;
     isDragging = false;
     draggedNote = null;
+    lastDragSnapState = null;
     scoreElement.style.cursor = "default";
     clearDragPreview();
   }
@@ -660,6 +666,11 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
         const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
         const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
         const previewNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearest.note;
+
+        // Cache this snap state so completeDrag can use the exact same position
+        // that was shown in the preview instead of re-deriving from the raw lift coords.
+        lastDragSnapState = { measureIndex: targetMeasureIndex, clef, previewNoteName, x: currentX };
+
         // Convert relative coordinates to absolute screen coordinates for fixed positioning
         const absoluteX = event.clientX;
         const absoluteY = rect.top + nearest.y;
@@ -1372,7 +1383,13 @@ function completeDrag(currentX, currentY) {
     return;
   }
 
-  const targetMeasureIndex = detectMeasureClick(currentX, currentY);
+  // Prefer the snap state captured during the last pointermove preview update.
+  // This guarantees the drop lands on the same position that was shown to the user,
+  // rather than re-deriving from the raw lift coordinates (which can drift on touch).
+  const snap = lastDragSnapState;
+  const dropX = snap ? snap.x : currentX;
+  const targetMeasureIndex = snap ? snap.measureIndex : detectMeasureClick(currentX, currentY);
+
   if (targetMeasureIndex === -1) {
     return;
   }
@@ -1382,38 +1399,31 @@ function completeDrag(currentX, currentY) {
   let newClef = originalNoteData.clef;
   let newPitchName = originalNoteData.name;
 
-  const potentialNewClef = detectClefRegion(currentY);
+  const potentialNewClef = snap ? snap.clef : detectClefRegion(currentY);
   if (potentialNewClef && potentialNewClef !== originalNoteData.clef) {
     clefChanged = true;
     newClef = potentialNewClef;
   }
 
   if (!originalNoteData.isRest && originalVexFlowNoteBBox) {
-    const rawPitchMIDI = calculateAbsolutePitchFromY(
-      currentY,
-      newClef
-    );
-
-    // Apply key signature correction to snap to appropriate accidentals
-    const correctedPitchMIDI = applyKeySignatureCorrection(rawPitchMIDI, pianoState.keySignature);
-
-    const newNoteInfo = ALL_NOTE_INFO.find(
-      (n) => n.midi === correctedPitchMIDI
-    );
-    if (newNoteInfo) {
-      newPitchName = newNoteInfo.name;
+    if (snap) {
+      // Use the key-sig-corrected note name already computed for the preview
+      newPitchName = snap.previewNoteName;
     } else {
-      console.warn(
-        `completeDrag: Could not find note name for MIDI ${correctedPitchMIDI}. Keeping original pitch name as fallback.`
-      );
-      newPitchName = originalNoteData.name;
+      const rawPitchMIDI = calculateAbsolutePitchFromY(currentY, newClef);
+      const correctedPitchMIDI = applyKeySignatureCorrection(rawPitchMIDI, pianoState.keySignature);
+      const newNoteInfo = ALL_NOTE_INFO.find((n) => n.midi === correctedPitchMIDI);
+      if (newNoteInfo) {
+        newPitchName = newNoteInfo.name;
+      } else {
+        console.warn(
+          `completeDrag: Could not find note name for MIDI ${correctedPitchMIDI}. Keeping original pitch name as fallback.`
+        );
+        newPitchName = originalNoteData.name;
+      }
     }
 
-    if (
-      newPitchName !== originalNoteData.name ||
-      (clefChanged &&
-        NOTES_BY_NAME[originalNoteData.name] !== correctedPitchMIDI)
-    ) {
+    if (newPitchName !== originalNoteData.name || clefChanged) {
       pitchChanged = true;
     }
   } else if (originalNoteData.isRest) {
@@ -1428,7 +1438,7 @@ function completeDrag(currentX, currentY) {
 
   if (targetMeasureNotes && targetMeasureNotes.length > 0) {
     const measureStartX = measureXPositions[targetMeasureIndex];
-    const relativeDropX = currentX - measureStartX;
+    const relativeDropX = dropX - measureStartX;
 
     const vexFlowNotesInTargetClef =
       vexflowNoteMap[targetMeasureIndex]?.[newClef];
