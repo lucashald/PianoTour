@@ -5,6 +5,9 @@ Do not deploy this file as the production server.
 """
 
 from flask import Flask, render_template, request, send_file, jsonify, send_from_directory, redirect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import re
 import os
 import io
 import tempfile
@@ -23,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
+limiter = Limiter(app=app, key_func=get_remote_address)
 
 # --- MIDI conversion limits ---
 MIDI_MAX_FILE_SIZE = 5 * 1024 * 1024   # 5 MB
@@ -89,6 +93,8 @@ SHARE_API = "https://7vw7rxom9h.execute-api.us-east-1.amazonaws.com/default/pian
 
 @app.route('/share/<code>')
 def share_redirect(code):
+    if not re.fullmatch(r'PT-[a-z0-9]{8}', code):
+        return jsonify({'error': 'Invalid share code'}), 400
     return redirect(f"{SHARE_API}?action=download&code={code}")
 
 
@@ -435,11 +441,15 @@ def sanitize_for_ugly_midi(song_data):
 
 
 @app.route('/convert-to-midi', methods=['POST'])
+@limiter.limit("10 per minute")
 def convert_to_midi():
     temp_midi_path = None
     try:
         if not request.is_json:
             return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+        if request.content_length and request.content_length > 1024 * 1024:
+            return jsonify({'error': 'Song data too large'}), 413
 
         song_data = request.get_json()
         if not song_data:
@@ -447,20 +457,22 @@ def convert_to_midi():
 
         logger.info(f"Converting to MIDI: {len(song_data.get('measures', []))} measures at {song_data.get('tempo', 120)} BPM")
 
-        # Validate and sanitize
-        if len(str(song_data)) > 1024 * 1024:
-            return jsonify({'error': 'Song data too large'}), 413
-
         try:
             validate(instance=song_data, schema=SONG_DATA_SCHEMA)
         except jsonschema.exceptions.ValidationError as e:
             logger.error(f"Schema validation failed: {str(e)}")
-            return jsonify({'error': f'Invalid song data format: {str(e)}'}), 400
+            return jsonify({'error': 'Invalid song data format'}), 400
 
         sanitized_data = sanitize_for_ugly_midi(song_data)
 
-        # Use improved ugly_midi converter
-        midi_data = ugly_midi.json_to_midi(sanitized_data)
+        # Run conversion with a timeout
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(ugly_midi.json_to_midi, sanitized_data)
+            try:
+                midi_data = future.result(timeout=MIDI_CONVERSION_TIMEOUT)
+            except FuturesTimeoutError:
+                logger.error("MIDI conversion timed out after %ds", MIDI_CONVERSION_TIMEOUT)
+                return jsonify({'error': f'Conversion timed out after {MIDI_CONVERSION_TIMEOUT}s.'}), 500
 
         # Create and return MIDI file
         fd, temp_midi_path = tempfile.mkstemp(suffix='.mid', prefix='midi_')
@@ -473,6 +485,9 @@ def convert_to_midi():
                          download_name='score.mid',
                          mimetype='audio/midi')
 
+    except MemoryError:
+        logger.error("Out of memory during MIDI conversion")
+        return jsonify({'error': 'The server ran out of memory. Try fewer measures.'}), 500
     except Exception as e:
         logger.error(f"Error during MIDI conversion: {e}", exc_info=True)
         return jsonify({'error': f'Failed to convert to MIDI: {str(e)}'}), 500
@@ -485,6 +500,7 @@ def convert_to_midi():
                 pass
                 
 @app.route('/convert-to-json', methods=['POST'])
+@limiter.limit("10 per minute")
 def convert_to_json():
     if 'midiFile' not in request.files:
         return jsonify({'error': 'No MIDI file provided.'}), 400
@@ -501,6 +517,12 @@ def convert_to_json():
             'error': f'MIDI file is too large ({file_size / 1024 / 1024:.1f} MB). '
                      f'Maximum allowed size is {MIDI_MAX_FILE_SIZE / 1024 / 1024:.0f} MB.'
         }), 413
+
+    # --- Magic bytes guard ---
+    file_header = file.read(4)
+    file.seek(0)
+    if file_header != b'MThd':
+        return jsonify({'error': 'File does not appear to be a valid MIDI file'}), 400
 
     temp_midi_path = None
     try:
@@ -529,6 +551,7 @@ def convert_to_json():
 
 
 @app.route('/extract-midi', methods=['POST'])
+@limiter.limit("10 per minute")
 def extract_midi():
     """Stage 1: Extract raw notes per-track + tempo/measure grid (no quantization)."""
     if 'midiFile' not in request.files:
@@ -545,6 +568,12 @@ def extract_midi():
             'error': f'MIDI file is too large ({file_size / 1024 / 1024:.1f} MB). '
                      f'Maximum allowed size is {MIDI_MAX_FILE_SIZE / 1024 / 1024:.0f} MB.'
         }), 413
+
+    # --- Magic bytes guard ---
+    file_header = file.read(4)
+    file.seek(0)
+    if file_header != b'MThd':
+        return jsonify({'error': 'File does not appear to be a valid MIDI file'}), 400
 
     temp_midi_path = None
     try:
@@ -578,9 +607,13 @@ def extract_midi():
 
 
 @app.route('/quantize-tracks', methods=['POST'])
+@limiter.limit("10 per minute")
 def quantize_tracks():
     """Stage 2: Quantize selected tracks into VexFlow JSON."""
     try:
+        if request.content_length and request.content_length > 10 * 1024 * 1024:
+            return jsonify({'error': 'Payload too large'}), 413
+
         payload = request.get_json()
         if not payload:
             return jsonify({'error': 'No JSON payload provided.'}), 400
