@@ -5,7 +5,6 @@
 //      new Annotation('Chord Name').setVerticalJustification(Annotation.VerticalJustify.BOTTOM)
 import { pianoState } from "../core/appState.js"; // ADD THIS LINE
 import {
-  ALL_NOTE_INFO,
   getCurrentVexFlowKeySignature,
   getNoteImagePath,
   KEY_SIGNATURES,
@@ -13,7 +12,7 @@ import {
   NOTE_STEM_DIRECTIONS,
   NOTES_BY_NAME,
   createIntervalChord,
-  applyKeySignatureCorrection
+  applyKeySignatureToNoteName
 } from "../core/note-data.js";
 import { saveToLocalStorage } from "../utils/ioHelpers.js";
 import { updateUI } from "../ui/uiHelpers.js";
@@ -661,11 +660,8 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
       const clef = detectClefRegion(currentY);
       const nearest = findNearestStaffPosition(currentY, clef);
       if (nearest) {
-        // Apply key signature correction to preview note
-        const rawMIDI = NOTES_BY_NAME[nearest.note];
-        const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
-        const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
-        const previewNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearest.note;
+        // Spell the preview note according to the current key signature
+        const previewNoteName = applyKeySignatureToNoteName(nearest.note);
 
         // Cache this snap state so completeDrag can use the exact same position
         // that was shown in the preview instead of re-deriving from the raw lift coords.
@@ -1008,11 +1004,9 @@ function handlePaletteDrop(endX, endY, event) {
     // Rests always go at standard staff positions
     newNoteName = clef === 'bass' ? 'D3' : 'B4';
   } else {
-    // Apply key signature correction for notes
-    const rawMIDI = NOTES_BY_NAME[nearestPosition.note];
-    const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
-    const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
-    newNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearestPosition.note;
+    // Spell the dropped staff position according to the current key signature
+    // (e.g. drop on the B line in F major → Bb4, drop on the F line in G major → F#4)
+    newNoteName = applyKeySignatureToNoteName(nearestPosition.note);
   }
 
   // Create the new note object
@@ -1056,7 +1050,9 @@ function updateDragPreview(x, snapY, noteName, noteType = null) {
   // - Down-stem notes: note head center at approximately (23, 65)
   // - Whole notes: note head center at approximately (25.5, 80)
   // - Rests: centered at approximately (60, 60)
-  const stemDirection = NOTE_STEM_DIRECTIONS[noteName] || 'up';
+  // Stem direction depends only on staff position, so look up by the natural
+  // name — key-aware names like "Bb4" or "F#4" aren't in NOTE_STEM_DIRECTIONS
+  const stemDirection = NOTE_STEM_DIRECTIONS[noteName ? noteName.replace(/[#b]/g, '') : noteName] || 'up';
   const isWhole = durationText === 'w' || durationText === 'w.';
 
   // Only calculate image path if duration or stem direction changed
@@ -1422,14 +1418,12 @@ function completeDrag(currentX, currentY) {
       // Use the key-sig-corrected note name already computed for the preview
       newPitchName = snap.previewNoteName;
     } else {
-      const rawPitchMIDI = calculateAbsolutePitchFromY(currentY, newClef);
-      const correctedPitchMIDI = applyKeySignatureCorrection(rawPitchMIDI, pianoState.keySignature);
-      const newNoteInfo = ALL_NOTE_INFO.find((n) => n.midi === correctedPitchMIDI);
-      if (newNoteInfo) {
-        newPitchName = newNoteInfo.name;
+      const nearest = findNearestStaffPosition(currentY, newClef);
+      if (nearest) {
+        newPitchName = applyKeySignatureToNoteName(nearest.note);
       } else {
         console.warn(
-          `completeDrag: Could not find note name for MIDI ${correctedPitchMIDI}. Keeping original pitch name as fallback.`
+          "completeDrag: Could not determine staff position. Keeping original pitch name as fallback."
         );
         newPitchName = originalNoteData.name;
       }

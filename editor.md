@@ -250,11 +250,9 @@ Location: `scoreRenderer.js`, lines 735-936
    const clef = detectClefRegion(actualY);
    const nearestPosition = findNearestStaffPosition(actualY, clef);
 
-   // Apply key signature correction
-   const rawMIDI = NOTES_BY_NAME[nearestPosition.note];
-   const correctedMIDI = applyKeySignatureCorrection(rawMIDI, pianoState.keySignature);
-   const correctedNoteInfo = ALL_NOTE_INFO.find(n => n.midi === correctedMIDI);
-   const newNoteName = correctedNoteInfo ? correctedNoteInfo.name : nearestPosition.note;
+   // Spell the dropped staff position according to the current key signature
+   // (e.g. drop on the B line in F major → Bb4, drop on the F line in G major → F#4)
+   const newNoteName = applyKeySignatureToNoteName(nearestPosition.note);
 
    // Create note object
    const newNote = {
@@ -1103,45 +1101,37 @@ export const pianoState = {
 
 ### Key Signature Correction
 
-**Function:** `applyKeySignatureCorrection(rawMIDI, keySignature)`
+**Function:** `applyKeySignatureToNoteName(noteName, keySignature = pianoState.keySignature)`
 
 Location: `static/js/core/note-data.js`
 
-When a note is dragged to the score, its pitch is automatically adjusted to fit the current key signature:
+When a note is dragged to the score, the natural staff position it lands on is respelled to fit the current key signature. The note stays on the same staff line/space; only the accidental implied by the key signature is applied:
 
 ```javascript
-export function applyKeySignatureCorrection(rawMIDI, keySignatureName) {
-  const keyData = KEY_SIGNATURES[keySignatureName];
-  if (!keyData) return rawMIDI;
-
-  const noteInfo = ALL_NOTE_INFO.find(n => n.midi === rawMIDI);
-  if (!noteInfo) return rawMIDI;
-
-  const noteLetter = noteInfo.name[0]; // C, D, E, F, G, A, B
-
-  // Check if this note should be modified in this key
-  if (keyData.sharps && keyData.sharps.includes(noteLetter)) {
-    // Key has sharps on this note
-    if (!noteInfo.name.includes('#')) {
-      return rawMIDI + 1; // Sharpen it
-    }
-  } else if (keyData.flats && keyData.flats.includes(noteLetter)) {
-    // Key has flats on this note
-    if (!noteInfo.name.includes('b')) {
-      return rawMIDI - 1; // Flatten it
-    }
+export function applyKeySignatureToNoteName(
+  noteName,
+  keySignature = pianoState.keySignature,
+) {
+  const keyData = KEY_SIGNATURES[keySignature];
+  if (!keyData) {
+    console.warn(`Unknown key signature: ${keySignature}`);
+    return noteName;
   }
 
-  return rawMIDI;
+  const match = noteName.match(/^([A-G])(\d+)$/);
+  if (!match) return noteName;
+
+  const [, letter, octave] = match;
+  const accidental = keyData.accidentals.find((acc) => acc[0] === letter);
+  return accidental ? `${accidental}${octave}` : noteName;
 }
 ```
 
-**Example:**
-- In key of G major (one sharp: F#)
-- User drags note to F4 position
-- `rawMIDI` = 65 (F4)
-- Function returns 66 (F#4)
-- Note is displayed as F#4
+**Examples:**
+- In G major (one sharp: F#), dropping on the F4 position produces `F#4`
+- In F major (one flat: Bb), dropping on the B4 position produces `Bb4` — the note stays on the B line with no printed accidental
+- In F# major, dropping on the E4 position produces `E#4`
+- Letters not in the key signature (and rests) pass through unchanged
 
 ### Event System
 

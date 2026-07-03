@@ -348,7 +348,10 @@ export function getNoteImagePath(duration, noteName, isRest = false) {
   }
 
   // Get stem direction for this note
-  const stemDirection = NOTE_STEM_DIRECTIONS[noteName] || "up"; // Default to up
+  // Strip accidentals first: stem direction depends only on staff position,
+  // and NOTE_STEM_DIRECTIONS is keyed by natural note names (e.g. "Bb4" → "B4")
+  const naturalName = noteName ? noteName.replace(/[#b]/g, "") : noteName;
+  const stemDirection = NOTE_STEM_DIRECTIONS[naturalName] || "up"; // Default to up
 
   // Build the correct duration key based on stem direction
   let durationKey = duration;
@@ -5363,4 +5366,32 @@ export function applyKeySignatureCorrection(midiNumber, keySignature) {
   }
 
   return corrections[midiNumber] || midiNumber;
+}
+
+/**
+ * Spells a natural staff-position note according to a key signature, keeping
+ * it on the same staff line/space. E.g. "B4" in F major → "Bb4", "F4" in
+ * G major → "F#4", "E4" in F# major → "E#4". Notes whose letters are not in
+ * the key signature, or that already carry an accidental, are returned
+ * unchanged.
+ * @param {string} noteName - Natural note name with octave (e.g. "B4")
+ * @param {string} [keySignature] - Key signature name; defaults to the current one
+ * @returns {string} The key-aware note name (e.g. "Bb4")
+ */
+export function applyKeySignatureToNoteName(
+  noteName,
+  keySignature = pianoState.keySignature,
+) {
+  const keyData = KEY_SIGNATURES[keySignature];
+  if (!keyData) {
+    console.warn(`Unknown key signature: ${keySignature}`);
+    return noteName;
+  }
+
+  const match = noteName.match(/^([A-G])(\d+)$/);
+  if (!match) return noteName;
+
+  const [, letter, octave] = match;
+  const accidental = keyData.accidentals.find((acc) => acc[0] === letter);
+  return accidental ? `${accidental}${octave}` : noteName;
 }
