@@ -1657,6 +1657,12 @@ body.no-scroll {
   background-color: rgba(255, 255, 255, 0.15);
 }
 
+/* Drag-to-strum mode: the bar becomes a rake target rather than a button.
+   touch-action must be none here or a vertical drag scrolls the page. */
+.strum-area.drag-mode {
+  touch-action: none;
+}
+
 .strum-area span {
   color: rgba(255, 255, 255, 0.4);
   font-size: var(--font-size-xs);

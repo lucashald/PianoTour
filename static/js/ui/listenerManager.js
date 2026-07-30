@@ -194,6 +194,11 @@ export function addButtonListeners() {
   document
     .getElementById("toggleFixedDurationCheckbox")
     ?.addEventListener("change", handleFixedDurationToggle);
+
+  // Wire up the drag-to-strum toggle (guitar page only)
+  document
+    .getElementById("toggleDragStrumCheckbox")
+    ?.addEventListener("change", handleDragStrumToggle);
   
   // Wire up the quantize dropdown
   document
@@ -378,6 +383,14 @@ function handleFixedDurationToggle(event) {
       quantizeBtn.classList.add('hidden');
     }
   }
+}
+
+/**
+ * Toggles drag-to-strum on the guitar. The instance owns the state and its
+ * persistence, so this just forwards the checkbox.
+ */
+function handleDragStrumToggle(event) {
+  window.guitarInstance?.setDragStrumEnabled(event.target.checked);
 }
 
 /**

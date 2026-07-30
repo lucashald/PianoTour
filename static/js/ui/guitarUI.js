@@ -156,16 +156,10 @@ export function initializeGuitarControls(containerSelector, guitarInstance = win
             });
         });
     } else {
-        // Audio ready - use direct functionality
-        strumDown.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            guitarInstance.strum('down');
-        });
-        
-        strumUp.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            guitarInstance.strum('up');
-        });
+        // Audio ready - hold the button to lengthen the note, matching how the
+        // string buttons and piano keys already behave.
+        bindHeldStrum(strumDown, 'down', guitarInstance);
+        bindHeldStrum(strumUp, 'up', guitarInstance);
     }
 
     // Clear chord button (doesn't need audio)
@@ -186,6 +180,40 @@ export function initializeGuitarControls(containerSelector, guitarInstance = win
 
 
     return container;
+}
+
+/**
+ * Wires a strum button so the note duration follows how long it's held,
+ * rather than the fixed 1400ms that strum() bakes in.
+ *
+ * Uses pointer events rather than mousedown/mouseup: on touch, the synthesized
+ * mouse events don't fire until after the finger lifts, which would measure
+ * every hold as instantaneous.
+ *
+ * @param {HTMLElement} button
+ * @param {'down'|'up'} direction
+ * @param {Object} guitarInstance
+ */
+function bindHeldStrum(button, direction, guitarInstance) {
+    button.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+
+        // Capture so releasing off the button still ends the strum.
+        try {
+            button.setPointerCapture(e.pointerId);
+        } catch (error) {
+            // Capture is a nicety, not a requirement - carry on without it.
+        }
+
+        // Only one strum can be open at a time. Close any straggler first so
+        // its notes reach the score instead of being overwritten.
+        guitarInstance.endStrum();
+        guitarInstance.startStrum(direction);
+    });
+
+    const release = () => guitarInstance.endStrum();
+    button.addEventListener('pointerup', release);
+    button.addEventListener('pointercancel', release);
 }
 
 // ===================================================================

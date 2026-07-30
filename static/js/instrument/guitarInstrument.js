@@ -12,6 +12,31 @@ import * as ChordDB from '/static/js/core/chords.js';
 const FRET_COUNT = 20;
 const STRING_COUNT = 6;
 
+// Drag-strum tuning constants
+const DRAG_STRUM_STORAGE_KEY = 'guitar-drag-strum';
+// Movement below this (in px) counts as a tap, so a plain click still strums
+const DRAG_STRUM_TAP_THRESHOLD_PX = 6;
+// Pointer speed (px per ms) treated as a full-force rake
+const DRAG_STRUM_MAX_SPEED = 2.0;
+// Slowest rake still plays at this fraction of the current velocity setting
+const DRAG_STRUM_MIN_VELOCITY_RATIO = 0.55;
+// Anything in the instrument panel that owns its own click. A pointerdown on
+// one of these is left alone rather than starting a rake - that includes the
+// piano keys, since the keyboard above the fretboard is live on this page.
+const DRAG_STRUM_IGNORED_TARGETS = [
+  'button',
+  'input',
+  'select',
+  'a',
+  'label',
+  '.btn',
+  '.key',
+  '.fret-position',
+  '.finger-position',
+  '.chord-diagram-container',
+  '.guitar-control-panel'
+].join(', ');
+
 // Standard guitar tuning (MIDI numbers) - Indexed 0-5 for strings 1-6 (thinnest to thickest)
 // Changed from const to let so it can be modified
 let GUITAR_TUNING = [
@@ -41,11 +66,28 @@ function midiToNoteName(midiNumber) {
   return result;
 }
 
+/**
+ * Read the saved drag-strum preference. On by default - only an explicit
+ * opt-out in the settings panel turns it off, so "never chosen" means on
+ * rather than falling through to false.
+ * @returns {boolean}
+ */
+function loadDragStrumPreference() {
+  try {
+    const saved = localStorage.getItem(DRAG_STRUM_STORAGE_KEY);
+    return saved === null ? true : saved === 'true';
+  } catch (error) {
+    console.warn('Could not read drag-strum preference:', error);
+    return true;
+  }
+}
+
 // Guitar fretboard state - Indexed 0-5 for strings 1-6 (thinnest to thickest)
 const guitarState = {
   currentFrets: [0, 0, 0, 0, 0, 0], // Current fret for each string (0 = open)
   mutedStrings: [false, false, false, false, false, false],
-  sustainMode: false
+  sustainMode: false,
+  dragStrumEnabled: loadDragStrumPreference()
 };
 
 /**
@@ -180,6 +222,15 @@ class GuitarInstrument {
     this.activeStrum = null; // Track strum timing
     this.playingStrings = {}; // Track which strings are currently playing audio
 
+    // Drag-strum gesture state (null when no gesture is in progress)
+    this.dragStrum = null;
+    // Element the drag gesture is bound to and captured on
+    this.gestureRoot = null;
+    // Guard so audio listeners are only ever bound once
+    this.audioListenersBound = false;
+    // Per-string highlight timers so rapid re-plucks don't cut each other short
+    this.highlightTimers = {};
+
     this.init();
   }
 
@@ -190,6 +241,10 @@ class GuitarInstrument {
     }
     this.createFretboard();
     this.setupSilentEventListeners(); // Only set up non-audio listeners initially
+    // Drag-strum listeners are safe to bind now - they no-op until the mode is
+    // switched on AND audio is ready.
+    this.setupDragStrumListeners();
+    this.syncDragStrumControl();
     this.updateStringLabels();
     
     // NEW: Set up basic audio unlock listeners if audio isn't ready
@@ -315,12 +370,13 @@ class GuitarInstrument {
     this.strumArea = document.createElement('div');
     this.strumArea.className = 'strum-area';
     this.strumArea.innerHTML = '<span>STRUM</span>';
-    
+
     // Only add visual hover effects, no click listeners yet
     this.strumArea.addEventListener('mouseenter', () => this.strumArea.classList.add('hover'));
     this.strumArea.addEventListener('mouseleave', () => this.strumArea.classList.remove('hover'));
 
     container.appendChild(this.strumArea);
+    this.updateStrumAreaAffordance();
   }
 
   createStringLabelsContainer() {
@@ -402,7 +458,11 @@ createStringButton(stringNum) {
 
   // Set up listeners that DO make sound (call only after audio is ready)
 setupAudioEventListeners() {
-  
+  // This can be reached both from init() and from addAdvancedGuitarListeners()
+  // after the audio unlock, so make sure we never double-bind.
+  if (this.audioListenersBound) return;
+  this.audioListenersBound = true;
+
   // String button mousedown/mouseup for playing and timing
   this.stringLabelsContainer.addEventListener('mousedown', (e) => {
     if (e.target.classList.contains('string-button')) {
@@ -427,9 +487,15 @@ setupAudioEventListeners() {
     e.preventDefault();
   });
 
-  // Strum area mousedown/mouseup
-  this.strumArea.addEventListener('mousedown', () => this.startStrum('down'));
-  this.strumArea.addEventListener('mouseup', () => this.endStrum());
+  // Strum area mousedown/mouseup - skipped while drag-strum owns the gesture
+  this.strumArea.addEventListener('mousedown', () => {
+    if (guitarState.dragStrumEnabled) return;
+    this.startStrum('down');
+  });
+  this.strumArea.addEventListener('mouseup', () => {
+    if (guitarState.dragStrumEnabled) return;
+    this.endStrum();
+  });
 
   // Prevent context menu on strum area
   this.strumArea.addEventListener('contextmenu', (e) => {
@@ -581,10 +647,21 @@ updateStringLabel(stringNum) {
 
   highlightString(stringNum) {
     const stringElement = this.stringElements[stringNum];
-    if (stringElement) {
-      stringElement.classList.add('active');
-      setTimeout(() => stringElement.classList.remove('active'), 1400);
+    if (!stringElement) return;
+
+    // Restart the animation cleanly if this string is already lit, otherwise a
+    // fast re-pluck inherits the old timer and cuts the glow short.
+    if (this.highlightTimers[stringNum]) {
+      clearTimeout(this.highlightTimers[stringNum]);
+      stringElement.classList.remove('active');
+      void stringElement.offsetWidth; // force reflow so the animation replays
     }
+
+    stringElement.classList.add('active');
+    this.highlightTimers[stringNum] = setTimeout(() => {
+      stringElement.classList.remove('active');
+      delete this.highlightTimers[stringNum];
+    }, 1400);
   }
 
   // NEW: Start strum method
@@ -642,6 +719,355 @@ updateStringLabel(stringNum) {
     this.startStrum(direction);
     // Auto-end after a quarter note duration for legacy calls
     setTimeout(() => this.endStrum(), 1400);
+  }
+
+  // ==================================================================
+  // Drag-to-strum
+  //
+  // Opt-in gesture mode. Instead of the strum bar acting as a button that
+  // always rakes all six strings, dragging across it plucks exactly the
+  // strings the pointer crosses, in the order it crosses them, at a velocity
+  // taken from how fast you moved. Reversing direction mid-press ends the
+  // current stroke and starts a new one, so up-down-up patterns land on the
+  // score as separate chords.
+  // ==================================================================
+
+  /**
+   * Turn drag-strum mode on or off.
+   * @param {boolean} enabled
+   */
+  setDragStrumEnabled(enabled) {
+    const isEnabled = !!enabled;
+    guitarState.dragStrumEnabled = isEnabled;
+
+    try {
+      localStorage.setItem(DRAG_STRUM_STORAGE_KEY, String(isEnabled));
+    } catch (error) {
+      console.warn('Could not save drag-strum preference:', error);
+    }
+
+    // Abandon whichever gesture the other mode had in flight, so a mode switch
+    // mid-press can't leave a dangling strum waiting to be written.
+    this.cancelDragStrum();
+    this.activeStrum = null;
+
+    this.updateStrumAreaAffordance();
+    this.syncDragStrumControl();
+    console.log(`Drag-to-strum: ${isEnabled ? 'ON' : 'OFF'}`);
+  }
+
+  /**
+   * Point the settings-panel checkbox at the real state. The panel is
+   * server-rendered so it can't know the saved preference on its own.
+   */
+  syncDragStrumControl() {
+    const checkbox = document.getElementById('toggleDragStrumCheckbox');
+    if (checkbox) {
+      checkbox.checked = guitarState.dragStrumEnabled;
+    }
+  }
+
+  /**
+   * Keep the strum bar's look and label in sync with the current mode.
+   */
+  updateStrumAreaAffordance() {
+    if (!this.strumArea) return;
+
+    const isEnabled = guitarState.dragStrumEnabled;
+    this.strumArea.classList.toggle('drag-mode', isEnabled);
+  }
+
+  /**
+   * Bind the gesture on the whole instrument panel rather than just the strum
+   * bar, so a rake can begin in the dead space around the instrument and pass
+   * through the strings. Falls back to the guitar's own container if the panel
+   * isn't there.
+   */
+  setupDragStrumListeners() {
+    if (!this.strumArea) return;
+
+    this.gestureRoot =
+      (this.container && this.container.closest('.instrument-panel')) ||
+      this.container ||
+      this.strumArea;
+
+    this.gestureRoot.addEventListener('pointerdown', (e) => this.onStrumPointerDown(e));
+    this.gestureRoot.addEventListener('pointermove', (e) => this.onStrumPointerMove(e));
+    this.gestureRoot.addEventListener('pointerup', (e) => this.onStrumPointerUp(e));
+    this.gestureRoot.addEventListener('pointercancel', (e) => this.onStrumPointerCancel(e));
+  }
+
+  /**
+   * Decide whether a pointerdown is allowed to begin a rake.
+   * @returns {boolean|null} true for the strum bar, false for panel dead space,
+   *                         null when the press should be left alone entirely
+   */
+  classifyStrumOrigin(e) {
+    if (e.target.closest('.strum-area')) return true;
+
+    // Everything below is the desktop-only widening. Touch keeps the strum bar
+    // as its only origin, so page scrolling over the panel still works.
+    if (e.pointerType === 'touch') return null;
+    if (e.target.closest(DRAG_STRUM_IGNORED_TARGETS)) return null;
+
+    return false;
+  }
+
+  onStrumPointerDown(e) {
+    if (!guitarState.dragStrumEnabled) return;
+    // Before the first unlock, let the existing click -> handleInitialGuitar
+    // path run instead. Otherwise the gesture would write silent notes.
+    if (!audioManager.isAudioReady()) return;
+
+    const fromStrumBar = this.classifyStrumOrigin(e);
+    if (fromStrumBar === null) return;
+
+    e.preventDefault();
+
+    // Capture so the rake keeps tracking once the pointer moves off its origin.
+    try {
+      this.gestureRoot.setPointerCapture(e.pointerId);
+    } catch (error) {
+      // Capture is a nicety, not a requirement - carry on without it.
+    }
+
+    const fretboardRect = this.fretboardElement.getBoundingClientRect();
+
+    this.dragStrum = {
+      pointerId: e.pointerId,
+      fromStrumBar,
+      startX: e.clientX,
+      startY: e.clientY,
+      startTime: performance.now(),
+      lastY: e.clientY,
+      lastTime: performance.now(),
+      stringCenters: this.measureStringCenters(),
+      xMin: fretboardRect.left,
+      xMax: fretboardRect.right,
+      stroke: null,
+      strokeCount: 0
+    };
+  }
+
+  onStrumPointerMove(e) {
+    const gesture = this.dragStrum;
+    if (!gesture || e.pointerId !== gesture.pointerId) return;
+
+    e.preventDefault();
+
+    const y = e.clientY;
+    const now = performance.now();
+    const dy = y - gesture.lastY;
+
+    // Only rake while the pointer is actually over the fretboard. Without this,
+    // a vertical drag in the dead space beside the instrument would strum
+    // strings the pointer never visually touched.
+    const overFretboard = e.clientX >= gesture.xMin && e.clientX <= gesture.xMax;
+
+    const crossed = overFretboard
+      ? this.findCrossedStrings(gesture.stringCenters, gesture.lastY, y)
+      : [];
+    if (crossed.length) {
+      const velocity = this.velocityFromSpeed(Math.abs(dy), now - gesture.lastTime);
+      const direction = dy > 0 ? 'down' : 'up';
+      crossed.forEach(entry => this.registerDragPluck(entry.stringNum, direction, velocity));
+    }
+
+    gesture.lastY = y;
+    gesture.lastTime = now;
+  }
+
+  onStrumPointerUp(e) {
+    const gesture = this.dragStrum;
+    if (!gesture || e.pointerId !== gesture.pointerId) return;
+
+    e.preventDefault();
+    this.flushDragStroke();
+
+    const travelled = Math.hypot(e.clientX - gesture.startX, e.clientY - gesture.startY);
+    // Only the strum bar taps to strum. A click in the panel's dead space
+    // should do nothing at all.
+    const wasTap = gesture.fromStrumBar
+      && gesture.strokeCount === 0
+      && travelled < DRAG_STRUM_TAP_THRESHOLD_PX;
+
+    this.releaseStrumPointer(gesture.pointerId);
+    this.dragStrum = null;
+
+    // A plain press on the bar should still behave like the classic button,
+    // including holding it for a longer note. startStrum stamps its own start
+    // time, which would measure a zero-length press here, so hand it the real
+    // one from the gesture.
+    if (wasTap) {
+      this.startStrum('down');
+      if (this.activeStrum) {
+        this.activeStrum.startTime = gesture.startTime;
+      }
+      this.endStrum();
+    }
+  }
+
+  onStrumPointerCancel(e) {
+    const gesture = this.dragStrum;
+    if (!gesture || e.pointerId !== gesture.pointerId) return;
+
+    this.flushDragStroke();
+    this.releaseStrumPointer(gesture.pointerId);
+    this.dragStrum = null;
+  }
+
+  releaseStrumPointer(pointerId) {
+    try {
+      if (this.gestureRoot && this.gestureRoot.hasPointerCapture(pointerId)) {
+        this.gestureRoot.releasePointerCapture(pointerId);
+      }
+    } catch (error) {
+      // Already released or never captured - nothing to do.
+    }
+  }
+
+  /**
+   * Abandon an in-flight drag gesture, writing whatever it has so far.
+   */
+  cancelDragStrum() {
+    if (!this.dragStrum) return;
+
+    this.flushDragStroke();
+    this.releaseStrumPointer(this.dragStrum.pointerId);
+    this.dragStrum = null;
+  }
+
+  /**
+   * Measure where each string sits on screen right now, top to bottom.
+   * Taken once per gesture so pointermove stays layout-thrash free, and so a
+   * resize between gestures is picked up automatically.
+   * @returns {Array<{stringNum: number, y: number}>}
+   */
+  measureStringCenters() {
+    const centers = [];
+
+    for (let stringNum = 1; stringNum <= STRING_COUNT; stringNum++) {
+      const element = this.stringElements[stringNum];
+      if (!element) continue;
+
+      const rect = element.getBoundingClientRect();
+      centers.push({ stringNum, y: rect.top + rect.height / 2 });
+    }
+
+    return centers.sort((a, b) => a.y - b.y);
+  }
+
+  /**
+   * Which strings sit between two pointer positions, in order of travel.
+   * The range is half-open so a string on the boundary of two consecutive
+   * move events is only counted once.
+   * @param {Array<{stringNum: number, y: number}>} centers
+   * @param {number} fromY
+   * @param {number} toY
+   */
+  findCrossedStrings(centers, fromY, toY) {
+    if (fromY === toY) return [];
+
+    const low = Math.min(fromY, toY);
+    const high = Math.max(fromY, toY);
+    const crossed = centers.filter(entry => entry.y > low && entry.y <= high);
+
+    return toY > fromY ? crossed : crossed.reverse();
+  }
+
+  /**
+   * Map pointer speed onto a MIDI velocity, scaled against the current
+   * velocity setting so this still respects the user's overall level.
+   * @param {number} distance - pixels travelled
+   * @param {number} elapsedMs
+   * @returns {number} velocity 1-127
+   */
+  velocityFromSpeed(distance, elapsedMs) {
+    const base = pianoState.velocity || 100;
+    const speed = distance / Math.max(elapsedMs, 1);
+    const ratio = Math.min(1, speed / DRAG_STRUM_MAX_SPEED);
+    const scaled = base * (DRAG_STRUM_MIN_VELOCITY_RATIO + (1 - DRAG_STRUM_MIN_VELOCITY_RATIO) * ratio);
+
+    return Math.max(1, Math.min(127, Math.round(scaled)));
+  }
+
+  /**
+   * Record one crossed string against the current stroke, starting a new
+   * stroke when the rake reverses direction.
+   */
+  registerDragPluck(stringNum, direction, velocity) {
+    const gesture = this.dragStrum;
+    if (!gesture) return;
+
+    if (gesture.stroke && gesture.stroke.direction !== direction) {
+      this.flushDragStroke();
+    }
+
+    if (!gesture.stroke) {
+      gesture.stroke = {
+        direction,
+        notes: [],
+        startTime: performance.now()
+      };
+    }
+
+    const note = this.dragPluck(stringNum, velocity);
+    if (note) {
+      gesture.stroke.notes.push(note);
+    }
+  }
+
+  /**
+   * Sound one string as part of a rake. Unlike pluckString this uses
+   * attack-release, since a rake has no matching mouseup per string.
+   * @returns {string|null} the note played, or null if the string is muted
+   */
+  dragPluck(stringNum, velocity) {
+    const stringIndex = stringNum - 1;
+    if (guitarState.mutedStrings[stringIndex]) return null;
+
+    const note = this.getStringNote(stringNum);
+    if (audioManager.isAudioReady()) {
+      triggerAttackRelease([note], "h", velocity, false);
+    }
+    this.highlightString(stringNum);
+
+    return note;
+  }
+
+  /**
+   * Write the current stroke to the score as a single chord.
+   */
+  flushDragStroke() {
+    const gesture = this.dragStrum;
+    if (!gesture || !gesture.stroke) return;
+
+    const stroke = gesture.stroke;
+    gesture.stroke = null;
+
+    // An all-muted stroke makes no sound, so it gets no notation either.
+    if (!stroke.notes.length) return;
+
+    gesture.strokeCount++;
+
+    const heldTime = performance.now() - stroke.startTime;
+    let duration = "q";
+    if (heldTime >= DURATION_THRESHOLDS.w) duration = "w";
+    else if (heldTime >= DURATION_THRESHOLDS.h) duration = "h";
+
+    const clefGroups = splitNotesIntoClefs(stroke.notes);
+    const identifiedChord = identifyChord(stroke.notes, false);
+
+    fillRests();
+
+    clefGroups.forEach(group => {
+      writeNote({
+        clef: group.clef,
+        duration,
+        notes: group.notes,
+        chordName: identifiedChord,
+      });
+    });
   }
 
   toggleStringMute(stringNum) {

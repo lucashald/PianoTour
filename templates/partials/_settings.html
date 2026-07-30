@@ -387,6 +387,18 @@
       >Fixed Duration (use quantize value)</label
     >
   </div>
+
+  {% if instrument == 'guitar' %}
+  <div class="checkbox-wrapper-velocity">
+    <label class="switch" for="toggleDragStrumCheckbox">
+      <input type="checkbox" id="toggleDragStrumCheckbox" checked />
+      <div class="slider round"></div>
+    </label>
+    <label for="toggleDragStrumCheckbox" class="velocity-label"
+      >Drag to Strum (rake across the strings)</label
+    >
+  </div>
+  {% endif %}
 </div>
 
 <div class="controls-tempo-container">
