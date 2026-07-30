@@ -6,6 +6,7 @@ import { NOTES_BY_NAME, DURATION_THRESHOLDS, splitNotesIntoClefs, identifyChord,
 import { trigger, triggerAttackRelease } from "./playbackHelpers.js";
 import { writeNote, fillRests } from "../score/scoreWriter.js";
 import { addAdvancedGuitarListeners } from "../ui/listenerManager.js";
+import { KEY_SOURCE } from "./keyHighlights.js";
 import * as ChordDB from '/static/js/core/chords.js';
 
 // Guitar-specific constants
@@ -630,7 +631,7 @@ updateStringLabel(stringNum) {
 
     const note = this.getStringNote(stringNum);
     if (audioManager.isAudioReady()) {
-      trigger([note], true);
+      trigger([note], true, undefined, true, KEY_SOURCE.GUITAR);
       this.playingStrings[stringNum] = note; // Track that this string is playing
     }
     this.highlightString(stringNum);
@@ -640,7 +641,7 @@ updateStringLabel(stringNum) {
   stopString(stringNum) {
     if (this.playingStrings[stringNum]) {
       const note = this.playingStrings[stringNum];
-      trigger([note], false);
+      trigger([note], false, undefined, true, KEY_SOURCE.GUITAR);
       delete this.playingStrings[stringNum];
     }
   }
@@ -680,9 +681,12 @@ updateStringLabel(stringNum) {
     const strumDelay = 10;
     const strings = direction === 'down' ? [6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6];
 
-    // Start all strings in the strum
+    // Start all strings in the strum. Uses the same attack-release pluck as a
+    // rake rather than pluckString: a strum has no per-string release, so a
+    // held note-on would ring forever and leave its piano key lit forever with
+    // it. This gives all three guitar paths one lifecycle.
     strings.forEach((stringNum, index) => {
-      setTimeout(() => this.pluckString(stringNum), index * strumDelay);
+      setTimeout(() => this.pluckStringOnce(stringNum), index * strumDelay);
     });
   }
 
@@ -1011,24 +1015,27 @@ updateStringLabel(stringNum) {
       };
     }
 
-    const note = this.dragPluck(stringNum, velocity);
+    const note = this.pluckStringOnce(stringNum, velocity);
     if (note) {
       gesture.stroke.notes.push(note);
     }
   }
 
   /**
-   * Sound one string as part of a rake. Unlike pluckString this uses
-   * attack-release, since a rake has no matching mouseup per string.
+   * Sound one string with a fixed ring-out. Used by rakes and strums, neither
+   * of which has a per-string release to pair with a held note-on. The piano
+   * key highlight is released on the same schedule, tagged to the guitar so it
+   * can't darken a key another source is still holding.
+   *
    * @returns {string|null} the note played, or null if the string is muted
    */
-  dragPluck(stringNum, velocity) {
+  pluckStringOnce(stringNum, velocity) {
     const stringIndex = stringNum - 1;
     if (guitarState.mutedStrings[stringIndex]) return null;
 
     const note = this.getStringNote(stringNum);
     if (audioManager.isAudioReady()) {
-      triggerAttackRelease([note], "h", velocity, false);
+      triggerAttackRelease([note], "h", velocity, false, null, KEY_SOURCE.GUITAR);
     }
     this.highlightString(stringNum);
 
@@ -1224,7 +1231,7 @@ export function handleInitialGuitar(e, actionData = null) {
     const clefGroups = splitNotesIntoClefs(clickedDetails.notes);
 
     if (clickedDetails.type === 'string') {
-      triggerAttackRelease(clickedDetails.notes, "h", pianoState.velocity, false);
+      triggerAttackRelease(clickedDetails.notes, "h", pianoState.velocity, false, null, KEY_SOURCE.GUITAR);
       
       if (window.guitarInstance) {
         window.guitarInstance.highlightString(clickedDetails.stringNum);
@@ -1240,7 +1247,7 @@ export function handleInitialGuitar(e, actionData = null) {
       
     } else if (clickedDetails.type === 'strum' || clickedDetails.type === 'palette') {
       clickedDetails.notes.forEach((note, index) => {
-        setTimeout(() => triggerAttackRelease([note], "h", pianoState.velocity, false), index * 10);
+        setTimeout(() => triggerAttackRelease([note], "h", pianoState.velocity, false, null, KEY_SOURCE.GUITAR), index * 10);
       });
       
       if (window.guitarInstance) {

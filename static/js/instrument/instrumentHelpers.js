@@ -6,6 +6,13 @@
 
 import { pianoState } from "../core/appState.js";
 import {
+  KEY_SOURCE,
+  addPressed,
+  clearPressed,
+  resetPressedTracking,
+  toMidiList
+} from "./keyHighlights.js";
+import {
   ALL_NOTE_INFO,
   BLACK_KEY_WIDTH,
   CHORD_STRUCTURES,
@@ -432,34 +439,51 @@ export function paintChordOnTheFly(chord) {
   pianoState.chordHi = midis;
 }
 
+const CHORD_ROLE_CLASSES = [
+  "chord-root",
+  "chord-third",
+  "chord-fifth",
+  "chord-seventh",
+  "chord-ninth"
+];
+
 /**
  * Updates the visual state of piano keys based on active notes.
- * Handles both single note (pressed) and chord (root/third/fifth/etc) coloring.
+ *
+ * The `pressed` highlight is delegated to keyHighlights, which reference counts
+ * it per source - so a release only darkens a key once every source holding it
+ * has let go. Pass a specific source (see KEY_SOURCE) to get that isolation;
+ * callers that don't share one catch-all tag and behave as they always have.
+ *
+ * The chord role classes are still handled here. They're co-owned with chord
+ * mode through pianoState.chordHi, and giving them a single owner is a separate
+ * change from this one.
+ *
  * @param {string[]} notes - Array of note names (e.g. ['C4', 'E4', 'G4']).
  * @param {boolean} isActive - Whether the notes are being played (true) or released (false).
+ * @param {string} [source] - Which subsystem is asking. See KEY_SOURCE.
  */
-export function updateKeyVisuals(notes, isActive) {
-  // Convert notes to midis, normalizing double sharps/flats first
-  const midis = notes.map((n) => NOTES_BY_NAME[normalizeNoteName(n)]).filter((m) => m !== undefined);
+export function updateKeyVisuals(notes, isActive, source = KEY_SOURCE.DEFAULT) {
+  const midis = toMidiList(notes);
   const isChord = midis.length > 1;
 
+  if (isActive) {
+    addPressed(midis, source);
+  } else {
+    clearPressed(midis, source);
+  }
+
+  // Chord role colouring, keyed on position in the array.
   midis.forEach((midi, index) => {
     const el = pianoState.noteEls[midi];
     if (!el) return;
 
     if (isActive) {
-      el.classList.add("pressed");
-      
-      // If it's a chord (more than 1 note), apply specific colors
-      if (isChord) {
-        if (index === 0) el.classList.add("chord-root");
-        if (index === 1) el.classList.add("chord-third");
-        if (index === 2) el.classList.add("chord-fifth");
-        if (index === 3) el.classList.add("chord-seventh");
-        if (index === 4) el.classList.add("chord-ninth");
+      if (isChord && index < CHORD_ROLE_CLASSES.length) {
+        el.classList.add(CHORD_ROLE_CLASSES[index]);
       }
     } else {
-      el.classList.remove("pressed", "chord-root", "chord-third", "chord-fifth", "chord-seventh", "chord-ninth");
+      el.classList.remove(...CHORD_ROLE_CLASSES);
     }
   });
 }
@@ -970,6 +994,9 @@ export function initializeInstrumentUI() {
      instrumentDiv.removeChild(instrumentDiv.firstChild);
  }
  pianoState.noteEls = {}; // Clear old references
+ // The elements we were tracking highlights against no longer exist, and the
+ // rebuilt keys start unpainted.
+ resetPressedTracking();
 
  // Create SVG and key groups
  pianoState.svg = document.createElementNS(NS, "svg");

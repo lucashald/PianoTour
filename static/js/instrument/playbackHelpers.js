@@ -33,6 +33,7 @@ import {
   paintChordOnTheFly,
   updateKeyVisuals
 } from "./instrumentHelpers.js";
+import { KEY_SOURCE } from "./keyHighlights.js";
 
 // Import spectrum visualization functions - SIMPLIFIED
 import {
@@ -78,9 +79,11 @@ export async function startAudio() {
  * @param {string|string[]} note - The note name(s) (e.g., "C4", ["C4", "E4", "G4"]).
  * @param {boolean} on - True to trigger attack, false to trigger release.
  * @param {number} [velocity=pianoState.velocity] - MIDI velocity (1-127).
+ * @param {boolean} [useEnvelope=true]
+ * @param {string} [source] - Which subsystem owns the key highlight. See KEY_SOURCE.
  */
- 
-export function trigger(note, on, velocity, useEnvelope = true) {
+
+export function trigger(note, on, velocity, useEnvelope = true, source = KEY_SOURCE.DEFAULT) {
   if (!audioManager.isAudioReady() || !pianoState.sampler) return;
 
   // Use pianoState.velocity if no velocity is passed
@@ -105,7 +108,7 @@ export function trigger(note, on, velocity, useEnvelope = true) {
   }
 
   // Update visual state
-  updateKeyVisuals(notes, on);
+  updateKeyVisuals(notes, on, source);
 }
 
 /**
@@ -377,7 +380,7 @@ export function stopDiatonicChordFromUI(inputSource) {
   stopDiatonicChord(inputSource);
 }
 
-export function triggerAttackRelease(note, duration = pianoState.quantize, velocity, writeToScore = true, chordName = null) {
+export function triggerAttackRelease(note, duration = pianoState.quantize, velocity, writeToScore = true, chordName = null, source = KEY_SOURCE.DEFAULT) {
   if (!audioManager.isAudioReady()) return;
 
   // Use pianoState.velocity if no velocity is passed
@@ -420,7 +423,7 @@ export function triggerAttackRelease(note, duration = pianoState.quantize, veloc
   pianoState.sampler.triggerAttackRelease(note, durationInSeconds, now, effectiveVelocity / 127);
 
   // Update visual state immediately
-  updateKeyVisuals(notesArray, true);
+  updateKeyVisuals(notesArray, true, source);
 
   // Store chord data
   pianoState.activeDiatonicChords[attackReleaseKey] = {
@@ -438,6 +441,11 @@ export function triggerAttackRelease(note, duration = pianoState.quantize, veloc
   const cleanupDelay = durationMs + envelopeReleaseTime;
 
   setTimeout(() => {
+    // Release the highlight first, and unconditionally. This used to sit below
+    // the chordData guard, so anything that removed the tracking entry early
+    // left the key lit for good.
+    updateKeyVisuals(notesArray, false, source);
+
     const chordData = pianoState.activeDiatonicChords[attackReleaseKey];
     if (!chordData) {
       console.warn(`⚠️ No chord data found for key: ${attackReleaseKey}`);
@@ -457,19 +465,13 @@ export function triggerAttackRelease(note, duration = pianoState.quantize, veloc
     // Remove this specific attackRelease from tracking
     delete pianoState.activeDiatonicChords[attackReleaseKey];
 
-    // Handle visual cleanup for chords
     if (isChord) {
-      updateKeyVisuals(notesArray, false);
-
       setTimeout(() => {
         const remainingChords = Object.keys(pianoState.activeDiatonicChords).length;
         if (remainingChords === 0 && (pianoState.isMajorChordMode || pianoState.isMinorChordMode)) {
           paintChord();
         }
       }, 50);
-    } else {
-      // Also cleanup for single notes (since trigger doesn't handle release for triggerAttackRelease automatically)
-      updateKeyVisuals(notesArray, false);
     }
 
     // Final spectrum cleanup check

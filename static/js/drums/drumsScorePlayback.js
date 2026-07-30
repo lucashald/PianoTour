@@ -17,6 +17,7 @@ import {
 } from "./drumsScoreHighlighter.js";
 import { getVexflowIndexByNoteId, drawAll, scrollToMeasure } from "./drumRenderer.js";
 import { getDrumMeasures } from "./drumsScoreWriter.js";
+import { KEY_TARGET, clearAllPressed } from "../instrument/keyHighlights.js";
 // ===================================================================
 // Constants
 // ===================================================================
@@ -377,10 +378,9 @@ export function stopPlayback() {
     }
   }
 
-  // Clear any visual "pressed" states from the piano keys
-  Object.values(drumsState.noteEls).forEach((el) => {
-    el.classList.remove("pressed");
-  });
+  // Clear any visual "pressed" states from the drum keys. Hard stop, so the
+  // blanket clear is intended rather than a per-source release.
+  clearAllPressed({ target: KEY_TARGET.DRUMS });
 
   // 🎯 FIXED: Don't immediately clear playback notes - let them decay naturally
   // Instead, mark them for cleanup after release time

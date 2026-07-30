@@ -24,6 +24,7 @@ import { getMeasures } from "./scoreWriter.js";
 import { initMidiWhenReady } from "../instrument/midi-controller.js";
 // Add fretboard integration
 import { getFretMap } from "../instrument/fretMap.js";
+import { clearAllPressed } from "../instrument/keyHighlights.js";
 
 // ===================================================================
 // Constants
@@ -474,10 +475,10 @@ export function stopPlayback() {
     pianoState.envelope.triggerRelease();
   }
 
-  // Clear any visual "pressed" states from the piano keys
-  Object.values(pianoState.noteEls).forEach((el) => {
-    el.classList.remove("pressed");
-  });
+  // Clear any visual "pressed" states from the piano keys. This is a hard stop
+  // - the sampler release above dropped every voice - so the blanket clear is
+  // the intent here rather than a per-source release.
+  clearAllPressed();
 
   // Also clear any fretboard playback highlights if present
   try {
