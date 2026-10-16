@@ -395,14 +395,14 @@ function drawTies(context, tieGroups, vexflowNoteMap, vexflowIndexByNoteId) {
 }
 
 /**
- * Returns true if the value looks like a real chord symbol (e.g. "Am", "Cmaj7")
- * rather than a raw note name ("F4"), unidentified group ("(C4 E4 G4)"), or rest.
+ * Returns true if the note is a chord with an identified symbol (e.g. "Am", "D7")
+ * rather than a single note ("F4"), an unidentified group ("(C4 E4 G4)"), or a rest.
+ * Decided from the note itself: a symbol like "D7" can't be told apart from the
+ * note name D7 by its text alone.
  */
-function isChordSymbol(chordName) {
-  if (!chordName || chordName === "Rest") return false;
-  if (chordName.startsWith("(")) return false; // unidentified multi-note fallback
-  if (/^[A-G][#b]*\d+$/.test(chordName)) return false; // single note name (e.g., "C4", "F#3")
-  return true;
+function isChordSymbol(note) {
+  if (note.isRest || !note.chordName) return false;
+  return note.name.startsWith("(") && !note.chordName.startsWith("(");
 }
 
 /**
@@ -418,7 +418,7 @@ async function appendChordDiagramRow(container, measures) {
   const chords = [];
   for (const measure of measures) {
     for (const note of measure) {
-      if (isChordSymbol(note.chordName) && !seen.has(note.chordName)) {
+      if (isChordSymbol(note) && !seen.has(note.chordName)) {
         seen.add(note.chordName);
         chords.push({ chordName: note.chordName, noteName: note.name });
       }
