@@ -1,0 +1,86 @@
+{
+ "title": "",
+ "composer": "",
+ "keySignature": "C",
+ "keyName": "C",
+ "timeSignature": {
+  "numerator": 4,
+  "denominator": 4
+ },
+ "tempo": 120,
+ "enableBeaming": true,
+ "measures": [
+  [
+   {
+    "id": "m0-treble-1",
+    "name": "B4",
+    "clef": "treble",
+    "duration": "h",
+    "measure": 0,
+    "isRest": true
+   },
+   {
+    "id": "m0-treble-1x",
+    "name": "B4",
+    "clef": "treble",
+    "duration": "q",
+    "measure": 0,
+    "isRest": true
+   },
+   {
+    "id": "grp0-0-treble",
+    "name": "(C4 E4 G4)",
+    "clef": "treble",
+    "duration": "q",
+    "measure": 0,
+    "isRest": false,
+    "velocity": 80
+   },
+   {
+    "id": "m0-bass-0",
+    "name": "D3",
+    "clef": "bass",
+    "duration": "w",
+    "measure": 0,
+    "isRest": true,
+    "chordName": "Rest"
+   }
+  ],
+  [
+   {
+    "id": "a1",
+    "name": "C5",
+    "clef": "treble",
+    "duration": "h",
+    "measure": 1,
+    "isRest": false,
+    "tie": {
+     "type": "slur",
+     "startNoteId": "a1",
+     "endNoteId": "a2"
+    }
+   },
+   {
+    "id": "a2",
+    "name": "A4",
+    "clef": "treble",
+    "duration": "h",
+    "measure": 1,
+    "isRest": false,
+    "tie": {
+     "type": "slur",
+     "startNoteId": "a1",
+     "endNoteId": "a2"
+    }
+   },
+   {
+    "name": "D3",
+    "clef": "bass",
+    "duration": "w",
+    "isRest": true,
+    "measure": 1,
+    "id": "m1-bass-0"
+   }
+  ]
+ ]
+}

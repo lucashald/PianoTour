@@ -1,0 +1,100 @@
+{
+ "title": "",
+ "composer": "",
+ "keySignature": "G",
+ "keyName": "Em",
+ "timeSignature": {
+  "numerator": 3,
+  "denominator": 4
+ },
+ "tempo": 120,
+ "enableBeaming": true,
+ "measures": [
+  [
+   {
+    "name": "E4",
+    "clef": "treble",
+    "duration": "q",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-treble-0"
+   },
+   {
+    "name": "B4",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": true,
+    "measure": 0,
+    "id": "m0-treble-1"
+   },
+   {
+    "name": "E2",
+    "clef": "bass",
+    "duration": "h.",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-bass-0"
+   }
+  ],
+  [
+   {
+    "name": "B4",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": true,
+    "measure": 1,
+    "id": "m1-treble-0"
+   },
+   {
+    "name": "B4",
+    "clef": "treble",
+    "duration": "q",
+    "isRest": true,
+    "id": "m1-treble-1",
+    "measure": 1
+   },
+   {
+    "name": "D3",
+    "clef": "bass",
+    "duration": "w",
+    "isRest": true,
+    "measure": 1,
+    "id": "m1-bass-0"
+   }
+  ],
+  [
+   {
+    "name": "B4",
+    "clef": "treble",
+    "duration": "8",
+    "isRest": false,
+    "measure": 2,
+    "id": "m2-treble-0"
+   },
+   {
+    "name": "A4",
+    "clef": "treble",
+    "duration": "8",
+    "isRest": false,
+    "measure": 2,
+    "id": "m2-treble-1"
+   },
+   {
+    "name": "G4",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": false,
+    "measure": 2,
+    "id": "m2-treble-2"
+   },
+   {
+    "name": "D3",
+    "clef": "bass",
+    "duration": "w",
+    "isRest": true,
+    "measure": 2,
+    "id": "m2-bass-0"
+   }
+  ]
+ ]
+}

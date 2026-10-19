@@ -1,0 +1,135 @@
+{
+ "title": "",
+ "composer": "",
+ "keySignature": "Bb",
+ "keyName": "Bb",
+ "timeSignature": {
+  "numerator": 4,
+  "denominator": 4
+ },
+ "tempo": 120,
+ "enableBeaming": true,
+ "measures": [
+  [
+   {
+    "name": "(Bb4 D5 F5)",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-treble-0",
+    "tie": {
+     "type": "tie",
+     "startNoteId": "m0-treble-0",
+     "endNoteId": "m0-treble-1"
+    }
+   },
+   {
+    "name": "(Bb4 D5 F5)",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-treble-1",
+    "tie": {
+     "type": "tie",
+     "startNoteId": "m0-treble-0",
+     "endNoteId": "m0-treble-1"
+    }
+   },
+   {
+    "name": "Bb2",
+    "clef": "bass",
+    "duration": "h",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-bass-0",
+    "tie": {
+     "type": "tie",
+     "startNoteId": "m0-bass-0",
+     "endNoteId": "m0-bass-1"
+    }
+   },
+   {
+    "name": "Bb2",
+    "clef": "bass",
+    "duration": "h",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-bass-1",
+    "tie": {
+     "type": "tie",
+     "startNoteId": "m0-bass-1",
+     "endNoteId": "m1-bass-0"
+    }
+   }
+  ],
+  [
+   {
+    "name": "C5",
+    "clef": "treble",
+    "duration": "q",
+    "isRest": false,
+    "measure": 1,
+    "id": "m1-treble-0"
+   },
+   {
+    "name": "D5",
+    "clef": "treble",
+    "duration": "q",
+    "isRest": false,
+    "measure": 1,
+    "id": "m1-treble-1"
+   },
+   {
+    "name": "Eb5",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": false,
+    "measure": 1,
+    "id": "m1-treble-2",
+    "tie": {
+     "type": "tie",
+     "startNoteId": "m1-treble-2",
+     "endNoteId": "m2-treble-0"
+    }
+   },
+   {
+    "name": "Bb2",
+    "clef": "bass",
+    "duration": "w",
+    "isRest": false,
+    "measure": 1,
+    "id": "m1-bass-0",
+    "tie": {
+     "type": "tie",
+     "startNoteId": "m0-bass-1",
+     "endNoteId": "m1-bass-0"
+    }
+   }
+  ],
+  [
+   {
+    "name": "Eb5",
+    "clef": "treble",
+    "duration": "w",
+    "isRest": false,
+    "measure": 2,
+    "id": "m2-treble-0",
+    "tie": {
+     "type": "tie",
+     "startNoteId": "m1-treble-2",
+     "endNoteId": "m2-treble-0"
+    }
+   },
+   {
+    "name": "F2",
+    "clef": "bass",
+    "duration": "w",
+    "isRest": false,
+    "measure": 2,
+    "id": "m2-bass-0"
+   }
+  ]
+ ]
+}

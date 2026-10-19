@@ -3,6 +3,8 @@
 test-logs/
 test-results/
 tests/
+# ...except midi_tools' own unit tests and fixtures
+!midi_tools/tests/
 node_modules/
 examples/
 static/js/spessa/

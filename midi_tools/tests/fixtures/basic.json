@@ -1,0 +1,135 @@
+{
+ "title": "Basic tokens",
+ "composer": "",
+ "keySignature": "G",
+ "keyName": "G",
+ "timeSignature": {
+  "numerator": 4,
+  "denominator": 4
+ },
+ "tempo": 96,
+ "enableBeaming": true,
+ "measures": [
+  [
+   {
+    "name": "(G4 B4 D5)",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-treble-0"
+   },
+   {
+    "name": "B4",
+    "clef": "treble",
+    "duration": "q.",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-treble-1"
+   },
+   {
+    "name": "A4",
+    "clef": "treble",
+    "duration": "8",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-treble-2"
+   },
+   {
+    "name": "G2",
+    "clef": "bass",
+    "duration": "w",
+    "isRest": false,
+    "measure": 0,
+    "id": "m0-bass-0"
+   }
+  ],
+  [
+   {
+    "name": "(D4 F4 A4 C5)",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": false,
+    "chordSymbol": "Dm7",
+    "measure": 1,
+    "id": "m1-treble-0"
+   },
+   {
+    "name": "(G4 B4 D5)",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": false,
+    "chordSymbol": "G",
+    "measure": 1,
+    "id": "m1-treble-1"
+   },
+   {
+    "name": "D2",
+    "clef": "bass",
+    "duration": "h",
+    "isRest": false,
+    "measure": 1,
+    "id": "m1-bass-0"
+   },
+   {
+    "name": "G2",
+    "clef": "bass",
+    "duration": "q",
+    "isRest": false,
+    "measure": 1,
+    "id": "m1-bass-1"
+   },
+   {
+    "name": "D3",
+    "clef": "bass",
+    "duration": "q",
+    "isRest": true,
+    "measure": 1,
+    "id": "m1-bass-2"
+   }
+  ],
+  [
+   {
+    "name": "F#4",
+    "clef": "treble",
+    "duration": "q",
+    "isRest": false,
+    "measure": 2,
+    "id": "m2-treble-0"
+   },
+   {
+    "name": "B4",
+    "clef": "treble",
+    "duration": "q",
+    "isRest": true,
+    "measure": 2,
+    "id": "m2-treble-1"
+   },
+   {
+    "name": "B4",
+    "clef": "treble",
+    "duration": "h",
+    "isRest": true,
+    "measure": 2,
+    "id": "m2-treble-2"
+   },
+   {
+    "name": "C3",
+    "clef": "bass",
+    "duration": "h",
+    "isRest": false,
+    "measure": 2,
+    "id": "m2-bass-0"
+   },
+   {
+    "name": "E3",
+    "duration": "h",
+    "velocity": 90,
+    "clef": "bass",
+    "isRest": false,
+    "measure": 2,
+    "id": "m2-bass-1"
+   }
+  ]
+ ]
+}
