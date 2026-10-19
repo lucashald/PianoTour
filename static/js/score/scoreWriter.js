@@ -947,27 +947,47 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
  */
 export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, noteData, insertBeforeNoteId = null) {
 
+    const isMove = fromMeasureIndex !== null && fromMeasureIndex !== undefined &&
+        fromNoteId !== null && fromNoteId !== undefined;
+
     let noteToPlace = noteData;
 
-    // Remove existing note if source is specified
-    if (fromMeasureIndex !== null && fromMeasureIndex !== undefined && 
-        fromNoteId !== null && fromNoteId !== undefined) {
-        
-        // Remove ties when note is moved/repositioned
-        removeTiesForNote(fromNoteId);
-        
-        const existingNote = doRemoveNote(fromMeasureIndex, fromNoteId);
+    if (isMove) {
+        const existingNote = measuresData[fromMeasureIndex]?.find(note => note.id === fromNoteId);
         if (!existingNote) {
             console.error('placeNote: Note not found at source (ID:', fromNoteId, ')');
             return false;
         }
-        
         // Merge existing note with any updates
         noteToPlace = { ...existingNote, ...noteData };
     }
 
     // Apply chord name generation logic
     noteToPlace = applyChordNameGeneration(noteToPlace);
+
+    // Check for overflow before changing anything, so a refused placement leaves the score intact
+    const fits = isMove
+        ? moveFits(fromMeasureIndex, fromNoteId, toMeasureIndex, noteToPlace, insertBeforeNoteId)
+        : wouldOverflowAfterAdd(toMeasureIndex, noteToPlace, insertBeforeNoteId);
+    if (!fits) {
+        console.warn('placeNote: Adding note would cause measure overflow. Operation cancelled.');
+        updateNowPlayingDisplay("Error: Placement would overflow measure!");
+        setTimeout(() => updateNowPlayingDisplay(""), 3000);
+        return false;
+    }
+
+    if (isMove) {
+        // Remove ties when note is moved/repositioned
+        removeTiesForNote(fromNoteId);
+
+        const measureCountBefore = measuresData.length;
+        doRemoveNote(fromMeasureIndex, fromNoteId);
+
+        // doRemoveNote deletes a measure it empties, which shifts later measures left by one
+        if (measuresData.length < measureCountBefore && toMeasureIndex > fromMeasureIndex) {
+            toMeasureIndex -= 1;
+        }
+    }
 
     // Ensure note has required properties
     if (!noteToPlace.id) {
@@ -978,14 +998,6 @@ export function placeNote(fromMeasureIndex, fromNoteId, toMeasureIndex, noteData
     // Ensure target measure exists
     while (measuresData.length <= toMeasureIndex) {
         measuresData.push([]);
-    }
-
-    // Pre-check for overflow before adding
-    if (!wouldOverflowAfterAdd(toMeasureIndex, noteToPlace, insertBeforeNoteId)) {
-        console.warn('placeNote: Adding note would cause measure overflow. Operation cancelled.');
-        updateNowPlayingDisplay("Error: Placement would overflow measure!");
-        setTimeout(() => updateNowPlayingDisplay(""), 3000);
-        return false;
     }
 
     // Place the note at the target position
@@ -1076,6 +1088,35 @@ function applyChordNameGeneration(noteData, useSymbol = false) {
 /**
  * Checks if adding a note would cause measure overflow
  */
+/**
+ * Checks whether moving an existing note keeps every affected measure within its beats.
+ * Simulates the move: the note is taken out of its source before being added at the target,
+ * so a same-measure move doesn't count the note twice.
+ * @param {number} fromMeasureIndex - Measure the note is in now
+ * @param {string} fromNoteId - ID of the note being moved
+ * @param {number} toMeasureIndex - Measure the note is moving to
+ * @param {object} noteToPlace - The note as it will be placed (with any pitch/clef updates)
+ * @param {string|null} insertBeforeNoteId - ID of note to insert before (null to append)
+ * @returns {boolean} true if the moved note fits
+ */
+export function moveFits(fromMeasureIndex, fromNoteId, toMeasureIndex, noteToPlace, insertBeforeNoteId = null) {
+    const tempMeasure = (measuresData[toMeasureIndex] || [])
+        .filter(note => !(toMeasureIndex === fromMeasureIndex && note.id === fromNoteId));
+
+    const insertIndex = insertBeforeNoteId
+        ? tempMeasure.findIndex(note => note.id === insertBeforeNoteId)
+        : -1;
+    if (insertIndex === -1) {
+        tempMeasure.push(noteToPlace);
+    } else {
+        tempMeasure.splice(insertIndex, 0, noteToPlace);
+    }
+
+    const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
+    return trebleBeats <= pianoState.timeSignature.numerator &&
+           bassBeats <= pianoState.timeSignature.numerator;
+}
+
 function wouldOverflowAfterAdd(measureIndex, noteToAdd, insertBeforeNoteId) {
     // Create a temporary measure to test overflow
     const tempMeasure = measuresData[measureIndex] ? 

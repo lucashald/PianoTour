@@ -24,6 +24,7 @@ import {
   setTempo,
   setTimeSignature,
   placeNote,
+  moveFits,
   createTie,
   removeTie,
   createSlur,
@@ -1614,6 +1615,84 @@ export function toggleSelectedClef() {
  * Delete key listener, and noteAddedToScore listener.
  * This can be called by any route that has a rendered score.
  */
+/**
+ * Works out the pitch a dragged note lands on. Chords keep their shape and move by
+ * the distance between the grabbed note (top or bottom) and the drop pitch.
+ * @returns {string|null} The new note name, or null if it can't be determined
+ */
+function getDroppedPitchName(originalNote, newPitch, chordAnchor) {
+  if (!isChord(originalNote.name)) return newPitch;
+
+  const chordNotes = parseChord(originalNote.name);
+  const anchorNote =
+    chordAnchor === "top" ? chordNotes[chordNotes.length - 1] : chordNotes[0];
+  const anchorNoteMidi = NOTES_BY_NAME[anchorNote];
+  const newPitchMidi = NOTES_BY_NAME[newPitch];
+  if (anchorNoteMidi === undefined || newPitchMidi === undefined) return null;
+
+  return transposeChord(originalNote.name, newPitchMidi - anchorNoteMidi);
+}
+
+/**
+ * Decides what dropping a dragged note should do.
+ *   noop    - same position, pitch and clef: write nothing
+ *   update  - same position, new pitch: change it in place
+ *   move    - new position, clef or measure: move it with placeNote
+ *   refused - the result wouldn't fit in the target measure: change nothing
+ * insertBeforeNoteId null means "after the last note in the target clef".
+ * @param {object} detail - The noteDropped event detail
+ * @returns {{action: string, updates?: object}}
+ */
+function resolveNoteDrop(detail) {
+  const {
+    fromMeasureIndex,
+    fromNoteId,
+    toMeasureIndex,
+    clefChanged,
+    pitchChanged,
+    newClef,
+    newPitch,
+    chordAnchor,
+  } = detail;
+  const insertBeforeNoteId = detail.insertBeforeNoteId ?? null;
+
+  const measures = getMeasures();
+  const note = measures[fromMeasureIndex]?.find((n) => n.id === fromNoteId);
+  if (!note) return { action: "noop" };
+
+  const updates = {};
+  if (clefChanged) updates.clef = newClef;
+  if (pitchChanged && !note.isRest) {
+    const name = getDroppedPitchName(note, newPitch, chordAnchor);
+    if (name && name !== note.name) updates.name = name;
+  }
+  const propertiesChanged = Object.keys(updates).length > 0;
+
+  // Same measure and clef: dropping before itself, before its next neighbor,
+  // or after the last note when it's already last all leave it where it is
+  if (fromMeasureIndex === toMeasureIndex && !clefChanged) {
+    const clefOrder = measures[fromMeasureIndex]
+      .filter((n) => n.clef === note.clef)
+      .map((n) => n.id);
+    const nextNoteId = clefOrder[clefOrder.indexOf(note.id) + 1] ?? null;
+    const samePosition =
+      insertBeforeNoteId === note.id || insertBeforeNoteId === nextNoteId;
+
+    if (samePosition) {
+      return propertiesChanged ? { action: "update", updates } : { action: "noop" };
+    }
+  }
+
+  const fits = moveFits(
+    fromMeasureIndex,
+    fromNoteId,
+    toMeasureIndex,
+    { ...note, ...updates },
+    insertBeforeNoteId,
+  );
+  return fits ? { action: "move", updates } : { action: "refused" };
+}
+
 export function initializeScoreInteraction() {
   console.log("context-menu: initializeScoreInteraction() called");
   enableScoreInteraction(
@@ -1689,84 +1768,32 @@ export function initializeScoreInteraction() {
       }
     }
 
-    // Existing note drop handling code...
-    const measures = getMeasures();
-    const originalNote = measures[fromMeasureIndex]?.find(
-      (note) => note.id === fromNoteId,
-    );
-    if (!originalNote) return;
-
-    if (fromMeasureIndex !== toMeasureIndex) {
-      // Moving between measures - maintain chord structure
-      const noteToMove = removeNoteFromMeasure(fromMeasureIndex, fromNoteId);
-      if (noteToMove) {
-        if (clefChanged) noteToMove.clef = newClef;
-        if (pitchChanged && !originalNote.isRest) {
-          // Handle chord transposition
-          if (isChord(originalNote.name)) {
-            const chordNotes = parseChord(originalNote.name);
-            // Use top or bottom note as anchor based on where user grabbed
-            const anchorNote =
-              chordAnchor === "top"
-                ? chordNotes[chordNotes.length - 1]
-                : chordNotes[0];
-            const anchorNoteMidi = NOTES_BY_NAME[anchorNote];
-            const newPitchMidi = NOTES_BY_NAME[newPitch];
-            if (anchorNoteMidi !== undefined && newPitchMidi !== undefined) {
-              const semitoneChange = newPitchMidi - anchorNoteMidi;
-              noteToMove.name = transposeChord(
-                originalNote.name,
-                semitoneChange,
-              );
-            }
-          } else {
-            noteToMove.name = newPitch;
-          }
-        }
-        addNoteToMeasure(toMeasureIndex, noteToMove, insertBeforeNoteId);
-        editorSelectedMeasureIndex = toMeasureIndex;
-        editorSelectedNoteId = noteToMove.id;
-      }
-    } else if (insertBeforeNoteId || clefChanged || pitchChanged) {
-      // Same measure: repositioning OR property changes
-      const updatedNoteData = {};
-      if (clefChanged) updatedNoteData.clef = newClef;
-      if (pitchChanged && !originalNote.isRest) {
-        if (isChord(originalNote.name)) {
-          const chordNotes = parseChord(originalNote.name);
-          // Use top or bottom note as anchor based on where user grabbed
-          const anchorNote =
-            chordAnchor === "top"
-              ? chordNotes[chordNotes.length - 1]
-              : chordNotes[0];
-          const anchorNoteMidi = NOTES_BY_NAME[anchorNote];
-          const newPitchMidi = NOTES_BY_NAME[newPitch];
-          if (anchorNoteMidi !== undefined && newPitchMidi !== undefined) {
-            const semitoneChange = newPitchMidi - anchorNoteMidi;
-            updatedNoteData.name = transposeChord(
-              originalNote.name,
-              semitoneChange,
-            );
-          }
-        } else {
-          updatedNoteData.name = newPitch;
-        }
-      }
-
-      if (insertBeforeNoteId && insertBeforeNoteId !== fromNoteId) {
-        // Actually repositioning - use placeNote
-        placeNote(
+    // Moving an existing note
+    const outcome = resolveNoteDrop(event.detail);
+    switch (outcome.action) {
+      case "noop":
+        break;
+      case "update":
+        updateNoteInMeasure(fromMeasureIndex, fromNoteId, outcome.updates);
+        editorSelectedNoteId = fromNoteId;
+        break;
+      case "move": {
+        const result = placeNote(
           fromMeasureIndex,
           fromNoteId,
           toMeasureIndex,
-          updatedNoteData,
-          insertBeforeNoteId,
+          outcome.updates,
+          insertBeforeNoteId ?? null,
         );
-      } else {
-        // Just updating properties in same position - use updateNoteInMeasure
-        updateNoteInMeasure(fromMeasureIndex, fromNoteId, updatedNoteData);
+        if (result) {
+          editorSelectedMeasureIndex = result.measureIndex;
+          editorSelectedNoteId = result.noteId;
+        }
+        break;
       }
-      editorSelectedNoteId = fromNoteId;
+      case "refused":
+        showToast("There isn't room for that note there", { type: "error" });
+        break;
     }
     renderNoteEditBox(false);
   });
