@@ -35,6 +35,7 @@ import {
   moveMeasureToEnd,
   splitNote,
   transposeScore,
+  resetScore,
 } from "../score/scoreWriter.js";
 import { setScoreTitle } from "../utils/ioHelpers.js";
 import {
@@ -686,6 +687,8 @@ function addScoreLevelItems(menu) {
 
   addSeparator(menu);
 
+  addSetTitleItem(menu);
+
   addMenuItem(menu, "Set Time Signature", () => {
     const current = `${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`;
     const input = window.prompt("Time signature (e.g. 4/4, 3/4):", current);
@@ -719,7 +722,13 @@ function addScoreLevelItems(menu) {
 
   addSeparator(menu);
 
-  addSetTitleItem(menu);
+  // resetScore() also clears undo history and the autosave, so confirm first
+  addMenuItem(menu, "Clear Score", () => {
+    if (!window.confirm("Clear the entire score? This can't be undone.")) return;
+    resetScore();
+    editorSelectedNoteId = null;
+    changeMeasure(0);
+  });
 }
 
 const SHARP_KEYS = [
