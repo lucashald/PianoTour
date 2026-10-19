@@ -22,7 +22,7 @@ import {
   getMeasures,
   removeNoteFromMeasure,
   setTempo,
-  setTimeSignature,
+  changeTimeSignature,
   placeNote,
   moveFits,
   createTie,
@@ -39,6 +39,10 @@ import {
   resetScore,
 } from "../score/scoreWriter.js";
 import { setScoreTitle } from "../utils/ioHelpers.js";
+import {
+  SUPPORTED_TIME_SIGNATURES,
+  syncTimeSignatureSelect,
+} from "../core/timeSignatures.js";
 import {
   updateNowPlayingDisplay,
   toggleIsMinorKey,
@@ -690,23 +694,15 @@ function addScoreLevelItems(menu) {
 
   addSetTitleItem(menu);
 
-  addMenuItem(menu, "Set Time Signature", () => {
-    const current = `${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`;
-    const input = window.prompt("Time signature (e.g. 4/4, 3/4):", current);
-    if (input === null) return;
-    const match = input.trim().match(/^(\d+)\s*\/\s*(\d+)$/);
-    if (!match) {
-      showToast("Invalid time signature. Use format like 4/4 or 3/4", {
-        type: "error",
-      });
-      return;
-    }
-    const n = parseInt(match[1], 10);
-    const d = parseInt(match[2], 10);
-    if (!setTimeSignature(n, d)) {
-      showToast("Invalid time signature", { type: "error" });
-    }
-  });
+  const currentTimeSignature = `${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`;
+  addSubmenu(
+    menu,
+    "Set Time Signature",
+    SUPPORTED_TIME_SIGNATURES.map((value) => ({
+      label: value === currentTimeSignature ? `${value} ✓` : value,
+      action: () => applyTimeSignatureChoice(value),
+    })),
+  );
 
   addMenuItem(menu, "Set Tempo", () => {
     const input = window.prompt("Tempo (BPM, 30–300):", pianoState.tempo);
@@ -1910,8 +1906,23 @@ export function initializeScoreInteraction() {
  * editorContainer event delegation (click, input, change), and populates
  * duration/octave dropdowns. Only relevant on routes with a sidebar.
  */
+/**
+ * Applies a time signature picked from the sidebar dropdown or the context menu.
+ * @param {string} value - A supported time signature like "3/4"
+ */
+async function applyTimeSignatureChoice(value) {
+  const [numerator, denominator] = value.split("/").map((part) => parseInt(part, 10));
+  if (!(await changeTimeSignature(numerator, denominator))) {
+    showToast(`Unsupported time signature: ${value}`, { type: "error" });
+    syncTimeSignatureSelect();
+    return;
+  }
+  renderNoteEditBox(false);
+}
+
 export function initializeEditorSidebar() {
   console.log("context-menu: initializeEditorSidebar() called");
+  syncTimeSignatureSelect();
   renderNoteEditBox(false); // Initial render without smooth scroll
 
   const editorContainer = document.getElementById("editorContainer");
@@ -2116,28 +2127,8 @@ export function initializeEditorSidebar() {
     const target = event.target;
 
     // Handle time signature changes
-    if (
-      target.id === "time-signature-numerator" ||
-      target.id === "time-signature-denominator"
-    ) {
-      const numerator = parseInt(
-        document.getElementById("time-signature-numerator").value,
-        10,
-      );
-      const denominator = parseInt(
-        document.getElementById("time-signature-denominator").value,
-        10,
-      );
-
-      if (
-        !isNaN(numerator) &&
-        !isNaN(denominator) &&
-        numerator >= 1 &&
-        denominator >= 2
-      ) {
-        setTimeSignature(numerator, denominator);
-        console.log("Setting time signature", numerator, denominator);
-      }
+    if (target.id === "time-signature-select") {
+      applyTimeSignatureChoice(target.value);
       return;
     }
 

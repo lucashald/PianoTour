@@ -259,7 +259,7 @@
             // Import Piano Tour modules
             const { getMeasures, processAndSyncScore } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
             const { drawAll, setKeySignature } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
-            const { setTimeSignature, setTempo } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
+            const { setTimeSignature, setTempo, resplitToTimeSignature } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
             const { pianoState } = await import('{{ url_for("static", filename="js/core/appState.js") }}');
             const { sanitizeTitle } = await import('{{ url_for("static", filename="js/utils/sanitize.js") }}');
 
@@ -282,6 +282,7 @@ editorContainer.addEventListener('keyup', (e) => {
                 setKeySignature,
                 setTimeSignature,
                 setTempo,
+                resplitToTimeSignature,
                 pianoState,
                 sanitizeTitle
             });

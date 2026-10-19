@@ -213,7 +213,12 @@
         resetScore,
         processAndSyncScore,
         undoLastWrite,
+        resplitToTimeSignature,
       } from '{{ url_for("static", filename="js/score/scoreWriter.js") }}';
+      import {
+        isSupportedTimeSignature,
+        syncTimeSignatureSelect,
+      } from '{{ url_for("static", filename="js/core/timeSignatures.js") }}';
       import {
         drawAll,
         setKeySignature,
@@ -516,6 +521,9 @@
           }
 
           if (processAndSyncScore(measures)) {
+            // Split any measure that doesn't fit the restored time signature
+            await resplitToTimeSignature();
+
             // Re-render with loaded data
             updateLoadingMessage("Rendering score...");
             await renderScoreAsync(getMeasures());
@@ -583,6 +591,17 @@
             tempoSelect.value = value;
           }
         }
+
+        // Restore the time signature, also before setKeySignature renders.
+        // An unsupported one stays at the 4/4 default; loading re-splits to fit.
+        const timeSignature = savedData.timeSignature;
+        if (timeSignature && isSupportedTimeSignature(timeSignature.numerator, timeSignature.denominator)) {
+          pianoState.timeSignature = {
+            numerator: timeSignature.numerator,
+            denominator: timeSignature.denominator,
+          };
+        }
+        syncTimeSignatureSelect();
 
         // setKeySignature handles checking if it's already set and updating UI
         setKeySignature(keySignature);

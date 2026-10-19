@@ -5,7 +5,7 @@
 
 let jsonEditor;
 let getMeasures, processAndSyncScore, drawAll;
-let setKeySignature, setTimeSignature, setTempo;
+let setKeySignature, setTimeSignature, setTempo, resplitToTimeSignature;
 let pianoState, sanitizeTitle;
 
 /**
@@ -23,6 +23,7 @@ export async function initializeJSONEditor(modules) {
             setKeySignature,
             setTimeSignature,
             setTempo,
+            resplitToTimeSignature,
             pianoState,
             sanitizeTitle
         } = modules);
@@ -435,6 +436,9 @@ async function applyProcessedScore(processedScore) {
 
         // Apply measures to scoreWriter (now with correct time signature set)
         if (processAndSyncScore(processedScore.measures)) {
+            // If the file's time signature wasn't supported we fell back to 4/4,
+            // so measures split for the file's meter may need splitting again
+            await resplitToTimeSignature?.();
 
             // Apply key signature
             if (setKeySignature(keySignature)) {

@@ -105,7 +105,7 @@ function noteNameToMidi(name) {
  */
 function buildNoteSequence(measures) {
   const sequence = [];
-  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const beatsPerMeasure = pianoState.beatsPerMeasure;
   let absoluteBeat = 0;
 
   measures.forEach((measure, measureIndex) => {
@@ -427,7 +427,7 @@ function playAccompanimentNotes(event) {
  */
 function buildTimedSchedule(events, measures, bpm, countInOffsetSec = 0) {
   const secondsPerBeat = 60 / bpm;
-  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const beatsPerMeasure = pianoState.beatsPerMeasure;
   timedEventSchedule = [];
   timedCurrentIndex = 0;
 

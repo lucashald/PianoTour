@@ -91,7 +91,7 @@ function buildTieMap(measures) {
       }
     });
 
-    currentTime += pianoState.timeSignature.numerator;
+    currentTime += pianoState.beatsPerMeasure;
   });
 
   // Collect tie relationships (only for audio sustain)
@@ -375,7 +375,7 @@ export function playScore(measures, bpm = pianoState.tempo) {
 
   // Iterate through each measure to schedule all notes and visual feedback
   let currentTransportTime = 0;
-  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const beatsPerMeasure = pianoState.beatsPerMeasure;
   const secondsPerBeat = 60 / bpm;
 
   measures.forEach((measure, measureIndex) => {

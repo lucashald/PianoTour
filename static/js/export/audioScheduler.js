@@ -63,7 +63,7 @@ export function buildTieMap(measures) {
       }
     });
 
-    const beatsPerMeasure = pianoState.timeSignature.numerator;
+    const beatsPerMeasure = pianoState.beatsPerMeasure;
     currentTime += beatsPerMeasure;
   });
 
@@ -141,7 +141,7 @@ export function scheduleAllNotes({
   scheduleCallback
 }) {
   const secondsPerBeat = 60 / bpm;
-  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const beatsPerMeasure = pianoState.beatsPerMeasure;
   const tieMap = buildTieMap(measures);
   
   let currentTransportTime = 0;
@@ -286,7 +286,7 @@ function scheduleNote({
  */
 export function calculateExportDuration(measures, bpm, reverbTailPadding = 3) {
   const secondsPerBeat = 60 / bpm;
-  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const beatsPerMeasure = pianoState.beatsPerMeasure;
   const totalBeats = measures.length * beatsPerMeasure;
   const scoreDuration = totalBeats * secondsPerBeat;
   

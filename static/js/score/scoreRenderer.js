@@ -372,7 +372,7 @@ export function drawAll(measures, noScroll = false) {
         'w': 4, 'h.': 3, 'h': 2, 'q.': 1.5, 'q': 1,
         '8.': 0.75, '8': 0.5, '16.': 0.375, '16': 0.25, '32': 0.125
       };
-      const beatsPerMeasure = (pianoState.timeSignature.numerator * 4) / pianoState.timeSignature.denominator;
+      const beatsPerMeasure = pianoState.beatsPerMeasure;
 
       function getEffectiveBeatValue(note) {
         let dur = note.duration;
@@ -1888,7 +1888,10 @@ function createBeamsForNotes(vexNotes, notesData) {
     const beams = Vex.Flow.Beam.generateBeams(vexNotes, {
         beam_rests: false,                    // Don't beam over rests
         maintain_stem_directions: true,       // Preserve individual stem directions
-        groups: []                           // Let VexFlow auto-group by beat
+        // Group by the meter: quarter-note beats in x/4, threes of eighths in 6/8
+        groups: Vex.Flow.Beam.getDefaultBeamGroups(
+            `${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`
+        )
     });
 
     return beams;

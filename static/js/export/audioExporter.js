@@ -66,7 +66,7 @@ function buildTieMap(measures) {
       }
     });
 
-    const beatsPerMeasure = pianoState.timeSignature.numerator;
+    const beatsPerMeasure = pianoState.beatsPerMeasure;
     currentTime += beatsPerMeasure;
   });
 
@@ -139,7 +139,7 @@ export async function exportScoreAsAudio(measures, bpm = 120, filename = null) {
 
   // Calculate total duration - EXACT same as scorePlayback.js calculates
   const secondsPerBeat = 60 / bpm;
-  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const beatsPerMeasure = pianoState.beatsPerMeasure;
   const totalBeats = measures.length * beatsPerMeasure;
   const scoreDuration = totalBeats * secondsPerBeat;
 
@@ -310,7 +310,7 @@ function scheduleNotesForOffline(
   envelope,
 ) {
   const secondsPerBeat = 60 / bpm;
-  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const beatsPerMeasure = pianoState.beatsPerMeasure;
 
   // Build tie map (EXACT same as scorePlayback.js)
   const tieMap = buildTieMap(measures);
@@ -626,7 +626,7 @@ export async function shareScoreAsAudio(measures, bpm = 120) {
 
   // --- Render audio (reuses existing pipeline) ---
   const secondsPerBeat = 60 / bpm;
-  const beatsPerMeasure = pianoState.timeSignature.numerator;
+  const beatsPerMeasure = pianoState.beatsPerMeasure;
   const totalBeats = measures.length * beatsPerMeasure;
   const scoreDuration = totalBeats * secondsPerBeat;
   const duration = scoreDuration + 1.0;

@@ -312,7 +312,10 @@ function createBeamsForNotes(vexNotes, notesData) {
   const beams = Vex.Flow.Beam.generateBeams(vexNotes, {
     beam_rests: false,
     maintain_stem_directions: true,
-    groups: [],
+    // Group by the meter: quarter-note beats in x/4, threes of eighths in 6/8
+    groups: Vex.Flow.Beam.getDefaultBeamGroups(
+      `${pianoState.timeSignature.numerator}/${pianoState.timeSignature.denominator}`,
+    ),
   });
 
   return beams;

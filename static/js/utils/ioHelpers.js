@@ -9,6 +9,7 @@ import {
   processAndSyncScore,
   setTempo,
   setTimeSignature,
+  resplitToTimeSignature,
 } from "../score/scoreWriter.js";
 import { updateUI } from "../ui/uiHelpers.js";
 
@@ -330,6 +331,10 @@ async function applyProcessedScore(processedScore) {
 
     // Apply measures to scoreWriter (now with correct time signature set)
     if (processAndSyncScore(processedScore.measures)) {
+      // If the file's time signature wasn't supported we fell back to 4/4,
+      // so measures split for the file's meter may need splitting again
+      await resplitToTimeSignature();
+
       // Apply key signature
       const keySignature = processedScore.metadata.keySignature;
 

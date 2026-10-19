@@ -35,6 +35,11 @@ export const pianoState = {
         numerator: 4,
         denominator: 4
     },
+    // Measure length in quarter-note beats (3/4 = 3, 6/8 = 3, 2/2 = 4).
+    // Computed so it stays right when timeSignature is reassigned directly.
+    get beatsPerMeasure() {
+        return (this.timeSignature.numerator * 4) / this.timeSignature.denominator;
+    },
     // Last chosen instrument; pages with a fixed instrument (e.g. /cello) override this
     instrument: loadString('instrument', 'piano'),
     midiChannel: '0',

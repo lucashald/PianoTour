@@ -10,6 +10,8 @@ import { updateNowPlayingDisplay } from '../ui/uiHelpers.js';
 import { saveToLocalStorage } from '../utils/ioHelpers.js';
 import { drawAll, scrollToMeasure } from './scoreRenderer.js';
 import { humanizeNote, humanizeDuration } from '../utils/velocityHumanizer.js';
+import { isSupportedTimeSignature, syncTimeSignatureSelect } from '../core/timeSignatures.js';
+import { scoreManager } from './scoreManager.js';
 // ===================================================================
 // Constants
 // ===================================================================
@@ -65,31 +67,85 @@ function processWriteQueue() {
 // ===================================================================
 
 /**
- * Sets the time signature and redraws the score.
+ * Sets the time signature and redraws the score. Only supported time signatures are accepted.
+ * Doesn't re-split measures: file imports call this before syncing measures the import
+ * already split. Use changeTimeSignature for edits to the current score.
  * @param {number} numerator - The top number of the time signature (beats per measure)
  * @param {number} denominator - The bottom number of the time signature (note value that gets the beat)
  */
 export function setTimeSignature(numerator, denominator) {
-  if (!Number.isInteger(numerator) || numerator <= 0) {
-    console.warn("setTimeSignature: Invalid numerator provided");
-    return false;
-  }
-  
-  if (!Number.isInteger(denominator) || denominator <= 0) {
-    console.warn("setTimeSignature: Invalid denominator provided");
+  if (!isSupportedTimeSignature(numerator, denominator)) {
+    console.warn(`setTimeSignature: Unsupported time signature ${numerator}/${denominator}`);
     return false;
   }
 
   // Update the piano state
   pianoState.timeSignature.numerator = numerator;
   pianoState.timeSignature.denominator = denominator;
+  syncTimeSignatureSelect();
 
   // Redraw the score with new time signature
   drawAll(getMeasures(), true);
-  
+
   // Save to localStorage to persist the change
   saveToLocalStorage();
 
+  return true;
+}
+
+/**
+ * Changes the time signature of the current score, re-splitting any measure that no
+ * longer fits. Records an undo step.
+ * @returns {Promise<boolean>} false if the time signature isn't supported
+ */
+export async function changeTimeSignature(numerator, denominator) {
+  if (!setTimeSignature(numerator, denominator)) return false;
+
+  const resplit = await resplitToTimeSignature();
+  if (!resplit) {
+    // Measures didn't change, but undo should still restore the old time signature
+    saveStateToHistory();
+  }
+  return true;
+}
+
+/**
+ * Re-splits measures that are longer than the current time signature allows, using the
+ * same worker that splits imported files. Does nothing if every measure fits.
+ * @returns {Promise<boolean>} true if the measures were re-split
+ */
+export async function resplitToTimeSignature() {
+  const capacity = pianoState.beatsPerMeasure;
+  const overflowing = measuresData.some((measure) => {
+    const { trebleBeats, bassBeats } = calculateMeasureBeats(measure || []);
+    return Math.max(trebleBeats, bassBeats) > capacity + 0.001;
+  });
+  if (!overflowing) return false;
+
+  const scoreJSON = JSON.stringify({
+    measures: measuresData,
+    timeSignature: { ...pianoState.timeSignature },
+    keySignature: pianoState.keySignature,
+    tempo: pianoState.tempo,
+  });
+
+  try {
+    const processed = await scoreManager.validateScore(scoreJSON, { fileName: "time-signature-change" });
+    measuresData = processed.measures;
+  } catch (error) {
+    console.error("resplitToTimeSignature: Re-splitting failed:", error);
+    return false;
+  }
+
+  validateAndRestoreTies();
+  currentIndex = Math.max(0, measuresData.length - 1);
+  const lastMeasureBeats = calculateMeasureBeats(measuresData[currentIndex] || []);
+  currentTrebleBeats = lastMeasureBeats.trebleBeats;
+  currentBassBeats = lastMeasureBeats.bassBeats;
+
+  saveStateToHistory();
+  drawAll(measuresData, true);
+  saveToLocalStorage();
   return true;
 }
 
@@ -142,6 +198,7 @@ function saveStateToHistory() {
     const currentMeasuresClone = JSON.parse(JSON.stringify(measuresData));
     history.push({
         measures: currentMeasuresClone,
+        timeSignature: { ...pianoState.timeSignature },
         index: currentIndex,
         trebleBeats: currentTrebleBeats, // These are still relevant for writeNote's internal logic
         bassBeats: currentBassBeats      // These are still relevant for writeNote's internal logic
@@ -258,7 +315,7 @@ function doUpdateNote(measureIndex, noteId, newNoteData) {
     const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
 
     // Check for overflow
-    if (trebleBeats > pianoState.timeSignature.numerator || bassBeats > pianoState.timeSignature.numerator) {
+    if (trebleBeats > pianoState.beatsPerMeasure || bassBeats > pianoState.beatsPerMeasure) {
         return false; // Overflow would occur
     }
 
@@ -297,6 +354,10 @@ export function undoLastWrite() {
         const prevState = history[history.length - 1]; // Get previous state
 
         measuresData = JSON.parse(JSON.stringify(prevState.measures));
+        if (prevState.timeSignature) {
+            pianoState.timeSignature = { ...prevState.timeSignature };
+            syncTimeSignatureSelect();
+        }
         currentIndex = prevState.index;
         currentTrebleBeats = prevState.trebleBeats;
         currentBassBeats = prevState.bassBeats;
@@ -343,7 +404,7 @@ function writeNoteInternal(obj) {
         currentTrebleBeats,
         currentBassBeats,
         currentIndex,
-        timeSignatureNumerator: pianoState.timeSignature.numerator
+        beatsPerMeasure: pianoState.beatsPerMeasure
     });
 
     // Ensure `notes` are always an array and create formatted name
@@ -373,7 +434,7 @@ function writeNoteInternal(obj) {
     }
 
     const currentBeatsForClef = clef === 'treble' ? currentTrebleBeats : currentBassBeats;
-    const availableBeats = pianoState.timeSignature.numerator - currentBeatsForClef;
+    const availableBeats = pianoState.beatsPerMeasure - currentBeatsForClef;
 
     console.log('beatcount: checking overflow', {
         clef,
@@ -466,12 +527,12 @@ function writeNoteInternal(obj) {
     }
 
     // If we can't split or don't need to split, use original logic
-    if (currentBeatsForClef + beats > pianoState.timeSignature.numerator) {
+    if (currentBeatsForClef + beats > pianoState.beatsPerMeasure) {
         console.log('beatcount: note would overflow measure, advancing to next', {
             currentBeatsForClef,
             beats,
             sum: currentBeatsForClef + beats,
-            numerator: pianoState.timeSignature.numerator
+            beatsPerMeasure: pianoState.beatsPerMeasure
         });
         // Only advance if the current measure has any notes in it
         if (measuresData[currentIndex] && (measuresData[currentIndex].length > 0 || currentTrebleBeats > 0 || currentBassBeats > 0)) {
@@ -582,7 +643,7 @@ export function addNoteToMeasure(measureIndex, noteData, insertBeforeNoteId = nu
 
     // Handle overflow by creating new measure
     let finalMeasureIndex = measureIndex;
-    if (trebleBeats > pianoState.timeSignature.numerator || bassBeats > pianoState.timeSignature.numerator) {
+    if (trebleBeats > pianoState.beatsPerMeasure || bassBeats > pianoState.beatsPerMeasure) {
         console.warn(`addNoteToMeasure: Adding note to measure ${measureIndex} would cause overflow. Creating new measure.`);
         finalMeasureIndex = measuresData.length;
         measuresData[finalMeasureIndex] = [noteData];
@@ -915,7 +976,7 @@ export function updateNoteInMeasure(measureIndex, noteId, newNoteData) {
     tempMeasure[noteIndex] = updatedTempNote;
     const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
 
-    if (trebleBeats > pianoState.timeSignature.numerator || bassBeats > pianoState.timeSignature.numerator) {
+    if (trebleBeats > pianoState.beatsPerMeasure || bassBeats > pianoState.beatsPerMeasure) {
         console.warn(`Update to note with ID ${noteId} at measure ${measureIndex} would cause measure overflow. Operation cancelled.`);
         updateNowPlayingDisplay("Error: Update would overflow measure!");
         setTimeout(() => updateNowPlayingDisplay(""), 3000);
@@ -1113,8 +1174,8 @@ export function moveFits(fromMeasureIndex, fromNoteId, toMeasureIndex, noteToPla
     }
 
     const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
-    return trebleBeats <= pianoState.timeSignature.numerator &&
-           bassBeats <= pianoState.timeSignature.numerator;
+    return trebleBeats <= pianoState.beatsPerMeasure &&
+           bassBeats <= pianoState.beatsPerMeasure;
 }
 
 function wouldOverflowAfterAdd(measureIndex, noteToAdd, insertBeforeNoteId) {
@@ -1137,8 +1198,8 @@ function wouldOverflowAfterAdd(measureIndex, noteToAdd, insertBeforeNoteId) {
     // Check for overflow
     const { trebleBeats, bassBeats } = calculateMeasureBeats(tempMeasure);
     
-    return trebleBeats <= pianoState.timeSignature.numerator && 
-           bassBeats <= pianoState.timeSignature.numerator;
+    return trebleBeats <= pianoState.beatsPerMeasure && 
+           bassBeats <= pianoState.beatsPerMeasure;
 }
 
 

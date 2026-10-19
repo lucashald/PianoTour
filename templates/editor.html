@@ -22,15 +22,8 @@
     <div class="control-row">
       <label class="control-label">Time Signature</label>
       <div class="time-signature-controls">
-          <select id="time-signature-numerator" class="time-signature-select">
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4" selected>4</option>
-        </select>
-        <span class="time-signature-separator">/</span>
-        <select id="time-signature-denominator" class="time-signature-select">
-          <option value="4" selected>4</option>
-        </select>
+        <!-- Options come from SUPPORTED_TIME_SIGNATURES (core/timeSignatures.js) -->
+        <select id="time-signature-select" class="time-signature-select"></select>
       </div>
     </div>
 
