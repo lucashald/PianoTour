@@ -1,6 +1,8 @@
 // appState.js
 // This file serves as the central location for the application's state.
 
+import { loadBool, loadString } from "../utils/settingsStore.js";
+
 // Centralized state object for all mutable variables
 export const pianoState = {
     // UI Interaction State
@@ -25,14 +27,17 @@ export const pianoState = {
     keySignatureType: '#', // Enharmonic preference
     isMinorKey: false,
     quantize: 'q',
-    togglePaletteDragMode: false,
-    toggleFixedDuration: false,
+    // Saved toggles load here so they apply before the first render
+    togglePaletteDragMode: loadBool('paletteDragMode', false),
+    toggleFixedDuration: loadBool('fixedDuration', false),
+    showMeasureNumbers: loadBool('showMeasureNumbers', false),
     tempo: 120,
     timeSignature: {
         numerator: 4,
         denominator: 4
     },
-    instrument: 'piano',
+    // Last chosen instrument; pages with a fixed instrument (e.g. /cello) override this
+    instrument: loadString('instrument', 'piano'),
     midiChannel: '0',
     chordCenterNote: 'E4', // Default chord center for chord mode
     scaleTonic: 'C4',      // Default scale tonic for diatonic chords

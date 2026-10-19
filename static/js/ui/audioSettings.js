@@ -3,6 +3,7 @@ import { pianoState } from '../core/appState.js';
 import { Instrument } from '../core/audioManager.js';
 import { connectSpectrumToAudio } from './spectrum.js';
 import { showToast } from './uiHelpers.js';
+import { saveString } from '../utils/settingsStore.js';
 
 class AudioSettingsController {
     constructor() {
@@ -562,8 +563,9 @@ class AudioSettingsController {
                 pianoState.sampler.releaseAll();
             }
 
-            // Update the piano state
+            // Update the piano state and remember the choice for the next page load
             pianoState.instrument = instrumentName;
+            saveString('instrument', instrumentName);
 
             // Create new envelope with instrument-specific settings
             const oldEnvelope = pianoState.envelope;
@@ -743,8 +745,6 @@ class AudioSettingsController {
             const currentInstrument = pianoState.instrument || 'piano';
             // Save with instrument-specific key
             localStorage.setItem(`${this.settingsPrefix}${currentInstrument}-${name}`, value.toString());
-            // Also save which instrument these settings belong to
-            localStorage.setItem(`${this.settingsPrefix}currentInstrument`, currentInstrument);
         } catch (error) {
             console.error(`Failed to save setting ${name}:`, error);
         }
@@ -753,30 +753,21 @@ class AudioSettingsController {
     loadSavedSettings() {
         try {
             const currentInstrument = pianoState.instrument || 'piano';
-            const savedInstrument = localStorage.getItem(`${this.settingsPrefix}currentInstrument`);
-            
-            // Check if instrument has changed
-            if (savedInstrument && savedInstrument !== currentInstrument) {
-                console.log(`Instrument changed from ${savedInstrument} to ${currentInstrument}, loading defaults`);
-                // Load defaults for the new instrument instead of saved settings
-                const defaultSettings = this.getInstrumentDefaults(currentInstrument);
-                if (defaultSettings) {
-                    Object.entries(defaultSettings).forEach(([setting, value]) => {
-                        this.setSliderValue(setting, value);
-                    });
-                }
-                // Update the saved instrument to current
-                localStorage.setItem(`${this.settingsPrefix}currentInstrument`, currentInstrument);
-                return;
-            }
-            
-            // Load instrument-specific saved settings
+            // Keys are per instrument, so saved values never belong to another instrument.
+            // Unsaved sliders get this instrument's defaults without writing them to storage.
+            const defaultSettings = this.getInstrumentDefaults(currentInstrument) || {};
+
+            // Remove the old "last instrument" marker; nothing reads it anymore
+            localStorage.removeItem(`${this.settingsPrefix}currentInstrument`);
+
             this.sliders.forEach((config, name) => {
                 try {
                     const savedValue = localStorage.getItem(`${this.settingsPrefix}${currentInstrument}-${name}`);
                     if (savedValue !== null && config.slider) {
                         config.slider.value = savedValue;
                         this.updateSlider(name, savedValue, false);
+                    } else if (name in defaultSettings) {
+                        this.setSliderValue(name, defaultSettings[name], false);
                     }
                 } catch (error) {
                     console.error(`Failed to load setting ${name}:`, error);
@@ -967,7 +958,7 @@ class AudioSettingsController {
         });
     }
 
-    setSliderValue(name, value) {
+    setSliderValue(name, value, shouldSave = true) {
         const config = this.sliders.get(name);
         if (!config) {
             console.warn(`❌ Slider config not found for: ${name}`);
@@ -1006,7 +997,9 @@ class AudioSettingsController {
         }
         
         // Save to localStorage
-        this.saveSetting(name, value);
+        if (shouldSave) {
+            this.saveSetting(name, value);
+        }
     }
 }
 

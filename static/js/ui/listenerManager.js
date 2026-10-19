@@ -25,11 +25,45 @@ import { handleInitialGuitar } from "../instrument/guitarInstrument.js";
 import { initializeGuitarControls, createChordPalette } from "./guitarUI.js";
 
 import { toggleIsMinorKey, show_side_panel, generateChordPreviewButtons, getCurrentChordClef } from "../ui/uiHelpers.js";
-import { setTempo } from "../score/scoreWriter.js";
+import { setTempo, getMeasures } from "../score/scoreWriter.js";
+import { drawAll } from "../score/scoreRenderer.js";
 import { setupPaletteInteractions } from "../ui/paletteHelpers.js";
+import { loadBool, saveBool } from "../utils/settingsStore.js";
 
 let instrumentDiv;
-let isMouseWheelVelocityEnabled = true;
+let isMouseWheelVelocityEnabled = loadBool('mouseWheelVelocity', true);
+
+/**
+ * Settings-panel toggles that persist. Each entry reads its current value,
+ * applies a new one, and optionally redraws the score after a change.
+ */
+const SETTING_TOGGLES = [
+  {
+    id: "toggleVelocityCheckbox",
+    key: "mouseWheelVelocity",
+    read: () => isMouseWheelVelocityEnabled,
+    apply: setMouseWheelVelocityEnabled,
+  },
+  {
+    id: "togglePaletteDragModeCheckbox",
+    key: "paletteDragMode",
+    read: () => pianoState.togglePaletteDragMode,
+    apply: setPaletteDragMode,
+  },
+  {
+    id: "toggleFixedDurationCheckbox",
+    key: "fixedDuration",
+    read: () => pianoState.toggleFixedDuration,
+    apply: setFixedDuration,
+  },
+  {
+    id: "toggleMeasureNumbersCheckbox",
+    key: "showMeasureNumbers",
+    read: () => pianoState.showMeasureNumbers,
+    apply: (enabled) => { pianoState.showMeasureNumbers = enabled; },
+    redraw: true,
+  },
+];
 
 export function setInstrumentDiv(div) {
   instrumentDiv = div;
@@ -175,25 +209,19 @@ export function addButtonListeners() {
     .getElementById("tempo-input")
     ?.addEventListener("change", handleTempoChange);
   
-  // Wire up the mouse wheel velocity toggle
-  document
-    .getElementById("toggleVelocityCheckbox")
-    ?.addEventListener("change", handleMouseWheelVelocityToggle);
-  
-  // Initialize mouse wheel velocity control if enabled by default
+  // Initialize mouse wheel velocity control if enabled (saved or default)
   if (isMouseWheelVelocityEnabled) {
     document.addEventListener('wheel', handleMouseWheelVelocityControl, { passive: false });
   }
-  
-  // Wire up the palette drag mode toggle
-  document
-    .getElementById("togglePaletteDragModeCheckbox")
-    ?.addEventListener("change", handlePaletteDragModeToggle);
-  
-  // Wire up the fixed duration toggle
-  document
-    .getElementById("toggleFixedDurationCheckbox")
-    ?.addEventListener("change", handleFixedDurationToggle);
+
+  // Wire up the persisted settings toggles
+  setupSettingToggles();
+
+  // Show the saved instrument in the settings dropdown before audio loads
+  const instrumentSelect = document.getElementById("instrumentSelect");
+  if (instrumentSelect) {
+    instrumentSelect.value = pianoState.instrument;
+  }
 
   // Wire up the drag-to-strum toggle (guitar page only)
   document
@@ -338,11 +366,34 @@ function handleMouseWheelVelocityControl(event) {
 }
 
 /**
- * Toggles the mouse wheel velocity control on/off
+ * Syncs each settings checkbox to its saved value and applies it, then saves
+ * and applies on change.
  */
-function handleMouseWheelVelocityToggle(event) {
+function setupSettingToggles() {
+  SETTING_TOGGLES.forEach((toggle) => {
+    const checkbox = document.getElementById(toggle.id);
+    if (!checkbox) return;
+
+    checkbox.checked = toggle.read();
+    toggle.apply(checkbox.checked);
+
+    checkbox.addEventListener("change", (event) => {
+      const enabled = event.target.checked;
+      saveBool(toggle.key, enabled);
+      toggle.apply(enabled);
+      if (toggle.redraw) {
+        drawAll(getMeasures(), true);
+      }
+    });
+  });
+}
+
+/**
+ * Turns the mouse wheel velocity control on/off
+ */
+function setMouseWheelVelocityEnabled(enabled) {
   const wasEnabled = isMouseWheelVelocityEnabled;
-  isMouseWheelVelocityEnabled = (event.target).checked;
+  isMouseWheelVelocityEnabled = enabled;
 
   // Only update listeners if state actually changed
   if (isMouseWheelVelocityEnabled && !wasEnabled) {
@@ -357,20 +408,18 @@ function handleMouseWheelVelocityToggle(event) {
 }
 
 /**
- * Toggles between drag mode and click mode for palette items
+ * Switches between drag mode and click mode for palette items
  */
-function handlePaletteDragModeToggle(event) {
-  const useDragMode = event.target.checked;
+function setPaletteDragMode(useDragMode) {
   pianoState.togglePaletteDragMode = useDragMode;
   setupPaletteInteractions(useDragMode);
   console.log(`Palette mode changed to: ${useDragMode ? 'Drag' : 'Click'}`);
 }
 
 /**
- * Toggles between fixed duration mode and held-time-based duration
+ * Switches between fixed duration mode and held-time-based duration
  */
-function handleFixedDurationToggle(event) {
-  const useFixedDuration = event.target.checked;
+function setFixedDuration(useFixedDuration) {
   pianoState.toggleFixedDuration = useFixedDuration;
   console.log(`Fixed duration mode: ${useFixedDuration ? 'ON (using quantize)' : 'OFF (using held time)'}`);
   

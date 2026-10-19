@@ -519,8 +519,10 @@ export function drawAll(measures, noScroll = false) {
         staveTreble.addKeySignature(keySignature);
         staveBass.addKeySignature(keySignature);
         staveTreble.setTempo({ duration: 'q', bpm: pianoState.tempo }, -27);
+      } else if (pianoState.showMeasureNumbers) {
+        staveTreble.setMeasure(i + 1);
       }
-      
+
       if (i === measureCount - 1) {
         system.addConnector("boldDoubleRight");
       }

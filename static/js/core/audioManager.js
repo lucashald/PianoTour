@@ -647,7 +647,11 @@ async function initializeAudio() {
                 console.log("Creating and configuring sampler...");
                 
                 // Get current instrument (default to piano)
-                const currentInstrument = pianoState.instrument || 'piano';
+                // A saved instrument name may no longer exist; fall back to piano
+                if (!Instrument.presets[pianoState.instrument]) {
+                    pianoState.instrument = 'piano';
+                }
+                const currentInstrument = pianoState.instrument;
                 const preset = Instrument.getPreset(currentInstrument);
 
                 // Create instrument-specific envelope (handles global effects like reverb/EQ)
