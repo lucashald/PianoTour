@@ -138,7 +138,6 @@ class ChordAutocomplete {
     async init() {
         await this.loadChordData();
         this.bindEvents();
-        await this.setDefaultChord();
     }
 
     async loadChordData() {
@@ -153,61 +152,6 @@ class ChordAutocomplete {
                 { symbol: 'Am', displayName: 'A Minor' },
                 { symbol: 'F', displayName: 'F Major' }
             ]; // Fallback
-        }
-    }
-
-    async setDefaultChord() {
-        try {
-            // Get current guitar tuning from guitar instance
-            let currentTuning = 'standard'; // fallback
-            const guitarInstance = window.guitarInstance;
-            
-            if (guitarInstance && getCurrentTuningPreset) {
-                currentTuning = getCurrentTuningPreset();
-            } else {
-                // Fallback to dropdown value if guitar instance method not available
-                currentTuning = document.getElementById('guitarTuningSelect')?.value || 'standard';
-            }
-            
-            // Use degree 1 (tonic) of current key signature with current tuning
-            const defaultChordData = await ChordDB.getGuitarChordByDegree(1, null, currentTuning);
-            
-            if (this.input && defaultChordData) {
-                this.input.value = defaultChordData.displayName;
-                this.userHasTyped = false;
-                this.selectedChordSymbol = defaultChordData.symbol;
-                this.selectedChordObj = defaultChordData;
-                this.chordData.set(defaultChordData.symbol, defaultChordData);
-                
-                // Add default chord to recent chords
-                this.addToRecentChords(defaultChordData.symbol, defaultChordData);
-                
-                // Automatically set the default chord on the guitar
-                if (guitarInstance && defaultChordData.frets && !defaultChordData.isFallback) {
-                    guitarInstance.setChord(defaultChordData.frets);
-                    } else if (defaultChordData.isFallback) {
-                    console.warn(`⚠️ Default chord ${defaultChordData.symbol} not available in ${currentTuning} tuning`);
-                }
-                
-                await this.createSelectedChordElements(defaultChordData);
-            }
-        } catch (error) {
-            console.warn('Could not set default chord:', error);
-            
-            // Ultimate fallback - use basic C major
-            try {
-                const fallbackChord = await ChordDB.getChord('C');
-                if (fallbackChord && this.input) {
-                    this.input.value = fallbackChord.displayName;
-                    this.selectedChordSymbol = 'C';
-                    this.selectedChordObj = fallbackChord;
-                    this.chordData.set('C', fallbackChord);
-                    await this.createSelectedChordElements(fallbackChord);
-                    console.log('🎸 Used fallback chord: C Major');
-                }
-            } catch (fallbackError) {
-                console.error('Could not even set fallback chord:', fallbackError);
-            }
         }
     }
 
