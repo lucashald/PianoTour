@@ -243,6 +243,9 @@ export async function drawAllPrint(containerId, measures) {
           // Add tempo on first system only
           if (systemIndex === 0) {
             staveTreble.setTempo({ duration: "q", bpm: pianoState.tempo }, -27);
+          } else {
+            // Number the first measure of each later system (measure 1 stays unnumbered)
+            staveTreble.setMeasure(absoluteMeasureIndex + 1);
           }
         }
 
