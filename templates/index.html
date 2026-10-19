@@ -564,6 +564,21 @@
       function applyScoreMetadata(savedData) {
         const keySignature = savedData.keySignature || "C";
         const isMinorChordMode = savedData.isMinorChordMode || false;
+
+        // Set tempo before setKeySignature, which renders the score.
+        // Assign directly; setTempo() would save before measures load.
+        if (Number.isInteger(savedData.tempo) && savedData.tempo >= 30 && savedData.tempo <= 300) {
+          pianoState.tempo = savedData.tempo;
+          const tempoSelect = document.getElementById("tempo-input");
+          if (tempoSelect) {
+            const value = String(savedData.tempo);
+            if (![...tempoSelect.options].some((o) => o.value === value)) {
+              tempoSelect.add(new Option(value, value));
+            }
+            tempoSelect.value = value;
+          }
+        }
+
         // setKeySignature handles checking if it's already set and updating UI
         setKeySignature(keySignature);
 

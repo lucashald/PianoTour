@@ -969,6 +969,7 @@ export function saveToLocalStorage() {
     measures: getMeasures(),
     keySignature: pianoState.keySignature,
     isMinorChordMode: pianoState.isMinorChordMode,
+    tempo: pianoState.tempo,
     timeSignature: {
       numerator: pianoState.timeSignature.numerator,
       denominator: pianoState.timeSignature.denominator,
