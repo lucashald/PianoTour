@@ -278,7 +278,7 @@
             console.log('📦 Loading editor modules...');
             
             // Import editor modules
-const { initializeMusicEditor } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
+const { initializeEditorSidebar } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
 const { initializePaletteInteractions, setupPaletteInteractions } = await import('{{ url_for("static", filename="js/ui/paletteHelpers.js") }}');
 const { triggerAttackRelease } = await import('{{ url_for("static", filename="js/instrument/playbackHelpers.js") }}');
 
@@ -286,8 +286,8 @@ const { triggerAttackRelease } = await import('{{ url_for("static", filename="js
 window.triggerAttackRelease = triggerAttackRelease;
 window.setupPaletteInteractions = setupPaletteInteractions;
             
-            // Initialize the editor
-            initializeMusicEditor();
+            // Initialize the editor sidebar (index.html already set up score interaction)
+            initializeEditorSidebar();
             
             // Setup additional functionality
             setupFloatingPanelInteractions();

@@ -21,7 +21,8 @@
 
     addBasicKeyboardListeners();
 
-    // Wait for base init, then enable score interaction + context menu
+    // Wait for base init, then set up play-along.
+    // Score interaction and the context menu are initialized by index.html for every page.
     function waitForBaseInit() {
         return new Promise((resolve) => {
             if (window.pianoTourInitState && window.pianoTourInitState.baseInitialized) {
@@ -35,9 +36,6 @@
     async function initializeScoreFeatures() {
         try {
             await waitForBaseInit();
-            const { initializeScoreInteraction } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
-            initializeScoreInteraction();
-            console.log('context-menu: Score interaction initialized on / route');
 
             // Initialize play-along mode
             const { initializePlayAlong } = await import('{{ url_for("static", filename="js/score/playAlongController.js") }}');
@@ -47,7 +45,7 @@
             initializePlayAlongUI();
             console.log('play-along: Initialized');
         } catch (error) {
-            console.error('context-menu: Failed to initialize score interaction:', error);
+            console.error('play-along: Failed to initialize:', error);
         }
     }
 

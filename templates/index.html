@@ -419,6 +419,15 @@
 
         // Dispatch custom event for child scripts
         document.dispatchEvent(new CustomEvent("pianoTourBaseReady"));
+
+        // Score clicks, selection, drag and the right-click menu, for every page with a score
+        if (document.getElementById("score")) {
+          import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}')
+            .then(({ initializeScoreInteraction }) => initializeScoreInteraction())
+            .catch((error) =>
+              console.error("context-menu: Failed to initialize score interaction:", error),
+            );
+        }
       }
 
       function setInitialDimensions() {

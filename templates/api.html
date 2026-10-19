@@ -246,7 +246,7 @@
           console.log('📦 Loading editor modules...');
 
           // Import editor modules
-          const { initializeMusicEditor } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
+          const { initializeEditorSidebar } = await import('{{ url_for("static", filename="js/editor/scoreEditor.js") }}');
           const { getMeasures, processAndSyncScore } = await import('{{ url_for("static", filename="js/score/scoreWriter.js") }}');
           const { drawAll } = await import('{{ url_for("static", filename="js/score/scoreRenderer.js") }}');
           const { saveToLocalStorage } = await import('{{ url_for("static", filename="js/utils/ioHelpers.js") }}');
@@ -256,8 +256,8 @@
           // Expose triggerAttackRelease globally for inline scripts (like custom chord palette)
           window.triggerAttackRelease = triggerAttackRelease;
 
-          // Initialize the editor
-          initializeMusicEditor();
+          // Initialize the editor sidebar (index.html already set up score interaction)
+          initializeEditorSidebar();
 
           // Setup additional functionality
           setupFloatingPanelInteractions();
