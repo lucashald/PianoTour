@@ -19,3 +19,18 @@ export function sanitizeTitle(raw) {
         .trim()
         .slice(0, 100);
 }
+
+/**
+ * Escapes text for insertion into HTML (element content or a quoted attribute).
+ * Use for anything that came from a file or the server, such as MIDI track names.
+ * @param {*} value
+ * @returns {string}
+ */
+export function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}

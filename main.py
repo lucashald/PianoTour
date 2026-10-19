@@ -15,7 +15,8 @@ import logging
 from collections import defaultdict
 import math
 import json
-import ugly_midi
+from fractions import Fraction
+import midi_tools
 import jsonschema
 from jsonschema import validate
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
@@ -46,29 +47,16 @@ MIDI_MAX_FILE_SIZE = 5 * 1024 * 1024   # 5 MB
 MIDI_CONVERSION_TIMEOUT = 60           # seconds
 
 
-def _run_conversion(midi_file_path, kwargs):
-    """Run ugly_midi conversion in a worker thread (allows timeout)."""
-    return ugly_midi.midi_to_json(midi_file_path, **kwargs)
-
-
-def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=None):
+def midi_to_json_data(midi_file_path):
     """
     MIDI → JSON conversion with timeout and memory-error protection.
     """
     try:
-        logger.info(
-            "Converting MIDI to JSON using ugly_midi (quantize=%s, tempo=%s)",
-            quantize_resolution,
-            manual_tempo,
-        )
-
-        kwargs = {'manual_tempo': manual_tempo}
-        if quantize_resolution is not None:
-            kwargs['quantize_resolution'] = quantize_resolution
+        logger.info("Converting MIDI to JSON with midi_tools")
 
         # Run conversion with a timeout
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(_run_conversion, midi_file_path, kwargs)
+            future = executor.submit(midi_tools.midi_to_json, midi_file_path)
             try:
                 json_data = future.result(timeout=MIDI_CONVERSION_TIMEOUT)
             except FuturesTimeoutError:
@@ -78,8 +66,8 @@ def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=Non
                     "The file may be too large or complex."
                 )
 
-        if not isinstance(json_data, dict) or 'measures' not in json_data:
-            raise ValueError("ugly_midi returned invalid JSON payload")
+        for warning in json_data.pop("warnings", []):
+            logger.info("midi_tools: %s", warning)
 
         logger.info(
             "Converted MIDI to %d measures at %s BPM",
@@ -97,7 +85,7 @@ def midi_to_json_data(midi_file_path, quantize_resolution=None, manual_tempo=Non
     except ValueError:
         raise  # already formatted
     except Exception as e:
-        logger.error("ugly_midi failed to parse MIDI file: %s", e, exc_info=True)
+        logger.error("midi_tools failed to convert MIDI file: %s", e, exc_info=True)
         raise ValueError(f"Failed to convert MIDI file: {e}")
 
 # --- Flask Routes ---
@@ -308,8 +296,8 @@ def not_found(error):
 import jsonschema
 from jsonschema import validate
 
-# More permissive schema that allows ugly_midi to handle missing/invalid data
-# Updated schema to accept full object with metadata + measures
+# Permissive schema: midi_tools turns odd values into warnings rather than failing.
+# Accepts the full object with metadata + measures.
 SONG_DATA_SCHEMA = {
     "type": "object",
     "properties": {
@@ -391,7 +379,19 @@ SONG_DATA_SCHEMA = {
 }
 
 
-def sanitize_for_ugly_midi(song_data):
+def _sanitize_tie(tie):
+    """Keep a tie/slur link only if it's exactly {type, startNoteId, endNoteId}."""
+    if (tie.get("type") in ("tie", "slur")
+            and isinstance(tie.get("startNoteId"), str) and isinstance(tie.get("endNoteId"), str)):
+        return {
+            "type": tie["type"],
+            "startNoteId": tie["startNoteId"][:100],
+            "endNoteId": tie["endNoteId"][:100],
+        }
+    return None
+
+
+def sanitize_song_data(song_data):
     """
     Sanitize full object structure with metadata + measures
     """
@@ -427,7 +427,11 @@ def sanitize_for_ugly_midi(song_data):
                     sanitized_note[key] = value
                 elif value is None:
                     sanitized_note[key] = None
-                # Ignore complex objects/arrays to prevent injection
+                elif key == "tie" and isinstance(value, dict):
+                    tie = _sanitize_tie(value)
+                    if tie:
+                        sanitized_note[key] = tie
+                # Ignore other complex objects/arrays to prevent injection
 
             sanitized_measure.append(sanitized_note)
         sanitized_measures.append(sanitized_measure)
@@ -470,22 +474,21 @@ def convert_to_midi():
             logger.error(f"Schema validation failed: {str(e)}")
             return jsonify({'error': 'Invalid song data format'}), 400
 
-        sanitized_data = sanitize_for_ugly_midi(song_data)
+        sanitized_data = sanitize_song_data(song_data)
 
-        # Run conversion with a timeout
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(ugly_midi.json_to_midi, sanitized_data)
-            try:
-                midi_data = future.result(timeout=MIDI_CONVERSION_TIMEOUT)
-            except FuturesTimeoutError:
-                logger.error("MIDI conversion timed out after %ds", MIDI_CONVERSION_TIMEOUT)
-                return jsonify({'error': f'Conversion timed out after {MIDI_CONVERSION_TIMEOUT}s.'}), 500
-
-        # Create and return MIDI file
         fd, temp_midi_path = tempfile.mkstemp(suffix='.mid', prefix='midi_')
         os.close(fd)
 
-        ugly_midi.save_midi(midi_data, temp_midi_path)
+        # Run conversion with a timeout
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(midi_tools.json_to_midi, sanitized_data, temp_midi_path)
+            try:
+                warnings = future.result(timeout=MIDI_CONVERSION_TIMEOUT)
+            except FuturesTimeoutError:
+                logger.error("MIDI conversion timed out after %ds", MIDI_CONVERSION_TIMEOUT)
+                return jsonify({'error': f'Conversion timed out after {MIDI_CONVERSION_TIMEOUT}s.'}), 500
+        for warning in warnings:
+            logger.info("midi_tools: %s", warning)
 
         return send_file(temp_midi_path,
                          as_attachment=True,
@@ -588,10 +591,8 @@ def extract_midi():
         os.close(fd)
         file.save(temp_midi_path)
 
-        manual_tempo = request.form.get('manual_tempo', type=int, default=None)
-
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(ugly_midi.extract_raw_midi_data, temp_midi_path, manual_tempo)
+            future = executor.submit(midi_tools.extract, temp_midi_path)
             try:
                 raw_data = future.result(timeout=MIDI_CONVERSION_TIMEOUT)
             except FuturesTimeoutError:
@@ -630,19 +631,32 @@ def quantize_tracks():
             return jsonify({'error': 'Missing rawData field.'}), 400
 
         track_indices = payload.get('trackIndices')  # None = all non-drum tracks
+        if track_indices is not None and not (
+                isinstance(track_indices, list)
+                and all(isinstance(i, int) and not isinstance(i, bool) for i in track_indices)):
+            return jsonify({'error': 'trackIndices must be a list of track numbers.'}), 400
+
+        # Quantize grid in beats; a multiple of a 32nd note (0.125).
         quantize_resolution = payload.get('quantizeResolution', 0.125)
+        if isinstance(quantize_resolution, bool) or not isinstance(quantize_resolution, (int, float)):
+            return jsonify({'error': 'quantizeResolution must be a number.'}), 400
+        grid = Fraction(quantize_resolution).limit_denominator(64)
+        if not 0 < grid <= 4 or grid % Fraction(1, 8):
+            return jsonify({'error': 'quantizeResolution must be a multiple of 0.125, up to 4.'}), 400
 
         with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(
-                ugly_midi.quantize_track_to_json,
-                raw_data, track_indices, quantize_resolution
-            )
+            future = executor.submit(midi_tools.quantize_json, raw_data, track_indices, grid=grid)
             try:
                 json_data = future.result(timeout=MIDI_CONVERSION_TIMEOUT)
             except FuturesTimeoutError:
                 logger.error("Track quantization timed out after %ds", MIDI_CONVERSION_TIMEOUT)
                 return jsonify({'error': f'Quantization timed out after {MIDI_CONVERSION_TIMEOUT}s.'}), 500
+            except ValueError as e:
+                # Bad raw data or track choice: the request's fault, not the server's.
+                return jsonify({'error': str(e)}), 400
 
+        for warning in json_data.pop('warnings', []):
+            logger.info("midi_tools: %s", warning)
         return jsonify(json_data)
     except MemoryError:
         logger.error("Out of memory during track quantization")

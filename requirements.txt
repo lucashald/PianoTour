@@ -2,6 +2,5 @@ flask
 flask-limiter
 gunicorn
 jsonschema
-pretty_midi
--e ./vendor/ugly_midi
+mido
 google-generativeai>=0.8.5

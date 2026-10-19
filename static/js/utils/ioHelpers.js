@@ -1,7 +1,7 @@
 // ioHelpers.js - File loading and UI interaction only
 
 import { pianoState } from "../core/appState.js";
-import { sanitizeTitle } from "./sanitize.js";
+import { escapeHtml, sanitizeTitle } from "./sanitize.js";
 import { scoreManager } from "../score/scoreManager.js";
 import { drawAll, setKeySignature } from "../score/scoreRenderer.js";
 import {
@@ -681,7 +681,9 @@ function showTrackPicker(playableTracks, rawData) {
               ? "Treble"
               : "Bass";
         const measureLabel =
-          track.startMeasure != null ? `Starts m. ${track.startMeasure}` : "";
+          track.startMeasure != null
+            ? `Starts m. ${escapeHtml(track.startMeasure)}`
+            : "";
         const checked = preSelected.has(track.index) ? "checked" : "";
         return `
                 <label style="display: flex; align-items: center; padding: 10px 12px;
@@ -689,14 +691,14 @@ function showTrackPicker(playableTracks, rawData) {
                     transition: background 0.15s; margin-bottom: 6px;"
                     onmouseover="this.style.background='#f5f5f5'"
                     onmouseout="this.style.background='white'">
-                    <input type="checkbox" value="${track.index}" ${checked}
+                    <input type="checkbox" value="${escapeHtml(track.index)}" ${checked}
                         style="margin-right: 12px; width: 18px; height: 18px; cursor: pointer;">
                     <div style="flex: 1;">
                         <div style="font-weight: 600; color: #333; font-size: 14px;">
-                            ${track.name}
+                            ${escapeHtml(track.name)}
                         </div>
                         <div style="font-size: 12px; color: #888; margin-top: 2px;">
-                            ${track.instrument} · ${track.noteCount} notes · ${rangeLabel}${measureLabel ? " · " + measureLabel : ""}
+                            ${escapeHtml(track.instrument)} · ${escapeHtml(track.noteCount)} notes · ${rangeLabel}${measureLabel ? " · " + measureLabel : ""}
                         </div>
                     </div>
                 </label>
@@ -710,7 +712,7 @@ function showTrackPicker(playableTracks, rawData) {
                 box-shadow: 0 20px 60px rgba(0,0,0,0.3); display: flex; flex-direction: column;">
                 <h3 style="margin: 0 0 4px 0; color: #333; font-size: 18px;">Select Tracks</h3>
                 <p style="margin: 0 0 6px 0; color: #888; font-size: 13px;">
-                    ${rawData.tracks.length} tracks · ${durationStr} · ${rawData.tempoMap[0]?.bpm ?? "?"} BPM
+                    ${rawData.tracks.length} tracks · ${escapeHtml(durationStr)} · ${escapeHtml(rawData.tempoMap[0]?.bpm ?? "?")} BPM
                 </p>
                 <p id="track-pick-status" style="margin: 0 0 12px 0; color: #555; font-size: 13px; font-weight: 500;">
                 </p>
@@ -919,18 +921,34 @@ export function exportMidi() {
       numerator: pianoState.timeSignature.numerator,
       denominator: pianoState.timeSignature.denominator,
     },
+    isMinorChordMode: pianoState.isMinorChordMode || false,
+    title: pianoState.title || "",
     instrument: pianoState.instrument,
     midiChannel: pianoState.midiChannel,
+    // The server plays notes in the order given here, links ties by id, and
+    // uses velocity and performedDuration for how each note sounds.
     measures: getMeasures().map((measure, measureIndex) => {
       return measure.map((note, noteIndex) => {
-        return {
-          id: `note-${measureIndex}-${noteIndex}`,
+        const exported = {
+          id: note.id ? String(note.id) : `note-${measureIndex}-${noteIndex}`,
           name: note.name,
           clef: note.clef,
           duration: note.duration,
           measure: measureIndex,
           isRest: note.isRest,
         };
+        if (typeof note.velocity === "number") exported.velocity = note.velocity;
+        if (typeof note.performedDuration === "number") {
+          exported.performedDuration = note.performedDuration;
+        }
+        if (note.tie && note.tie.startNoteId && note.tie.endNoteId) {
+          exported.tie = {
+            type: note.tie.type || "tie",
+            startNoteId: String(note.tie.startNoteId),
+            endNoteId: String(note.tie.endNoteId),
+          };
+        }
+        return exported;
       });
     }),
   };
