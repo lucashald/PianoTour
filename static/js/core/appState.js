@@ -28,7 +28,6 @@ export const pianoState = {
     isMinorKey: false,
     quantize: 'q',
     // Saved toggles load here so they apply before the first render
-    togglePaletteDragMode: loadBool('paletteDragMode', false),
     toggleFixedDuration: loadBool('fixedDuration', false),
     showMeasureNumbers: loadBool('showMeasureNumbers', false),
     tempo: 120,

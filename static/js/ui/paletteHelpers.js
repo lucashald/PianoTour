@@ -205,11 +205,11 @@ function updateQuantizeButtonDisplay(duration) {
 }
 
 /**
- * Setup custom chord button with proper event handlers
+ * Setup custom chord button with proper event handlers.
+ * Click plays and writes the chord; dragging drops it onto the score.
  * @param {HTMLElement} btn - The custom chord button element
- * @param {boolean} useDragMode - Whether to use drag mode
  */
-function setupCustomChordButton(btn, useDragMode) {
+function setupCustomChordButton(btn) {
     // Remove all existing click handlers by cloning (except the remove button)
     const removeBtn = btn.querySelector('.remove-chord-btn');
     const removeBtnClone = removeBtn ? removeBtn.cloneNode(true) : null;
@@ -229,48 +229,32 @@ function setupCustomChordButton(btn, useDragMode) {
         }
     }
 
-    if (useDragMode) {
-        // Drag mode
-        newBtn.draggable = true;
-        newBtn.setAttribute('draggable', 'true');
-        newBtn.classList.remove('palette-click-mode');
+    // The browser only starts a drag after the pointer moves, so a press that
+    // doesn't move fires click instead; both handlers can live on one button.
+    newBtn.draggable = true;
+    newBtn.setAttribute('draggable', 'true');
 
-        // Add dragstart handler
-        newBtn.addEventListener('dragstart', (e) => {
-            // Hide browser's default drag preview
-            e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+    newBtn.addEventListener('dragstart', (e) => {
+        // Hide browser's default drag preview
+        e.dataTransfer.setDragImage(transparentDragImage, 0, 0);
 
-            const chordName = e.currentTarget.dataset.chordName;
-            const chordObj = e.currentTarget._chordObj;
+        const chordName = e.currentTarget.dataset.chordName;
+        const chordObj = e.currentTarget._chordObj;
 
-            if (chordObj) {
-                e.dataTransfer.setData('text/plain', chordName);
-                e.dataTransfer.setData('application/chord', JSON.stringify({
-                    type: 'custom-chord',
-                    chord: chordObj,
-                    displayName: chordName
-                }));
-            }
-        });
+        if (chordObj) {
+            e.dataTransfer.setData('text/plain', chordName);
+            e.dataTransfer.setData('application/chord', JSON.stringify({
+                type: 'custom-chord',
+                chord: chordObj,
+                displayName: chordName
+            }));
+        }
+    });
 
-        // In drag mode, click selects the chord in the autocomplete
-        newBtn.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-chord-btn')) return;
-            if (window.chordAutocomplete) {
-                const chordObj = e.currentTarget._chordObj;
-                const chordName = e.currentTarget.dataset.chordName;
-                window.chordAutocomplete.selectedChordObj = chordObj;
-                window.chordAutocomplete.input.value = chordName;
-            }
-        });
-    } else {
-        // Click mode - use handlePaletteClick
-        newBtn.draggable = false;
-        newBtn.setAttribute('draggable', 'false');
-        newBtn.classList.add('palette-click-mode');
-
-        newBtn.addEventListener('click', handlePaletteClick);
-    }
+    newBtn.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-chord-btn')) return;
+        handlePaletteClick(e);
+    });
 
     // Preserve the chord object reference
     newBtn._chordObj = btn._chordObj;
@@ -279,10 +263,11 @@ function setupCustomChordButton(btn, useDragMode) {
 }
 
 /**
- * Setup palette events based on togglePaletteDragMode
- * @param {boolean} useDragMode - Whether to use drag mode (true) or click mode (false)
+ * Setup palette events. Every item is both clickable and draggable: a click
+ * acts right away (write a rest or chord, set a note duration), and a drag
+ * drops the item onto the score at the drop position.
  */
-export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteDragMode) {
+export function setupPaletteInteractions() {
     const paletteNotes = document.querySelectorAll('.palette-note');
 
     paletteNotes.forEach(note => {
@@ -307,7 +292,7 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
 
         // For custom chord buttons, setup with unified event handlers
         if (isCustomChordBtn) {
-            setupCustomChordButton(note, useDragMode);
+            setupCustomChordButton(note);
             return;
         }
         
@@ -324,122 +309,75 @@ export function setupPaletteInteractions(useDragMode = pianoState.togglePaletteD
             window.chordAutocomplete.searchResultButton = newNote;
         }
         
-        if (useDragMode) {
-            // Drag mode - enable dragging
-            newNote.setAttribute('draggable', 'true');
-            newNote.classList.remove('palette-click-mode');
-            newNote.classList.remove('hidden');
-            
-            // For chord palette items, add click handler to update search result
-            if (isChordPaletteItem && type === 'chord' && newNote.dataset.degree) {
-                newNote.addEventListener('click', (e) => {
-                    const degree = parseInt(e.currentTarget.dataset.degree);
-                    const chordObj = getChordByDegree(degree, pianoState.keySignature);
-                    if (window.chordAutocomplete) {
-                        window.chordAutocomplete.selectChord(chordObj.displayName, chordObj);
-                    }
-                });
-            }
-            
-            newNote.addEventListener('dragstart', (event) => {
-                const type = event.currentTarget.dataset.type;
-                const duration = event.currentTarget.dataset.duration;
-                const degree = event.currentTarget.dataset.degree;
-                const intervalType = event.currentTarget.dataset.interval;
+        // The browser only starts a drag after the pointer moves, so a press that
+        // doesn't move fires click instead; both handlers can live on one item.
+        newNote.setAttribute('draggable', 'true');
 
-                // Hide browser's default drag preview - we show our own custom preview in dragover
-                event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
-
-                // Handle interval elements
-                if (type === 'interval') {
-                    const intervalData = {
-                        intervalType: intervalType
-                    };
-                    event.dataTransfer.setData('application/interval', JSON.stringify(intervalData));
-                    setPaletteDragState(true, type, duration);
-                } else if (type === 'chord') {
-                    // Handle chord elements
-                    let chordObj;
-                    if (degree) {
-                        chordObj = getChordByDegree(parseInt(degree), pianoState.keySignature);
-                    } else if (event.currentTarget.id === 'searchResultButton') {
-                        chordObj = window.chordAutocomplete?.selectedChordObj;
-                    }
-                    
-                    if (chordObj) {
-                        event.dataTransfer.setData('text/plain', chordObj.displayName);
-                        event.dataTransfer.setData('application/chord', JSON.stringify({
-                            type: 'diatonic-chord',
-                            chord: chordObj,
-                            degree: degree,
-                            displayName: chordObj.displayName
-                        }));
-                    }
-                    setPaletteDragState(true, type, duration);
-                } else {
-                    // Handle notes and rests
-                    setPaletteDragState(true, type, duration);
-                    event.dataTransfer.setData('text/plain', type);
+        // For chord palette items, a click also loads the chord into the search box
+        if (isChordPaletteItem && type === 'chord' && newNote.dataset.degree) {
+            newNote.addEventListener('click', (e) => {
+                const degree = parseInt(e.currentTarget.dataset.degree);
+                const chordObj = getChordByDegree(degree, pianoState.keySignature);
+                if (window.chordAutocomplete) {
+                    window.chordAutocomplete.selectChord(chordObj.displayName, chordObj);
                 }
             });
-            
-            newNote.addEventListener('dragend', (event) => {
-                console.log("Palette dragend detected, cleaning up");
-                setPaletteDragState(false, null, null);
-            });
-        } else {
-            // Click mode - disable dragging for most items, use click handlers
-            if (type != 'interval') {
-                newNote.setAttribute('draggable', 'false');
-                newNote.classList.add('palette-click-mode');
-            } else {
-                // Intervals remain draggable in click mode, so add dragstart handler
-                newNote.addEventListener('dragstart', (event) => {
-                    // Hide browser's default drag preview
-                    event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
-
-                    const intervalType = event.currentTarget.dataset.interval;
-                    const intervalData = {
-                        intervalType: intervalType
-                    };
-                    event.dataTransfer.setData('application/interval', JSON.stringify(intervalData));
-                    setPaletteDragState(true, 'interval', pianoState.quantize);
-                });
-
-                newNote.addEventListener('dragend', (event) => {
-                    console.log("Interval dragend detected in click mode, cleaning up");
-                    setPaletteDragState(false, null, null);
-                });
-            }
-
-            // For chord palette items, also update the search result when clicked
-            if (isChordPaletteItem && type === 'chord' && newNote.dataset.degree) {
-                newNote.addEventListener('click', (e) => {
-                    const degree = parseInt(e.currentTarget.dataset.degree);
-                    const chordObj = getChordByDegree(degree, pianoState.keySignature);
-                    if (window.chordAutocomplete) {
-                        window.chordAutocomplete.selectChord(chordObj.displayName, chordObj);
-                    }
-                });
-            }
-
-            newNote.addEventListener('click', handlePaletteClick);
         }
+
+        newNote.addEventListener('click', handlePaletteClick);
+
+        newNote.addEventListener('dragstart', (event) => {
+            const type = event.currentTarget.dataset.type;
+            const duration = event.currentTarget.dataset.duration;
+            const degree = event.currentTarget.dataset.degree;
+            const intervalType = event.currentTarget.dataset.interval;
+
+            // Hide browser's default drag preview - we show our own custom preview in dragover
+            event.dataTransfer.setDragImage(transparentDragImage, 0, 0);
+
+            // Handle interval elements
+            if (type === 'interval') {
+                const intervalData = {
+                    intervalType: intervalType
+                };
+                event.dataTransfer.setData('application/interval', JSON.stringify(intervalData));
+                setPaletteDragState(true, type, duration || pianoState.quantize);
+            } else if (type === 'chord') {
+                    // Handle chord elements
+                let chordObj;
+                if (degree) {
+                    chordObj = getChordByDegree(parseInt(degree), pianoState.keySignature);
+                } else if (event.currentTarget.id === 'searchResultButton') {
+                    chordObj = window.chordAutocomplete?.selectedChordObj;
+                }
+
+                if (chordObj) {
+                    event.dataTransfer.setData('text/plain', chordObj.displayName);
+                    event.dataTransfer.setData('application/chord', JSON.stringify({
+                        type: 'diatonic-chord',
+                        chord: chordObj,
+                        degree: degree,
+                        displayName: chordObj.displayName
+                    }));
+                }
+                setPaletteDragState(true, type, duration);
+            } else {
+                // Handle notes and rests
+                setPaletteDragState(true, type, duration);
+                event.dataTransfer.setData('text/plain', type);
+            }
+        });
+
+        newNote.addEventListener('dragend', (event) => {
+            console.log("Palette dragend detected, cleaning up");
+            setPaletteDragState(false, null, null);
+        });
     });
 }
 
 /**
- * Toggle between drag mode and click mode
- */
-export function togglePaletteMode() {
-    pianoState.togglePaletteDragMode = !pianoState.togglePaletteDragMode;
-    setupPaletteInteractions(pianoState.togglePaletteDragMode);
-    return pianoState.togglePaletteDragMode;
-}
-
-/**
- * Initialize palette interactions based on current state
+ * Initialize palette interactions
  */
 export function initializePaletteInteractions() {
-    setupPaletteInteractions(pianoState.togglePaletteDragMode);
+    setupPaletteInteractions();
 }

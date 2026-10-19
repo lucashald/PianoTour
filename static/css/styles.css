@@ -942,20 +942,14 @@ body.no-scroll {
   transform: scale(1.05);
 }
 
-/* Click mode styling - cursor pointer instead of grab */
-.palette-note.palette-click-mode {
-  cursor: pointer;
-  -webkit-user-drag: none;
-  user-drag: none;
+/* Palette items can be clicked or dragged */
+.palette-note {
+  cursor: grab;
   -webkit-user-select: none;
   user-select: none;
 }
 
-.palette-note:not(.palette-click-mode) {
-  cursor: grab;
-}
-
-.palette-note:not(.palette-click-mode):active {
+.palette-note:active {
   cursor: grabbing;
 }
 
