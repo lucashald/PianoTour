@@ -582,7 +582,13 @@ export function safeRedraw(beaming = false) {
   drawAll(scoreData, false, beaming);
 }
 
-export function enableScoreInteraction(onMeasureClick, onNoteClick) {
+/**
+ * Wires pointer clicks and drags on the score.
+ * @param {Function} onMeasureClick - (measureIndex, wasNoteClicked) on a click in an unselected measure
+ * @param {Function} onNoteClick - (measureIndex, clef, noteId) on a click on a note
+ * @param {Function} [onDeselect] - on a click in the selected measure (off any note) or outside every measure
+ */
+export function enableScoreInteraction(onMeasureClick, onNoteClick, onDeselect) {
   const scoreElement = document.getElementById("score");
   if (!scoreElement) {
     console.error("enableScoreInteraction: Score element not found.");
@@ -713,8 +719,12 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
           mouseDownNoteTarget.noteId
         );
       } else {
+        // Clicking the selected measure again, or the score outside any
+        // measure, unselects. A click on a note is handled above instead.
         const measureIndex = detectMeasureClick(endX, endY);
-        if (measureIndex !== -1) {
+        if (measureIndex === -1 || measureIndex === pianoState.currentSelectedMeasure) {
+          onDeselect?.();
+        } else {
           onMeasureClick(measureIndex, false);
         }
       }
@@ -723,9 +733,24 @@ export function enableScoreInteraction(onMeasureClick, onNoteClick) {
     resetDragState();
   });
 
+  // #score is only as wide as the drawn music, so the white space beside it
+  // belongs to the surrounding .score-viewer section. A press there (not on
+  // the title or the scrollbar) unselects too. Clicks inside #score are
+  // handled by the pointer handlers above. This listens for the press rather
+  // than "click", which would also fire on the section when a drag that
+  // started on a note ends in the margin.
+  const scoreViewerElement = scoreElement.closest('.score-viewer');
+  scoreViewerElement?.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (scoreElement.contains(event.target) || event.target.closest('#score-title')) return;
+    // A press on the scroll container's own scrollbar lands below its content box.
+    const scroller = event.target.closest('.score-viewer__container');
+    if (scroller && event.clientY > scroller.getBoundingClientRect().top + scroller.clientHeight) return;
+    onDeselect?.();
+  });
+
   // Right-click context menu — attached to the whole score-viewer so the title
   // and surrounding whitespace are also covered.
-  const scoreViewerElement = scoreElement.closest('.score-viewer');
   const contextMenuTarget = scoreViewerElement || scoreElement;
   contextMenuTarget.addEventListener("contextmenu", (event) => {
     event.preventDefault();

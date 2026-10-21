@@ -336,7 +336,13 @@ function scheduleNoteEvents(
 /**
  * Schedules the entire score for playback using note.performedDuration and note.velocity
  */
-export function playScore(measures, bpm = pianoState.tempo) {
+/**
+ * Schedules and starts score playback.
+ * @param {Array} measures - All measures in the score
+ * @param {number} bpm - Tempo in quarter notes per minute
+ * @param {number} startMeasure - Index of the measure to start from (0 = the top)
+ */
+export function playScore(measures, bpm = pianoState.tempo, startMeasure = 0) {
   if (!audioManager.isAudioReady()) {
     console.warn("Sampler is not ready. Cannot play score.");
     return;
@@ -379,6 +385,10 @@ export function playScore(measures, bpm = pianoState.tempo) {
   const secondsPerBeat = 60 / bpm;
 
   measures.forEach((measure, measureIndex) => {
+    // Measures before the start point are skipped; transport time 0 is the
+    // start of the starting measure.
+    if (measureIndex < startMeasure) return;
+
     // Schedule scroll event for the beginning of each measure
     Tone.Transport.scheduleOnce((time) => {
       if (measureIndex !== lastScrolledMeasureIndex) {
@@ -395,9 +405,19 @@ export function playScore(measures, bpm = pianoState.tempo) {
     const trebleNotes = measure.filter((n) => n.clef === "treble");
     const bassNotes = measure.filter((n) => n.clef === "bass");
 
+    // A note tied over from before the start point has no earlier note to
+    // sound it, so strike it here at its own length.
+    const tieInfoFor = (note) => {
+      const tieInfo = tieMap.get(note.id);
+      if (measureIndex === startMeasure && tieInfo?.isEnd && !tieInfo.isChainStart) {
+        return { ...tieInfo, isChainStart: true };
+      }
+      return tieInfo;
+    };
+
     // Schedule Treble Notes
     trebleNotes.forEach((note) => {
-      const tieInfo = tieMap.get(note.id);
+      const tieInfo = tieInfoFor(note);
       trebleMeasureOffset += scheduleNoteEvents(
         note,
         measureIndex,
@@ -411,7 +431,7 @@ export function playScore(measures, bpm = pianoState.tempo) {
 
     // Schedule Bass Notes
     bassNotes.forEach((note) => {
-      const tieInfo = tieMap.get(note.id);
+      const tieInfo = tieInfoFor(note);
       bassMeasureOffset += scheduleNoteEvents(
         note,
         measureIndex,
@@ -527,8 +547,12 @@ export function initializePlayer() {
     ?.addEventListener("click", async (e) => {
       e.preventDefault();
 
+      // Start from the selected measure, if any. Read it now: playScore()
+      // resets all highlights, which clears the selection.
+      const startMeasure = Math.max(pianoState.currentSelectedMeasure, 0);
+
       const playAction = () => {
-        playScore(getMeasures());
+        playScore(getMeasures(), pianoState.tempo, startMeasure);
         Tone.Transport.start();
       };
 

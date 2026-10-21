@@ -11,6 +11,7 @@ import {
   highlightSelectedMeasure,
   highlightSelectedNote,
   clearSelectedNoteHighlight,
+  clearMeasureHighlight,
 } from "../score/scoreHighlighter.js";
 import {
   enableScoreInteraction,
@@ -1432,6 +1433,24 @@ function handleEditorNoteSelectClick(measureIndex, clef, noteId) {
   renderNoteEditBox();
 }
 
+/**
+ * Clears the measure and note selection on the score, so Play starts from the
+ * top. The sidebar keeps showing the same measure, with no note selected; the
+ * next sidebar action selects that measure again.
+ */
+function deselectMeasure() {
+  editorSelectedNoteId = null;
+  clearSelectedNoteHighlight();
+  pianoState.currentSelectedNote = null;
+  clearMeasureHighlight();
+
+  if (document.getElementById("editorContainer")) {
+    const currentMeasure = getMeasures()[editorSelectedMeasureIndex] || [];
+    renderSidebarNoteList(currentMeasure, null);
+    renderSidebarNoteEditor(currentMeasure, null);
+  }
+}
+
 function changeMeasure(newMeasureIndex, clearSelectedNote = true) {
   console.log("changeMeasure called", newMeasureIndex, clearSelectedNote);
   const measures = getMeasures();
@@ -1695,6 +1714,7 @@ export function initializeScoreInteraction() {
     (measureIndex, wasNoteClicked) =>
       changeMeasure(measureIndex, !wasNoteClicked),
     handleEditorNoteSelectClick,
+    deselectMeasure,
   );
 
   // Handle notes dropped onto the score (drag-and-drop from palette or within score)
