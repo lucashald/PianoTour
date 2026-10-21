@@ -208,8 +208,19 @@ export async function drawAllPrint(containerId, measures) {
           }
         });
 
-        const trebleVoice = score.voice(trebleVexNotes).setStrict(false);
-        const bassVoice = score.voice(bassVexNotes).setStrict(false);
+        // Build voices with setStrict(false) BEFORE adding tickables, as in
+        // scoreRenderer.js. score.voice() makes a strict 4/4 voice and throws
+        // "Too many ticks" on longer meters (9/8, 5/4) before setStrict applies.
+        const trebleVoice = new Vex.Flow.Voice({
+          numBeats: pianoState.timeSignature.numerator,
+          beatValue: pianoState.timeSignature.denominator,
+        }).setStrict(false);
+        trebleVoice.addTickables(trebleVexNotes);
+        const bassVoice = new Vex.Flow.Voice({
+          numBeats: pianoState.timeSignature.numerator,
+          beatValue: pianoState.timeSignature.denominator,
+        }).setStrict(false);
+        bassVoice.addTickables(bassVexNotes);
         allVoices.push(trebleVoice, bassVoice);
 
         // Create system — use full line width for partial systems
