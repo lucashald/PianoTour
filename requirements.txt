@@ -3,4 +3,3 @@ flask-limiter
 gunicorn
 jsonschema
 mido
-google-generativeai>=0.8.5
