@@ -174,6 +174,15 @@ class ImportTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 midi_tools.midi_to_json(path)
 
+    def test_measure_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "long.mid"
+            write_midi(path, [(0, [(60, 0, 1), (62, 3996, 4000)])])
+            self.assertEqual(len(midi_tools.midi_to_json(path)["measures"]), 1000)
+            write_midi(path, [(0, [(60, 0, 1), (62, 4000, 4001)])])
+            with self.assertRaises(ValueError):
+                midi_tools.midi_to_json(path)
+
 
 class TwoStepTests(unittest.TestCase):
     """extract() -> JSON -> quantize_json(), as the /extract-midi and /quantize-tracks routes use it."""
@@ -207,6 +216,7 @@ class TwoStepTests(unittest.TestCase):
             "bool as number": lambda r: r.__setitem__("ppq", True),
             "wrong format": lambda r: r.__setitem__("format", "ugly_midi"),
             "duplicate track": lambda r: r["tracks"].append(copy.deepcopy(r["tracks"][0])),
+            "note ends far out": lambda r: r["tracks"][0]["notes"][0].__setitem__(2, 2 ** 31),
         }
         for name, damage in breaks.items():
             with self.subTest(name):

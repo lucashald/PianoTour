@@ -11,6 +11,10 @@ from fractions import Fraction
 from .durations import spell
 from .model import Event, Measure, STAVES
 
+# Longer than nearly any real piece. A note far out in a crafted file would
+# otherwise build millions of empty measures and exhaust memory.
+MAX_MEASURES = 1000
+
 
 @dataclass
 class TimedNote:
@@ -75,6 +79,8 @@ def build_measures(notes_by_staff, measure_length, warnings, legato=True):
     """{"treble": [TimedNote], "bass": [...]} -> list[Measure]."""
     last_end = max((n.end for notes in notes_by_staff.values() for n in notes), default=Fraction(0))
     count = max(1, -(-last_end // measure_length))  # ceiling
+    if count > MAX_MEASURES:
+        raise ValueError(f"the music runs {count} measures; the limit is {MAX_MEASURES}")
     total = count * measure_length
     measures = [Measure() for _ in range(int(count))]
 
