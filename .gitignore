@@ -7,7 +7,6 @@ tests/
 !midi_tools/tests/
 node_modules/
 examples/
-static/js/spessa/
 scripts/
 docs/
 guitar/
