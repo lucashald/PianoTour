@@ -252,10 +252,7 @@ def get_settings():
 
 @app.route('/savesettings', methods=['POST'])
 def save_settings():
-    return jsonify({
-        'success': True,
-        'message': 'Settings received by server.'
-    })
+    return jsonify({'success': True})
 
 
 @app.route('/soundfonts')
@@ -265,9 +262,7 @@ def soundfont():
 
 @app.route('/setlastsf2')
 def set_last_sf2():
-    """Remember last selected SoundFont"""
-    sfname = request.args.get('sfname', '')
-    print(f"Last SoundFont set to: {sfname}")
+    """SpessaSynth reports the selected SoundFont here; nothing to store."""
     return jsonify({'success': True})
 
 
