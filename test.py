@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
+# Reject oversized bodies before they're read. The largest real payload is a
+# /quantize-tracks request, which the route also caps at 10 MB.
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024
 limiter = Limiter(app=app, key_func=get_remote_address)
 
 # --- MIDI conversion limits ---
@@ -276,6 +279,11 @@ def not_found(error):
     return "Page not found", 404
 
 
+@app.errorhandler(413)
+def too_large(error):
+    return jsonify({'error': 'Upload too large. The limit is 10 MB.'}), 413
+
+
 import jsonschema
 from jsonschema import validate
 
@@ -445,7 +453,7 @@ def convert_to_midi():
         if request.content_length and request.content_length > 1024 * 1024:
             return jsonify({'error': 'Song data too large'}), 413
 
-        song_data = request.get_json()
+        song_data = request.get_json(silent=True)
         if not song_data:
             return jsonify({'error': 'No song data provided'}), 400
 
@@ -605,7 +613,7 @@ def quantize_tracks():
         if request.content_length and request.content_length > 10 * 1024 * 1024:
             return jsonify({'error': 'Payload too large'}), 413
 
-        payload = request.get_json()
+        payload = request.get_json(silent=True)
         if not payload:
             return jsonify({'error': 'No JSON payload provided.'}), 400
 
